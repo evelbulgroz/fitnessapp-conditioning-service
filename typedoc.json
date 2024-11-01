@@ -1,0 +1,7 @@
+{
+    // Comments are supported, like tsconfig.json
+    "entryPoints": ["./src/"],
+    "out": "docs",
+	"excludePrivate": true,
+	"name": "Conditioning training microservice for fitness app, with TypeScript and Jest."
+}
