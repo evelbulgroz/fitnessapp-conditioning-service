@@ -7,17 +7,17 @@ import { jest } from '@jest/globals';
 import { Observable, Subscription, firstValueFrom, of } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
-
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationQuery, AggregationType, SampleRate } from '@evelbulgroz/time-series';
-//import { AggregatorService } from '../../services/aggregator/aggregator.service';
+import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
+import { Query, QueryDTO, SearchFilterCriterionDTO, SearchFilterOperation } from '@evelbulgroz/query-fns';
+
+import { AggregatorService } from '../../services/aggregator/aggregator.service';
 import { ConditioningDataService } from './conditioning-data.service';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
 import { FileService } from '../file-service/file.service';
-import { Query, QueryDTO, SearchFilterCriterionDTO, SearchFilterOperation } from '@evelbulgroz/query-fns';
 import { User } from '../../domain/user.entity';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
@@ -37,7 +37,7 @@ describe('ConditioningDataService', () => {
 				//ConfigModule is imported automatically by createTestingModule
 			],
 			providers: [
-				//pAggregatorService,
+				AggregatorService,
 				ConfigService,
 				FileService,
 				ConditioningDataService,
@@ -877,10 +877,9 @@ describe('ConditioningDataService', () => {
 		});		
 	});
 	
-	/*
 	describe('Aggregation of time series', () => {
 		let aggregationQuery: AggregationQuery;
-		let dataQuery: Query;
+		let dataQuery: Query<any, any>;
 		beforeEach(() => {
 			aggregationQuery = new AggregationQuery({
 				aggregatedType: 'ConditioningLog',
@@ -890,19 +889,17 @@ describe('ConditioningDataService', () => {
 				aggregatedValueUnit: 'ms',				
 			});
 
-			dataQuery = new Query(
-				new QueryDTO({
+			dataQuery = new Query<any,any>({
 					searchCriteria: [
-						new SearchCriterionDTO({
+						{
 							key: 'activity',
-							operation: SearchOperation.EQUALS,
+							operation: SearchFilterOperation.EQUALS,
 							value: ActivityType.MTB
-						}),
+						},
 					],
 					filterCriteria: [],
 					sortCriteria: [],
-				})
-			);
+				});
 		});
 		
 		// not testing that AggregatorService works, just that it is called with the right parameters
@@ -922,6 +919,7 @@ describe('ConditioningDataService', () => {
 			expect(aggregatedLogCount).toBe(expectedLogCount);
 		});
 
+		/*
 		it('can aggregate a time series of ConditioningLogs for a single user by id', async () => {
 			// arrange
 			
@@ -950,9 +948,9 @@ describe('ConditioningDataService', () => {
 				.reduce((sum, entry) => sum + entry.logs.filter(log => log.activity === queryActivity).length, 0);	
 			const aggregatedLogCount = aggregatedSeries.data.reduce((sum, dataPoint) => sum + dataPoint.value.aggregationOf.length, 0);
 			expect(aggregatedLogCount).toBe(matchingLogCount);
-		});		
+		});
+		*/	
 	});
-	*/
 
 	describe('Utilities', () => {
 		describe('Conversion to time series', () => {

@@ -8,7 +8,7 @@ import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 import { Quantity } from '@evelbulgroz/quantity-class';
 
 import { AggregationQuery } from '../../controllers/domain/aggregation-query.model';
-//import { AggregatorService } from '../aggregator/aggregator.service';
+import { AggregatorService } from '../aggregator/aggregator.service';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
@@ -40,16 +40,16 @@ interface UserLogsCacheEntry {
  */
 @Injectable()
 export class ConditioningDataService {
+	//--------------------------------- PRIVATE PROPERTIES ---------------------------------
+	
 	protected readonly userLogsSubject = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice (todo: implement deserialization and synchronization)
-
 	#isInitializing = false; // flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
-
 	@Inject(Logger) private readonly logger: Logger;
 	
 	//--------------------------------- CONSTRUCTOR ---------------------------------
 
 	constructor(
-		//private readonly aggregator: AggregatorService,
+		private readonly aggregator: AggregatorService,
 		private readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly userRepo: UserRepository<any, UserDTO>
 	) { }
@@ -157,7 +157,7 @@ export class ConditioningDataService {
 	 * @todo Convert logsQuery to ConditioningLogQuery
 	 */
 	public async aggretagedConditioningLogs(aggregationQuery: AggregationQuery, logsQuery?: LogsQuery, userId?: EntityId): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
-		/*await this.isReady(); // lazy load logs if necessary
+		await this.isReady(); // lazy load logs if necessary
 
 		// convert logs matching query to time series
 		let matchingLogs: ConditioningLog<any, ConditioningLogDTO>[];
@@ -189,8 +189,6 @@ export class ConditioningDataService {
 			}
 		);
 		return Promise.resolve(aggregatedSeries);
-		*/
-		return Promise.resolve({} as any); // debug: return empty object for now
 		
 	}
 	
