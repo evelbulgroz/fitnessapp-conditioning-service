@@ -11,6 +11,7 @@ import {
 /**@description Aggregates time series data by sample rate and aggregation type
  * @note This service is generic so that it can be used for different types of data e.g. sensor data, training logs, aggregated training data etc.
  * @note Injectable wrapper for TimeSeriesAggregator from @evelbulgroz/time-series
+ * @todo Refactor to accept local AggregationQuery as param, then map internally to import from @evelbulgroz/time-series
  */
 @Injectable()
 export class AggregatorService {
