@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
 import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
-import { Query, QueryDTO, SearchFilterCriterionDTO, SearchFilterOperation } from '@evelbulgroz/query-fns';
+import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 
 import { AggregationQuery } from '../../controllers/domain/aggregation-query.model';
 import { AggregatorService } from '../../services/aggregator/aggregator.service';
@@ -20,9 +20,9 @@ import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
 import { FileService } from '../file-service/file.service';
 import { User } from '../../domain/user.entity';
+import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
-import UserContext from '../../controllers/domain/user-context.model';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
