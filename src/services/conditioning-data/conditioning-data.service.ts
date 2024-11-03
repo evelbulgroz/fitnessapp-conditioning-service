@@ -152,26 +152,24 @@ export class ConditioningDataService {
 	/**New API: Get aggregated time series of conditioning logs by query
 	 * @param aggregationQuery Validated aggregation query DTO
 	 * @param logsQuery Optional query to filter logs before aggregation (else all logs are aggregated)
-	 * @param userId Optional user id to filter logs by user
+	 * @param userId Optional user id to further constrain logs to single user by id
 	 * @returns Aggregated time series of conditioning logs
 	 */
 	public async aggretagedConditioningLogs(aggregationQuery: AggregationQuery, logsQuery?: Query<ConditioningLog<any,ConditioningLogDTO>, ConditioningLogDTO>, userId?: EntityId): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
-		await this.isReady(); // lazy load logs if necessary
+		await this.isReady(); // initialize cache if necessary
 
-		// convert logs matching query to time series
-		let matchingLogs: ConditioningLog<any, ConditioningLogDTO>[];
-		if (logsQuery !== undefined) {
-			matchingLogs = await this.getByQuery(logsQuery as any, userId);
+		// constrain searchable logs to single user if user id is provided
+		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];
+		if (userId !== undefined) {
+			searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === userId)?.logs ?? [];
 		}
-		else if (userId !== undefined) {
-			const cacheEntry = this.userLogsSubject.value.find((entry) => entry.userId === userId);
-			if (cacheEntry === undefined) return Promise.resolve([] as any); // user not found, return empty array
-			matchingLogs = cacheEntry.logs;
+		else { // use all logs
+			searchableLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
 		}
-		else {
-			matchingLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
-		}
-		const timeSeries: ConditioningLogSeries<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO> = this.toConditioningLogSeries(matchingLogs);
+
+		// convert searchable logs matching query to time series
+		const matchingLogs = logsQuery !== undefined ? logsQuery.execute(searchableLogs) : searchableLogs;
+		const timeSeries = this.toConditioningLogSeries(matchingLogs);
 
 		// aggregate time series
 		const aggregatedSeries = this.aggregator.aggregate(
@@ -187,8 +185,7 @@ export class ConditioningDataService {
 				}
 			}
 		);
-		return Promise.resolve(aggregatedSeries);
-		
+		return Promise.resolve(aggregatedSeries);		
 	}
 	
 	/**In production: Get aggregated conditioning data with series from all activities */

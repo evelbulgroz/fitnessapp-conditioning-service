@@ -22,6 +22,7 @@ import { FileService } from '../file-service/file.service';
 import { User } from '../../domain/user.entity';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
+import exp from 'constants';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -29,6 +30,7 @@ const originalTimeout = 5000;
 
 describe('ConditioningDataService', () => {
 	// set up test environment and dependencies/mocks
+	let aggregatorService: AggregatorService;
 	let dataService: ConditioningDataService;
 	let logRepo: ConditioningLogRepo<any, ConditioningLogDTO>;
 	let userRepo: UserRepository<any, UserDTO>;
@@ -38,7 +40,12 @@ describe('ConditioningDataService', () => {
 				//ConfigModule is imported automatically by createTestingModule
 			],
 			providers: [
-				AggregatorService,
+				{
+					provide: AggregatorService,
+					useValue: {
+						aggregate: jest.fn()
+					}
+				},
 				ConfigService,
 				FileService,
 				ConditioningDataService,
@@ -65,6 +72,7 @@ describe('ConditioningDataService', () => {
 				}
 			],
 		});
+		aggregatorService = module.get<AggregatorService>(AggregatorService);
 		dataService = module.get<ConditioningDataService>(ConditioningDataService);
 		logRepo = module.get<ConditioningLogRepo<any, ConditioningLogDTO>>(ConditioningLogRepo);
 		userRepo = module.get<UserRepository<any, UserDTO>>(UserRepository);
@@ -880,8 +888,9 @@ describe('ConditioningDataService', () => {
 	
 	describe('Aggregation of time series', () => {
 		let aggregationQuery: AggregationQuery;
+		let aggregatorSpy: any;
 		let dataQuery: Query<any, any>;
-		beforeEach(() => {
+		beforeEach(async () => {
 			aggregationQuery = new AggregationQuery({
 				aggregatedType: 'ConditioningLog',
 				aggregatedProperty: 'duration',
@@ -891,63 +900,83 @@ describe('ConditioningDataService', () => {
 			});
 
 			dataQuery = new Query<any,any>({
-					searchCriteria: [
-						{
-							key: 'activity',
-							operation: SearchFilterOperation.EQUALS,
-							value: ActivityType.MTB
-						},
-					],
-					filterCriteria: [],
-					sortCriteria: [],
+				searchCriteria: [
+					{
+						key: 'activity',
+						operation: SearchFilterOperation.EQUALS,
+						value: ActivityType.MTB
+					},
+				],
+				filterCriteria: [],
+				sortCriteria: [],
+			});
+			
+			aggregatorSpy = jest.spyOn(aggregatorService, 'aggregate')
+				.mockImplementation((timeseries, query, extractor) => {
+					return {} as any
 				});
+
+			await dataService.isReady();
 		});
+		
+		afterEach(() => {
+			aggregatorSpy && aggregatorSpy.mockRestore();
+		});
+		
 		
 		// not testing that AggregatorService works, just that it is called with the right parameters
 		// leave deeper testing of the result to AggregatorService tests: here it gets too complicated by the way the data is generated/randomized
 		it('can aggregate a time series of all ConditioningLogs for all users', async () => {
-			// arrange
-			const expectedLogCount = dataService['userLogsSubject'].value.reduce((sum, entry) => sum + entry.logs.length, 0);
-			
 			// act
 			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery);
-						
-			// assert
-			expect(aggregatedSeries).toBeDefined();
-			expect(Array.isArray(aggregatedSeries.data)).toBe(true);
+			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs());
 			
-			const aggregatedLogCount = aggregatedSeries.data.reduce((sum, dataPoint) => sum + dataPoint.value.aggregationOf.length, 0);
-			expect(aggregatedLogCount).toBe(expectedLogCount);
+			// assert
+			expect(aggregatorSpy).toHaveBeenCalled();
+			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
+			expect(aggregatedSeries).toBeDefined();
+		});
+		
+		it('aggreates only logs matching search criteria, if provided', async () => {			
+			// arrange
+			const matchingLogs = dataQuery.execute(dataService['userLogsSubject'].value.flatMap((entry) => entry.logs));
+			const expectedTimeSeries = dataService['toConditioningLogSeries'](matchingLogs);
+
+			// act
+			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery, dataQuery);
+			
+			// assert
+			expect(aggregatorSpy).toHaveBeenCalled();
+			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
+			expect(aggregatedSeries).toBeDefined();
 		});
 
-		it('can aggregate a time series of ConditioningLogs for a single user by id', async () => {
+		it('aggregates only logs for a single user by id, if provided', async () => {
 			// arrange
+			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(randomUserId));
 			
 			// act
 			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery, undefined, randomUserId);
 			
 			// assert
-			expect(aggregatedSeries).toBeDefined();
-			expect(Array.isArray(aggregatedSeries.data)).toBe(true);
-						
-			const expectedLogIds = logsForRandomUser.map(log => log.entityId);
-			const aggregatedLogIds = aggregatedSeries.data.flatMap(dataPoint => dataPoint.value.aggregationOf.map(log => log.entityId));
-			expect(aggregatedLogIds).toEqual(expect.arrayContaining(expectedLogIds));			
+			expect(aggregatorSpy).toHaveBeenCalled();
+			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
+			expect(aggregatedSeries).toBeDefined();			
 		});
 		
-		xit('aggreates only logs that match search criteria, if provided', async () => {			
+		it('aggreates only logs matching search criteria and user id, if both are provided', async () => {
+			// arrange
+			const searchableLogs = dataService['userLogsSubject'].value.find((entry) => entry.userId === randomUserId)?.logs ?? [];
+			const matchingLogs = dataQuery.execute(searchableLogs);
+			const expectedTimeSeries = dataService['toConditioningLogSeries'](matchingLogs);
+			
 			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery, dataQuery);
+			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery, dataQuery, randomUserId);
 			
 			// assert
+			expect(aggregatorSpy).toHaveBeenCalled();
+			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
 			expect(aggregatedSeries).toBeDefined();
-			expect(Array.isArray(aggregatedSeries.data)).toBe(true);
-
-			const queryActivity =  ActivityType[dataQuery?.toJSON().searchCriteria![0]?.value as keyof typeof ActivityType];
-			const expectedLogCount = dataService['userLogsSubject'].value
-				.reduce((sum, entry) => sum + entry.logs.filter(log => log.activity === queryActivity).length, 0);	
-						const aggregatedLogCount = aggregatedSeries.data.reduce((sum, dataPoint) => sum + dataPoint.value.aggregationOf.length, 0);
-			expect(aggregatedLogCount).toBe(expectedLogCount);
 		});
 	});
 
