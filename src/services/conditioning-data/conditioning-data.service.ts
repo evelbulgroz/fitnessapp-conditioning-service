@@ -83,6 +83,8 @@ export class ConditioningDataService {
 	 * @returns Detailed log, or undefined if not found
 	 * @remarks Will repopulate details even if log is already detailed
 	 * @remarks Constrains search to logs for a single user if user id is provided; controller should handle user access
+	 * @todo Refactor to take UserContext instead of user id, to allow for more complex queries and enforce access rules
+	 *  -- follow approach in conditioningLogs()
 	 */
 	public async conditioningLogDetails(logId: EntityId, userId?: EntityId): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
