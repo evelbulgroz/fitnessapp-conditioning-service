@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 
 import {
 	AggregatedTimeSeries,
-	AggregationQuery,
+	AggregationQuery as TimeSeriesAggregationQuery,
 	DataPoint,
 	TimeSeriesAggregator,
 	TimeSeries
 } from '@evelbulgroz/time-series';
+
+import { AggregationQuery } from '../../controllers/domain/aggregation-query.model';
 
 /**@description Aggregates time series data by sample rate and aggregation type
  * @note This service is generic so that it can be used for different types of data e.g. sensor data, training logs, aggregated training data etc.
@@ -39,8 +41,15 @@ export class AggregatorService {
 		timeSeries: TimeSeries<T>,
 		aggregationQuery: AggregationQuery,
 		valueExtractor?: (dataPoint: DataPoint<T>) => U,
-	): AggregatedTimeSeries<T, U> {			
-		return this._aggregator.aggregate(timeSeries, aggregationQuery, valueExtractor);
+	): AggregatedTimeSeries<T, U> {		
+		const timeSeriesAggregationQuery = new TimeSeriesAggregationQuery({ // map local aggregation query to time series aggregation query
+			aggregatedProperty: aggregationQuery.aggregatedProperty,
+			aggregatedType: aggregationQuery.aggregatedType,
+			aggregationType: aggregationQuery.aggregationType,
+			aggregatedValueUnit: aggregationQuery.aggregatedValueUnit,
+			sampleRate: aggregationQuery.sampleRate
+	});	
+		return this._aggregator.aggregate(timeSeries, timeSeriesAggregationQuery, valueExtractor);
 	}
 }
 

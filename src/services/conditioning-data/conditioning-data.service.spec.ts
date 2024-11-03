@@ -8,10 +8,11 @@ import { Observable, Subscription, firstValueFrom, of } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
-import { AggregationQuery, AggregationType, SampleRate } from '@evelbulgroz/time-series';
+import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
 import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
 import { Query, QueryDTO, SearchFilterCriterionDTO, SearchFilterOperation } from '@evelbulgroz/query-fns';
 
+import { AggregationQuery } from '../../controllers/domain/aggregation-query.model';
 import { AggregatorService } from '../../services/aggregator/aggregator.service';
 import { ConditioningDataService } from './conditioning-data.service';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
@@ -586,7 +587,7 @@ describe('ConditioningDataService', () => {
 		jest.clearAllMocks();
 	});
 
-	xit('can be created', () => {
+	it('can be created', () => {
 		expect(dataService).toBeTruthy();
 	});
 
@@ -919,7 +920,6 @@ describe('ConditioningDataService', () => {
 			expect(aggregatedLogCount).toBe(expectedLogCount);
 		});
 
-		/*
 		it('can aggregate a time series of ConditioningLogs for a single user by id', async () => {
 			// arrange
 			
@@ -935,21 +935,20 @@ describe('ConditioningDataService', () => {
 			expect(aggregatedLogIds).toEqual(expect.arrayContaining(expectedLogIds));			
 		});
 		
-		it('aggreates only logs that match search criteria, if provided', async () => {			
+		xit('aggreates only logs that match search criteria, if provided', async () => {			
 			// act
 			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery, dataQuery);
 			
 			// assert
 			expect(aggregatedSeries).toBeDefined();
 			expect(Array.isArray(aggregatedSeries.data)).toBe(true);
-			
-			const queryActivity =  ActivityType[dataQuery.searchCriteria[0]?.toJSON()?.value as keyof typeof ActivityType];
-			const matchingLogCount = dataService['userLogsSubject'].value
+
+			const queryActivity =  ActivityType[dataQuery?.toJSON().searchCriteria![0]?.value as keyof typeof ActivityType];
+			const expectedLogCount = dataService['userLogsSubject'].value
 				.reduce((sum, entry) => sum + entry.logs.filter(log => log.activity === queryActivity).length, 0);	
-			const aggregatedLogCount = aggregatedSeries.data.reduce((sum, dataPoint) => sum + dataPoint.value.aggregationOf.length, 0);
-			expect(aggregatedLogCount).toBe(matchingLogCount);
+						const aggregatedLogCount = aggregatedSeries.data.reduce((sum, dataPoint) => sum + dataPoint.value.aggregationOf.length, 0);
+			expect(aggregatedLogCount).toBe(expectedLogCount);
 		});
-		*/	
 	});
 
 	describe('Utilities', () => {

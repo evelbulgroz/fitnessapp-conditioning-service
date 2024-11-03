@@ -2,10 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
-import { AggregationQuery as LibAggregationQuery, AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
+import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 import { Quantity } from '@evelbulgroz/quantity-class';
+import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQuery } from '../../controllers/domain/aggregation-query.model';
 import { AggregatorService } from '../aggregator/aggregator.service';
@@ -13,7 +14,6 @@ import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
-import { Query } from '@evelbulgroz/query-fns';
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
 import { LogsQuery } from '../../controllers/domain/logs-query.model';;
 import { User } from '../../domain/user.entity';
@@ -154,15 +154,14 @@ export class ConditioningDataService {
 	 * @param logsQuery Optional query to filter logs before aggregation (else all logs are aggregated)
 	 * @param userId Optional user id to filter logs by user
 	 * @returns Aggregated time series of conditioning logs
-	 * @todo Convert logsQuery to ConditioningLogQuery
 	 */
-	public async aggretagedConditioningLogs(aggregationQuery: AggregationQuery, logsQuery?: LogsQuery, userId?: EntityId): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
+	public async aggretagedConditioningLogs(aggregationQuery: AggregationQuery, logsQuery?: Query<ConditioningLog<any,ConditioningLogDTO>, ConditioningLogDTO>, userId?: EntityId): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		await this.isReady(); // lazy load logs if necessary
 
 		// convert logs matching query to time series
 		let matchingLogs: ConditioningLog<any, ConditioningLogDTO>[];
 		if (logsQuery !== undefined) {
-			matchingLogs = await this.getByQuery(logsQuery as any, userId); // todo: convert logsQuery to ConditioningLogQuery
+			matchingLogs = await this.getByQuery(logsQuery as any, userId);
 		}
 		else if (userId !== undefined) {
 			const cacheEntry = this.userLogsSubject.value.find((entry) => entry.userId === userId);
@@ -177,7 +176,7 @@ export class ConditioningDataService {
 		// aggregate time series
 		const aggregatedSeries = this.aggregator.aggregate(
 			timeSeries,
-			aggregationQuery as unknown as LibAggregationQuery, // local type is compatible with library type -> cast, don't convert
+			aggregationQuery,
 			(dataPoint: DataPoint<ConditioningLog<any, ConditioningLogDTO>>) => {
 				const propValue = dataPoint.value[aggregationQuery.aggregatedProperty as keyof ConditioningLog<any, ConditioningLogDTO>];
 				if (propValue instanceof Quantity) {
