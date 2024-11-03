@@ -77,42 +77,46 @@ export class ConditioningDataService {
 		});
 	}	
 	
-	/**New API:  Get detail for a single, existing conditioning log by entity id
+	/**New API: Get detail for a single, existing conditioning log by entity id
 	 * @param logId Entity id of the conditioning log
 	 * @param userId Optional user id to filter logs by user (if not provided, all logs are searched)
 	 * @returns Detailed log, or undefined if not found
 	 * @remarks Will repopulate details even if log is already detailed
 	 * @remarks Constrains search to logs for a single user if user id is provided; controller should handle user access
-	 * @todo Refactor to take UserContext instead of user id, to allow for more complex queries and enforce access rules
-	 *  -- follow approach in conditioningLogs()
 	 */
-	public async conditioningLogDetails(logId: EntityId, userId?: EntityId): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async conditioningLogDetails(ctx: UserContext, logId: EntityId): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
-			await this.isReady(); // lazy load logs if necessary
-			
-			let cacheEntry: UserLogsCacheEntry | undefined;			
-			if (userId !== undefined) { // find cache entry by user id, if provided
-				cacheEntry = this.userLogsSubject.value.find((entry) => entry.userId === userId);
-				if (cacheEntry === undefined) {
-					resolve(undefined); // user not found, return undefined
-					return; // exit early
-				}				
-			}
-			else { // find cache entry by log id
-				cacheEntry = this.userLogsSubject.value.find((entry) => entry.logs.some((log) => log.entityId === logId));
-				if (cacheEntry === undefined) {
-					resolve(undefined); // log not found, return undefined
-					return; // exit early
-				}
-			}
-			
-			// find log by entity id
-			let originalLog: ConditioningLog<any, ConditioningLogDTO> | undefined;
-			const index = cacheEntry.logs.findIndex(log => log.entityId === logId);
-			
-			if (index > -1) { // found in cache
-				originalLog = cacheEntry!.logs[index];
+			await this.isReady(); // initialize service if necessary
 
+			// todo: throw error if non-admin request tries to access logs for another user
+			
+			// if user role is not admin, constrain search to user logs
+			let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];
+			if (ctx.roles.includes('admin')) {
+				 // if user is admin, search all logs
+				searchableLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
+			}
+			else {				
+				// if user is not admin, search only their own logs
+				searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
+			}
+
+			// find log in cache by entity id
+			const index = searchableLogs.findIndex(log => log.entityId === logId);
+			if (index === -1) { // not found in cache, resolve undefined
+				resolve(undefined);
+				return; // exit early
+			}
+
+			// check if log is already detailed
+			const originalLog = searchableLogs[index];
+			let detailedLog: ConditioningLog<any, ConditioningLogDTO> | undefined;
+			if (!originalLog.isOverview) {
+				// log is already detailed
+				resolve(originalLog);
+				return; // exit early
+			}
+			else { // log is not detailed -> fetch from persistence
 				const result = await this.logRepo.fetchById(logId);
 				if (result.isFailure) { // error, reject
 					reject(result.error);
@@ -120,20 +124,19 @@ export class ConditioningDataService {
 				}
 
 				const detailedLog$ = result.value as Observable<ConditioningLog<any, ConditioningLogDTO>>;
-				const detailedLog = await firstValueFrom(detailedLog$.pipe(take(1)));
-				if (detailedLog !== undefined) { // detailed log available										
-						// fetchById returns a detailed log, so replace original log in cache
-						cacheEntry!.logs[index] = detailedLog; // update cache
-						resolve(detailedLog); // return detailed log
+				detailedLog = await firstValueFrom(detailedLog$.pipe(take(1)));
+				if (detailedLog !== undefined) { // detailed log available
+					// replace original log in cache
+					searchableLogs[index] = detailedLog; // update cache
+					// todo: update with cache.next to trigger subscribers
+					resolve(detailedLog);
+					return; // exit early
 				}
-				else { // not found, remove from cache and resolve
-					cacheEntry!.logs.splice(index, 1);
-					resolve(undefined);
-				}				
+				
 			}
-			else { // not found in cache, resolve undefined
-				resolve(undefined);
-			}			
+
+			// log not found, or something went wrong -> return undefined
+			resolve(undefined);
 		});
 	}
 
