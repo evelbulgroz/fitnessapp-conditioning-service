@@ -134,8 +134,9 @@ export class ConditioningDataService {
 		});
 	}
 
-	/**New API: Get all conditioning logs
+	/**New API: Get all conditioning logs matching query and user id (if provided)
 	 * @param userId Optional user id to filter logs by user
+	 * @param ctx Optional user context to filter logs by user (if not provided, all logs are searched)
 	 * @returns Array of conditioning logs (for user if specified)
 	 * @note Overviews are guaranteed to be available, full logs are loaded on demand
 	 * @todo Refactor to use query not user id, to allow for more complex queries
@@ -154,6 +155,7 @@ export class ConditioningDataService {
 	 * @param logsQuery Optional query to filter logs before aggregation (else all logs are aggregated)
 	 * @param userId Optional user id to further constrain logs to single user by id
 	 * @returns Aggregated time series of conditioning logs
+	 * @todo Take UserContext instead of user id, to allow for more complex queries
 	 */
 	public async aggretagedConditioningLogs(aggregationQuery: AggregationQuery, logsQuery?: Query<ConditioningLog<any,ConditioningLogDTO>, ConditioningLogDTO>, userId?: EntityId): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		await this.isReady(); // initialize cache if necessary
@@ -233,58 +235,6 @@ export class ConditioningDataService {
 			});
 		
 		return Promise.resolve({ dataseries } as unknown as ConditioningData);
-	}
-
-	/** DEPRECATED: Get conditioning logs by query (aggregation helper)
-	 * @param query Conditioning log query
-	 * @param userId Optional user id to filter logs by user
-	 * @returns Array of conditioning logs matching query (for user if specified)
-	 * @remarks Logs are sorted by start date and time, if available
-	 */
-	public async getByQuery(query: Query<any,any>, userId?: EntityId): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
-		/*
-		await this.isReady(); // lazy load logs if necessary
-		
-		// helper functions
-		const matchesSearchCriteria = (log: ConditioningLog<any, ConditioningLogDTO>): boolean => {
-			return query.searchCriteria
-				.map((criterion) => criterion(log))
-				.every((match) => match); // all are true	
-		}
-		
-		const matchesFilter = (log: ConditioningLog<any, ConditioningLogDTO>): boolean => {
-			return (!query.filterCriteria || query.filterCriteria.length === 0) ? true // no filter criteria, all match by default
-			: query.filterCriteria // filter criteria defined, test that all match
-				.map((criterion) => criterion(log))
-				.every((match) => match); // all are true	
-		}
-		
-		const executeSort = (logs: ConditioningLog<any, ConditioningLogDTO>[]): ConditioningLog<any, ConditioningLogDTO>[] => {
-			query.sortCriteria?.forEach((criterion) => {
-				logs = criterion(logs) as ConditioningLog<any, ConditioningLogDTO>[];
-			});
-			return logs;
-		}
-
-		let logsToQuery: ConditioningLog<any, ConditioningLogDTO>[];
-		if (userId !== undefined) {
-			const cacheEntry = this.userLogsSubject.value.find((entry) => entry.userId === userId);
-			if (cacheEntry === undefined) return Promise.resolve([]); // user not found, return empty array
-			logsToQuery = cacheEntry.logs;
-		}
-		else {
-			logsToQuery = this.userLogsSubject.value.flatMap((entry) => entry.logs);
-		}
-
-		// execute query and return results
-		const result = executeSort( // sort matching logs
-			logsToQuery // start with all logs
-			.filter((e) => matchesSearchCriteria(e)) // find entities matching search criteria
-			.filter((e) => matchesFilter(e)) // find entities matching filter criteria
-		);
-		return Promise.resolve(result);
-		*/
-		return Promise.resolve([]); // debug: return empty array for now
 	}
 
 	//--------------------------------- PROTECTED METHODS ---------------------------------
