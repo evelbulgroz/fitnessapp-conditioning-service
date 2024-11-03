@@ -35,6 +35,7 @@ interface UserLogsCacheEntry {
  * @remarks Exists to relieve repo from having to handle aggregation and other data processing unrelated to persistence.
  * @remarks For now, Observable chain ends here with methods that return single-shot promises, since there are no streaming endpoints in the API.
  * @remarks Refactor to observables if/as needed, e.g. by controller serving via Web Sockets instead of HTTP.
+ * @todo Refactor all data access methods to require UserContext instead of user id, to allow for more complex queries and enforce access rules.
  * @todo Refactor service and cache to orchestrate user and log data (e.g. adding entries to both when adding a new log for a user).
  * 
  */
@@ -134,27 +135,32 @@ export class ConditioningDataService {
 		});
 	}
 
-	/**New API: Get all conditioning logs matching query and user id (if provided)
-	 * @param ctx user context for the request (used to constrain logs to single user if user is not an admin)
+	/**New API: Get all conditioning logs matching user and query (if provided)
+	 * @param ctx user context for the request (includes user id and roles)
 	 * @param query Optional query to filter logs (else all available logs for role are returned)
 	 * @returns Array of conditioning logs (constrained by user context and query)
 	 * @note Overview logs are guaranteed to be available, full logs are loaded from persistence on demand using conditioningLogDetails()
 	 */
 	public async conditioningLogs(ctx: UserContext, query?: Query<ConditioningLog<any,ConditioningLogDTO>,ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
-		await this.isReady(); // lazy load logs if necessary
+		await this.isReady(); // initialize service if necessary
 		
 		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];
-		if (!ctx.roles.includes('admin')) { // constrain searchable logs to single user if user is not an admin
+		
+		if (!ctx.roles.includes('admin')) {
+			// if the user isn't an admin, they can only access their own logs
 			searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
 		}
-		else { // use all logs
+		else {
+			// if the user is an admin, they access all logs
 			searchableLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
-		}		
+		}	
+		// filter logs by query, if provided	
 		const matchingLogs = query !== undefined ? query.execute(searchableLogs) : searchableLogs;
 		
-		let sortedLogs = matchingLogs; // leave sort as is if query specifies sort criteria
-		if (!query?.sortCriteria || query.sortCriteria.length === 0) { // default sort if no sort criteria specified
-			sortedLogs = matchingLogs.sort(compareLogsByStartDate); // sort logs ascending by start date and time
+		// sort logs if no sort criteria specified, default is ascending by start date and time
+		let sortedLogs = matchingLogs;
+		if (!query?.sortCriteria || query.sortCriteria.length === 0) {
+			sortedLogs = matchingLogs.sort(compareLogsByStartDate);
 		}
 		
 		return Promise.resolve(sortedLogs);
@@ -168,7 +174,7 @@ export class ConditioningDataService {
 	 * @todo Take UserContext instead of user id, to allow for more complex queries
 	 */
 	public async aggretagedConditioningLogs(aggregationQuery: AggregationQuery, logsQuery?: Query<ConditioningLog<any,ConditioningLogDTO>, ConditioningLogDTO>, userId?: EntityId): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
-		await this.isReady(); // initialize cache if necessary
+		await this.isReady(); // initialize service if necessary
 
 		// constrain searchable logs to single user if user id is provided
 		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];
