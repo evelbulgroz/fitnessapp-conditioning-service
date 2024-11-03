@@ -22,7 +22,6 @@ import { FileService } from '../file-service/file.service';
 import { User } from '../../domain/user.entity';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
-import exp from 'constants';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -614,33 +613,36 @@ describe('ConditioningDataService', () => {
 			expect(dataService['userLogsSubject'].value.length).toBeGreaterThan(0);
 		});
 
-		xit('populates cache with conditioning logs grouped by user id', async () => {
+		it('populates cache with conditioning logs grouped by user id', async () => {
 			// arrange
-			expect(dataService['userLogsSubject']).toBeDefined(); // sanity checks
-			expect(dataService['userLogsSubject'].value.length).toBe(0);
-
+			const expectedIds = users.map(user => user.userId);
+			
 			// act
 			await dataService.isReady();
-
+			const cache = dataService['userLogsSubject'].value;
+			const cachedIds = cache.map(entry => entry.userId);
+			
 			// assert
-			expect(dataService['userLogsSubject'].value.length).toBeGreaterThan(0);
+			expect(cache.length).toBe(expectedIds.length);
+			expect(cachedIds).toEqual(expect.arrayContaining(expectedIds));
 		});
 
-		xit('can be initialized multiple times without side effects', async () => {
+		it('can be initialized multiple times without side effects', async () => {
 			// arrange
-			expect(dataService['userLogsSubject']).toBeDefined(); // sanity checks
-			expect(dataService['userLogsSubject'].value.length).toBe(0);
-			await dataService.isReady();
-			expect(dataService['userLogsSubject'].value.length).toBeGreaterThan(0);
+			expect(dataService['userLogsSubject']).toBeDefined(); // sanity checks			
+			expect(dataService['userLogsSubject'].value.length).toBe(users.length)
 			const expectedLength = dataService['userLogsSubject'].value.length;
+			const expectedIds = users.map(user => user.userId);
 
 			// act			
 			await dataService.isReady();
 			await dataService.isReady();
 			await dataService.isReady();
+			const cachedIds = dataService['userLogsSubject'].value.map(entry => entry.userId);
 
 			// assert
 			expect(dataService['userLogsSubject'].value.length).toBe(expectedLength);
+			expect(cachedIds).toEqual(expect.arrayContaining(expectedIds));
 		});
 	});
 
@@ -924,8 +926,9 @@ describe('ConditioningDataService', () => {
 		});
 		
 		
+		// NOTE:
 		// not testing that AggregatorService works, just that it is called with the right parameters
-		// leave deeper testing of the result to AggregatorService tests: here it gets too complicated by the way the data is generated/randomized
+		// leave deeper testing of the result to AggregatorService tests to  avoid duplication
 		it('can aggregate a time series of all ConditioningLogs for all users', async () => {
 			// act
 			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery);
