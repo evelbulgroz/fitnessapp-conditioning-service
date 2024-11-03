@@ -135,19 +135,29 @@ export class ConditioningDataService {
 	}
 
 	/**New API: Get all conditioning logs matching query and user id (if provided)
-	 * @param userId Optional user id to filter logs by user
-	 * @param ctx Optional user context to filter logs by user (if not provided, all logs are searched)
-	 * @returns Array of conditioning logs (for user if specified)
-	 * @note Overviews are guaranteed to be available, full logs are loaded on demand
-	 * @todo Refactor to use query not user id, to allow for more complex queries
+	 * @param ctx user context for the request (used to constrain logs to single user if user is not an admin)
+	 * @param query Optional query to filter logs (else all available logs for role are returned)
+	 * @returns Array of conditioning logs (constrained by user context and query)
+	 * @note Overview logs are guaranteed to be available, full logs are loaded from persistence on demand using conditioningLogDetails()
 	 */
-	public async conditioningLogs(userId?: EntityId | LogsQuery, ctx?: UserContext): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+	public async conditioningLogs(ctx: UserContext, query?: Query<ConditioningLog<any,ConditioningLogDTO>,ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // lazy load logs if necessary
-		if (userId !== undefined) {
-			const cacheEntry = this.userLogsSubject.value.find((entry) => entry.userId === userId);
-			return cacheEntry?.logs.sort(compareLogsByStartDate) ?? [];
-		}			
-		return this.userLogsSubject.value.flatMap((entry) => entry.logs);
+		
+		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];
+		if (!ctx.roles.includes('admin')) { // constrain searchable logs to single user if user is not an admin
+			searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
+		}
+		else { // use all logs
+			searchableLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
+		}		
+		const matchingLogs = query !== undefined ? query.execute(searchableLogs) : searchableLogs;
+		
+		let sortedLogs = matchingLogs; // leave sort as is if query specifies sort criteria
+		if (!query?.sortCriteria || query.sortCriteria.length === 0) { // default sort if no sort criteria specified
+			sortedLogs = matchingLogs.sort(compareLogsByStartDate); // sort logs ascending by start date and time
+		}
+		
+		return Promise.resolve(sortedLogs);
 	}
 
 	/**New API: Get aggregated time series of conditioning logs by query

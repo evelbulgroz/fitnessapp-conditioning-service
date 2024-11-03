@@ -22,6 +22,7 @@ import { FileService } from '../file-service/file.service';
 import { User } from '../../domain/user.entity';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
+import UserContext from '../../controllers/domain/user-context.model';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -549,7 +550,7 @@ describe('ConditioningDataService', () => {
 			User.create(
 				<UserDTO>{
 					entityId: uuidv4(),
-					userId: 'testuser1',
+					userId: 'testuser1', // id in user microservice, usually a uuid
 					logs: firstHalfOfLogIds,
 				},
 				uuidv4()
@@ -557,7 +558,7 @@ describe('ConditioningDataService', () => {
 			User.create(
 				<UserDTO>{
 					entityId: uuidv4(),
-					userId: 'testuser2',
+					userId: 'testuser2', // id in user microservice, usually a uuid
 					logs: secondHalfOfLogIds,
 				},
 				uuidv4()
@@ -571,6 +572,7 @@ describe('ConditioningDataService', () => {
 	let randomUserId: EntityId;
 	let logsForRandomUser: ConditioningLog<any, ConditioningLogDTO>[];
 	let users: User[];
+	let userContext: UserContext;
 	beforeEach(async () => {
 		// arrange
 		void await dataService.isReady();			
@@ -580,8 +582,15 @@ describe('ConditioningDataService', () => {
 		randomUserId = users[Math.floor(Math.random() * users.length)].userId;
 		randomUser = users.find(user => user.userId === randomUserId)!;
 
+		userContext = new UserContext({
+			userId: randomUser.userId,
+			userName: 'evelbulgroz', // display name for user, or service name if user is a service account (subName from JWTPayload)
+			userType: 'user',
+			roles: ['user']
+		});
+
 		
-		logsForRandomUser = await dataService.conditioningLogs(randomUserId!);
+		logsForRandomUser = await dataService.conditioningLogs(userContext!);
 		randomLog = logsForRandomUser[Math.floor(Math.random() * logsForRandomUser.length)] as ConditioningLog<any, ConditioningLogDTO>;
 	});
 	
@@ -722,9 +731,12 @@ describe('ConditioningDataService', () => {
 	});
 
 	describe('ConditioningLogs', () => {
-		it('can provide a collection of all conditioning logs for all users', async () => {
+		it('provides a collection of all logs for all users, if user is admin', async () => {
+			// arrange
+			userContext.roles = ['admin'];
+			
 			// act
-			const allLogs = await dataService.conditioningLogs();
+			const allLogs = await dataService.conditioningLogs(userContext);
 						
 			// assert
 			expect(allLogs).toBeDefined();
@@ -733,11 +745,14 @@ describe('ConditioningDataService', () => {
 		});
 		
 		it('by default sorts all logs for all users ascending by start date and time, if available', async () => {
+			// arrange
+			userContext.roles = ['admin'];
+			
 			// act
-			const allLogs = (await dataService.conditioningLogs()) ?? [];
+			const allLogs = await dataService.conditioningLogs(userContext);
 			
 			// implicitly returns undefined if data is empty
-			allLogs.forEach((log, index) => {
+			allLogs?.forEach((log, index) => {
 				if (index > 0) {
 					const previousLog = allLogs[index - 1];
 					if (log.start && previousLog.start) {
@@ -747,16 +762,23 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		it('can provide a collection of conditioning logs for a single user by id', async () => {
+		it('provides a collection of all logs for single user, if user is not admin', async () => {
+			// arrange
+			// act
+			const matches = await dataService.conditioningLogs(userContext);			
+			
 			// assert
-			expect(dataService.conditioningLogs(randomUserId).constructor).toBe(Promise);
-			expect(logsForRandomUser).toBeInstanceOf(Array);
-			expect(logsForRandomUser.length).toBe(randomUser.logs.length);
+			expect(matches).toBeInstanceOf(Array);
+			expect(matches.length).toBe(randomUser.logs.length);
 		});
 
 		it('by default sorts logs for single user ascending by start date and time, if available', async () => {
+			// arrange
+			// act
+			const matches = await dataService.conditioningLogs(userContext);
+
 			// implicitly returns undefined if data is empty
-			logsForRandomUser.forEach((log, index) => {
+			matches?.forEach((log, index) => {
 				if (index > 0) {
 					const previousLog = logsForRandomUser[index - 1];
 					if (log.start && previousLog.start) {
@@ -793,7 +815,7 @@ describe('ConditioningDataService', () => {
 			let testLog: ConditioningLog<any, ConditioningLogDTO> | undefined;
 			
 			beforeEach(async () => {
-				data = await dataService.conditioningLogs(randomUserId); // get all logs for random user
+				data = await dataService.conditioningLogs(userContext); // get all logs for random user
 				const randomIndex = Math.floor(Math.random() * data.length);
 				testLog = data[randomIndex] as ConditioningLog<any, ConditioningLogDTO>;
 				
@@ -844,7 +866,8 @@ describe('ConditioningDataService', () => {
 
 			it(`returns undefined if no log for the user is found matching log entity id, when user id is provided`, async () => {
 				// arrange
-				const allLogs = await dataService.conditioningLogs();
+				userContext.roles = ['admin'];
+				const allLogs = await dataService.conditioningLogs(userContext);
 				const logsNotForRandomUser = allLogs.filter(log => !randomUser.logs.includes(log!.entityId!));
 				const notRandomUserLogId = logsNotForRandomUser[Math.floor(Math.random() * logsNotForRandomUser.length)]?.entityId;
 				expect(randomUser.logs).not.toContain(notRandomUserLogId); // sanity check
@@ -930,9 +953,12 @@ describe('ConditioningDataService', () => {
 		// not testing that AggregatorService works, just that it is called with the right parameters
 		// leave deeper testing of the result to AggregatorService tests to  avoid duplication
 		it('can aggregate a time series of all ConditioningLogs for all users', async () => {
+			// arrange
+			userContext.roles = ['admin'];
+
 			// act
 			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery);
-			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs());
+			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(userContext));
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
@@ -956,7 +982,7 @@ describe('ConditioningDataService', () => {
 
 		it('aggregates only logs for a single user by id, if provided', async () => {
 			// arrange
-			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(randomUserId));
+			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(userContext));
 			
 			// act
 			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery, undefined, randomUserId);
@@ -987,7 +1013,7 @@ describe('ConditioningDataService', () => {
 		describe('Conversion to time series', () => {
 			it('can convert an array of ConditioningLogs to a ConditioningLogSeries', async () => {
 				// arrange
-				const logs = await dataService.conditioningLogs(randomUserId);
+				const logs = await dataService.conditioningLogs(userContext);
 				
 				// act
 				const series = dataService['toConditioningLogSeries'](logs);
@@ -1007,7 +1033,7 @@ describe('ConditioningDataService', () => {
 			
 			it('sorts logs by start date', async () => {
 				// arrange
-				const logs = await dataService.conditioningLogs(randomUserId);
+				const logs = await dataService.conditioningLogs(userContext);
 				const unSortedLogs = logs.sort((a, b) => b.start!.getTime() - a.start!.getTime());
 				
 				// act
@@ -1025,7 +1051,7 @@ describe('ConditioningDataService', () => {
 
 			it('excludes logs without start date', async () => {
 				// arrange
-				const logs = await dataService.conditioningLogs(randomUserId);
+				const logs = await dataService.conditioningLogs(userContext);
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, uuidv4(), undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
@@ -1039,7 +1065,7 @@ describe('ConditioningDataService', () => {
 
 			it('logs entity id of logs without start date', async () => {
 				// arrange
-				const logs = await dataService.conditioningLogs(randomUserId);
+				const logs = await dataService.conditioningLogs(userContext);
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, uuidv4(), undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);

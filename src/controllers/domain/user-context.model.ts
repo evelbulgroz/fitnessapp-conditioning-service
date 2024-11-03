@@ -11,7 +11,7 @@ export interface UserContextProps {
 /** Represents the info about of the user or microservice making a request.
  * @remarks Intended to decouple the user info from any specific validation strategy used in a controller.
  * @remarks Also intended to distinguish the request and repository user types.
- * @remarks Controllers methods should map the user info to this object before passing it to the service layer.
+ * @remarks Controllers methods should map the user info to this object before passing it on to the service layer.
 */
 export class UserContext {
 	//----------------------------- PROPERTIES ------------------------------//
