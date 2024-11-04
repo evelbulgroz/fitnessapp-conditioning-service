@@ -149,8 +149,7 @@ export class ConditioningDataService {
 	public async conditioningLogs(ctx: UserContext, query?: Query<ConditioningLog<any,ConditioningLogDTO>,ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
 		
-		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];
-		
+		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];		
 		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs			
 			searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
 		}
@@ -176,13 +175,17 @@ export class ConditioningDataService {
 	 * @returns Aggregated time series of conditioning logs
 	 * @todo Take UserContext instead of user id, to allow for more complex queries
 	 */
-	public async aggretagedConditioningLogs(aggregationQuery: AggregationQuery, logsQuery?: Query<ConditioningLog<any,ConditioningLogDTO>, ConditioningLogDTO>, userId?: EntityId): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
+	public async aggretagedConditioningLogs(
+		ctx: UserContext,
+		aggregationQuery: AggregationQuery,
+		logsQuery?: Query<ConditioningLog<any,ConditioningLogDTO>, ConditioningLogDTO>
+	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		await this.isReady(); // initialize service if necessary
 
 		// constrain searchable logs to single user if user id is provided
 		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];
-		if (userId !== undefined) {
-			searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === userId)?.logs ?? [];
+		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
+			searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
 		}
 		else { // use all logs
 			searchableLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);

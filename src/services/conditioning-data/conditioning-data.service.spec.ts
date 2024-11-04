@@ -27,6 +27,7 @@ import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
 import { random } from 'lodash-es';
+import e from 'express';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -1048,40 +1049,12 @@ describe('ConditioningDataService', () => {
 		// NOTE:
 		// not testing that AggregatorService works, just that it is called with the right parameters
 		// leave deeper testing of the result to AggregatorService tests to  avoid duplication
-		it('can aggregate a time series of all ConditioningLogs for all users', async () => {
-			// arrange
-			userContext.roles = ['admin'];
-
-			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery);
-			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(userContext));
-			
-			// assert
-			expect(aggregatorSpy).toHaveBeenCalled();
-			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
-			expect(aggregatedSeries).toBeDefined();
-		});
-		
-		it('aggreates only logs matching search criteria, if provided', async () => {			
-			// arrange
-			const matchingLogs = dataQuery.execute(dataService['userLogsSubject'].value.flatMap((entry) => entry.logs));
-			const expectedTimeSeries = dataService['toConditioningLogSeries'](matchingLogs);
-
-			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery, dataQuery);
-			
-			// assert
-			expect(aggregatorSpy).toHaveBeenCalled();
-			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
-			expect(aggregatedSeries).toBeDefined();
-		});
-
-		it('aggregates only logs for a single user by id, if provided', async () => {
+		it('can aggregate a time series of all ConditioningLogs owned by a user', async () => {
 			// arrange
 			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(userContext));
 			
 			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery, undefined, randomUserId);
+			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQuery, undefined);
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
@@ -1089,14 +1062,28 @@ describe('ConditioningDataService', () => {
 			expect(aggregatedSeries).toBeDefined();			
 		});
 		
-		it('aggreates only logs matching search criteria and user id, if both are provided', async () => {
+		it(`can aggregate a time series of all ConditioningLogs for all users if user role is 'admin'`, async () => {
 			// arrange
-			const searchableLogs = dataService['userLogsSubject'].value.find((entry) => entry.userId === randomUserId)?.logs ?? [];
+			userContext.roles = ['admin'];
+
+			// act
+			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQuery);
+			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(userContext));
+			
+			// assert
+			expect(aggregatorSpy).toHaveBeenCalled();
+			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
+			expect(aggregatedSeries).toBeDefined();
+		});
+		
+		it('aggreates only logs matching logs query, if provided', async () => {			
+			// arrange
+			const searchableLogs = dataService['userLogsSubject'].value.find((entry) => entry.userId === userContext.userId)?.logs ?? [];
 			const matchingLogs = dataQuery.execute(searchableLogs);
 			const expectedTimeSeries = dataService['toConditioningLogSeries'](matchingLogs);
-			
+
 			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(aggregationQuery, dataQuery, randomUserId);
+			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQuery, dataQuery);
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
