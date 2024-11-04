@@ -939,7 +939,7 @@ describe('ConditioningDataService', () => {
 				expect(retrievedLog?.isOverview).toBe(true);
 			});
 			
-			it('throws PersistenceError if getting detailed log from persistence fails', async () => {
+			it('throws PersistenceError if retrieving detailed log from persistence fails', async () => {
 				// arrange
 				repoSpy.mockRestore();
 				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
@@ -950,6 +950,17 @@ describe('ConditioningDataService', () => {
 				// act/assert
 				 // tried, failed to verify that repoSpy is called using .toHaveBeenCalled()
 				expect(async () => await dataService.conditioningLogDetails(userContext, randomLog!.entityId!)).rejects.toThrow(PersistenceError);
+			});
+
+			it('throws NotFoundError if no log matching entity id is found in persistence', async () => {
+				// arrange
+				repoSpy.mockRestore();
+				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+					return Promise.resolve(Result.ok<any>(of(undefined)));
+				});
+
+				// act/assert
+				expect(async () => await dataService.conditioningLogDetails(userContext, randomLog!.entityId!)).rejects.toThrow(NotFoundError);
 			});
 			
 			it('replaces log in cache with detailed log from persistence ', async () => {
@@ -993,8 +1004,6 @@ describe('ConditioningDataService', () => {
 				const updatedLog = updatedCache.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
 				expect(updatedLog).toBe(detailedLog);
 			});
-
-			// TODO: Use Copilot's suggestion to test for fall through to default return of undefined
 		});		
 	});
 	

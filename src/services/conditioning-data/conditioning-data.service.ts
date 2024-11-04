@@ -130,11 +130,12 @@ export class ConditioningDataService {
 					this.userLogsSubject.next([...this.userLogsSubject.value]); // update cache with shallow copy to trigger subscribers
 					resolve(detailedLog);
 					return;
-				}				
+				}
+				else { // detailed log not found -> throw NotFoundError
+					reject(new NotFoundError(`${this.constructor.name}: Conditioning log ${logId} not found in persistence layer.`));
+					return;
+				}		
 			}
-
-			// (detailed) log not found, or something unspecified went wrong -> return undefined
-			resolve(undefined);
 		});
 	}
 
