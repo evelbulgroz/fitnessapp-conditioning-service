@@ -16,6 +16,7 @@ import {
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationQuery, AggregationQueryDTO } from '@evelbulgroz/time-series';
 import { EntityId, Logger } from '@evelbulgroz/ddd-base';
+import { Query as QueryModel } from '@evelbulgroz/query-fns';
 
 import { ConditioningData } from '../domain/conditioning-data.model';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
@@ -125,13 +126,13 @@ export class AppController {
 	@Post('aggregate')
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ transform: true }))
-	async aggregate(@Body() query: LogsAggregationQuery): Promise<any> {
+	async aggregate(@Req() req: any, @Body() query: LogsAggregationQuery): Promise<any> {
 		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const aggregationQuery = query.aggregationQuery; // local AggregationQuery type/DTO
-			// todo: convert query.dataQuery to ConditioningLogQuery
-			const LogsQuery = query.logsQuery; // local LogsQuery type/DTO
-			// todo: convert query.dataQuery to ConditioningLogQuery
-			return this.service.aggretagedConditioningLogs(aggregationQuery, LogsQuery);
+			const logsQuery = query.logsQuery; // local LogsQuery type/DTO
+			// todo: convert logsQuery to QueryModel<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>
+			return this.service.aggretagedConditioningLogs(userContext, aggregationQuery, logsQuery);
 		}
 		catch (error) {
 			throw new BadRequestException(`Request for aggregation failed: ${error.message}`);
@@ -152,7 +153,7 @@ export class AppController {
 	async fetchLogDetails(@Req() req: any, @Param('id') logId: EntityIdParam ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const log = this.service.conditioningLogDetails(logId.value!, userContext as unknown as EntityId); // todo: refactor service method to accept user context
+			const log = this.service.conditioningLogDetails(userContext, logId.value!); // todo: refactor service method to accept user context
 			if (!log) {
 				const errorMessage = `Log with id ${logId.value} not found`;
 				this.logger.error(errorMessage);
@@ -177,10 +178,10 @@ export class AppController {
 	@Get('logs')
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async fetchLogs(@Req() req: any, @Query() query?: LogsQuery): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+	async fetchLogs(@Req() req: any, @Query() query?: QueryModel<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps);		
-			const logs = await this.service.conditioningLogs(query, userContext) ?? [];
+			const logs = await this.service.conditioningLogs(userContext, query) ?? [];
 			if (logs.length === 0) {
 				const errorMessage = 'No logs found';
 				this.logger.error(errorMessage);
