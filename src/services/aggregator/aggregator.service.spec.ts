@@ -1,9 +1,10 @@
 import { TestingModule, Test } from "@nestjs/testing";
 
 import { v4 as uuidv4 } from 'uuid';
+import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
 
 import { AggregatorService } from "./aggregator.service";
-import { AggregationQuery, AggregationType, SampleRate } from '@evelbulgroz/time-series';
+import { AggregationQuery } from "../../controllers/domain/aggregation-query.model";
 
 // NOTE: Just a quick test to check that the service can be created/injected and used:
 // TimeSeriesAggregator is fully tested in @evelbulgroz/time-series, so no need to test it here.
