@@ -15,11 +15,14 @@ import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
-import { LogsQuery } from '../../controllers/domain/logs-query.model';;
+import { LogsQuery } from '../../controllers/domain/logs-query.model';
+import { NotFoundError } from '../../domain/not-found.error';
+import { PersistenceError } from '../../domain/persistence.error';
 import { User } from '../../domain/user.entity';
 import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
+import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
 
 function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: ConditioningLog<any, ConditioningLogDTO>): number {
 	return (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0);
@@ -37,6 +40,7 @@ interface UserLogsCacheEntry {
  * @remarks Refactor to observables if/as needed, e.g. by controller serving via Web Sockets instead of HTTP.
  * @todo Refactor all data access methods to require UserContext instead of user id, to allow for more complex queries and enforce access rules.
  * @todo Refactor service and cache to orchestrate user and log data (e.g. adding entries to both when adding a new log for a user).
+ * @todo Use throw instead of reject, as it may lend itself better to error handling using middleware
  * 
  */
 @Injectable()
@@ -83,59 +87,50 @@ export class ConditioningDataService {
 	 * @returns Detailed log, or undefined if not found
 	 * @remarks Will repopulate details even if log is already detailed
 	 * @remarks Constrains search to logs for a single user if user id is provided; controller should handle user access
+	 * @todo Use cache.next to trigger subscribers when updating cache
 	 */
 	public async conditioningLogDetails(ctx: UserContext, logId: EntityId): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
 			await this.isReady(); // initialize service if necessary
-
-			// todo: throw error if non-admin request tries to access logs for another user
 			
-			// if user role is not admin, constrain search to user logs
-			let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];
-			if (ctx.roles.includes('admin')) {
-				 // if user is admin, search all logs
-				searchableLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
+			// check if log exists in cache, else throw NotFoundError
+			const entryWithLog = this.userLogsSubject.value.find((entry) => entry.logs.some((log) => log.entityId === logId));
+			if (!entryWithLog) { // log not found in cache, cannot assess authorization -> throw NotFoundError
+				throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logId} not found or access denied.`);
 			}
-			else {				
-				// if user is not admin, search only their own logs
-				searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
-			}
-
-			// find log in cache by entity id
-			const index = searchableLogs.findIndex(log => log.entityId === logId);
-			if (index === -1) { // not found in cache, resolve undefined
-				resolve(undefined);
-				return; // exit early
-			}
-
-			// check if log is already detailed
-			const originalLog = searchableLogs[index];
-			let detailedLog: ConditioningLog<any, ConditioningLogDTO> | undefined;
-			if (!originalLog.isOverview) {
-				// log is already detailed
-				resolve(originalLog);
-				return; // exit early
-			}
-			else { // log is not detailed -> fetch from persistence
-				const result = await this.logRepo.fetchById(logId);
-				if (result.isFailure) { // error, reject
-					reject(result.error);
-					return; // exit early
+				
+			// log exists, check if user is authorized to access it, else throw UnauthorizedAccessError
+			if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
+				const logOwnwerId = entryWithLog.userId;
+				if (logOwnwerId !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+					throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access log ${logId} for user ${logOwnwerId}.`);
 				}
-
+			}
+			
+			// check if log is already detailed, else fetch full log from persistence
+			const index = entryWithLog.logs.findIndex((log) => log.entityId === logId);
+			const originalLog = entryWithLog.logs[index];
+			let detailedLog: ConditioningLog<any, ConditioningLogDTO> | undefined;
+			if (!originalLog.isOverview) { // log is already detailed -> resolve as-is and exit				
+				resolve(originalLog);
+				return;
+			}
+			else { // log is not detailed -> fetch full log from persistence
+				const result = await this.logRepo.fetchById(logId);
+				if (result.isFailure) { // retrieval failed -> throw persistence error
+					throw new PersistenceError(`${this.constructor.name}: Error retrieving conditioning log ${logId} from persistence layer: ${result.error}`);
+				}
 				const detailedLog$ = result.value as Observable<ConditioningLog<any, ConditioningLogDTO>>;
 				detailedLog = await firstValueFrom(detailedLog$.pipe(take(1)));
-				if (detailedLog !== undefined) { // detailed log available
-					// replace original log in cache
-					searchableLogs[index] = detailedLog; // update cache
+				if (detailedLog !== undefined) { // detailed log available					
+					entryWithLog.logs[index] = detailedLog; // replace original log in cache
 					// todo: update with cache.next to trigger subscribers
 					resolve(detailedLog);
-					return; // exit early
-				}
-				
+					return;
+				}				
 			}
 
-			// log not found, or something went wrong -> return undefined
+			// log not found, or something unspecified went wrong -> return undefined
 			resolve(undefined);
 		});
 	}
