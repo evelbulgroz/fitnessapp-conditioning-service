@@ -10,35 +10,30 @@ import {
 
 import { AggregationQuery } from '../../controllers/domain/aggregation-query.model';
 
-/**@description Aggregates time series data by sample rate and aggregation type
- * @note This service is generic so that it can be used for different types of data e.g. sensor data, training logs, aggregated training data etc.
- * @note Injectable wrapper for TimeSeriesAggregator from @evelbulgroz/time-series
- * @todo Refactor to accept local AggregationQuery as param, then map internally to import from @evelbulgroz/time-series
+/** Aggregates time series data by sample rate and aggregation type
+* @remark This service is generic so that it can be used without subclassing for different types of data e.g. sensor data, training logs, aggregated training data etc.
+ * @remark Injectable wrapper for TimeSeriesAggregator from @evelbulgroz/time-series
  */
 @Injectable()
 export class AggregatorService {
-	protected _aggregator: TimeSeriesAggregator;
-	
 	//----------------------------------------CONSTRUCTOR----------------------------------------------
 
-	public constructor() {
-		this._aggregator = new TimeSeriesAggregator();
+	public constructor(protected readonly _aggregator: TimeSeriesAggregator = new TimeSeriesAggregator()) {
+		// nothing to do here!
 	}
 
 	//---------------------------------PUBLIC INSTANCE METHODS ----------------------------------------
 	
 	/** Aggregate time series data by sample rate and aggregation type
-	 * @typeparam T Type which has a property holding the data, e.g. TrainingLog, SensorLog, etc. (must be indexable by string)
+	 * @typeparam T Type of object holding the data to aggregate, e.g. TrainingLog, SensorLog, etc. (must be indexable by string)
  	 * @typeparam U Type of the aggregated value, e.g. number for a simple sum (can be complex, but none currently implemented)
-	 * @param timeSeries The time series to aggregate
+ 	 * @param timeSeries The time series to aggregate
 	 * @param aggregationQuery Validated aggregation query DTO
 	 * @param valueExtractor Optional function to extract a numerical value from complex aggregated type, e.g. (item: TrainingLog) => item.duration.value
 	 * @returns An aggregated time series
-	 * @remark Aggregator functions could be made generic so that they can be used with different types of data
-	 * @remark Injectable wrapper for TimeSeriesAggregator from @evelbulgroz/time-series
 	 * @todo Think through if time stamp should be start or end of period: take lead from needs of front end
 	 */
-	public aggregate<T extends { [key: string]: any }, U>(
+	public aggregate<T extends object, U extends number>(
 		timeSeries: TimeSeries<T>,
 		aggregationQuery: AggregationQuery,
 		valueExtractor?: (dataPoint: DataPoint<T>) => U,

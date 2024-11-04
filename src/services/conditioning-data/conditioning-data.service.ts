@@ -199,7 +199,7 @@ export class ConditioningDataService {
 		const aggregatedSeries = this.aggregator.aggregate(
 			timeSeries,
 			aggregationQuery,
-			(dataPoint: DataPoint<ConditioningLog<any, ConditioningLogDTO>>) => {
+			(dataPoint: DataPoint<any>) => { // value extractor for Quantity values
 				const propValue = dataPoint.value[aggregationQuery.aggregatedProperty as keyof ConditioningLog<any, ConditioningLogDTO>];
 				if (propValue instanceof Quantity) {
 					return propValue.to(aggregationQuery.aggregatedValueUnit ?? '').scalar;

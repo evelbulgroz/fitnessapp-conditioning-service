@@ -17,7 +17,7 @@ describe('AggregatorService', () => {
 			providers: [AggregatorService],
 		}).compile();
 
-		aggregator = module.get<AggregatorService>(AggregatorService);		
+		aggregator = module.get<AggregatorService>(AggregatorService);	
 	});
 
 	it('can be created', () => {
