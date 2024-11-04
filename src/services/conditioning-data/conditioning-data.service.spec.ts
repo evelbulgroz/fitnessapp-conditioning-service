@@ -4,7 +4,7 @@ import { createTestingModule } from '../../test/test-utils';
 
 import { jest } from '@jest/globals';
 
-import { Observable, Subscription, firstValueFrom, of } from 'rxjs';
+import { Observable, Subscription, firstValueFrom, lastValueFrom, of } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
@@ -879,7 +879,7 @@ describe('ConditioningDataService', () => {
 				expect(() => dataService.conditioningLogDetails(userContext, randomOtherUserLog!.entityId!)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
-			it('returns log from cache if already detailed', async () => {
+			it('returns log directly from cache if already detailed', async () => {
 				// arrange
 				  // reset spy to avoid side effects
 				repoSpy.mockRestore();
@@ -924,7 +924,7 @@ describe('ConditioningDataService', () => {
 				expect(retrievedLog?.isOverview).toBe(false);
 			});
 			
-			it('passes through log from repo as-is, without checking if details are actually available ', async () => {
+			it('passes through log from persistence as-is, without checking if details are actually available ', async () => {
 				// arrange
 				 // create a new log with isOverview set to true, and no detailed properties -> should be returned without checking for details
 				const detailedLogMock = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
@@ -937,7 +937,7 @@ describe('ConditioningDataService', () => {
 
 				// assert
 				expect(retrievedLog?.isOverview).toBe(true);
-			});			
+			});
 			
 			it('throws PersistenceError if getting detailed log from persistence fails', async () => {
 				// arrange
@@ -952,7 +952,49 @@ describe('ConditioningDataService', () => {
 				expect(async () => await dataService.conditioningLogDetails(userContext, randomLog!.entityId!)).rejects.toThrow(PersistenceError);
 			});
 			
-			xit('replaces log in cache with detailed log and updates subscribers ', async () => {});			
+			it('replaces log in cache with detailed log from persistence ', async () => {
+				// arrange
+				const randomLogId = randomLog!.entityId!;
+				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
+				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+				
+				repoSpy.mockRestore();
+				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+					//  logs are initialized in cache as overviews, so any random cached log should be an overview
+					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
+				});
+				
+				// act
+				void await dataService.conditioningLogDetails(userContext, randomLog?.entityId!);
+
+				// assert
+				const updatedLog = dataService['userLogsSubject'].value.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
+				expect(updatedLog).toBe(detailedLog);
+			});
+
+			it('updates cache subcribers when replacing log from persistence ', async () => {
+				// arrange
+				const randomLogId = randomLog!.entityId!;
+				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
+				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+				
+				repoSpy.mockRestore();
+				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+					// logs are initialized in cache as overviews, so any random cached log should be an overview
+					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
+				});
+				
+				// act
+				void await dataService.conditioningLogDetails(userContext, randomLog?.entityId!);
+
+				// assert
+				const updatedCache$ = dataService['userLogsSubject'].asObservable();
+				const updatedCache = await firstValueFrom(updatedCache$);
+				const updatedLog = updatedCache.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
+				expect(updatedLog).toBe(detailedLog);
+			});
+
+			// NOTE:Can't think of a scenario that would cause fall through to default return of undefined!
 		});		
 	});
 	

@@ -125,7 +125,7 @@ export class ConditioningDataService {
 				detailedLog = await firstValueFrom(detailedLog$.pipe(take(1)));
 				if (detailedLog !== undefined) { // detailed log available					
 					entryWithLog.logs[index] = detailedLog; // replace original log in cache
-					// todo: update with cache.next to trigger subscribers
+					this.userLogsSubject.next([...this.userLogsSubject.value]); // update cache with shallow copy to trigger subscribers
 					resolve(detailedLog);
 					return;
 				}				
