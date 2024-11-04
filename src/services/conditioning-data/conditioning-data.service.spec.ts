@@ -19,10 +19,14 @@ import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
 import { FileService } from '../file-service/file.service';
+import { NotFoundError } from '../../domain/not-found.error';
+import { PersistenceError } from '../../domain/persistence.error';
+import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
 import { User } from '../../domain/user.entity';
 import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
+import { random } from 'lodash-es';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -830,7 +834,7 @@ describe('ConditioningDataService', () => {
 				repoSpy && repoSpy.mockRestore();
 			});
 
-			it('can provide a detailed conditioning log for a user by entity id', async () => {				
+			it('can provide details for a conditioning log owned by a user', async () => {				
 				// arrange
 				
 				//act
@@ -841,35 +845,8 @@ describe('ConditioningDataService', () => {
 				expect(detailedLog).toBeInstanceOf(ConditioningLog);
 				expect(detailedLog!.isOverview).toBe(false);
 			});
-			
-			xit('throws NotFoundError if no log is found matching log entity id', async () => {
-				// arrange
-				
-				//act
-				const detailedLog = await dataService.conditioningLogDetails(userContext, 'no-such-log');
-
-				// assert
-				expect(detailedLog).toBeUndefined();
-			});			
-		
-			xit('throws error if log is found but user is not authorized to view details', async () => {
-				// arrange
-				userContext.roles = ['user'];
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
-				const otherUserLogs = await dataService.conditioningLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
-				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
-				
-				try { // can't get single line expect to work, so using try/catch
-					// act
-					void await dataService.conditioningLogDetails(userContext, randomOtherUserLog!.entityId!);
-				}
-				catch (error) {
-					// assert
-					expect(error).toBe('Not authorized to view details');
-				}
-			});
-			
-			xit('can provide a details for any log if user role is admin', async () => {
+						
+			it(`can provide a details for other user's conditioning log if user role is 'admin'`, async () => {
 				// arrange
 				userContext.roles = ['admin'];
 				const otherUser = users.find(user => user.userId !== userContext.userId)!;
@@ -883,49 +860,99 @@ describe('ConditioningDataService', () => {
 				expect(detailedLog!).toBeDefined();
 				expect(detailedLog).toBeInstanceOf(ConditioningLog);
 				expect(detailedLog!.isOverview).toBe(false);
-			});		
+			});
 			
-			xit(`returns undefined if no log for the user is found matching log entity id, when user id is provided`, async () => {
+			it('throws NotFoundError if no log is found matching provided log entity id', async () => {
 				// arrange
-				
-				//act
-				const detailedLog = await dataService.conditioningLogDetails(userContext, 'no-such-log');
+				// act/assert
+				expect(async () => await dataService.conditioningLogDetails(userContext, 'no-such-log')).rejects.toThrow(NotFoundError);
+			});			
 		
-				// assert
-				expect(detailedLog).toBeUndefined();
+			it('throws UnauthorizedAccessError if log is found but user is not authorized to access it', async () => {
+				// arrange
+				userContext.roles = ['user'];
+				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUserLogs = await dataService.conditioningLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
+				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
+				
+				// act/assert
+				expect(() => dataService.conditioningLogDetails(userContext, randomOtherUserLog!.entityId!)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
-			xit('passes through log from repo without checking whether details are actually available ', async () => {
+			it('returns log from cache if already detailed', async () => {
 				// arrange
+				  // reset spy to avoid side effects
+				repoSpy.mockRestore();
+				repoSpy = jest.spyOn(logRepo, 'fetchById'); // should not be called
+				
+				  // replace random log in cache with detailed log
+				const randomLogId = randomLog!.entityId!;
+				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
+				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+				const cache = dataService['userLogsSubject'].value;
+				const cacheEntry = cache.find(entry => entry.userId === randomUserId);
+				const logIndex = cacheEntry!.logs.findIndex(log => log.entityId === randomLogId);
+				cacheEntry!.logs[logIndex] = detailedLog;				
+				
+				//act
+				const retrievedLog = await dataService.conditioningLogDetails(userContext, randomLog!.entityId!);
+
+				// assert
+				expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
+				expect(retrievedLog?.isOverview).toBe(false);
+				expect(retrievedLog).toBe(detailedLog);
+
+				expect(repoSpy).not.toHaveBeenCalled(); // may/not be reliable, but should be true
+			});
+
+			it('retrieves detailed log from persistence if cached log is overview', async () => {
+				// arrange
+				repoSpy.mockRestore();
+				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+					//  logs are initialized in cache as overviews, so any random cached log should be an overview
+					const randomLogId = randomLog!.entityId!;
+					const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
+					const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
+				});
+
+				// act
+				const retrievedLog = await dataService.conditioningLogDetails(userContext, randomLog!.entityId!);
+
+				// assert
+				expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
+				expect(retrievedLog?.isOverview).toBe(false);
+			});
+			
+			it('passes through log from repo as-is, without checking if details are actually available ', async () => {
+				// arrange
+				 // create a new log with isOverview set to true, and no detailed properties -> should be returned without checking for details
 				const detailedLogMock = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
 					Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLogMock)))
 				);
 				
 				//act
-				const detailedLog = await dataService.conditioningLogDetails(userContext, randomLog!.entityId!);
+				const retrievedLog = await dataService.conditioningLogDetails(userContext, randomLog!.entityId!);
 
 				// assert
-				expect(detailedLog?.isOverview).toBe(true);
-			});
-
-			xit('replaces log in cache with detailed log and updates subscribers ', async () => {});
+				expect(retrievedLog?.isOverview).toBe(true);
+			});			
 			
-			xit('throws error if getting details returns error', async () => {
+			it('throws PersistenceError if getting detailed log from persistence fails', async () => {
 				// arrange
-				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
-					Promise.resolve(Result.fail<Observable<ConditioningLog<any, ConditioningLogDTO>>>('test error'))
-				);
-				
-				try { // can't get single line expect to work, so using try/catch
-					// act
-					void await dataService.conditioningLogDetails(userContext, randomLog!.entityId!);
-				}
-				catch (error) {
-					// assert
-					expect(error).toBe('test error');
-				}
+				repoSpy.mockRestore();
+				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+					// console.debug('fetchById mock called'); this gets called, despite toHaveBeenCalled() failing
+					return Promise.resolve(Result.fail<Observable<ConditioningLog<any, ConditioningLogDTO>>>('test error'))
+				});
+
+				// act/assert
+				 // tried, failed to verify that repoSpy is called using .toHaveBeenCalled()
+				expect(async () => await dataService.conditioningLogDetails(userContext, randomLog!.entityId!)).rejects.toThrow(PersistenceError);
 			});
+			
+			xit('replaces log in cache with detailed log and updates subscribers ', async () => {});			
 		});		
 	});
 	

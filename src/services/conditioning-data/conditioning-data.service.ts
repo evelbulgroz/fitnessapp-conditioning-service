@@ -40,8 +40,6 @@ interface UserLogsCacheEntry {
  * @remarks Refactor to observables if/as needed, e.g. by controller serving via Web Sockets instead of HTTP.
  * @todo Refactor all data access methods to require UserContext instead of user id, to allow for more complex queries and enforce access rules.
  * @todo Refactor service and cache to orchestrate user and log data (e.g. adding entries to both when adding a new log for a user).
- * @todo Use throw instead of reject, as it may lend itself better to error handling using middleware
- * 
  */
 @Injectable()
 export class ConditioningDataService {
@@ -96,14 +94,16 @@ export class ConditioningDataService {
 			// check if log exists in cache, else throw NotFoundError
 			const entryWithLog = this.userLogsSubject.value.find((entry) => entry.logs.some((log) => log.entityId === logId));
 			if (!entryWithLog) { // log not found in cache, cannot assess authorization -> throw NotFoundError
-				throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logId} not found or access denied.`);
+				reject(new NotFoundError(`${this.constructor.name}: Conditioning log ${logId} not found or access denied.`));
+				return;
 			}
 				
 			// log exists, check if user is authorized to access it, else throw UnauthorizedAccessError
 			if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
 				const logOwnwerId = entryWithLog.userId;
 				if (logOwnwerId !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
-					throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access log ${logId} for user ${logOwnwerId}.`);
+					reject(new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access log ${logId} for user ${logOwnwerId}.`));
+					return;
 				}
 			}
 			
@@ -118,7 +118,8 @@ export class ConditioningDataService {
 			else { // log is not detailed -> fetch full log from persistence
 				const result = await this.logRepo.fetchById(logId);
 				if (result.isFailure) { // retrieval failed -> throw persistence error
-					throw new PersistenceError(`${this.constructor.name}: Error retrieving conditioning log ${logId} from persistence layer: ${result.error}`);
+					reject(new PersistenceError(`${this.constructor.name}: Error retrieving conditioning log ${logId} from persistence layer: ${result.error}`));
+					return;
 				}
 				const detailedLog$ = result.value as Observable<ConditioningLog<any, ConditioningLogDTO>>;
 				detailedLog = await firstValueFrom(detailedLog$.pipe(take(1)));
