@@ -168,12 +168,12 @@ export class ConditioningDataService {
 		return Promise.resolve(sortedLogs);
 	}
 
-	/**New API: Get aggregated time series of conditioning logs by query
-	 * @param aggregationQuery Validated aggregation query DTO
-	 * @param logsQuery Optional query to filter logs before aggregation (else all logs are aggregated)
-	 * @param userId Optional user id to further constrain logs to single user by id
+	/**New API: Get aggregated time series of conditioning logs
+	 * @param ctx User context for the request (includes user id and roles)
+	 * @param aggregationQuery Validated aggregation query
+	 * @param logsQuery Optional data query to select logs to aggregate (else all available logs are aggregated)
 	 * @returns Aggregated time series of conditioning logs
-	 * @todo Take UserContext instead of user id, to allow for more complex queries
+	 * @remark Admins can access all logs, other users can only access their own logs
 	 */
 	public async aggretagedConditioningLogs(
 		ctx: UserContext,

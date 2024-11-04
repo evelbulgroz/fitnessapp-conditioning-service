@@ -1005,6 +1005,8 @@ describe('ConditioningDataService', () => {
 				const updatedLog = updatedCache.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
 				expect(updatedLog).toBe(detailedLog);
 			});
+
+			// TODO: Test default sorting of returned logs
 		});		
 	});
 	
