@@ -904,7 +904,7 @@ describe('ConditioningDataService', () => {
 				expect(detailedLog?.isOverview).toBe(true);
 			});
 
-			xit('replaces log in cache with detailed log and updates subscribers ', async () => {
+			xit('replaces log in cache with detailed log and updates subscribers ', async () => {});
 			
 			xit('throws error if user is not authorized to view details', async () => {
 				// arrange
