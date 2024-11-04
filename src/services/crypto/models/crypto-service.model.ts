@@ -1,6 +1,6 @@
 /** Base class for a service that provides cryptographic hashing and comparison.
- * @remarks Used as a placeholder for dependency injection.
- * @remarks NestJS's DI system cannot inject abstract classes, so this class is not marked abstract though it should be treated as such
+ * @remark Used as a placeholder for dependency injection.
+ * @remark NestJS's DI system cannot inject abstract classes, so this class is not marked abstract though it should be treated as such
  */
 export class CryptoService {
 	/**

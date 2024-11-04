@@ -13,10 +13,10 @@ export interface ValidationPipeOptions {
 }
 
 /** Validation pipe for validating raw data in controller request params, query, body, etc
- * @remarks Intended to be used with validated classes with a constructor that preemptively validates the input
- * @remarks Simplified version of the NestJS ValidationPipe that does not use class-validator or class-transformer in compliance with the architecture:
+ * @remark Intended to be used with validated classes with a constructor that preemptively validates the input
+ * @remark Simplified version of the NestJS ValidationPipe that does not use class-validator or class-transformer in compliance with the architecture:
  * @see https://github.com/evelbulgroz/fitnessapp-api-gateway/blob/main/documentation/architecture.md
- * @remarks Supports a reduced set of options defined by the ValidationPipeOptions interface
+ * @remark Supports a reduced set of options defined by the ValidationPipeOptions interface
  */
 @Injectable()
 export class ValidationPipe implements PipeTransform<any> {
@@ -28,11 +28,11 @@ export class ValidationPipe implements PipeTransform<any> {
 	
 	/** Create a new instance of the ValidationPipe
 	 * @param options The options for the pipe
-	 * @remarks The options are optional and all default to false
-	 * @remarks The options are:
-	 * @remarks - whitelist: If true, strips properties that do not have any decorators
-	 * @remarks - forbidNonWhitelisted: If true, throws an error if a property is not whitelisted
-	 * @remarks - transform: If true, transforms the input value to the expected type
+	 * @remark The options are optional and all default to false
+	 * @remark The options are:
+	 * @remark - whitelist: If true, strips properties that do not have any decorators
+	 * @remark - forbidNonWhitelisted: If true, throws an error if a property is not whitelisted
+	 * @remark - transform: If true, transforms the input value to the expected type
 	 */
 	constructor(options?: ValidationPipeOptions) {
 		if (options) {
@@ -45,7 +45,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	 * @param metadata The metadata for the input value
 	 * @returns The transformed value
 	 * @throws BadRequestException if the transformation fails
-	 * @remarks Primitive params are passed through without transformation, but wrapped in an object literal param name as key
+	 * @remark Primitive params are passed through without transformation, but wrapped in an object literal param name as key
 	 */
 	public transform(value: any, metadata: ArgumentMetadata) {
 		if (value === undefined || value === null) {

@@ -34,8 +34,8 @@ export class AggregatorService {
 	 * @param aggregationQuery Validated aggregation query DTO
 	 * @param valueExtractor Optional function to extract a numerical value from complex aggregated type, e.g. (item: TrainingLog) => item.duration.value
 	 * @returns An aggregated time series
-	 * @remarks Aggregator functions could be made generic so that they can be used with different types of data
-	 * @remarks Injectable wrapper for TimeSeriesAggregator from @evelbulgroz/time-series
+	 * @remark Aggregator functions could be made generic so that they can be used with different types of data
+	 * @remark Injectable wrapper for TimeSeriesAggregator from @evelbulgroz/time-series
 	 * @todo Think through if time stamp should be start or end of period: take lead from needs of front end
 	 */
 	public aggregate<T extends { [key: string]: any }, U>(

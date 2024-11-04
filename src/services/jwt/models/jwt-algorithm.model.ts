@@ -1,6 +1,6 @@
 
 /** Algorithms supported by the JSON Web Token specification.
- * @remarks Mimics the Algorithm type from the '@nestjs/jwt' package but avoids the dependency.
+ * @remark Mimics the Algorithm type from the '@nestjs/jwt' package but avoids the dependency.
  */
 export type Algorithm =
 	| "HS256"

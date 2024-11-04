@@ -9,9 +9,9 @@ import { Query } from "@evelbulgroz/query-fns";
 import { EntityId, Repository, Result } from "@evelbulgroz/ddd-base";
 
 /**@classdesc Describes and provides default features for any User repository
- * @remarks Exists mostly to enable clients to depend on abstractions rather than a specific implementations
- * @remarks Clients should inject this class and depend on the injector to provide the concrete implementation at runtime
- * @remarks NestJS's DI system cannot inject abstract classes, so this class is not marked abstract though it should be treated as such
+ * @remark Exists mostly to enable clients to depend on abstractions rather than a specific implementations
+ * @remark Clients should inject this class and depend on the injector to provide the concrete implementation at runtime
+ * @remark NestJS's DI system cannot inject abstract classes, so this class is not marked abstract though it should be treated as such
  * @note Must be extended by a concrete class specific to a particular persistence layer
 */
 @Injectable()
@@ -24,8 +24,8 @@ export class UserRepository<T extends User, U extends UserDTO> extends Repositor
 	/** Get the class constructor from a class name
 	 * @param className The name of the class to get
 	 * @returns A Result wrapping the class constructor if successful, otherwise a failure result
-	 * @remarks Exists to enable the generic creation of User entities from DTOs, while staying DRY
-	 * @remarks Placeholder until base class is refactored to use a public static rather than a protected method
+	 * @remark Exists to enable the generic creation of User entities from DTOs, while staying DRY
+	 * @remark Placeholder until base class is refactored to use a public static rather than a protected method
 	 */
 	public static getClassFromName(className: string): Result<any> {
 		switch (className) {
@@ -43,7 +43,7 @@ export class UserRepository<T extends User, U extends UserDTO> extends Repositor
 	 * @param criteria The query criteria to use to filter entities
 	 * @param matchAll If true, all criteria must match; otherwise, any criteria matching is sufficient
 	 * @returns A Result wrapping an Observable of the entities matching the query criteria
-	 * @remarks Exists to enforce use of UserQueryCriteria, otherwise delegates to base class
+	 * @remark Exists to enforce use of UserQueryCriteria, otherwise delegates to base class
 	 */
 	public async fetchByQuery(criteria: Query<any,any>, matchAll: boolean = false): Promise<Result<Observable<User[]>>> {
 		throw new Error("Method not implemented: implement in concrete subclass");

@@ -28,7 +28,7 @@ export class RegistrationService {
 	/* Deregister this instance from the microservice registry and log out of the auth service
 	 * @returns true if deregistration was successful, otherwise throws an error
 	 * @throws Error if the deregistration request fails
-	 * @remarks Will recursively retry the request if it fails, up to the maximum number of attempts specified in config
+	 * @remark Will recursively retry the request if it fails, up to the maximum number of attempts specified in config
 	 * @todo Log out of the auth microservice after deregistering when supported by Auth/TokenService
 	 */
 	public async deregister(): Promise<boolean> {
@@ -82,7 +82,7 @@ export class RegistrationService {
 	/* Register this instance with the microservice registry
 	 * @returns true if registration was successful, otherwise throws an error
 	 * @throws Error if the registration request fails
-	 * @remarks Will recursively retry the request if it fails, up to the maximum number of attempts specified in config
+	 * @remark Will recursively retry the request if it fails, up to the maximum number of attempts specified in config
 	 */
 	public async register(): Promise<boolean> {
 		this.logger.log('Registering service with the microservice registry...');//, `${this.constructor.name}.register`);

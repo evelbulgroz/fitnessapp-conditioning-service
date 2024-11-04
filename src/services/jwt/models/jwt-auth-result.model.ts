@@ -1,6 +1,6 @@
 /** The result of validating a JWT token.
- * @remarks This interface is used by the {@link JwtAuthStrategy} class to return the client ID and name from the JWT payload.
- * @remarks Both properties are required, but clients may vary in which properties they use.
+ * @remark This interface is used by the {@link JwtAuthStrategy} class to return the client ID and name from the JWT payload.
+ * @remark Both properties are required, but clients may vary in which properties they use.
  */
 export interface JwtAuthResult {
 	/** The ID of the requesting user or microservice from the JWT sub claim. */

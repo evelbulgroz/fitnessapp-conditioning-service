@@ -5,7 +5,7 @@ import { LogsQuery } from "./logs-query.model";
 import { IsDefined, IsInstanceOf } from "@evelbulgroz/sanitizer-decorator";
 
 /** Validates query parameters received by the 'aggregate' endpoint in a LogsAggregationQueryDTO object.
- * @remarks Compound query object that includes both aggregation and logs query parameters
+ * @remark Compound query object that includes both aggregation and logs query parameters
 */
 
 export class LogsAggregationQuery {

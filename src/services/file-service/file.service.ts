@@ -4,8 +4,8 @@ import * as fs from "fs/promises";
 import * as fsSync from "fs";
 
 /**@classdesc Mockable wrapper for the Node.js file system module.
- * @remarks Prevents introducing a new dependency on e.g. mock-fs or fs-extra-mock.
- * @remarks (Node.js file system (fs) module is not mockable by default). 
+ * @remark Prevents introducing a new dependency on e.g. mock-fs or fs-extra-mock.
+ * @remark (Node.js file system (fs) module is not mockable by default). 
  */
 @Injectable()
 export class FileService {

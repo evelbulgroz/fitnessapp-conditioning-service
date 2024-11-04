@@ -1,5 +1,5 @@
 /** Specifies the information required to submit a service location request with the registry
- * @remarks Tokens are not part of the DTO, and should not be stored in the registry
+ * @remark Tokens are not part of the DTO, and should not be stored in the registry
  */
 export interface LocateDataDTO {
 	/** The unique identifier of the requesting service, typically a UUID */

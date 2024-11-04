@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { JwtAuthResult } from '../../services/jwt/models/jwt-auth-result.model';
 
 /** Abstract class for route guards that require authentication.
- * @remarks Mimics the similarly named class from the @nestjs/passport package but avoids the dependency.
+ * @remark Mimics the similarly named class from the @nestjs/passport package but avoids the dependency.
  */
 @Injectable()
 export abstract class AuthGuard implements CanActivate {
@@ -10,7 +10,7 @@ export abstract class AuthGuard implements CanActivate {
 	 * @param context ExecutionContext object
 	 * @returns true if the request is authorized, false otherwise
 	 * @throws UnauthorizedException if the request is not authorized
-	 * @remarks Implementing subclasses must call handleRequest() manually from the canActivate method.
+	 * @remark Implementing subclasses must call handleRequest() manually from the canActivate method.
 	 */
 	public abstract canActivate(context: ExecutionContext): Promise<boolean>;
 
@@ -21,8 +21,8 @@ export abstract class AuthGuard implements CanActivate {
 	 * @param context ExecutionContext object
 	 * @returns true if the request is authorized, otherwise throws an UnauthorizedException
 	 * @throws UnauthorizedException if the request is not authorized
-	 * @remarks This default method is called after the route handler has been processed. Subclasses can override this method to provide custom behavior.
-	 * @remarks More complex behavior could include logging, auditing, additional validation (e.g. of client object), redirecting and/or providing custom error messages.
+	 * @remark This default method is called after the route handler has been processed. Subclasses can override this method to provide custom behavior.
+	 * @remark More complex behavior could include logging, auditing, additional validation (e.g. of client object), redirecting and/or providing custom error messages.
 	 */
 	public async handleRequest(err: any, user: JwtAuthResult | null, info: any, context: ExecutionContext): Promise<JwtAuthResult> {
 		if (err || !user) {

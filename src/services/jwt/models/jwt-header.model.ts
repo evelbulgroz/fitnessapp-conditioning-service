@@ -1,7 +1,7 @@
 import { Algorithm as Algorithm } from "./jwt-algorithm.model";
 
 /** Specifies the header of a JSON Web Token as defined by the JWT specification.
- * @remarks Mimics the JwtHeader interface from the '@nestjs/jwt' package but avoids the dependency.
+ * @remark Mimics the JwtHeader interface from the '@nestjs/jwt' package but avoids the dependency.
  */
 export interface JwtHeader {
 	/** The type of token, typically "JWT". */

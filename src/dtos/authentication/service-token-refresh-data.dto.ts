@@ -8,7 +8,7 @@ export interface ServiceTokenRefreshDataDTO {
 	serviceName: string;
 
 	/** Refresh token for the requesting microservice
-	 * @remarks Required when submitting in a request, excluded from responses
+	 * @remark Required when submitting in a request, excluded from responses
 	 */
 	refreshToken?: string;
 }

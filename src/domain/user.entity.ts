@@ -5,10 +5,10 @@ import { IsArray, IsDefined, IsInstanceOfOneOf, IsInstanceOfOneOfAll } from '@ev
 import UserDTO from "../dtos/user.dto.js";
 
 /** A human user of the system, e.g. a coach or an athlete, with logs of conditioning activities
- * @remarks Shallow implementation intended only to hold associations between users and logs
- * @remarks Could have used User as ddd aggregate root for logs, but opted for the flexibility of managing association separately
- * @remarks This also allows log and user entities and repos to have more focused responsibilities
- * @remarks To make this work, data service has responsibility for keeping associations in sync
+ * @remark Shallow implementation intended only to hold associations between users and logs
+ * @remark Could have used User as ddd aggregate root for logs, but opted for the flexibility of managing association separately
+ * @remark This also allows log and user entities and repos to have more focused responsibilities
+ * @remark To make this work, data service has responsibility for keeping associations in sync
  */
 export class User extends Entity<any, UserDTO> {
 	//----------------------------- PROPERTIES ------------------------------//
@@ -70,8 +70,8 @@ export class User extends Entity<any, UserDTO> {
 	
 	/** The logs for the user
 	 * @throws Error if logs is not an array of strings or numbers
-	 * @remarks To keep thing simple and decopuled, holds logs by id only, not the actual log entities.
-	 * @remarks It is the responsibility of the data service to keep the logs in sync with the user and to serve the actual log entities
+	 * @remark To keep thing simple and decopuled, holds logs by id only, not the actual log entities.
+	 * @remark It is the responsibility of the data service to keep the logs in sync with the user and to serve the actual log entities
 	 */
 	@IsDefined(undefined, { message: 'Logs must be defined' })
 	@IsArray({ message: 'Logs must be an array' })
@@ -86,9 +86,9 @@ export class User extends Entity<any, UserDTO> {
 	public get logs(): EntityId[] { return [...this._logs]; } // shallow copy
 	
 	/** @description The user's id in the user microservice
-	 * @remarks EntityId managed by repo is not the same as the user id in the user microservice, which should be used for requests
-	 * @remarks Therefore, this property is necessary to support requests by user id
-	 * @remarks Service is responsible for keeping this unique and in sync with the user id in the user microservice
+	 * @remark EntityId managed by repo is not the same as the user id in the user microservice, which should be used for requests
+	 * @remark Therefore, this property is necessary to support requests by user id
+	 * @remark Service is responsible for keeping this unique and in sync with the user id in the user microservice
 	 */
 	@IsInstanceOfOneOf([String, Number], { message: 'User id must be a string or number' })
 	public set userId(value: EntityId) { this._userId = value; }

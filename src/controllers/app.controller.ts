@@ -38,9 +38,9 @@ import { ValidationPipe } from './pipes/validation.pipe';
 import { LogsAggregationQuery } from './domain/logs-aggregation-query.model';
 
 /** Main controller for the application.
- * @remarks This controller is responsible for handling, parsing and validating all incoming requests.
- * @remarks It delegates the actual processing of requests to the appropriate service methods, which are responsible for data access and business logic.
- * @remarks All endpoints are intended for use by front-end applications on behalf of authenticated users.
+ * @remark This controller is responsible for handling, parsing and validating all incoming requests.
+ * @remark It delegates the actual processing of requests to the appropriate service methods, which are responsible for data access and business logic.
+ * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
  */
 @Controller() // set prefix in config
 @UseGuards(
@@ -59,7 +59,7 @@ export class AppController {
 	/** Get list of the number of times each conditioning activity has been logged.
 	 * @returns Object with activity names as keys and counts as values
 	 * @throws BadRequestException if data service method fails
-	 * @remarks Audience: Admins (all data), Users (own data) accessing endpoint from a front-end application
+	 * @remark Audience: Admins (all data), Users (own data) accessing endpoint from a front-end application
 	 * @example http://localhost:3060/api/v3/conditioning/activities
 	 * @todo Delegate processing to service method
 	 
@@ -86,7 +86,7 @@ export class AppController {
 	/** Aggregate conditioning logs using aggregation parameters.
 	 * @param query unvalidated aggregation parameters
 	 * @returns aggregated data
-	 * @remarks Audience: Admins, Users accessing their own data from a front-end application
+	 * @remark Audience: Admins, Users accessing their own data from a front-end application
 	 * @todo Convert validation types here to types required by service method (e.g. AggregationQuery)
 	 * @example http.post(http://localhost:3060/api/v3/conditioning/aggregate, {
 		"aggregationQuery": {
@@ -143,7 +143,7 @@ export class AppController {
 	 * @returns ConditioningLog object matching log id, if found
 	 * @throws BadRequestException if data service method fails
 	 * @throws NotFoundException if no log is found with the specified id
-	 * @remarks Data service method is responsible for role-based access control	 
+	 * @remark Data service method is responsible for role-based access control	 
 	 * @example http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef
 	 */
 	@Get('log/:id')
@@ -171,7 +171,7 @@ export class AppController {
 	 * @param query Query parameters for filtering logs (optional for admins, required with user id for normal users)
 	 * @returns Array of ConditioningLogs, or empty array if none found
 	 * @throws BadRequestException if user role or user id is not found in request, or user id does not match authenticated user
-	 * @remarks If query is not provided (admin), or only contains user id (normal user), all applicable logs are returned
+	 * @remark If query is not provided (admin), or only contains user id (normal user), all applicable logs are returned
 	 * @example http://localhost:3060/api/v3/conditioning/logs?activity=MTB&duration=50000
 	 */	
 	@Get('logs')
@@ -197,7 +197,7 @@ export class AppController {
 
 	/** Get all property rules for a supported type (e.g. for deserialization and validation of domain objects). 
 	 * @returns EntityRules object containing all rules for the specified type (as defined in ddd-base)
-	 * @remarks Intended to enable front-end to performing preemptive validation w/o making a request to the server, but using the correct rules
+	 * @remark Intended to enable front-end to performing preemptive validation w/o making a request to the server, but using the correct rules
 	 * @example http://localhost:3060/api/v3/conditioning/rules?type=ConditioningLog
 	*/
 	@Get('rules/:type')

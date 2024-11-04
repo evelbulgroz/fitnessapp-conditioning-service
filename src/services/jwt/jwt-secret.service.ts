@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 /**Service for managing the secret used to sign and verify JWT tokens
- * @remarks Intended for use by a JWT service to enable dynamic secret management
+ * @remark Intended for use by a JWT service to enable dynamic secret management
  * without exposing the API for changing the secret on the JWT service itself.
  */
 @Injectable()

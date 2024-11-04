@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
 /** Abstract class for authentication strategies for use in route guards.
- * @remarks Mimics the similarly named class from the @nestjs/passport package but avoids the dependency.
+ * @remark Mimics the similarly named class from the @nestjs/passport package but avoids the dependency.
  */
 @Injectable()
 export abstract class AuthStrategy {
@@ -16,7 +16,7 @@ export abstract class AuthStrategy {
 	 * @param credentials The credentials to use for logging in
 	 * @returns the authenticated user object
 	 * @throws UnauthorizedException if the credentials are invalid
-	 * @remarks This method should be implemented by subclasses to provide custom behavior.
+	 * @remark This method should be implemented by subclasses to provide custom behavior.
 	 * @todo Consider including this later in order to more fully mimic the @nestjs/passport package.
 	*/
 	//public abstract login(credentials: any): Promise<any>;
@@ -24,7 +24,7 @@ export abstract class AuthStrategy {
 	/* Log out the current user.
 	 * @returns void
 	 * @throws UnauthorizedException if the user is not logged in
-	 * @remarks This method should be implemented by subclasses to provide custom behavior.
+	 * @remark This method should be implemented by subclasses to provide custom behavior.
 	 * @todo Consider including this later in order to more fully mimic the @nestjs/passport package.
 	*/
 	//public abstract logout(): Promise<void>;

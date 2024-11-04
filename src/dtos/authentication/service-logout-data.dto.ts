@@ -1,6 +1,6 @@
 
 /** Credentials and other data required for logging out a system user (e.g. a microservice)
- * @remarks Excludes access token which is passed in the request header
+ * @remark Excludes access token which is passed in the request header
  */
 export interface ServiceLogoutDataDTO {
 	/** Unique identifier for the microservice as registered in the service registry */
@@ -10,7 +10,7 @@ export interface ServiceLogoutDataDTO {
 	serviceName: string;
 
 	/** Refresh token issued to the microservice
-	 * @remarks Required for logging out but excluded from the response for security reasons
+	 * @remark Required for logging out but excluded from the response for security reasons
 	 */
 	refreshToken?: string;
 }

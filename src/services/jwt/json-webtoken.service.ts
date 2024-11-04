@@ -9,8 +9,8 @@ import { SignOptions as JwtSignOptions } from "./models/jwt-sign-options.model";
 import { VerifyOptions as JwtVerifyOptions } from "./models/jwt-verify-options.model";
 
 /** Signs, verifies, and decodes JWT tokens using the 'jsonwebtoken' library.
- * @remarks Concrete implementation of the JWT service API using the 'jsonwebtoken' library.
- * @remarks Intended for extraction into a separate package so avoids NestJS dependencies.
+ * @remark Concrete implementation of the JWT service API using the 'jsonwebtoken' library.
+ * @remark Intended for extraction into a separate package so avoids NestJS dependencies.
  */
 export class JsonWebtokenService extends JwtService {	
 	constructor(secretService: JwtSecretService) {		

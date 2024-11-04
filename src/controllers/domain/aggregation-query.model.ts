@@ -6,10 +6,10 @@ import { ConditioningLog } from "../../domain/conditioning-log.entity";
 type Constructor<T> = new (...args: any[]) => T;
 
 /** Validates query parameters received by an endpoint in a AggregationQueryDTO object.
- * @remarks Equivalent to the same class from the time-series library but adds validation:
+ * @remark Equivalent to the same class from the time-series library but adds validation:
  *  - implementing the library interface ensures compatibility with the library
- * @remarks AggregationQueryDTO is used to pass in unvalidated data from clients (e.g. the front end)
- * @remarks AggregationQuery is guaranteed to be valid: constructor and accessors throw error if passed invalid data
+ * @remark AggregationQueryDTO is used to pass in unvalidated data from clients (e.g. the front end)
+ * @remark AggregationQuery is guaranteed to be valid: constructor and accessors throw error if passed invalid data
  */
 export class AggregationQuery implements AggregationQueryDTO {
 	//----------------------------- PROPERTIES -----------------------------

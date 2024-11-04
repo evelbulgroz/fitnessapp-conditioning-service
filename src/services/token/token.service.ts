@@ -19,8 +19,8 @@ import { AuthService } from "../auth/auth-service.class";
 import { RetryRequesterService } from "../retry-requester/retry-requester.service";
 
 /** Manages and provides access to the current JWT token needed for making authenticated requests to other microservices.
- * @remarks Also provides methods for logging in and out of the authentication microservice at server startup and shutdown
- * @remarks Will recursively retry http requests if they fail, up to the maximum number of attempts specified in config for the endpoint or microservice
+ * @remark Also provides methods for logging in and out of the authentication microservice at server startup and shutdown
+ * @remark Will recursively retry http requests if they fail, up to the maximum number of attempts specified in config for the endpoint or microservice
  */
 @Injectable()
 export class TokenService extends AuthService {
@@ -46,10 +46,10 @@ export class TokenService extends AuthService {
 
 	/** Get the current auth token, requesting a new one if needed
 	 * @returns Promise containing the access token
-	 * @remarks Orchestrates the whole login and token refresh process, including bootstrap and authentication
-	 * @remarks Guards against concurrent calls triggering overlapping login or refresh requests
-	 * @remarks Will refresh the access token if it is invalid, using the refresh token if available and valid
-	 * @remarks Will log in (anew) if no access token is available, or if the refresh token is invalid
+	 * @remark Orchestrates the whole login and token refresh process, including bootstrap and authentication
+	 * @remark Guards against concurrent calls triggering overlapping login or refresh requests
+	 * @remark Will refresh the access token if it is invalid, using the refresh token if available and valid
+	 * @remark Will log in (anew) if no access token is available, or if the refresh token is invalid
 	 */
 	public async getAuthData(): Promise<string> {		
 		const self = this; // store a reference to the current instance for use in nested functions
@@ -117,8 +117,8 @@ export class TokenService extends AuthService {
 
 	/** Login to authentication microservice to get access and refresh tokens
 	 * @returns Promise containing the access and refresh tokens
-	 * @remarks Facade for getAuthData(), in the public API mainly as a matter of convention
-	 * @remarks Clients should use getAuthData() instead of login() to get the access token
+	 * @remark Facade for getAuthData(), in the public API mainly as a matter of convention
+	 * @remark Clients should use getAuthData() instead of login() to get the access token
 	 */
 	public async login(): Promise<{accessToken: string, refreshToken: string}> {
 		void await this.getAuthData();
@@ -127,7 +127,7 @@ export class TokenService extends AuthService {
 
 	/** Logout from authentication microservice process to clear the access and refresh tokens
 	 * @returns Promise containing the logout response, or an error message
-	 * @remarks Will clear the tokens and pass them to the auth service for invalidation
+	 * @remark Will clear the tokens and pass them to the auth service for invalidation
 	 */
 	public async logout(): Promise<string> {
 		this.logger.log('Logging out from the auth service...');//, `${this.constructor.name}.logout`);

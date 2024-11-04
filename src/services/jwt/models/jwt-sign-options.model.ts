@@ -2,7 +2,7 @@ import { Algorithm as Algorithm } from "./jwt-algorithm.model";
 import { JwtHeader as JwtHeader } from "./jwt-header.model";
 
 /* Specifies the options for signing a JSON Web Token.
- * @remarks Mimics the SignOptions interface from the 'jsonwebtoken' package but avoids the dependency.
+ * @remark Mimics the SignOptions interface from the 'jsonwebtoken' package but avoids the dependency.
  */
 export interface SignOptions {
 	/** Signature algorithm. Could be one of these values :
@@ -23,19 +23,19 @@ export interface SignOptions {
 	keyid?: string | undefined;
 	
 	/** Specifies the expiration time of the token.
-	 * @remarks It can be expressed in seconds or as a string describing a time span (e.g., "2 days", "10h", "7d"). This is used to set the exp (expiration time) claim.
-	 * @remarks [zeit/ms](https://github.com/zeit/ms.js) is used to parse the string.
+	 * @remark It can be expressed in seconds or as a string describing a time span (e.g., "2 days", "10h", "7d"). This is used to set the exp (expiration time) claim.
+	 * @remark [zeit/ms](https://github.com/zeit/ms.js) is used to parse the string.
 	 */
 	expiresIn?: string | number;
 	
 	/** Specifies the time before which the token must not be accepted for processing.
-	 * @remarks It can be expressed in seconds or as a string describing a time span. This is used to set the nbf (not before) claim.
-	 * @remarks [zeit/ms](https://github.com/zeit/ms.js) is used to parse the string.
+	 * @remark It can be expressed in seconds or as a string describing a time span. This is used to set the nbf (not before) claim.
+	 * @remark [zeit/ms](https://github.com/zeit/ms.js) is used to parse the string.
 	 */
 	notBefore?: string | number | undefined;
 	
 	/** Identifies the recipients that the JWT is intended for. This is used to set the aud (audience) claim.
-	 * @remarks This can be a string or an array of strings.
+	 * @remark This can be a string or an array of strings.
 	 */
 	audience?: string | string[] | undefined;
 	

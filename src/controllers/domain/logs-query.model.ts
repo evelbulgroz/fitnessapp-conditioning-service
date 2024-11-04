@@ -14,9 +14,9 @@ const MAX_PAGE_SIZE = 100; // Maximum number of items per page
 const MAX_PROPERTY_LENGTH = 100; // Maximum length for a property
 
 /** Validates query parameters received by an endpoint in a LogsQueryDTO object.
- * @remarks Cannot use 'implements' keyword because of type conversions: you must check manually that properties match the DTO
- * @remarks Intended for use in endpoint validation pipe to validate query parameters
- * @remarks As a quirk of testing, numbers may be passed as strings, causing @IsNumber() to fail: use @ToNumber() instead to ensure coercion (back) to number
+ * @remark Cannot use 'implements' keyword because of type conversions: you must check manually that properties match the DTO
+ * @remark Intended for use in endpoint validation pipe to validate query parameters
+ * @remark As a quirk of testing, numbers may be passed as strings, causing @IsNumber() to fail: use @ToNumber() instead to ensure coercion (back) to number
 */
 export class LogsQuery extends ValidatedData {
 	//----------------------------- PROPERTIES -----------------------------//
@@ -35,7 +35,7 @@ export class LogsQuery extends ValidatedData {
 	 * @param dto LogsQueryDTO object
 	 * @returns new LogsQuery instance
 	 * @throws Error if the DTO object is invalid
-	 * @remarks Preemptively throws errors for invalid types, lengths, and values: cannot create an invalid object
+	 * @remark Preemptively throws errors for invalid types, lengths, and values: cannot create an invalid object
 	 */
 	public constructor(dto: LogsQueryDTO) {
 		super();
@@ -131,7 +131,7 @@ export class LogsQuery extends ValidatedData {
 	 * @param key name of the property
 	 * @returns date object
 	 * @throws Error if value is not a valid date, or if the string or number is too large
-	 * @remarks Differential enforcement of maximum size for string and number is not possible with available decorators
+	 * @remark Differential enforcement of maximum size for string and number is not possible with available decorators
 	 */
 	private _toDate(value: string | number | Date, key: string): Date {
 		let date: Date;

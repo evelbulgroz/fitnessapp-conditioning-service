@@ -8,12 +8,12 @@ export interface ServiceLoginDataDTO {
 	serviceName: string;
 
 	/** Password for the microservice
-	 * @remarks Required when submitting in a request, excluded from responses
+	 * @remark Required when submitting in a request, excluded from responses
 	 */
 	password?: string;
 
 	/** Verification token for the microservice obtained from the service registry at bootstrap
-	 * @remarks Required when submitting in a request, excluded from responses
+	 * @remark Required when submitting in a request, excluded from responses
 	 */
 	verificationToken?: string;
 }

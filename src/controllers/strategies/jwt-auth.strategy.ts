@@ -16,8 +16,8 @@ import { UserRepository } from "../../repositories/user-repo.model";
 
 
 /** Authentication strategy for JWT tokens for use with AuthGuard class.
- * @remarks Concrete implementation of {@link AuthStrategy} using {@link JsonWebtokenService}.
- * @remarks This class is intended to be used with the {@link AuthGuard} class to protect controller routes.
+ * @remark Concrete implementation of {@link AuthStrategy} using {@link JsonWebtokenService}.
+ * @remark This class is intended to be used with the {@link AuthGuard} class to protect controller routes.
  * @todo Add logging
  */
 @Injectable()
@@ -42,7 +42,7 @@ export class JwtAuthStrategy extends AuthStrategy {
 	 * @param options The Jwt VerifyOptions to use when verifying the token (or undefined for defaults)
 	 * @returns The decoded payload
 	 * @throws Error if the token is invalid or missing required claims
-	 * @remarks This method is called by the AuthGuard class to verify the JWT token in the request header.
+	 * @remark This method is called by the AuthGuard class to verify the JWT token in the request header.
 	 */
 	public async verify<T = JwtPayloadType>(token: string, options?: JwtVerifyOptions): Promise<T> {
 		if (token.length > this.MAX_TOKEN_SIZE) {
@@ -67,10 +67,10 @@ export class JwtAuthStrategy extends AuthStrategy {
 	 * @param payload The payload to validate (decoded token from verify method)
 	 * @returns The validated client (user or service) object
 	 * @throws UnauthorizedException if the token is invalid
-	 * @remarks This method is called by the AuthGuard class to validate the token payload after verification.
-	 * @remarks Requesting users are validated by checking that the id in the 'sub' claim exists in the user repository.
-	 * @remarks Requesting services are validated by checking that the 'subName' claim matches a known collaborator service in config.
-	 * @remarks More complex user or service validation should be done by data service when called by controller.
+	 * @remark This method is called by the AuthGuard class to validate the token payload after verification.
+	 * @remark Requesting users are validated by checking that the id in the 'sub' claim exists in the user repository.
+	 * @remark Requesting services are validated by checking that the 'subName' claim matches a known collaborator service in config.
+	 * @remark More complex user or service validation should be done by data service when called by controller.
 	 */
 	public async validate(payload: JwtPayload): Promise<JwtAuthResult> {
 		if (payload.subType !== 'service' && payload.subType !== 'user') {

@@ -2,9 +2,9 @@ import { th } from "date-fns/locale";
 
 /** Validation model for a primtive endpoint parameter
  * @param T The type of the parameter to validate
- * @remarks This class is intended to be extended to provide validation for specific types.
- * @remarks Implements workaround for the issue of the framework calling the constructor twice.
- * @remarks Should be overridden in subclasses to provide validation for specific types.
+ * @remark This class is intended to be extended to provide validation for specific types.
+ * @remark Implements workaround for the issue of the framework calling the constructor twice.
+ * @remark Should be overridden in subclasses to provide validation for specific types.
  */
 export abstract class ParamModel<T> {	
 	protected _value: T | undefined;

@@ -35,10 +35,10 @@ interface UserLogsCacheEntry {
 }
 
 /** Provides access to data from conditioning training sessions, as intermediary between controllers and repositories.
- * @remarks Handles enforcement of business rules, and aggregation and other data processing unrelated to either persistence or controller logic.
- * @remarks Uses a local cache to store logs by user id, to avoid repeated fetches from the persistence layer.
- * @remarks Relies on repositories for persistence, and on controller(s) for request authentication, user context, data sanitization, and error logging.
- * @remarks For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
+ * @remark Handles enforcement of business rules, and aggregation and other data processing unrelated to either persistence or controller logic.
+ * @remark Uses a local cache to store logs by user id, to avoid repeated fetches from the persistence layer.
+ * @remark Relies on repositories for persistence, and on controller(s) for request authentication, user context, data sanitization, and error logging.
+ * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @todo Refactor all data access methods to require UserContext instead of user id, to allow for more complex queries and enforce access rules.
  * @todo Refactor service and cache to orchestrate user and log data (e.g. adding entries to both when adding a new log for a user).
  */
@@ -62,8 +62,8 @@ export class ConditioningDataService {
 	
 	/**New API: Check if service is ready to use, i.e. has been initialized
 	 * @returns Promise that resolves when the service is ready to use
-	 * @remarks Invokes initialization if not already initialized
-	 * @remarks Only applies to new API, old API handles initialization internally
+	 * @remark Invokes initialization if not already initialized
+	 * @remark Only applies to new API, old API handles initialization internally
 	*/	
 	public async isReady(): Promise<boolean> {
 		return new Promise(async (resolve) => {
@@ -87,7 +87,7 @@ export class ConditioningDataService {
 	 * @throws NotFoundError if log is not found or access is denied
 	 * @throws UnauthorizedAccessError if user is not authorized to access log
 	 * @throws PersistenceError if error occurs while fetching log from persistence
-	 * @remarks Replaces overview logs in cache with detailed logs from persistence on demand, and updates subscribers
+	 * @remark Replaces overview logs in cache with detailed logs from persistence on demand, and updates subscribers
 	 */
 	public async conditioningLogDetails(ctx: UserContext, logId: EntityId): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
@@ -143,27 +143,26 @@ export class ConditioningDataService {
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param query Optional query to filter logs (else all available logs for role are returned)
 	 * @returns Array of conditioning logs (constrained by user context and query)
-	 * @note Overview logs are guaranteed to be available, full logs are loaded from persistence on demand using conditioningLogDetails()
+	 * @remark Overview logs are guaranteed to be available
+	 * @remark Full logs are loaded from persistence on demand using conditioningLogDetails(), and may be purged from cache to save memory
 	 */
 	public async conditioningLogs(ctx: UserContext, query?: Query<ConditioningLog<any,ConditioningLogDTO>,ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
 		
 		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];
 		
-		if (!ctx.roles.includes('admin')) {
-			// if the user isn't an admin, they can only access their own logs
+		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs			
 			searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
 		}
-		else {
-			// if the user is an admin, they access all logs
+		else { // if the user is an admin, they can access all logs			
 			searchableLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
 		}	
-		// filter logs by query, if provided	
+
+		// filter logs by query, if provided, else use all available logs	
 		const matchingLogs = query !== undefined ? query.execute(searchableLogs) : searchableLogs;
 		
-		// sort logs if no sort criteria specified, default is ascending by start date and time
 		let sortedLogs = matchingLogs;
-		if (!query?.sortCriteria || query.sortCriteria.length === 0) {
+		if (!query?.sortCriteria || query.sortCriteria.length === 0) {// default sort is ascending by start date and time
 			sortedLogs = matchingLogs.sort(compareLogsByStartDate);
 		}
 		

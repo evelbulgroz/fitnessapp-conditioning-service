@@ -1,7 +1,7 @@
 import Algorithm from "./jwt-algorithm.model";
 
 /** Specifies the options for verifying a JSON Web Token.
- * @remarks Mimics the VerifyOptions interface from the 'jsonwebtoken' package but avoids the dependency.
+ * @remark Mimics the VerifyOptions interface from the 'jsonwebtoken' package but avoids the dependency.
  */
 export interface VerifyOptions {
 	/** List of accepted algorithms. */

@@ -6,7 +6,7 @@ import { CryptoService } from './models/crypto-service.model';
 
 
 /** Service that provides cryptographic hashing and comparison using the 'bcrypt' library.
- * @remarks Concrete implementation of the CryptoService using the 'bcrypt' library.
+ * @remark Concrete implementation of the CryptoService using the 'bcrypt' library.
  */
 @Injectable()
 export class BcryptCryptoService implements CryptoService {

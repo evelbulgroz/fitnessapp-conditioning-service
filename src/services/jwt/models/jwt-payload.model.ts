@@ -1,5 +1,5 @@
 /** Specifies the standard claims in the payload of a JSON Web Token issued or consumed in this application.
- * @remarks Mimics the JwtPayload interface from the '@nestjs/jwt' package but avoids the dependency, enhances the documentation, and modifies the optionality of the standard claims.
+ * @remark Mimics the JwtPayload interface from the '@nestjs/jwt' package but avoids the dependency, enhances the documentation, and modifies the optionality of the standard claims.
  * @todo Import this interface from the authentication microservice when available.
 */
 export interface JwtPayload {

@@ -1,8 +1,8 @@
 /** Generic JSON serializer of any kind of object.
  * @returns A JSON representation of the object
- * @remarks Includes any own or inherited property of the object that is not a method or private property.
- * @remarks Internally uses JSON.stringify to enable local overrides to self.
- * @remarks This function is intended to be used a mixin in a class or object.
+ * @remark Includes any own or inherited property of the object that is not a method or private property.
+ * @remark Internally uses JSON.stringify to enable local overrides to self.
+ * @remark This function is intended to be used a mixin in a class or object.
  * @todo Add support for (skipping) circular references (tried, failed!)
  * 
  * @example ```ts

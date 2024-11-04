@@ -12,7 +12,7 @@ export interface SecurityConfig {
 	};
 
 	/** Configuration for each service that can access this service
-	 * @remarks If e.g. a JWT token's custom 'subName' claim does not match a service in this list, the token will be rejected
+	 * @remark If e.g. a JWT token's custom 'subName' claim does not match a service in this list, the token will be rejected
 	 */
 	collaborators: {
 		/** Configuration for each service that can access this service */
@@ -26,10 +26,10 @@ export interface SecurityConfig {
 /** Authentication configuration */
 export interface AuthenticationConfig {	
 	/** Password for initial log in (hashed for security)
-	 * @remarks Password is only used for initial log in to the service
-	 * @remarks Subsequent authentication is done using JWT tokens signed/verified with separate token secrets:
-	 * @remarks - unlike passwords, token secrets are not shared with other services
-	 * @remarks Auth service does not require a password to log in to itself: set to any string
+	 * @remark Password is only used for initial log in to the service
+	 * @remark Subsequent authentication is done using JWT tokens signed/verified with separate token secrets:
+	 * @remark - unlike passwords, token secrets are not shared with other services
+	 * @remark Auth service does not require a password to log in to itself: set to any string
 	*/
 	password: string;
 }
@@ -43,7 +43,7 @@ export interface CollaboratorConfig {
 /** JWT auth configuration */
 export interface JwtAuthConfig {	
 	/** Name of the service issuing the token
-	 * @remarks Should be matched by the e.g. 'iss' claim in the JWT token, or the token will be rejected
+	 * @remark Should be matched by the e.g. 'iss' claim in the JWT token, or the token will be rejected
 	 */
 	issuer: string;
 
