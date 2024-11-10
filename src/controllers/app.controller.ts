@@ -12,6 +12,7 @@ import {
 	UseInterceptors,
 	UsePipes
 } from '@nestjs/common';
+//import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam } from '@nestjs/swagger';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationQuery, AggregationQueryDTO } from '@evelbulgroz/time-series';
@@ -42,7 +43,10 @@ import { LogsAggregationQuery } from './domain/logs-aggregation-query.model';
  * @remark This controller is responsible for handling, parsing and validating all incoming requests.
  * @remark It delegates the actual processing of requests to the appropriate service methods, which are responsible for data access and business logic.
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
+ * @todo Refactor to support new service methods and DTOs
+ * @todo Implement API documentation using Swagger (OpenAPI) annotations and decorators (e.g. @ApiTags, @ApiOperation, @ApiResponse, @ApiQuery, @ApiParam)
  */
+//@ApiTags('conditioning')
 @Controller() // set prefix in config
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
@@ -124,7 +128,9 @@ export class AppController {
 	 });
 	 */
 	@Post('aggregate')
-	@Roles('admin', 'user')
+	//@ApiOperation({ summary: 'Aggregate conditioning logs using aggregation parameters' })
+  	//@ApiResponse({ status: 200, description: 'Aggregated data' })
+  	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ transform: true }))
 	async aggregate(@Req() req: any, @Body() query: LogsAggregationQuery): Promise<any> {
 		try {
@@ -148,6 +154,10 @@ export class AppController {
 	 * @example http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef
 	 */
 	@Get('log/:id')
+	//@ApiOperation({ summary: 'Get conditioning log details by entity id' })
+	//@ApiParam({ name: 'id', description: 'EntityIdParam object containing log entity id' })
+	//@ApiResponse({ status: 200, description: 'ConditioningLog object matching log id, if found' })
+	//@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ transform: true }))
 	async fetchLogDetails(@Req() req: any, @Param('id') logId: EntityIdParam ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
@@ -176,6 +186,11 @@ export class AppController {
 	 * @example http://localhost:3060/api/v3/conditioning/logs?activity=MTB&duration=50000
 	 */	
 	@Get('logs')
+	//@ApiOperation({ summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)' })
+	//@ApiQuery({ name: 'activity', required: false, type: String, description: 'Activity to filter logs by' })
+	//@ApiQuery({ name: 'duration', required: false, type: Number, description: 'Duration to filter logs by' })
+	//@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
+	//@ApiResponse({ status: 404, description: 'No logs found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	async fetchLogs(@Req() req: any, @Query() query?: QueryModel<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {

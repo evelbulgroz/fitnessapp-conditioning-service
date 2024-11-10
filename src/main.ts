@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from '@evelbulgroz/ddd-base';
 
 import { AppConfig } from 'src/domain/config-options.model';
@@ -17,6 +18,17 @@ async function bootstrap() {
 	// Get the port from the configuration
 	const appConfig = configService.get('app') as AppConfig;
 	const port = appConfig.baseURL?.port;
+
+	// Publish API documentation
+	/*
+	const config = new DocumentBuilder()
+		.setTitle('FitnessApp API')
+		.setDescription('API documentation for FitnessApp')
+		.setVersion('1.0')
+		.build();
+	const document = SwaggerModule.createDocument(app, config);
+	SwaggerModule.setup('api-docs', app, document); // e.g. http://localhost:3000/api-docs
+	*/
 
 	// Start the application
 	await app.listen(port);
