@@ -1,6 +1,6 @@
 import { AggregationQuery } from "./aggregation-query.model";
 import { LogsAggregationQueryDTO } from "../dtos/logs-aggregation-query.dto";
-import { LogsQuery } from "./logs-query.model";
+import { QueryDTO } from "./query.dto";
 
 import { IsDefined, IsInstanceOf } from "@evelbulgroz/sanitizer-decorator";
 
@@ -11,14 +11,14 @@ import { IsDefined, IsInstanceOf } from "@evelbulgroz/sanitizer-decorator";
 export class LogsAggregationQuery {
 	//----------------------------- PROPERTIES -----------------------------
 	private _aggregationQuery: AggregationQuery;
-	private _logsQuery: LogsQuery;
+	private _logsQuery: QueryDTO;
 
 	//----------------------------- CONSTRUCTOR -----------------------------//
    
 	constructor(dto: LogsAggregationQueryDTO) {
 		// asssign to setters to trigger validation
 		dto.aggregation && (this.aggregationQuery = new AggregationQuery(dto.aggregation));
-		dto.query && (this.logsQuery = new LogsQuery(dto.query));
+		dto.query && (this.logsQuery = new QueryDTO(dto.query));
 	}
 
 	//----------------------------- PUBLIC METHODS -----------------------------//
@@ -43,7 +43,7 @@ export class LogsAggregationQuery {
 
 	/** Logs selection parameters for the query */
 	@IsDefined('', {message: 'logs query must be defined'})
-	@IsInstanceOf(LogsQuery, { message: 'logs query must be an instance of LogsQuery' })
-	set logsQuery(query: LogsQuery) { this._logsQuery = query; }
-	get logsQuery(): LogsQuery { return this._logsQuery; }
+	@IsInstanceOf(QueryDTO, { message: 'logs query must be an instance of LogsQuery' })
+	set logsQuery(query: QueryDTO) { this._logsQuery = query; }
+	get logsQuery(): QueryDTO { return this._logsQuery; }
 }

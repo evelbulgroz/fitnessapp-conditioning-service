@@ -24,14 +24,13 @@ import { ConditioningDataService } from '../services/conditioning-data/condition
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { LogsAggregationQueryDTO } from './dtos/logs-aggregation-query.dto';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
-import { Query as Query_, QueryDTO } from '@evelbulgroz/query-fns';
 import { DefaultStatusCodeInterceptor } from './interceptors/status-code.interceptor';
 
 import { EntityIdParam } from './domain/entityid-param.model';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
-import { LogsQuery } from './domain/logs-query.model';
+import { QueryDTO } from './domain/query.dto';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
 import { TypeParam } from './domain/type-param.model';

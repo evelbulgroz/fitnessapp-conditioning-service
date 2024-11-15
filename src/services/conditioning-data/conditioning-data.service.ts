@@ -15,7 +15,7 @@ import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
-import { LogsQuery } from '../../controllers/domain/logs-query.model';
+import { QueryDTO } from '../../controllers/domain/query.dto';
 import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';
 import { User } from '../../domain/user.entity';
@@ -262,7 +262,7 @@ export class ConditioningDataService {
 	//--------------------------------- PROTECTED METHODS ---------------------------------
 
 	/* Convert a LogsQuery to a (functional) ConditioningLogQuery */
-	protected toConditioningLogQuery(query: LogsQuery): Query<any, any> {
+	protected toConditioningLogQuery(query: QueryDTO): Query<any, any> {
 		// todo: implement conversion
 		/* DTO format example: {
 			"searchCriteria": [

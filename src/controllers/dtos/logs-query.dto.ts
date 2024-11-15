@@ -1,7 +1,8 @@
 import { ActivityType } from "@evelbulgroz/fitnessapp-base";
 import { EntityId } from "@evelbulgroz/ddd-base";
 
-/** Specifies the query parameters accepted by endpoints supporting log retrieval and aggregation */
+/**DEPRECATED: Retire when the new QueryDTO is substituted everywhere
+ *  Specifies the query parameters accepted by endpoints supporting log retrieval and aggregation */
 export interface LogsQueryDTO {
 	/** Start date for the log. */
 	start?: string;
