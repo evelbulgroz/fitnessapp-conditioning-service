@@ -1,21 +1,9 @@
-import { QueryDTO } from '../dtos/query.dto';
+import { v4 as uuid } from 'uuid';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
-import { v4 as uuid } from 'uuid';
-
-/* Request data properties (for typing in these tests) */
-interface QueryDTOProps {
-	start: string;
-	end: string;
-	activity: ActivityType;
-	userId: string;
-	sortBy: string;
-	order: 'asc' | 'desc';
-	page: number;
-	pageSize: number;
-}
-
+import { QueryDTO } from '../dtos/query.dto';
+import { QueryDTOProps } from '../../test/models/query-dto.props';
 
 // NOTE: Does not cover every case, but should be acceptable for now
 
