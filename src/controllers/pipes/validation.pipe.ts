@@ -80,6 +80,7 @@ export class ValidationPipe implements PipeTransform<any> {
 		}
 	}
 	
+	// Check if the value should be validated
 	private toValidate(metatype: Function): boolean {
 		const types: Function[] = [String, Boolean, Number, Array, Object];
 		return !types.includes(metatype);

@@ -30,13 +30,13 @@ import { EntityIdParam } from './domain/entityid-param.model';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
+import { LogsAggregationQuery } from './domain/logs-aggregation-query.model';
 import { QueryDTO } from './dtos/query.dto';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
 import { TypeParam } from './domain/type-param.model';
 import { UserContext, UserContextProps } from './domain/user-context.model';
 import { ValidationPipe } from './pipes/validation.pipe';
-import { LogsAggregationQuery } from './domain/logs-aggregation-query.model';
 
 /** Main controller for the application.
  * @remark This controller is responsible for handling, parsing and validating all incoming requests.
@@ -48,12 +48,12 @@ import { LogsAggregationQuery } from './domain/logs-aggregation-query.model';
  */
 //@ApiTags('conditioning')
 @Controller() // set prefix in config
-@UseGuards(
+/*@UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
 	LoggingGuard // log all requests to the console
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
-)
+)*/
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
 export class AppController {
 	constructor(
@@ -70,9 +70,10 @@ export class AppController {
 	 
 	*/
 	@Get('activities')
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	//@Roles('admin', 'user')
+	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	async activities(): Promise<Record<string, number>> {
+		/*
 		try {
 			const activityCounts: Record<string, number> = {};			
 			const logs = await this.service.conditioningLogs();
@@ -86,6 +87,8 @@ export class AppController {
 			this.logger.error(`Request for activities failed: ${error.message}`);
 			throw new BadRequestException(`Request for activities failed: ${error.message}`);
 		}
+		*/
+		return {}; // todo: debug later
 	}
 
 	/** Aggregate conditioning logs using aggregation parameters.
@@ -130,9 +133,10 @@ export class AppController {
 	@Post('aggregate')
 	//@ApiOperation({ summary: 'Aggregate conditioning logs using aggregation parameters' })
   	//@ApiResponse({ status: 200, description: 'Aggregated data' })
-  	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ transform: true }))
+  	//@Roles('admin', 'user')
+	//@UsePipes(new ValidationPipe({ transform: true }))
 	async aggregate(@Req() req: any, @Body() query: LogsAggregationQuery): Promise<any> {
+		/*
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const aggregationQuery = query.aggregationQuery; // local AggregationQuery type/DTO
@@ -143,6 +147,8 @@ export class AppController {
 		catch (error) {
 			throw new BadRequestException(`Request for aggregation failed: ${error.message}`);
 		}
+		*/
+		return {}; // todo: debug later
 	}
 
 	/** Get conditioning log details by entity id.
@@ -158,8 +164,8 @@ export class AppController {
 	//@ApiParam({ name: 'id', description: 'EntityIdParam object containing log entity id' })
 	//@ApiResponse({ status: 200, description: 'ConditioningLog object matching log id, if found' })
 	//@ApiResponse({ status: 404, description: 'Log not found' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ transform: true }))
+	//@Roles('admin', 'user')
+	//@UsePipes(new ValidationPipe({ transform: true }))
 	async fetchLogDetails(@Req() req: any, @Param('id') logId: EntityIdParam ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
@@ -191,12 +197,14 @@ export class AppController {
 	//@ApiQuery({ name: 'duration', required: false, type: Number, description: 'Duration to filter logs by' })
 	//@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
 	//@ApiResponse({ status: 404, description: 'No logs found' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async fetchLogs(@Req() req: any, @Query() query?: QueryModel<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+	//@Roles('admin', 'user')
+	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	async fetchLogs(@Req() req: any, @Query() query?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+		console.debug('Entering fetchLogs with query:', query);
+		/*
 		try {
-			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps);		
-			const logs = await this.service.conditioningLogs(userContext, query) ?? [];
+			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);		
+			const logs = await this.service.conditioningLogs(userContext, query as any) ?? [];
 			if (logs.length === 0) {
 				const errorMessage = 'No logs found';
 				this.logger.error(errorMessage);
@@ -208,7 +216,9 @@ export class AppController {
 			const errorMessage = `Request for logs failed: ${error.message}`;
 			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
-		}	
+		}
+		*/
+		return []; // todo: debug later
 	}
 
 	/** Get all property rules for a supported type (e.g. for deserialization and validation of domain objects). 
@@ -217,8 +227,8 @@ export class AppController {
 	 * @example http://localhost:3060/api/v3/conditioning/rules?type=ConditioningLog
 	*/
 	@Get('rules/:type')
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	//@Roles('admin', 'user')
+	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	async fetchLogValidationRules(@Param('type') type: TypeParam): Promise<any> {
 		switch (type.value) {
 			case 'ConditioningLog':
