@@ -1,6 +1,6 @@
 import { AggregationQuery } from "./aggregation-query.model";
 import { LogsAggregationQueryDTO } from "../dtos/logs-aggregation-query.dto";
-import { QueryDTO } from "./query.dto";
+import { QueryDTO } from "../dtos/query.dto";
 
 import { IsDefined, IsInstanceOf } from "@evelbulgroz/sanitizer-decorator";
 

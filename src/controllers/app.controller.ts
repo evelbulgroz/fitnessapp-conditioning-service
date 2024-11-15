@@ -30,7 +30,7 @@ import { EntityIdParam } from './domain/entityid-param.model';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
-import { QueryDTO } from './domain/query.dto';
+import { QueryDTO } from './dtos/query.dto';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
 import { TypeParam } from './domain/type-param.model';

@@ -138,7 +138,7 @@ export class QueryDTO {
 	set pageSize(value: number | undefined) { this._pageSize = value; }
 	get pageSize() { return this._pageSize; }
 
-	//------------------------- Private Methods -------------------------//
+	//--------------------------- PRIVATE METHODS ---------------------------//
 
 	/* Convert a string, number or date to a date object.
 	 * @param value string, number or date

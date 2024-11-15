@@ -15,7 +15,7 @@ import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
-import { QueryDTO } from '../../controllers/domain/query.dto';
+import { QueryDTO } from '../../controllers/dtos/query.dto';
 import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';
 import { User } from '../../domain/user.entity';
