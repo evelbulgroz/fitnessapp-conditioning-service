@@ -1,7 +1,15 @@
-import { ValidatedData } from './validated-data.model';
+import { DataTransferObject } from './data-transfer-object.model';
 
-class ConcreteDataModel extends ValidatedData {
+class ConcreteDataModel extends DataTransferObject {
 	private _value: string | undefined;
+
+	constructor() {
+		super();
+	}
+
+	public toJSON(): Record<string, any> {
+		return { value: this.value };
+	}
 
 	set value(value: string | undefined) { this._value = value; }
 	get value() { return this._value; }

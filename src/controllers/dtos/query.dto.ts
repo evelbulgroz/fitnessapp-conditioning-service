@@ -14,6 +14,7 @@ import {
 	ToNumber,
 	ToString
 } from "@evelbulgroz/sanitizer-decorator";
+import { DataTransferObject } from "./data-transfer-object.model";
 
 
 // Constants for validation
@@ -27,7 +28,7 @@ const MAX_PROPERTY_LENGTH = 100; // Maximum length for a property
 /** Represents sanitized query parameters received by an endpoint in a JSON object.
  * @remark Intended for use in endpoint validation pipe to validate query parameters
 */
-export class QueryDTO {
+export class QueryDTO extends DataTransferObject {
 	//----------------------------- PROPERTIES -----------------------------//
 	private _start?: Date | undefined;
 	private _end?: Date | undefined;
@@ -47,6 +48,7 @@ export class QueryDTO {
 	 * @remark Preemptively throws errors for invalid types, lengths, and values: cannot create an invalid object
 	 */
 	public constructor(data: Record<string, any>) {
+		super();
 		// assign to setters to trigger validation,
 		data.start && (this.start = this._toDate(data.start, 'start'));
 		data.end && (this.end = this._toDate(data.end, 'end'));
@@ -59,13 +61,6 @@ export class QueryDTO {
 	}
 
 	//----------------------------- PUBLIC METHODS -----------------------------//
-
-	/** Return true if the instance is empty (all properties are undefined or null). */
-	public isEmpty(): boolean {
-		const keys = Object.keys(this);
-		const self = this as any;
-		return keys.every(key => self[key] === undefined || self[key] === null);
-	}
 
 	/** Convert the instance to a LogsQueryDTO object.
 	 * @returns DTO object

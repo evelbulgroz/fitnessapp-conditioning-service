@@ -1,9 +1,12 @@
 import { EntityId } from '@evelbulgroz/ddd-base';
 import { IsDefined, IsInstanceOfOneOf,IsNotEmpty, MaxLength, ToString } from "@evelbulgroz/sanitizer-decorator";
-import { ParamModel } from './param.model';
 
-/** Validation model for an entity id parameter */
-export class EntityIdParam extends ParamModel<EntityId> {
+import { ParamDTO } from './param.dto';
+
+/** Represents sanitized Entity id received by an endpoint in a query parameter.
+ * @remark Intended for use in endpoint validation pipe to validate query parameters
+*/
+export class EntityIdParamDTO extends ParamDTO<EntityId> {
 	// _value is inherited from ParamModel
 		
 	public constructor(value: EntityId) {
@@ -29,4 +32,4 @@ export class EntityIdParam extends ParamModel<EntityId> {
 	
 }
 
-export default EntityIdParam;
+export default EntityIdParamDTO;

@@ -8,7 +8,7 @@ export interface UserContextProps {
 	roles?: string[];
 }
 
-/** Represents the info about of the user or microservice making a request.
+/** Represents the info about the user or microservice making a request.
  * @remark Intended to decouple the user info from any specific validation strategy used in a controller.
  * @remark Also intended to distinguish the request and repository user types.
  * @remark Controllers methods should map the user info to this object before passing it on to the service layer.

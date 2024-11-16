@@ -24,14 +24,14 @@ import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { DefaultStatusCodeInterceptor } from './interceptors/status-code.interceptor';
 
-import { EntityIdParam } from './domain/entityid-param.model';
+import { EntityIdParamDTO } from './dtos/entityid-param.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
 import { QueryDTO } from './dtos/query.dto';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
-import { TypeParam } from './domain/type-param.model';
+import { TypeParamDTO } from './dtos/type-param.dto';
 import { UserContext, UserContextProps } from './domain/user-context.model';
 import { ValidationPipe } from './pipes/validation.pipe';
 
@@ -164,7 +164,7 @@ export class AppController {
 	//@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ transform: true }))
-	public async fetchLog(@Req() req: any, @Param('id') logId: EntityIdParam ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async fetchLog(@Req() req: any, @Param('id') logId: EntityIdParamDTO ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const log = this.service.conditioningLog(userContext, logId.value!); // todo: refactor service method to accept user context
@@ -230,7 +230,7 @@ export class AppController {
 	//@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async fetchLogValidationRules(@Param('type') type: TypeParam): Promise<any> {
+	public async fetchLogValidationRules(@Param('type') type: TypeParamDTO): Promise<any> {
 		switch (type.value) {
 			case 'ConditioningLog':
 				const rules = ConditioningLog.getSanitizationRules();

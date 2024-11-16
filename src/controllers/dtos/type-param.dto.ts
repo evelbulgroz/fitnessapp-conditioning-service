@@ -1,8 +1,8 @@
 import { IsNotEmpty,IsString ,Matches,MaxLength } from "@evelbulgroz/sanitizer-decorator";
-import ParamModel from './param.model';
+import ParamDTO from './param.dto';
 
 /** Validation model for a string parameter representing a domain type */
-export class TypeParam extends ParamModel<string> {
+export class TypeParamDTO extends ParamDTO<string> {
 	// _value is inherited from ParamModel
 	
 	public constructor(value: string) {
@@ -17,4 +17,4 @@ export class TypeParam extends ParamModel<string> {
 	public get value() { return this._value; }
 }
 
-export default TypeParam;
+export default TypeParamDTO;

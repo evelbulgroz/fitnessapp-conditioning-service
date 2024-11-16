@@ -60,4 +60,10 @@ describe('AggregationQueryDTO', () => {
 		const dtoWithoutType = { ...props, aggregatedType: undefined } as unknown as AggregationQueryDTO;
 		expect(() => new AggregationQueryDTO(dtoWithoutType)).toThrow('aggregatedType must be set before aggregatedProperty');
 	});
+
+	it('can report if it is empty', () => {
+		const query = new AggregationQueryDTO(props);
+		expect(query.isEmpty()).toBe(false);
+		expect(new AggregationQueryDTO({}).isEmpty()).toBe(true);
+	});
 });

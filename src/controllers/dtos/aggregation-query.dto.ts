@@ -2,6 +2,7 @@ import { AggregationType, SampleRate } from "@evelbulgroz/time-series";
 import { IsNotEmpty, IsString, IsValidEnumValue, Matches, MaxLength } from "@evelbulgroz/sanitizer-decorator";
 
 import { ConditioningLog } from "../../domain/conditioning-log.entity";
+import { DataTransferObject } from "./data-transfer-object.model";
 
 type Constructor<T> = new (...args: any[]) => T;
 
@@ -9,7 +10,7 @@ type Constructor<T> = new (...args: any[]) => T;
  * @remark Equivalent to the same class from the time-series library but adds sanitization
  * @remark Instances are guaranteed to be valid: constructor and accessors throw error if passed invalid data
  */
-export class AggregationQueryDTO {
+export class AggregationQueryDTO extends DataTransferObject {
 	//----------------------------- PROPERTIES -----------------------------
 	protected _aggregatedProperty: string;
 	protected _aggregatedType: any;
@@ -20,6 +21,7 @@ export class AggregationQueryDTO {
 	//----------------------------- CONSTRUCTOR -----------------------------//
    
 	constructor(data: Record<string, any>) {
+		super();
 		// asssign to setters to trigger validation
 		data.aggregatedType && (this.aggregatedType = data.aggregatedType);
 		data.aggregatedProperty && (this.aggregatedProperty = data.aggregatedProperty);
