@@ -71,8 +71,8 @@ export class AppController {
 	 
 	*/
 	@Get('activities')
-	@ApiOperation({ summary: 'Get list of the number of times each conditioning activity has been logged' })
-	@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
+	//@ApiOperation({ summary: 'Get list of the number of times each conditioning activity has been logged' })
+	//@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	async activities(@Req() req: any): Promise<Record<string, number>> {
@@ -224,8 +224,12 @@ export class AppController {
 	 * @example http://localhost:3060/api/v3/conditioning/rules?type=ConditioningLog
 	*/
 	@Get('rules/:type')
-	//@Roles('admin', 'user')
-	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	//@ApiOperation({ summary: 'Get all property rules for a supported type' })
+	//@ApiParam({ name: 'type', description: 'TypeParam object containing entity type' })
+	//@ApiResponse({ status: 200, description: 'EntityRules object containing all rules for the specified type' })
+	//@ApiResponse({ status: 400, description: 'Invalid entity type' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	async fetchLogValidationRules(@Param('type') type: TypeParam): Promise<any> {
 		switch (type.value) {
 			case 'ConditioningLog':

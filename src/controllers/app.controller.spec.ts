@@ -560,7 +560,7 @@ describe('AppController', () => {
 			});
 		});
 
-		/*describe('rules', () => {
+		describe('rules', () => {
 			let url: string;
 			let urlPath: string;
 			beforeEach(() => {
@@ -587,7 +587,6 @@ describe('AppController', () => {
 				jest.clearAllMocks();
 			});
 		});
-		*/
 
 		/*
 		describe('query', () => {
