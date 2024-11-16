@@ -91,7 +91,7 @@ describe('AppController', () => {
 					useValue: {
 						aggretagedConditioningLogs: jest.fn(),
 						conditioningData: jest.fn(),
-						conditioningLogDetails: jest.fn(),
+						conditioningLog: jest.fn(),
 						conditioningLogs: jest.fn(),
 						fetchAdminLogs: jest.fn(),
 						fetchUserLogs: jest.fn(),
@@ -314,15 +314,15 @@ describe('AppController', () => {
 		});
 		*/
 
-		/*describe('log', () => {
+		describe('log', () => {
 			let log: ConditioningLog<any, ConditioningLogDTO>;
 			let logSpy: any;
 			let url: string;
 			let urlPath: string;
 			beforeEach(() => {
 				log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
-				logSpy = jest.spyOn(conditioningDataService, 'conditioningLogDetails')
-					.mockImplementation((entityId: EntityId, ctx: any) => {
+				logSpy = jest.spyOn(conditioningDataService, 'conditioningLog')
+					.mockImplementation((ctx: any, entityId: EntityId) => {
 						void entityId;
 						if (ctx.roles?.includes('admin')) { // simulate an admin user requesting a log
 							return Promise.resolve(log); // return the log (admins can access all logs)
@@ -360,7 +360,7 @@ describe('AppController', () => {
 
 				// assert
 				expect(logSpy).toHaveBeenCalledTimes(1);
-				expect(logSpy).toHaveBeenCalledWith(userLogId, userContext);
+				expect(logSpy).toHaveBeenCalledWith(userContext, userLogId);
 				expect(response?.data).toBeDefined();
 				expect(response?.data).toEqual(log);
 			});
@@ -411,14 +411,13 @@ describe('AppController', () => {
 			it('throws if data service throws', async () => {
 				// arrange
 				logSpy.mockRestore();
-				logSpy = jest.spyOn(conditioningDataService, 'conditioningLogDetails').mockImplementation(() => { throw new Error('Test Error'); });
+				logSpy = jest.spyOn(conditioningDataService, 'conditioningLog').mockImplementation(() => { throw new Error('Test Error'); });
 				const response$ = http.get(urlPath, { headers });
 
 				// act/assert
 				await expect(lastValueFrom(response$)).rejects.toThrow();
 			});
 		});
-		*/
 
 		describe('logs', () => {
 			let adminContext: UserContext;;

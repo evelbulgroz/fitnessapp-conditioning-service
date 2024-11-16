@@ -151,7 +151,7 @@ export class AppController {
 		return {}; // todo: debug later
 	}
 
-	/** Get conditioning log details by entity id.
+	/** Get detailed conditioning log by entity id.
 	 * @param logId EntityIdParam object containing log entity id (mapped from 'id' request parameter)
 	 * @returns ConditioningLog object matching log id, if found
 	 * @throws BadRequestException if data service method fails
@@ -164,12 +164,12 @@ export class AppController {
 	//@ApiParam({ name: 'id', description: 'EntityIdParam object containing log entity id' })
 	//@ApiResponse({ status: 200, description: 'ConditioningLog object matching log id, if found' })
 	//@ApiResponse({ status: 404, description: 'Log not found' })
-	//@Roles('admin', 'user')
-	//@UsePipes(new ValidationPipe({ transform: true }))
-	async fetchLogDetails(@Req() req: any, @Param('id') logId: EntityIdParam ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ transform: true }))
+	async fetchLog(@Req() req: any, @Param('id') logId: EntityIdParam ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const log = this.service.conditioningLogDetails(userContext, logId.value!); // todo: refactor service method to accept user context
+			const log = this.service.conditioningLog(userContext, logId.value!); // todo: refactor service method to accept user context
 			if (!log) {
 				const errorMessage = `Log with id ${logId.value} not found`;
 				this.logger.error(errorMessage);

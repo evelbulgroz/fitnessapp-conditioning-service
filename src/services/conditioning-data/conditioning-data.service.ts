@@ -80,7 +80,7 @@ export class ConditioningDataService {
 		});
 	}	
 	
-	/**New API: Get detail for a single, existing conditioning log by user and entity id
+	/**New API: Get single, detailed conditioning log by user and entity id
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param logId Entity id of the conditioning log to retrieve
 	 * @returns Detailed log, or undefined if not found
@@ -89,7 +89,7 @@ export class ConditioningDataService {
 	 * @throws PersistenceError if error occurs while fetching log from persistence
 	 * @remark Replaces overview logs in cache with detailed logs from persistence on demand, and updates subscribers
 	 */
-	public async conditioningLogDetails(ctx: UserContext, logId: EntityId): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async conditioningLog(ctx: UserContext, logId: EntityId): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
 			await this.isReady(); // initialize service if necessary
 			
