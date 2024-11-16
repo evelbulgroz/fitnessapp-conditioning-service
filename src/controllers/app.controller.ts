@@ -202,7 +202,7 @@ export class AppController {
 	async fetchLogs(@Req() req: any, @Query() query?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
-			const logs = await this.service.conditioningLogs(userContext, query as any) ?? [];
+			const logs = await this.service.conditioningLogs(userContext, query as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
 			if (logs.length === 0) {
 				const errorMessage = 'No logs found';
 				this.logger.error(errorMessage);
