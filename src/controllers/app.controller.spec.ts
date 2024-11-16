@@ -12,6 +12,7 @@ import { v4 as uuid } from 'uuid';
 import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
+import { AggregationQueryDTOProps }	from '../test/models/aggregation-query-dto.props';
 import { AppController } from './app.controller';
 import { BcryptCryptoService } from '../services/crypto/bcrypt-crypto.service';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
@@ -274,6 +275,59 @@ describe('AppController', () => {
 
 				// act/assert
 				await expect(lastValueFrom(response$)).rejects.toThrow();
+			});
+		});
+
+		xdescribe('aggregate', () => {
+			it('provides aggregation of conditioning logs by query', async () => {
+				// arrange
+				const logs = [ // mock logs
+					{ activity: 'SWIM' },
+					{ activity: 'BIKE' },
+					{ activity: 'RUN' },
+					{ activity: 'MTB' },
+					{ activity: 'MTB' },
+				] as any[];
+				
+				jest.clearAllMocks();
+				const aggregationSpy = jest.spyOn(conditioningDataService, 'aggretagedConditioningLogs')
+					.mockImplementation(() => {
+						return Promise.resolve(logs as any)
+					});
+
+				const aggregationQueryDTOProps: AggregationQueryDTOProps = { // body of request
+					"aggregatedType": "ConditioningLog",
+					"aggregatedProperty": "duration",
+					"aggregationType": "SUM",
+					"sampleRate": "DAY",
+					"aggregatedValueUnit": "hour"
+				};
+
+				const queryDTOProps: QueryDTOProps = { // query parameters for request
+					start: '2021-01-01',
+					end: '2021-12-31',
+					activity: ActivityType.MTB,
+					userId: userContext.userId as unknown as string,
+					sortBy: 'duration',
+					order: 'asc',
+					page: 1,
+					pageSize: 10,
+				};
+
+				const url = `${serverUrl}/aggregate`;
+
+				// act
+				const response$ = http.post(url, aggregationQueryDTOProps, { params: queryDTOProps, headers });
+				//console.debug('response$', response$);
+				//const promise = lastValueFrom(response$);
+				//const response = await lastValueFrom(http.post(url, aggregationQueryDTOProps, { params: queryDTOProps, headers }));
+				
+				// assert
+				expect(aggregationSpy).toHaveBeenCalledTimes(1);
+				//expect(response).toBeDefined();
+
+				// cleanup
+				aggregationSpy && aggregationSpy.mockRestore();
 			});
 		});
 

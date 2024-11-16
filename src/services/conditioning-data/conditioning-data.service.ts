@@ -8,7 +8,7 @@ import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
 
-import { AggregationQuery } from '../../controllers/domain/aggregation-query.model';
+import { AggregationQueryDTO } from '../../controllers/dtos/aggregation-query.dto';
 import { AggregatorService } from '../aggregator/aggregator.service';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
@@ -178,7 +178,7 @@ export class ConditioningDataService {
 	 */
 	public async aggretagedConditioningLogs(
 		ctx: UserContext,
-		aggregationQuery: AggregationQuery,
+		aggregationQuery: AggregationQueryDTO,
 		logsQuery?: Query<ConditioningLog<any,ConditioningLogDTO>, ConditioningLogDTO>
 	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		await this.isReady(); // initialize service if necessary

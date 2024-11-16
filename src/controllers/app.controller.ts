@@ -15,14 +15,12 @@ import {
 //import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam } from '@nestjs/swagger';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
-import { AggregationQuery, AggregationQueryDTO } from '@evelbulgroz/time-series';
-import { EntityId, Logger } from '@evelbulgroz/ddd-base';
-import { Query as QueryModel } from '@evelbulgroz/query-fns';
+import { Logger } from '@evelbulgroz/ddd-base';
 
+import { AggregationQueryDTO } from './dtos/aggregation-query.dto';
 import { ConditioningData } from '../domain/conditioning-data.model';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
-import { LogsAggregationQueryDTO } from './dtos/logs-aggregation-query.dto';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { DefaultStatusCodeInterceptor } from './interceptors/status-code.interceptor';
 
@@ -30,14 +28,12 @@ import { EntityIdParam } from './domain/entityid-param.model';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
-import { LogsAggregationQuery } from './domain/logs-aggregation-query.model';
 import { QueryDTO } from './dtos/query.dto';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
 import { TypeParam } from './domain/type-param.model';
 import { UserContext, UserContextProps } from './domain/user-context.model';
 import { ValidationPipe } from './pipes/validation.pipe';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 /** Main controller for the application.
  * @remark This controller is responsible for handling, parsing and validating all incoming requests.
@@ -75,7 +71,7 @@ export class AppController {
 	//@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async activities(@Req() req: any): Promise<Record<string, number>> {
+	public async activities(@Req() req: any): Promise<Record<string, number>> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult			
 			const activityCounts: Record<string, number> = {};			
@@ -93,7 +89,7 @@ export class AppController {
 	}
 
 	/** Aggregate conditioning logs using aggregation parameters.
-	 * @param query unvalidated aggregation parameters
+	 * @param queryDTO unvalidated aggregation parameters
 	 * @returns aggregated data
 	 * @remark Audience: Admins, Users accessing their own data from a front-end application
 	 * @todo Convert validation types here to types required by service method (e.g. AggregationQuery)
@@ -136,20 +132,27 @@ export class AppController {
   	//@ApiResponse({ status: 200, description: 'Aggregated data' })
   	//@Roles('admin', 'user')
 	//@UsePipes(new ValidationPipe({ transform: true }))
-	async aggregate(@Req() req: any, @Body() query: LogsAggregationQuery): Promise<any> {
-		/*
+	public async aggregate(
+		@Req() req: any,
+		@Body() aggregationQueryDTO: AggregationQueryDTO,
+		@Query() queryDTO?: QueryDTO
+	): Promise<any> { // todo: change return type to match service method
 		try {
+			console.debug('aggregationQueryDTO:', aggregationQueryDTO);
+			console.debug('queryDTO:', queryDTO);
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const aggregationQuery = query.aggregationQuery; // local AggregationQuery type/DTO
-			const logsQuery = query.logsQuery; // local LogsQuery type/DTO
-			// todo: convert logsQuery to QueryModel<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>
-			return this.service.aggretagedConditioningLogs(userContext, aggregationQuery, logsQuery);
+			console.debug('userContext:', userContext);
+			return {}; // debug: remove when service method is implemented
+			// query is always instantiated by the http framework, even of no parameters are provided in the request:
+			// therefore remove empty queries here, so that the service method can just check for undefined
+			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
+			return await this.service.aggretagedConditioningLogs(userContext, aggregationQueryDTO as any, queryDTO as any); // todo: refactor service method to accept dtos
 		}
 		catch (error) {
-			throw new BadRequestException(`Request for aggregation failed: ${error.message}`);
+			const errorMessage = `Request for aggregation failed: ${error.message}`;
+			//this.logger.error(errorMessage);
+			//throw new BadRequestException(errorMessage);
 		}
-		*/
-		return {}; // todo: debug later
 	}
 
 	/** Get detailed conditioning log by entity id.
@@ -167,7 +170,7 @@ export class AppController {
 	//@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ transform: true }))
-	async fetchLog(@Req() req: any, @Param('id') logId: EntityIdParam ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async fetchLog(@Req() req: any, @Param('id') logId: EntityIdParam ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const log = this.service.conditioningLog(userContext, logId.value!); // todo: refactor service method to accept user context
@@ -186,7 +189,7 @@ export class AppController {
 	}
 	
 	/** Get conditioning logs for all users (role = admin), or for a specific user (role = user).
-	 * @param query Query parameters for filtering logs (optional for admins, required with user id for normal users)
+	 * @param queryDTO Query parameters for filtering logs (optional for admins, required with user id for normal users)
 	 * @returns Array of ConditioningLogs, or empty array if none found
 	 * @throws BadRequestException if user role or user id is not found in request, or user id does not match authenticated user
 	 * @remark If query is not provided (admin), or only contains user id (normal user), all applicable logs are returned
@@ -200,13 +203,13 @@ export class AppController {
 	//@ApiResponse({ status: 404, description: 'No logs found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async fetchLogs(@Req() req: any, @Query() query?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+	public async fetchLogs(@Req() req: any, @Query() queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
 			// therefore remove empty queries here, so that the service method can just check for undefined
-			query = query?.isEmpty() ? undefined : query;
-			const logs = await this.service.conditioningLogs(userContext, query as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
+			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
+			const logs = await this.service.conditioningLogs(userContext, queryDTO as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
 			if (logs.length === 0) {
 				const errorMessage = 'No logs found';
 				this.logger.error(errorMessage);
@@ -233,7 +236,7 @@ export class AppController {
 	//@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async fetchLogValidationRules(@Param('type') type: TypeParam): Promise<any> {
+	public async fetchLogValidationRules(@Param('type') type: TypeParam): Promise<any> {
 		switch (type.value) {
 			case 'ConditioningLog':
 				const rules = ConditioningLog.getSanitizationRules();
@@ -250,7 +253,7 @@ export class AppController {
 	 * @todo Retire when frontend is updated to use the new, authenticated endpoints
 	 */
 	@Get('sessions')
-	async sessions(): Promise<ConditioningData> {
+	public async sessions(): Promise<ConditioningData> {
 		try {
 			return this.service.conditioningData();
 		}

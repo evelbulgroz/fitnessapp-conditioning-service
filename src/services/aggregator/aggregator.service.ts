@@ -8,7 +8,7 @@ import {
 	TimeSeries
 } from '@evelbulgroz/time-series';
 
-import { AggregationQuery } from '../../controllers/domain/aggregation-query.model';
+import { AggregationQueryDTO } from '../../controllers/dtos/aggregation-query.dto';
 
 /** Aggregates time series data by sample rate and aggregation type
 * @remark This service is generic so that it can be used without subclassing for different types of data e.g. sensor data, training logs, aggregated training data etc.
@@ -35,7 +35,7 @@ export class AggregatorService {
 	 */
 	public aggregate<T extends object, U extends number>(
 		timeSeries: TimeSeries<T>,
-		aggregationQuery: AggregationQuery,
+		aggregationQuery: AggregationQueryDTO,
 		valueExtractor?: (dataPoint: DataPoint<T>) => U,
 	): AggregatedTimeSeries<T, U> {		
 		const timeSeriesAggregationQuery = new TimeSeriesAggregationQuery({ // map local aggregation query to time series aggregation query

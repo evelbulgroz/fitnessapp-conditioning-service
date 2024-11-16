@@ -1,17 +1,15 @@
-import { AggregationQueryDTO, AggregationType, SampleRate } from "@evelbulgroz/time-series";
+import { AggregationType, SampleRate } from "@evelbulgroz/time-series";
 import { IsNotEmpty, IsString, IsValidEnumValue, Matches, MaxLength } from "@evelbulgroz/sanitizer-decorator";
 
 import { ConditioningLog } from "../../domain/conditioning-log.entity";
 
 type Constructor<T> = new (...args: any[]) => T;
 
-/** Validates query parameters received by an endpoint in a AggregationQueryDTO object.
- * @remark Equivalent to the same class from the time-series library but adds validation:
- *  - implementing the library interface ensures compatibility with the library
- * @remark AggregationQueryDTO is used to pass in unvalidated data from clients (e.g. the front end)
- * @remark AggregationQuery is guaranteed to be valid: constructor and accessors throw error if passed invalid data
+/** Represents sanitized aggregation query parameters received by an endpoint in a JSON object.
+ * @remark Equivalent to the same class from the time-series library but adds sanitization
+ * @remark Instances are guaranteed to be valid: constructor and accessors throw error if passed invalid data
  */
-export class AggregationQuery implements AggregationQueryDTO {
+export class AggregationQueryDTO {
 	//----------------------------- PROPERTIES -----------------------------
 	protected _aggregatedProperty: string;
 	protected _aggregatedType: any;
@@ -21,19 +19,18 @@ export class AggregationQuery implements AggregationQueryDTO {
 
 	//----------------------------- CONSTRUCTOR -----------------------------//
    
-	constructor(dto: AggregationQueryDTO) {
+	constructor(data: Record<string, any>) {
 		// asssign to setters to trigger validation
-		// types that differ from DTO asserted as 'any' to leave validation to decorators
-		dto.aggregatedType && (this.aggregatedType = dto.aggregatedType);
-		dto.aggregatedProperty && (this.aggregatedProperty = dto.aggregatedProperty);
-		dto.aggregatedValueUnit && (this.aggregatedValueUnit = dto.aggregatedValueUnit);
-		dto.aggregationType && (this.aggregationType = dto.aggregationType);
-		dto.sampleRate && (this.sampleRate = dto.sampleRate);
+		data.aggregatedType && (this.aggregatedType = data.aggregatedType);
+		data.aggregatedProperty && (this.aggregatedProperty = data.aggregatedProperty);
+		data.aggregatedValueUnit && (this.aggregatedValueUnit = data.aggregatedValueUnit);
+		data.aggregationType && (this.aggregationType = data.aggregationType);
+		data.sampleRate && (this.sampleRate = data.sampleRate);
 	}
 
 	//----------------------------- PUBLIC METHODS -----------------------------//
 
-	toJSON(): AggregationQueryDTO {
+	toJSON(): Record<string, any> {
 		return {
 			aggregatedType: this.aggregatedType,
 			aggregatedProperty: this.aggregatedProperty,
@@ -121,4 +118,4 @@ export class AggregationQuery implements AggregationQueryDTO {
 	}
 }
 
-export default AggregationQuery;
+export default AggregationQueryDTO;
