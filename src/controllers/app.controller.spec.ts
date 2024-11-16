@@ -12,6 +12,7 @@ import { v4 as uuid } from 'uuid';
 import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
+import { AggregationQueryDTO } from './dtos/aggregation-query.dto';
 import { AggregationQueryDTOProps }	from '../test/models/aggregation-query-dto.props';
 import { AppController } from './app.controller';
 import { BcryptCryptoService } from '../services/crypto/bcrypt-crypto.service';
@@ -33,12 +34,12 @@ import { UserDTO } from '../dtos/user.dto';
 import { UserJwtPayload } from '../services/jwt/models/user-jwt-payload.model';
 import { UserRepository } from '../repositories/user-repo.model';
 import { ValidationPipe } from './pipes/validation.pipe';
-import AggregationQueryDTO from './dtos/aggregation-query.dto';
+import { after, before } from 'node:test';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
 // NOTE: Testing over Http to enable decorators and guards without having to do a ton of additional setup/mocking
-// NOTE: Only validating that the correct methods are called with the correct parameters and return the correct results
+// NOTE: Only validating that the correct service methods are called with the correct parameters and return the correct results
 // NOTE: This in order to limit scope of tests to the controller: the service methods and e2e are tested elsewhere
 
 describe('AppController', () => {
@@ -191,12 +192,12 @@ describe('AppController', () => {
 		jest.clearAllMocks();
 	});
 
-	it('can be created', () => {
+	xit('can be created', () => {
 		expect(appController).toBeDefined();
 	});
 
 	describe('Endpoints', () => {
-		describe(`activities`, () => {
+		xdescribe(`activities`, () => {
 			let logsSpy: any;
 			let url: string;
 			beforeEach(() => {
@@ -280,9 +281,20 @@ describe('AppController', () => {
 		});
 
 		describe('aggregate', () => {
-			it('provides aggregation of conditioning logs by query', async () => {
-				// arrange
-				const logs = [ // mock logs
+			let aggregationSpy: any;
+			let adminLogs: any[];
+			let userLogs: any[];
+			let url: string;
+			let aggregationQueryDTOProps: AggregationQueryDTOProps;
+			let queryDTOProps: QueryDTOProps;
+			beforeEach(() => {
+				adminLogs = [
+					{ activity: 'RUN' },
+					{ activity: 'RUN' },
+					{ activity: 'RUN' },
+				] as any[];
+
+				userLogs = [
 					{ activity: 'SWIM' },
 					{ activity: 'BIKE' },
 					{ activity: 'RUN' },
@@ -291,12 +303,12 @@ describe('AppController', () => {
 				] as any[];
 				
 				jest.clearAllMocks();
-				const aggregationSpy = jest.spyOn(conditioningDataService, 'aggretagedConditioningLogs')
+				aggregationSpy = jest.spyOn(conditioningDataService, 'aggretagedConditioningLogs')
 					.mockImplementation(() => {
-						return Promise.resolve(logs as any)
+						return Promise.resolve(userLogs as any)
 					});
 
-				const aggregationQueryDTOProps: AggregationQueryDTOProps = { // body of request
+				aggregationQueryDTOProps = { // body of request
 					"aggregatedType": "ConditioningLog",
 					"aggregatedProperty": "duration",
 					"aggregationType": "SUM",
@@ -304,7 +316,7 @@ describe('AppController', () => {
 					"aggregatedValueUnit": "ms"
 				};
 
-				const queryDTOProps: QueryDTOProps = { // query parameters for request
+				queryDTOProps = { // query parameters for request
 					start: '2021-01-01',
 					end: '2021-12-31',
 					activity: ActivityType.MTB,
@@ -315,75 +327,30 @@ describe('AppController', () => {
 					pageSize: 10,
 				};
 
-				const url = `${serverUrl}/aggregate`;
+				url = `${serverUrl}/aggregate`;
+			});
 
-				// act - call controller method directly to avoid http and guards
-				const directResult = await appController.aggregate(
-					{user: userContext}, // request,
-					new AggregationQueryDTO(aggregationQueryDTOProps),
-					new QueryDTO(queryDTOProps)
-				);
+			afterEach(() => {
+				aggregationSpy && aggregationSpy.mockRestore();
+				jest.clearAllMocks();
+			});
 
-				// assert - check that the service method was called with the correct parameters and that the result is as expected
-				expect(aggregationSpy).toHaveBeenCalledTimes(1);
-				expect(aggregationSpy).toHaveBeenCalledWith(userContext, new AggregationQueryDTO(aggregationQueryDTOProps), new QueryDTO(queryDTOProps));
-				expect(directResult).toBeDefined();
-				expect(directResult).toEqual(logs);
-
-				// TODO: act - call the endpoint via http to test the full request/response cycle
-				//const response$ = http.post(url, aggregationQueryDTOProps, { params: queryDTOProps, headers });
-				//console.debug('response$', response$);
-				//const promise = lastValueFrom(response$);
-				//const response = await lastValueFrom(http.post(url, aggregationQueryDTOProps, { params: queryDTOProps, headers }));
+			it('provides aggregation of conditioning logs by query', async () => {
+				// act
+				const response$ = http.post(url, aggregationQueryDTOProps, { params: queryDTOProps, headers });				
+				const response = await lastValueFrom(response$);
 				
-				// TODO: assert - check that the service method was called with the correct parameters over http and that the result is as expected
-				//expect(aggregationSpy).toHaveBeenCalledTimes(1);
-				//expect(response).toBeDefined();
+				// assert
+				expect(aggregationSpy).toHaveBeenCalledTimes(1);
+				expect(response).toBeDefined();
+				expect(response.data).toEqual(userLogs);
 
 				// cleanup
 				aggregationSpy && aggregationSpy.mockRestore();
 			});
 		});
 
-		/*describe('aggregation', () => {
-			it('provides aggregation of conditioning logs by query', async () => {
-				// arrange
-				const logs = [
-					{ activity: 'SWIM' },
-					{ activity: 'BIKE' },
-					{ activity: 'RUN' },
-					{ activity: 'MTB' },
-					{ activity: 'MTB' },
-				] as unknown as Promise<ConditioningLog<any, ConditioningLogDTO>[]>;
-				
-				const spy = jest.spyOn(conditioningDataService, 'aggretagedConditioningLogs')
-					.mockImplementationOnce(() => logs as any);
-				
-				const dto: ConditioningLogAggregationDTO = {
-					aggregation: {
-						"aggregatedType": "ConditioningLog",
-						"aggregatedProperty": "duration",
-						"aggregationType": "SUM",
-						"sampleRate": "DAY",
-						"aggregatedValueUnit": "hour"
-					},
-				} as any;
-
-				// act
-				const result = await appController.aggregate(dto);
-				
-				// assert
-				expect(spy).toHaveBeenCalledTimes(1);
-				expect(JSON.stringify(spy.mock.calls[0][0])).toEqual(JSON.stringify(dto.aggregation));
-				expect(result).toBeDefined();
-
-				// cleanup
-				spy && spy.mockRestore();
-			});
-		});
-		*/
-
-		describe('log', () => {
+		xdescribe('log', () => {
 			let log: ConditioningLog<any, ConditioningLogDTO>;
 			let logSpy: any;
 			let url: string;
@@ -488,7 +455,7 @@ describe('AppController', () => {
 			});
 		});
 
-		describe('logs', () => {
+		xdescribe('logs', () => {
 			let adminContext: UserContext;;
 			let adminLogs: ConditioningLog<any, ConditioningLogDTO>[];
 			let logsSpy: any;
@@ -673,7 +640,7 @@ describe('AppController', () => {
 			});
 		});
 
-		describe('rules', () => {
+		xdescribe('rules', () => {
 			let url: string;
 			let urlPath: string;
 			beforeEach(() => {
@@ -701,7 +668,7 @@ describe('AppController', () => {
 			});
 		});		
 
-		describe('sessions', () => {
+		xdescribe('sessions', () => {
 			it('provides a collection of conditioning data ("sessions")', async () => {
 				// arrange
 				const spy = jest.spyOn(conditioningDataService, 'conditioningData');

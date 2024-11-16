@@ -130,8 +130,8 @@ export class AppController {
 	@Post('aggregate')
 	//@ApiOperation({ summary: 'Aggregate conditioning logs using aggregation parameters' })
   	//@ApiResponse({ status: 200, description: 'Aggregated data' })
-  	//@Roles('admin', 'user')
-	//@UsePipes(new ValidationPipe({ transform: true }))
+  	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ transform: true }))
 	public async aggregate(
 		@Req() req: any,
 		@Body() aggregationQueryDTO: AggregationQueryDTO,
@@ -142,7 +142,7 @@ export class AppController {
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
 			// therefore remove empty queries here, so that the service method can just check for undefined
 			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-			return await this.service.aggretagedConditioningLogs(userContext, aggregationQueryDTO as any, queryDTO as any); // todo: refactor service method to accept dtos
+			return this.service.aggretagedConditioningLogs(userContext, aggregationQueryDTO as any, queryDTO as any); // todo: refactor service method to accept dtos
 		}
 		catch (error) {
 			const errorMessage = `Request for aggregation failed: ${error.message}`;
