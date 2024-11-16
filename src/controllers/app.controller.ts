@@ -129,7 +129,7 @@ export class AppController {
 	//@ApiOperation({ summary: 'Aggregate conditioning logs using aggregation parameters' })
   	//@ApiResponse({ status: 200, description: 'Aggregated data' })
   	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ transform: true }))
+	@UsePipes(new ValidationPipe({ whitelist:true, forbidNonWhitelisted: true, transform: true }))
 	public async aggregate(
 		@Req() req: any,
 		@Body() aggregationQueryDTO: AggregationQueryDTO,
@@ -163,7 +163,7 @@ export class AppController {
 	//@ApiResponse({ status: 200, description: 'ConditioningLog object matching log id, if found' })
 	//@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ transform: true }))
+	@UsePipes(new ValidationPipe({  whitelist: true, forbidNonWhitelisted: true,transform: true }))
 	public async fetchLog(@Req() req: any, @Param('id') logId: EntityIdParamDTO ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
