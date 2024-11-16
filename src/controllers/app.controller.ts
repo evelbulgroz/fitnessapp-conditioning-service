@@ -138,11 +138,7 @@ export class AppController {
 		@Query() queryDTO?: QueryDTO
 	): Promise<any> { // todo: change return type to match service method
 		try {
-			console.debug('aggregationQueryDTO:', aggregationQueryDTO);
-			console.debug('queryDTO:', queryDTO);
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			console.debug('userContext:', userContext);
-			return {}; // debug: remove when service method is implemented
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
 			// therefore remove empty queries here, so that the service method can just check for undefined
 			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
@@ -150,8 +146,8 @@ export class AppController {
 		}
 		catch (error) {
 			const errorMessage = `Request for aggregation failed: ${error.message}`;
-			//this.logger.error(errorMessage);
-			//throw new BadRequestException(errorMessage);
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
 		}
 	}
 

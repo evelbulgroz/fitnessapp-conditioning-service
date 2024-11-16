@@ -33,6 +33,7 @@ import { UserDTO } from '../dtos/user.dto';
 import { UserJwtPayload } from '../services/jwt/models/user-jwt-payload.model';
 import { UserRepository } from '../repositories/user-repo.model';
 import { ValidationPipe } from './pipes/validation.pipe';
+import AggregationQueryDTO from './dtos/aggregation-query.dto';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -278,7 +279,7 @@ describe('AppController', () => {
 			});
 		});
 
-		xdescribe('aggregate', () => {
+		describe('aggregate', () => {
 			it('provides aggregation of conditioning logs by query', async () => {
 				// arrange
 				const logs = [ // mock logs
@@ -300,7 +301,7 @@ describe('AppController', () => {
 					"aggregatedProperty": "duration",
 					"aggregationType": "SUM",
 					"sampleRate": "DAY",
-					"aggregatedValueUnit": "hour"
+					"aggregatedValueUnit": "ms"
 				};
 
 				const queryDTOProps: QueryDTOProps = { // query parameters for request
@@ -316,14 +317,27 @@ describe('AppController', () => {
 
 				const url = `${serverUrl}/aggregate`;
 
-				// act
-				const response$ = http.post(url, aggregationQueryDTOProps, { params: queryDTOProps, headers });
+				// act - call controller method directly to avoid http and guards
+				const directResult = await appController.aggregate(
+					{user: userContext}, // request,
+					new AggregationQueryDTO(aggregationQueryDTOProps),
+					new QueryDTO(queryDTOProps)
+				);
+
+				// assert - check that the service method was called with the correct parameters and that the result is as expected
+				expect(aggregationSpy).toHaveBeenCalledTimes(1);
+				expect(aggregationSpy).toHaveBeenCalledWith(userContext, new AggregationQueryDTO(aggregationQueryDTOProps), new QueryDTO(queryDTOProps));
+				expect(directResult).toBeDefined();
+				expect(directResult).toEqual(logs);
+
+				// TODO: act - call the endpoint via http to test the full request/response cycle
+				//const response$ = http.post(url, aggregationQueryDTOProps, { params: queryDTOProps, headers });
 				//console.debug('response$', response$);
 				//const promise = lastValueFrom(response$);
 				//const response = await lastValueFrom(http.post(url, aggregationQueryDTOProps, { params: queryDTOProps, headers }));
 				
-				// assert
-				expect(aggregationSpy).toHaveBeenCalledTimes(1);
+				// TODO: assert - check that the service method was called with the correct parameters over http and that the result is as expected
+				//expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				//expect(response).toBeDefined();
 
 				// cleanup
