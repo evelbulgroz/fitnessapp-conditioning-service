@@ -633,7 +633,7 @@ describe('AppController', () => {
 			});
 		});		
 
-		/*describe('sessions', () => {
+		describe('sessions', () => {
 			it('provides a collection of conditioning data ("sessions")', async () => {
 				// arrange
 				const spy = jest.spyOn(conditioningDataService, 'conditioningData');
@@ -649,6 +649,5 @@ describe('AppController', () => {
 				spy && spy.mockRestore();
 			});
 		});
-		*/
 	});
 });
