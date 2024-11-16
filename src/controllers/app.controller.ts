@@ -39,8 +39,6 @@ import { ValidationPipe } from './pipes/validation.pipe';
  * @remark This controller is responsible for handling, parsing and validating all incoming requests.
  * @remark It delegates the actual processing of requests to the appropriate service methods, which are responsible for data access and business logic.
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
- * @todo Refactor sanitizing classes using DTO nomenclature, pass DTOs to service methods and let them handle any mapping to domain objects
- * @todo Refactor to support new service methods and DTOs
  * @todo Implement API documentation using Swagger (OpenAPI) annotations and decorators (e.g. @ApiTags, @ApiOperation, @ApiResponse, @ApiQuery, @ApiParam)
  */
 //@ApiTags('conditioning')
@@ -48,7 +46,7 @@ import { ValidationPipe } from './pipes/validation.pipe';
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
-	//LoggingGuard // log all requests to the console
+	LoggingGuard // log all requests to the console
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
