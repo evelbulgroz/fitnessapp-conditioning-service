@@ -192,7 +192,7 @@ describe('AppController', () => {
 	});
 
 	describe('Endpoints', () => {
-		/*describe(`activities`, () => {
+		describe(`activities`, () => {
 			let logsSpy: any;
 			let url: string;
 			beforeEach(() => {
@@ -229,7 +229,7 @@ describe('AppController', () => {
 				
 				// assert
 				expect(spy).toHaveBeenCalledTimes(1);
-				expect(spy).toHaveBeenCalledWith();
+				expect(spy).toHaveBeenCalledWith(userContext);
 				expect(response).toBeDefined();
 				expect(response.data).toEqual(expectedResult);
 
@@ -274,7 +274,6 @@ describe('AppController', () => {
 				await expect(lastValueFrom(response$)).rejects.toThrow();
 			});
 		});
-		*/
 
 		/*describe('aggregation', () => {
 			it('provides aggregation of conditioning logs by query', async () => {

@@ -37,6 +37,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { TypeParam } from './domain/type-param.model';
 import { UserContext, UserContextProps } from './domain/user-context.model';
 import { ValidationPipe } from './pipes/validation.pipe';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 /** Main controller for the application.
  * @remark This controller is responsible for handling, parsing and validating all incoming requests.
@@ -70,13 +71,15 @@ export class AppController {
 	 
 	*/
 	@Get('activities')
-	//@Roles('admin', 'user')
-	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async activities(): Promise<Record<string, number>> {
-		/*
+	@ApiOperation({ summary: 'Get list of the number of times each conditioning activity has been logged' })
+	@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	async activities(@Req() req: any): Promise<Record<string, number>> {
 		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult			
 			const activityCounts: Record<string, number> = {};			
-			const logs = await this.service.conditioningLogs();
+			const logs = await this.service.conditioningLogs(userContext) ?? [];
 			Object.keys(ActivityType).forEach(activity => {
 				const count = logs.filter(log => log.activity === activity).length;
 				activityCounts[activity] = count;
@@ -87,8 +90,6 @@ export class AppController {
 			this.logger.error(`Request for activities failed: ${error.message}`);
 			throw new BadRequestException(`Request for activities failed: ${error.message}`);
 		}
-		*/
-		return {}; // todo: debug later
 	}
 
 	/** Aggregate conditioning logs using aggregation parameters.
