@@ -48,12 +48,12 @@ import { ValidationPipe } from './pipes/validation.pipe';
  */
 //@ApiTags('conditioning')
 @Controller() // set prefix in config
-/*@UseGuards(
+@UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
-	LoggingGuard // log all requests to the console
+	//LoggingGuard // log all requests to the console
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
-)*/
+)
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
 export class AppController {
 	constructor(
@@ -197,13 +197,11 @@ export class AppController {
 	//@ApiQuery({ name: 'duration', required: false, type: Number, description: 'Duration to filter logs by' })
 	//@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
 	//@ApiResponse({ status: 404, description: 'No logs found' })
-	//@Roles('admin', 'user')
-	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	async fetchLogs(@Req() req: any, @Query() query?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
-		console.debug('Entering fetchLogs with query:', query);
-		/*
 		try {
-			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);		
+			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
 			const logs = await this.service.conditioningLogs(userContext, query as any) ?? [];
 			if (logs.length === 0) {
 				const errorMessage = 'No logs found';
@@ -217,8 +215,6 @@ export class AppController {
 			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
-		*/
-		return []; // todo: debug later
 	}
 
 	/** Get all property rules for a supported type (e.g. for deserialization and validation of domain objects). 
