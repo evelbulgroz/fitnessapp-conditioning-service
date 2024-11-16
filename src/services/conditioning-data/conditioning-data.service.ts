@@ -145,6 +145,7 @@ export class ConditioningDataService {
 	 * @returns Array of conditioning logs (constrained by user context and query)
 	 * @remark Overview logs are guaranteed to be available
 	 * @remark Full logs are loaded from persistence on demand using conditioningLogDetails(), and may be purged from cache to save memory
+	 * @todo Refactor to accept QueryDTO, then internally map to Query<ConditioningLog<any,ConditioningLogDTO>,ConditioningLogDTO> for use with query.execute()
 	 */
 	public async conditioningLogs(ctx: UserContext, query?: Query<ConditioningLog<any,ConditioningLogDTO>,ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
