@@ -258,13 +258,3 @@ export class AppController {
 }
 
 export default AppController;
-
-
-/* For future reference: Convert JSON to query string
-function jsonToQueryString(json: Record<string, any>): string {
-  const queryString = Object.keys(json)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(json[key])}`)
-    .join('&');
-  return queryString;
-}
-*/
