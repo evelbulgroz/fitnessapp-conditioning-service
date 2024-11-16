@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { ForbiddenException, INestApplication } from '@nestjs/common';
 
+//import axios from 'axios';
+
 import { jest } from '@jest/globals';
 import { of, lastValueFrom } from 'rxjs';
 import { v4 as uuid } from 'uuid';
@@ -457,9 +459,9 @@ describe('AppController', () => {
 				queryDTO = new QueryDTO(queryDTOProps);
 
 				logsSpy = jest.spyOn(conditioningDataService, 'conditioningLogs')
-					.mockImplementation((ctx: any, query: any): any => { // todo: refactor service to use QueryDTO and UserContext
+					.mockImplementation((ctx: any, query?: any): any => { // todo: refactor service to use QueryDTO and UserContext
 						if (ctx.roles?.includes('admin')) { // simulate an admin user requesting logs
-							if (query?.isEmpty() || !query?.userId) { // simulate a missing query or missing user id
+							if (!query || !query?.userId) { // simulate a missing query or query not specifying user id
 								return Promise.resolve(adminLogs); // return all logs for all users
 							}
 							else { // simulate a query matching single user
@@ -467,7 +469,10 @@ describe('AppController', () => {
 							}
 						}
 						else if(ctx.roles?.includes('user')) { // simulate a normal user requesting logs
-							if (!query || !query?.userId || query.userId !== userContext.userId ) { // normal useers must provide a query with a user id that matches that in the access token
+							if (!query) {
+								return Promise.resolve(userLogs); // query not provided: return all logs for user
+							}
+							else if (query.userId !== userContext.userId ) { // if query with user id is provided, query user id must match that in the access token
 								throw new ForbiddenException('User not authorized to access logs'); // throw an error
 							}
 							else if (Object.keys(query).length === 1) { // simulate a query with only a user id
@@ -489,7 +494,19 @@ describe('AppController', () => {
 				jest.clearAllMocks();
 			});
 
-			it('provides a collection of conditioning logs matching a query', async () => {
+			it('gives normal users access to a collection of all their conditioning logs', async () => {
+				// arrange
+				const response = await lastValueFrom(http.get(url, { headers }));
+				
+				// assert
+				expect(true).toBeTruthy(); // debug
+				expect(logsSpy).toHaveBeenCalledTimes(1);
+				expect(logsSpy).toHaveBeenCalledWith(userContext, undefined);
+				expect(response?.data).toBeDefined();
+				expect(response?.data).toEqual(userLogs);
+			});
+
+			it('optionally gives normal users access to their logs matching a query', async () => {
 				// arrange
 				
 				// act
@@ -500,6 +517,34 @@ describe('AppController', () => {
 				expect(logsSpy).toHaveBeenCalledWith(userContext, queryDTO);
 				expect(response?.data).toBeDefined();
 				expect(response?.data).toEqual([userLogs[0]]);
+			});
+
+			it('gives admin users access to all logs for all users', async () => {
+				// arrange
+				const headers = { Authorization: `Bearer ${adminAccessToken}` };
+				
+				// act
+				const response = await lastValueFrom(http.get(url, { headers }));
+
+				// assert
+				expect(logsSpy).toHaveBeenCalledTimes(1);
+				expect(logsSpy).toHaveBeenCalledWith(adminContext, undefined);
+				expect(response?.data).toBeDefined();
+				expect(response?.data).toEqual(adminLogs);
+			});
+
+			it('optionally gives admin users access to logs matching a query', async () => {
+				// arrange
+				const headers = { Authorization: `Bearer ${adminAccessToken}` };
+
+				// act
+				const response = await lastValueFrom(http.get(url, { params: queryDTOProps, headers }));
+
+				// assert
+				expect(logsSpy).toHaveBeenCalledTimes(1);
+				expect(logsSpy).toHaveBeenCalledWith(adminContext, queryDTO);
+				expect(response?.data).toBeDefined();
+				expect(response?.data).toEqual([adminLogs[0]]);
 			});
 			
 			it('fails if access token is missing', async () => {
@@ -586,58 +631,7 @@ describe('AppController', () => {
 				spy && spy.mockRestore();
 				jest.clearAllMocks();
 			});
-		});
-
-		/*
-		describe('query', () => {
-			it('provides search of conditioning logs by query', async () => {
-				// arrange
-				const log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
-				const spy = jest.spyOn(conditioningDataService, 'getByQuery').mockImplementationOnce(() => Promise.resolve([log]));
-				const queryDTOProps = {
-					'searchCriteria': [
-						{
-							'operation': 'EQUALS',
-							'key': 'activity',
-							'value': 'MTB',
-							'negate': true
-						}				
-					],
-					'filterCriteria': [
-						{
-							'inclusive': false,
-							'negate': false,
-							'operation': 'GREATER_THAN',
-							'key': 'duration',
-							'value': '50000',
-							'unit': 'ms'
-						}
-					],
-					'sortCriteria': [
-						{
-							'operation': 'DESC',
-							'key': 'duration',
-							'unit': 'ms'
-						}				
-					]
-				} as QueryDTOProps;
-				const queryDTO = new QueryDTO(queryDTOProps);
-				const query = new Query(queryDTO);
-
-				// act
-				const result = await appController.search(queryDTOProps);
-				
-				// assert
-				expect(spy).toHaveBeenCalledTimes(1);
-				expect(JSON.stringify(spy.mock.calls[0][0])).toEqual(JSON.stringify(query));
-				expect(result).toBeDefined();
-				expect(result).toEqual([log]);
-
-				// cleanup
-				spy && spy.mockRestore();
-			});
-		});
-		*/
+		});		
 
 		/*describe('sessions', () => {
 			it('provides a collection of conditioning data ("sessions")', async () => {

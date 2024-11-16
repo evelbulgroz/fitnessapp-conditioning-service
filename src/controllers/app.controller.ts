@@ -203,6 +203,9 @@ export class AppController {
 	async fetchLogs(@Req() req: any, @Query() query?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
+			// query is always instantiated by the http framework, even of no parameters are provided in the request:
+			// therefore remove empty queries here, so that the service method can just check for undefined
+			query = query?.isEmpty() ? undefined : query;
 			const logs = await this.service.conditioningLogs(userContext, query as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
 			if (logs.length === 0) {
 				const errorMessage = 'No logs found';

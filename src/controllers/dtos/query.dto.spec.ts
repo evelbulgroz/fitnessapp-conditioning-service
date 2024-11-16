@@ -90,4 +90,10 @@ describe('QueryDTO', () => {
 		props.pageSize = 101;
 		expect(() => new QueryDTO(props)).toThrow('pageSize must be less than 100');
 	});
+
+	it('can report if it is empty', () => {
+		const query = new QueryDTO(props);
+		expect(query.isEmpty()).toBe(false);
+		expect(new QueryDTO({}).isEmpty()).toBe(true);
+	});
 });

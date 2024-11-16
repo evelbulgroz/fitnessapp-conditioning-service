@@ -60,6 +60,13 @@ export class QueryDTO {
 
 	//----------------------------- PUBLIC METHODS -----------------------------//
 
+	/** Return true if the instance is empty (all properties are undefined or null). */
+	public isEmpty(): boolean {
+		const keys = Object.keys(this);
+		const self = this as any;
+		return keys.every(key => self[key] === undefined || self[key] === null);
+	}
+
 	/** Convert the instance to a LogsQueryDTO object.
 	 * @returns DTO object
 	 */
