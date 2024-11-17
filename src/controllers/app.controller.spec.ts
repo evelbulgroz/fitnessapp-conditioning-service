@@ -31,6 +31,7 @@ import { UserDTO } from '../dtos/user.dto';
 import { UserJwtPayload } from '../services/jwt/models/user-jwt-payload.model';
 import { UserRepository } from '../repositories/user-repo.model';
 import { ValidationPipe } from './pipes/validation.pipe';
+import EntityIdParamDTO from './dtos/entityid-param.dto';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -509,7 +510,7 @@ describe('AppController', () => {
 			beforeEach(() => {
 				log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
 				logSpy = jest.spyOn(conditioningDataService, 'conditioningLog')
-					.mockImplementation((ctx: any, entityId: EntityId) => {
+					.mockImplementation((ctx: any, entityId: EntityIdParamDTO) => {
 						void entityId;
 						if (ctx.roles?.includes('admin')) { // simulate an admin user requesting a log
 							return Promise.resolve(log); // return the log (admins can access all logs)
@@ -547,7 +548,9 @@ describe('AppController', () => {
 
 				// assert
 				expect(logSpy).toHaveBeenCalledTimes(1);
-				expect(logSpy).toHaveBeenCalledWith(userContext, userLogId);
+				const params = logSpy.mock.calls[0];
+				expect(params[0]).toEqual(userContext);
+				expect(params[1]).toEqual(new EntityIdParamDTO(userLogId));
 				expect(response?.data).toBeDefined();
 				expect(response?.data).toEqual(log);
 			});
