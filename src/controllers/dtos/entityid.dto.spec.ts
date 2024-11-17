@@ -1,22 +1,22 @@
 import { EntityId } from '@evelbulgroz/ddd-base';
 
-import { EntityIdDTO } from './entityid-param.dto';
+import { EntityIdDTO } from './entityid.dto';
 
 describe('EntityIdDTO', () => {
 	it('should create an instance with a valid ID that is a string', () => {
 		const validId: EntityId = '507f1f77bcf86cd799439011';
-		const entityIdParam = new EntityIdDTO(validId);
-		expect(entityIdParam).toBeInstanceOf(EntityIdDTO);
-		expect(entityIdParam.value).toBe(validId);
-		expect(typeof entityIdParam.value).toBe('string');
+		const dto = new EntityIdDTO(validId);
+		expect(dto).toBeInstanceOf(EntityIdDTO);
+		expect(dto.entityId).toBe(validId);
+		expect(typeof dto.entityId).toBe('string');
 	});
 
 	it('should create an instance with a valid ID that is a number', () => {
 		const validId: EntityId = 507;
-		const entityIdParam = new EntityIdDTO(validId);
-		expect(entityIdParam).toBeInstanceOf(EntityIdDTO);
-		expect(entityIdParam.value).toBe(validId);
-		expect(typeof entityIdParam.value).toBe('number');
+		const dto = new EntityIdDTO(validId);
+		expect(dto).toBeInstanceOf(EntityIdDTO);
+		expect(dto.entityId).toBe(validId);
+		expect(typeof dto.entityId).toBe('number');
 	});
 
 	it('throws an error if value is neither a string nor a number', () => {

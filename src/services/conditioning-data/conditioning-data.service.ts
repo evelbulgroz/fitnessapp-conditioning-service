@@ -15,7 +15,7 @@ import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
-import { EntityIdParamDTO } from '../../controllers/dtos/entityid-param.dto';
+import { EntityIdDTO } from '../../controllers/dtos/entityid.dto';
 import { QueryDTO } from '../../controllers/dtos/query.dto';
 import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';
@@ -97,11 +97,11 @@ export class ConditioningDataService {
 	 * @throws PersistenceError if error occurs while fetching log from persistence
 	 * @remark Replaces overview logs in cache with detailed logs from persistence on demand, and updates subscribers
 	 */
-	public async conditioningLog(ctx: UserContext, id: EntityIdParamDTO): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async conditioningLog(ctx: UserContext, id: EntityIdDTO): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
 			await this.isReady(); // initialize service if necessary
 
-			const logId = id.value; // extract sanitized entity id from DTO
+			const logId = id.entityId; // extract sanitized entity id from DTO
 			
 			// check if log exists in cache, else throw NotFoundError
 			const entryWithLog = this.userLogsSubject.value.find((entry) => entry.logs.some((log) => log.entityId === logId));
