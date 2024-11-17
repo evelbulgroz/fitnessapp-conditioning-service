@@ -326,7 +326,7 @@ describe('AppController', () => {
 					activity: ActivityType.MTB,
 					userId: userContext.userId as unknown as string,
 					sortBy: 'duration',
-					order: 'asc',
+					order: 'ASC',
 					page: 1,
 					pageSize: 10,
 				};
@@ -637,7 +637,7 @@ describe('AppController', () => {
 					activity: ActivityType.MTB,
 					userId: userContext.userId as unknown as string,
 					sortBy: 'duration',
-					order: 'asc',
+					order: 'ASC',
 					page: 1,
 					pageSize: 10,
 				};

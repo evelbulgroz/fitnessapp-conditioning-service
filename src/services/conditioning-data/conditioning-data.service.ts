@@ -6,7 +6,7 @@ import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 import { Quantity } from '@evelbulgroz/quantity-class';
-import { Query } from '@evelbulgroz/query-fns';
+import { Query, SearchFilterOperation, SortOperation } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO } from '../../controllers/dtos/aggregation-query.dto';
 import { AggregatorService } from '../aggregator/aggregator.service';
@@ -23,10 +23,14 @@ import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
 import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
+import { QueryMapper } from './../../mappers/query.mapper';
 
 function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: ConditioningLog<any, ConditioningLogDTO>): number {
 	return (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0);
 }
+
+/** Represents a query for conditioning logs (typing shorthand) */
+type QueryType = Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>;
 
 /** Specifies the properties of a user logs cache entry **/
 interface UserLogsCacheEntry {
@@ -48,7 +52,10 @@ export class ConditioningDataService {
 	
 	protected readonly userLogsSubject = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice (todo: implement deserialization and synchronization)
 	#isInitializing = false; // flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
+	
+	// Inject manually to keep constructor signature clean
 	@Inject(Logger) private readonly logger: Logger;
+	@Inject(QueryMapper) private readonly queryMapper: QueryMapper<QueryType, QueryDTO>;
 	
 	//--------------------------------- CONSTRUCTOR ---------------------------------
 
@@ -88,6 +95,7 @@ export class ConditioningDataService {
 	 * @throws UnauthorizedAccessError if user is not authorized to access log
 	 * @throws PersistenceError if error occurs while fetching log from persistence
 	 * @remark Replaces overview logs in cache with detailed logs from persistence on demand, and updates subscribers
+	 * @todo Refactor to use EntityIdParamDTO instead of EntityId, to ensure valid entity id is passed
 	 */
 	public async conditioningLog(ctx: UserContext, logId: EntityId): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
@@ -141,25 +149,33 @@ export class ConditioningDataService {
 
 	/**New API: Get all conditioning logs matching user and query (if provided)
 	 * @param ctx user context for the request (includes user id and roles)
-	 * @param query Optional query to filter logs (else all available logs for role are returned)
+	 * @param queryDTO Optional query to filter logs (else all available logs for role are returned)
 	 * @returns Array of conditioning logs (constrained by user context and query)
 	 * @remark Overview logs are guaranteed to be available
 	 * @remark Full logs are loaded from persistence on demand using conditioningLogDetails(), and may be purged from cache to save memory
-	 * @todo Refactor to accept QueryDTO, then internally map to Query<ConditioningLog<any,ConditioningLogDTO>,ConditioningLogDTO> for use with query.execute()
 	 */
-	public async conditioningLogs(ctx: UserContext, query?: Query<ConditioningLog<any,ConditioningLogDTO>,ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+	public async conditioningLogs(ctx: UserContext, queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
 		
 		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];		
-		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs			
+		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
+			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
+			}						
 			searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
 		}
 		else { // if the user is an admin, they can access all logs			
 			searchableLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
-		}	
+		}
+		
+		let query: QueryType | undefined;
+		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
+			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
+			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+		}		
 
-		// filter logs by query, if provided, else use all available logs	
-		const matchingLogs = query !== undefined ? query.execute(searchableLogs) : searchableLogs;
+		// filter logs by query, if provided, else use all searchable logs
+		const matchingLogs = query ? query.execute(searchableLogs) : searchableLogs;
 		
 		let sortedLogs = matchingLogs;
 		if (!query?.sortCriteria || query.sortCriteria.length === 0) {// default sort is ascending by start date and time
@@ -261,39 +277,6 @@ export class ConditioningDataService {
 	}
 
 	//--------------------------------- PROTECTED METHODS ---------------------------------
-
-	/* Convert a LogsQuery to a (functional) ConditioningLogQuery */
-	protected toConditioningLogQuery(query: QueryDTO): Query<any, any> {
-		// todo: implement conversion
-		/* DTO format example: {
-			"searchCriteria": [
-				{
-					"operation": "EQUALS",
-					"key": "activity",
-					"value": "MTB",
-					"negate": true
-				}
-			],
-			"filterCriteria": [
-				{
-					"operation": "GREATER_THAN",
-					"key": "duration",
-					"value": "50000",
-					"unit": "ms"
-				}
-			],
-			"sortCriteria": [
-				{
-					"operation": "DESC",
-					"key": "duration",
-					"unit": "ms"
-				}
-			]
-		},
-		*/
-		//return new ConditioningLogQuery({} as any); // debug: return empty query for now
-		return {} as any; // debug: return empty query for now
-	}
 
 	/** Convert array of conditioning logs into time series (aggregation helper) */
 	protected toConditioningLogSeries(logs: ConditioningLog<any, ConditioningLogDTO>[]): ConditioningLogSeries<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO> {

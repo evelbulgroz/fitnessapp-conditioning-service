@@ -17,28 +17,28 @@ describe('QueryDTO', () => {
 			activity: ActivityType.RUN,
 			userId: uuid(),
 			sortBy: 'date',
-			order: 'asc',
+			order: 'ASC',
 			page: 1,
 			pageSize: 10,
 		};
 	});
 
 	it('can be created with valid data', () => {
-		const logsQuery = new QueryDTO(props);
-		expect(logsQuery).toBeInstanceOf(QueryDTO);
-		expect(logsQuery.start).toEqual(new Date(props.start!));
-		expect(logsQuery.end).toEqual(new Date(props.end!));
-		expect(logsQuery.activity).toEqual(props.activity);
-		expect(logsQuery.userId).toEqual(props.userId);
-		expect(logsQuery.sortBy).toEqual(props.sortBy);
-		expect(logsQuery.order).toEqual(props.order);
-		expect(logsQuery.page).toEqual(props.page);
-		expect(logsQuery.pageSize).toEqual(props.pageSize);
+		const queryDTO = new QueryDTO(props);
+		expect(queryDTO).toBeInstanceOf(QueryDTO);
+		expect(queryDTO.start).toEqual(new Date(props.start!));
+		expect(queryDTO.end).toEqual(new Date(props.end!));
+		expect(queryDTO.activity).toEqual(props.activity);
+		expect(queryDTO.userId).toEqual(props.userId);
+		expect(queryDTO.sortBy).toEqual(props.sortBy);
+		expect(queryDTO.order).toEqual(props.order);
+		expect(queryDTO.page).toEqual(props.page);
+		expect(queryDTO.pageSize).toEqual(props.pageSize);
 	});
 
 	it('can convert to JSON', () => {
-		const logsQuery = new QueryDTO(props);
-		expect(logsQuery.toJSON()).toEqual(props);
+		const queryDTO = new QueryDTO(props);
+		expect(queryDTO.toJSON()).toEqual(props);
 	});
 
 	it('throws an error for invalid start date', () => {
@@ -78,7 +78,7 @@ describe('QueryDTO', () => {
 
 	it('throws an error for invalid order', () => {
 		props.order = 'invalid-order' as any;
-		expect(() => new QueryDTO(props)).toThrow('order must be "asc" or "desc"');
+		expect(() => new QueryDTO(props)).toThrow('order must be "ASC" or "DESC"');
 	});
 
 	it('throws an error for invalid page number', () => {

@@ -12,7 +12,8 @@ import {
 	MaxLength,
 	ToLowerCase,
 	ToNumber,
-	ToString
+	ToString,
+	ToUpperCase
 } from "@evelbulgroz/sanitizer-decorator";
 import { DataTransferObject } from "./data-transfer-object.model";
 
@@ -35,7 +36,7 @@ export class QueryDTO extends DataTransferObject {
 	private _activity?: ActivityType | undefined;
 	private _userId?: EntityId | undefined;
 	private _sortBy?: string | undefined;
-	private _order?: 'asc' | 'desc' | undefined;
+	private _order?: 'ASC' | 'DESC' | undefined;
 	private _page?: number | undefined;
 	private _pageSize?: number | undefined;
 
@@ -100,9 +101,9 @@ export class QueryDTO extends DataTransferObject {
 	get activity() { return this._activity; }
 
 	/** User id (issued by user microservice) to filter logs by */
-	@IsInstanceOfOneOf([String, Number], { allowNull: false, allowUndefined: false, message: 'userId must be a string or a number' })
-	@ToString() // coerce to string to enable validation of max length (if number, strings are passed through)
-	@MaxLength(MAX_PROPERTY_LENGTH, { message: `userId must have less than ${MAX_PROPERTY_LENGTH} characters` })
+	@IsInstanceOfOneOf([String, Number], { allowNull: false, allowUndefined: true, message: 'userId must be a string or a number' })
+	@ToString({allowUndefined: true}) // coerce to string to enable validation of max length (if number, strings are passed through)
+	@MaxLength(MAX_PROPERTY_LENGTH, {allowUndefined: true, message: `userId must have less than ${MAX_PROPERTY_LENGTH} characters` })
 	set userId(value: EntityId | undefined) { 
 		// coerce back to int if original value before validation was a number:
 		// since we're expecting strings to mostly be uuids, we can assume
@@ -111,7 +112,8 @@ export class QueryDTO extends DataTransferObject {
 		if (typeof value === 'string' && !isNaN(Number(value))) {
 			value = Number(value);
 		}
-		this._userId = value; }
+		this._userId = value;
+	}
 	get userId() { return this._userId; }
 
 	/** Property key to sort logs by */
@@ -123,9 +125,9 @@ export class QueryDTO extends DataTransferObject {
 	/** Sort order for logs */
 	@IsString({ allowNull: false, allowUndefined: false, message: 'order must be a string' })
 	@MaxLength(MAX_PROPERTY_LENGTH, { message: `order must have less than ${MAX_PROPERTY_LENGTH} characters` })
-	@ToLowerCase()
-	@Matches(/^(asc|desc)$/, { message: 'order must be "asc" or "desc"' })
-	set order(value: 'asc' | 'desc' | undefined) { this._order = value; }
+	@ToUpperCase()
+	@Matches(/^(ASC|DESC)$/, { message: 'order must be "ASC" or "DESC"' })
+	set order(value: 'ASC' | 'DESC' | undefined) { this._order = value; }
 	get order() { return this._order; }
 	
 	/** Page number for paginated results */

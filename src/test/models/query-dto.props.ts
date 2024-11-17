@@ -5,14 +5,14 @@ import { ActivityType } from "@evelbulgroz/fitnessapp-base";
  * - request data is transformed directly into a QueryDTO instance by the controller
  */
 export interface QueryDTOProps {
-	start: string;
-	end: string;
-	activity: ActivityType;
-	userId: string;
-	sortBy: string;
-	order: 'asc' | 'desc';
-	page: number;
-	pageSize: number;
+	start?: string;
+	end?: string;
+	activity?: ActivityType;
+	userId?: string;
+	sortBy?: string;
+	order?: 'ASC' | 'DESC';
+	page?: number;
+	pageSize?: number;
 }
 
 export default QueryDTOProps;
