@@ -18,7 +18,7 @@ import { ConditioningDataService } from './conditioning-data.service';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
-import { EntityIdParamDTO } from '../../controllers/dtos/entityid-param.dto';
+import { EntityIdDTO } from '../../controllers/dtos/entityid.dto';
 import { FileService } from '../file-service/file.service';
 import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';
@@ -881,12 +881,12 @@ describe('ConditioningDataService', () => {
 		let data: ConditioningLog<any, ConditioningLogDTO>[];
 		let repoSpy: any
 		let randomLog: ConditioningLog<any, ConditioningLogDTO> | undefined;
-		let randomLogId: EntityIdParamDTO;		
+		let randomLogId: EntityIdDTO;		
 		beforeEach(async () => {
 			data = await dataService.conditioningLogs(userContext); // get all logs for random user
 			const randomIndex = Math.floor(Math.random() * data.length);
 			randomLog = data[randomIndex] as ConditioningLog<any, ConditioningLogDTO>;
-			randomLogId = new EntityIdParamDTO(randomLog!.entityId!);
+			randomLogId = new EntityIdDTO(randomLog!.entityId!);
 			
 			const detailedLogMock = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 			repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
@@ -919,7 +919,7 @@ describe('ConditioningDataService', () => {
 			const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 			
 			//act
-			const detailedLog = await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomOtherUserLog!.entityId!));
+			const detailedLog = await dataService.conditioningLog(userContext, new EntityIdDTO(randomOtherUserLog!.entityId!));
 
 			// assert
 			expect(detailedLog!).toBeDefined();
@@ -930,7 +930,7 @@ describe('ConditioningDataService', () => {
 		it('throws NotFoundError if no log is found matching provided log entity id', async () => {
 			// arrange
 			// act/assert
-			expect(async () => await dataService.conditioningLog(userContext, new EntityIdParamDTO('no-such-log'))).rejects.toThrow(NotFoundError);
+			expect(async () => await dataService.conditioningLog(userContext, new EntityIdDTO('no-such-log'))).rejects.toThrow(NotFoundError);
 		});			
 	
 		it('throws UnauthorizedAccessError if log is found but user is not authorized to access it', async () => {
@@ -939,7 +939,7 @@ describe('ConditioningDataService', () => {
 			const otherUser = users.find(user => user.userId !== userContext.userId)!;
 			const otherUserLogs = await dataService.conditioningLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
 			const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
-			const randomOtherUserLogId = new EntityIdParamDTO(randomOtherUserLog!.entityId!);
+			const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 			
 			// act/assert
 			expect(() => dataService.conditioningLog(userContext, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
@@ -961,7 +961,7 @@ describe('ConditioningDataService', () => {
 			cacheEntry!.logs[logIndex] = detailedLog;				
 			
 			//act
-			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog!.entityId!));
+			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog!.entityId!));
 
 			// assert
 			expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
@@ -983,7 +983,7 @@ describe('ConditioningDataService', () => {
 			});
 
 			// act
-			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog!.entityId!));
+			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog!.entityId!));
 
 			// assert
 			expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
@@ -999,7 +999,7 @@ describe('ConditioningDataService', () => {
 			);
 			
 			//act
-			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog!.entityId!));
+			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog!.entityId!));
 
 			// assert
 			expect(retrievedLog?.isOverview).toBe(true);
@@ -1015,7 +1015,7 @@ describe('ConditioningDataService', () => {
 
 			// act/assert
 				// tried, failed to verify that repoSpy is called using .toHaveBeenCalled()
-			expect(async () => await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
+			expect(async () => await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
 		});
 
 		it('throws NotFoundError if no log matching entity id is found in persistence', async () => {
@@ -1026,7 +1026,7 @@ describe('ConditioningDataService', () => {
 			});
 
 			// act/assert
-			expect(async () => await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog!.entityId!))).rejects.toThrow(NotFoundError);
+			expect(async () => await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(NotFoundError);
 		});
 		
 		it('replaces log in cache with detailed log from persistence ', async () => {
@@ -1042,7 +1042,7 @@ describe('ConditioningDataService', () => {
 			});
 			
 			// act
-			void await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog?.entityId!));
+			void await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog?.entityId!));
 
 			// assert
 			const updatedLog = dataService['userLogsSubject'].value.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
@@ -1062,7 +1062,7 @@ describe('ConditioningDataService', () => {
 			});
 			
 			// act
-			void await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog?.entityId!));
+			void await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog?.entityId!));
 
 			// assert
 			const updatedCache$ = dataService['userLogsSubject'].asObservable();

@@ -24,7 +24,7 @@ import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { DefaultStatusCodeInterceptor } from './interceptors/status-code.interceptor';
 
-import { EntityIdParamDTO } from './dtos/entityid-param.dto';
+import { EntityIdDTO } from './dtos/entityid.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
@@ -164,12 +164,12 @@ export class AppController {
 	//@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({  whitelist: true, forbidNonWhitelisted: true,transform: true }))
-	public async fetchLog(@Req() req: any, @Param('id') logId: EntityIdParamDTO ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async fetchLog(@Req() req: any, @Param('id') logId: EntityIdDTO ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const log = this.service.conditioningLog(userContext, logId); // todo: refactor service method to accept user context
 			if (!log) {
-				const errorMessage = `Log with id ${logId.value} not found`;
+				const errorMessage = `Log with id ${logId.entityId} not found`;
 				this.logger.error(errorMessage);
 				throw new NotFoundException(errorMessage);
 			}			
