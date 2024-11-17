@@ -167,7 +167,7 @@ export class AppController {
 	public async fetchLog(@Req() req: any, @Param('id') logId: EntityIdParamDTO ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const log = this.service.conditioningLog(userContext, logId.value!); // todo: refactor service method to accept user context
+			const log = this.service.conditioningLog(userContext, logId); // todo: refactor service method to accept user context
 			if (!log) {
 				const errorMessage = `Log with id ${logId.value} not found`;
 				this.logger.error(errorMessage);

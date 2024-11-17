@@ -18,19 +18,18 @@ import { ConditioningDataService } from './conditioning-data.service';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
+import { EntityIdParamDTO } from '../../controllers/dtos/entityid-param.dto';
 import { FileService } from '../file-service/file.service';
 import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';
+import { QueryDTO } from '../../controllers/dtos/query.dto';
+import { QueryDTOProps } from '../../test/models/query-dto.props';
+import { QueryMapper } from '../../mappers/query.mapper';
 import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
 import { User } from '../../domain/user.entity';
 import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
-import { random } from 'lodash-es';
-import e, { query } from 'express';
-import QueryDTOProps from '../../test/models/query-dto.props';
-import QueryDTO from '../../controllers/dtos/query.dto';
-import { QueryMapper } from '../../mappers/query.mapper';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -876,203 +875,203 @@ describe('ConditioningDataService', () => {
 		});
 	});
 
-	xdescribe('ConditioningLog', () => {
+	describe('ConditioningLog', () => {
 		// no need to test all logs, just a random one
 		// no need to test all detailed properties, rely on unit tests for isOverview property of ConditioningLog class
-		describe('by entity id', () => {
-			let data: ConditioningLog<any, ConditioningLogDTO>[];
-			let repoSpy: any
-			let randomLog: ConditioningLog<any, ConditioningLogDTO> | undefined;
+		let data: ConditioningLog<any, ConditioningLogDTO>[];
+		let repoSpy: any
+		let randomLog: ConditioningLog<any, ConditioningLogDTO> | undefined;
+		let randomLogId: EntityIdParamDTO;		
+		beforeEach(async () => {
+			data = await dataService.conditioningLogs(userContext); // get all logs for random user
+			const randomIndex = Math.floor(Math.random() * data.length);
+			randomLog = data[randomIndex] as ConditioningLog<any, ConditioningLogDTO>;
+			randomLogId = new EntityIdParamDTO(randomLog!.entityId!);
 			
-			beforeEach(async () => {
-				data = await dataService.conditioningLogs(userContext); // get all logs for random user
-				const randomIndex = Math.floor(Math.random() * data.length);
-				randomLog = data[randomIndex] as ConditioningLog<any, ConditioningLogDTO>;
-				
-				const detailedLogMock = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
-				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
-					Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLogMock)))
-				);
-				
-			});
-
-			afterEach(() => {
-				repoSpy && repoSpy.mockRestore();
-			});
-
-			it('can provide details for a conditioning log owned by a user', async () => {				
-				// arrange
-				
-				//act
-				const detailedLog = await dataService.conditioningLog(userContext, randomLog!.entityId!);
-
-				// assert
-				expect(detailedLog!).toBeDefined();
-				expect(detailedLog).toBeInstanceOf(ConditioningLog);
-				expect(detailedLog!.isOverview).toBe(false);
-			});
-						
-			it(`can provide a details for other user's conditioning log if user role is 'admin'`, async () => {
-				// arrange
-				userContext.roles = ['admin'];
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
-				const otherUserLogs = await dataService.conditioningLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
-				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
-				
-				//act
-				const detailedLog = await dataService.conditioningLog(userContext, randomOtherUserLog!.entityId!);
-
-				// assert
-				expect(detailedLog!).toBeDefined();
-				expect(detailedLog).toBeInstanceOf(ConditioningLog);
-				expect(detailedLog!.isOverview).toBe(false);
-			});
+			const detailedLogMock = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+			repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
+				Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLogMock)))
+			);
 			
-			it('throws NotFoundError if no log is found matching provided log entity id', async () => {
-				// arrange
-				// act/assert
-				expect(async () => await dataService.conditioningLog(userContext, 'no-such-log')).rejects.toThrow(NotFoundError);
-			});			
+		});
+
+		afterEach(() => {
+			repoSpy && repoSpy.mockRestore();
+		});
+
+		it('can provide details for a conditioning log owned by a user', async () => {				
+			// arrange
+			
+			//act
+			const detailedLog = await dataService.conditioningLog(userContext, randomLogId);
+
+			// assert
+			expect(detailedLog!).toBeDefined();
+			expect(detailedLog).toBeInstanceOf(ConditioningLog);
+			expect(detailedLog!.isOverview).toBe(false);
+		});
+					
+		it(`can provide a details for other user's conditioning log if user role is 'admin'`, async () => {
+			// arrange
+			userContext.roles = ['admin'];
+			const otherUser = users.find(user => user.userId !== userContext.userId)!;
+			const otherUserLogs = await dataService.conditioningLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
+			const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
+			
+			//act
+			const detailedLog = await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomOtherUserLog!.entityId!));
+
+			// assert
+			expect(detailedLog!).toBeDefined();
+			expect(detailedLog).toBeInstanceOf(ConditioningLog);
+			expect(detailedLog!.isOverview).toBe(false);
+		});
 		
-			it('throws UnauthorizedAccessError if log is found but user is not authorized to access it', async () => {
-				// arrange
-				userContext.roles = ['user'];
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
-				const otherUserLogs = await dataService.conditioningLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
-				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
-				
-				// act/assert
-				expect(() => dataService.conditioningLog(userContext, randomOtherUserLog!.entityId!)).rejects.toThrow(UnauthorizedAccessError);
-			});
+		it('throws NotFoundError if no log is found matching provided log entity id', async () => {
+			// arrange
+			// act/assert
+			expect(async () => await dataService.conditioningLog(userContext, new EntityIdParamDTO('no-such-log'))).rejects.toThrow(NotFoundError);
+		});			
+	
+		it('throws UnauthorizedAccessError if log is found but user is not authorized to access it', async () => {
+			// arrange
+			userContext.roles = ['user'];
+			const otherUser = users.find(user => user.userId !== userContext.userId)!;
+			const otherUserLogs = await dataService.conditioningLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
+			const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
+			const randomOtherUserLogId = new EntityIdParamDTO(randomOtherUserLog!.entityId!);
+			
+			// act/assert
+			expect(() => dataService.conditioningLog(userContext, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+		});
 
-			it('returns log directly from cache if already detailed', async () => {
-				// arrange
-				  // reset spy to avoid side effects
-				repoSpy.mockRestore();
-				repoSpy = jest.spyOn(logRepo, 'fetchById'); // should not be called
-				
-				  // replace random log in cache with detailed log
+		it('returns log directly from cache if already detailed', async () => {
+			// arrange
+				// reset spy to avoid side effects
+			repoSpy.mockRestore();
+			repoSpy = jest.spyOn(logRepo, 'fetchById'); // should not be called
+			
+				// replace random log in cache with detailed log
+			const randomLogId = randomLog!.entityId!;
+			const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
+			const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+			const cache = dataService['userLogsSubject'].value;
+			const cacheEntry = cache.find(entry => entry.userId === randomUserId);
+			const logIndex = cacheEntry!.logs.findIndex(log => log.entityId === randomLogId);
+			cacheEntry!.logs[logIndex] = detailedLog;				
+			
+			//act
+			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog!.entityId!));
+
+			// assert
+			expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
+			expect(retrievedLog?.isOverview).toBe(false);
+			expect(retrievedLog).toBe(detailedLog);
+
+			expect(repoSpy).not.toHaveBeenCalled(); // may/not be reliable, but should be true
+		});
+
+		it('retrieves detailed log from persistence if cached log is overview', async () => {
+			// arrange
+			repoSpy.mockRestore();
+			repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+				//  logs are initialized in cache as overviews, so any random cached log should be an overview
 				const randomLogId = randomLog!.entityId!;
 				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
 				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
-				const cache = dataService['userLogsSubject'].value;
-				const cacheEntry = cache.find(entry => entry.userId === randomUserId);
-				const logIndex = cacheEntry!.logs.findIndex(log => log.entityId === randomLogId);
-				cacheEntry!.logs[logIndex] = detailedLog;				
-				
-				//act
-				const retrievedLog = await dataService.conditioningLog(userContext, randomLog!.entityId!);
-
-				// assert
-				expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
-				expect(retrievedLog?.isOverview).toBe(false);
-				expect(retrievedLog).toBe(detailedLog);
-
-				expect(repoSpy).not.toHaveBeenCalled(); // may/not be reliable, but should be true
+				return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
 			});
 
-			it('retrieves detailed log from persistence if cached log is overview', async () => {
-				// arrange
-				repoSpy.mockRestore();
-				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
-					//  logs are initialized in cache as overviews, so any random cached log should be an overview
-					const randomLogId = randomLog!.entityId!;
-					const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
-					const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
-					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
-				});
+			// act
+			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog!.entityId!));
 
-				// act
-				const retrievedLog = await dataService.conditioningLog(userContext, randomLog!.entityId!);
+			// assert
+			expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
+			expect(retrievedLog?.isOverview).toBe(false);
+		});
+		
+		it('passes through log from persistence as-is, without checking if details are actually available ', async () => {
+			// arrange
+				// create a new log with isOverview set to true, and no detailed properties -> should be returned without checking for details
+			const detailedLogMock = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
+			repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
+				Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLogMock)))
+			);
+			
+			//act
+			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog!.entityId!));
 
-				// assert
-				expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
-				expect(retrievedLog?.isOverview).toBe(false);
+			// assert
+			expect(retrievedLog?.isOverview).toBe(true);
+		});
+		
+		it('throws PersistenceError if retrieving detailed log from persistence fails', async () => {
+			// arrange
+			repoSpy.mockRestore();
+			repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+				// console.debug('fetchById mock called'); this gets called, despite toHaveBeenCalled() failing
+				return Promise.resolve(Result.fail<Observable<ConditioningLog<any, ConditioningLogDTO>>>('test error'))
+			});
+
+			// act/assert
+				// tried, failed to verify that repoSpy is called using .toHaveBeenCalled()
+			expect(async () => await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
+		});
+
+		it('throws NotFoundError if no log matching entity id is found in persistence', async () => {
+			// arrange
+			repoSpy.mockRestore();
+			repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+				return Promise.resolve(Result.ok<any>(of(undefined)));
+			});
+
+			// act/assert
+			expect(async () => await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog!.entityId!))).rejects.toThrow(NotFoundError);
+		});
+		
+		it('replaces log in cache with detailed log from persistence ', async () => {
+			// arrange
+			const randomLogId = randomLog!.entityId!;
+			const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
+			const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+			
+			repoSpy.mockRestore();
+			repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+				//  logs are initialized in cache as overviews, so any random cached log should be an overview
+				return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
 			});
 			
-			it('passes through log from persistence as-is, without checking if details are actually available ', async () => {
-				// arrange
-				 // create a new log with isOverview set to true, and no detailed properties -> should be returned without checking for details
-				const detailedLogMock = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
-				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
-					Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLogMock)))
-				);
-				
-				//act
-				const retrievedLog = await dataService.conditioningLog(userContext, randomLog!.entityId!);
+			// act
+			void await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog?.entityId!));
 
-				// assert
-				expect(retrievedLog?.isOverview).toBe(true);
+			// assert
+			const updatedLog = dataService['userLogsSubject'].value.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
+			expect(updatedLog).toBe(detailedLog);
+		});
+
+		it('updates cache subcribers when replacing log from persistence ', async () => {
+			// arrange
+			const randomLogId = randomLog!.entityId!;
+			const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
+			const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+			
+			repoSpy.mockRestore();
+			repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+				// logs are initialized in cache as overviews, so any random cached log should be an overview
+				return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
 			});
 			
-			it('throws PersistenceError if retrieving detailed log from persistence fails', async () => {
-				// arrange
-				repoSpy.mockRestore();
-				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
-					// console.debug('fetchById mock called'); this gets called, despite toHaveBeenCalled() failing
-					return Promise.resolve(Result.fail<Observable<ConditioningLog<any, ConditioningLogDTO>>>('test error'))
-				});
+			// act
+			void await dataService.conditioningLog(userContext, new EntityIdParamDTO(randomLog?.entityId!));
 
-				// act/assert
-				 // tried, failed to verify that repoSpy is called using .toHaveBeenCalled()
-				expect(async () => await dataService.conditioningLog(userContext, randomLog!.entityId!)).rejects.toThrow(PersistenceError);
-			});
+			// assert
+			const updatedCache$ = dataService['userLogsSubject'].asObservable();
+			const updatedCache = await firstValueFrom(updatedCache$);
+			const updatedLog = updatedCache.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
+			expect(updatedLog).toBe(detailedLog);
+		});
 
-			it('throws NotFoundError if no log matching entity id is found in persistence', async () => {
-				// arrange
-				repoSpy.mockRestore();
-				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
-					return Promise.resolve(Result.ok<any>(of(undefined)));
-				});
-
-				// act/assert
-				expect(async () => await dataService.conditioningLog(userContext, randomLog!.entityId!)).rejects.toThrow(NotFoundError);
-			});
-			
-			it('replaces log in cache with detailed log from persistence ', async () => {
-				// arrange
-				const randomLogId = randomLog!.entityId!;
-				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
-				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
-				
-				repoSpy.mockRestore();
-				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
-					//  logs are initialized in cache as overviews, so any random cached log should be an overview
-					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
-				});
-				
-				// act
-				void await dataService.conditioningLog(userContext, randomLog?.entityId!);
-
-				// assert
-				const updatedLog = dataService['userLogsSubject'].value.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
-				expect(updatedLog).toBe(detailedLog);
-			});
-
-			it('updates cache subcribers when replacing log from persistence ', async () => {
-				// arrange
-				const randomLogId = randomLog!.entityId!;
-				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
-				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
-				
-				repoSpy.mockRestore();
-				repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
-					// logs are initialized in cache as overviews, so any random cached log should be an overview
-					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
-				});
-				
-				// act
-				void await dataService.conditioningLog(userContext, randomLog?.entityId!);
-
-				// assert
-				const updatedCache$ = dataService['userLogsSubject'].asObservable();
-				const updatedCache = await firstValueFrom(updatedCache$);
-				const updatedLog = updatedCache.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
-				expect(updatedLog).toBe(detailedLog);
-			});
-
-			// TODO: Test default sorting of returned logs
-		});		
+		// TODO: Test default sorting of returned logs
 	});
 	
 	/*describe('Aggregation', () => {
