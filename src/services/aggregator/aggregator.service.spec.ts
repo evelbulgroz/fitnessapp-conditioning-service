@@ -1,10 +1,11 @@
 import { TestingModule, Test } from "@nestjs/testing";
 
 import { v4 as uuidv4 } from 'uuid';
-import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
+import { AggregationType, SampleRate, TimeSeriesAggregator } from '@evelbulgroz/time-series';
 
+import { AggregationQueryMapper } from '../../mappers/aggregation-query.mapper';
 import { AggregatorService } from "./aggregator.service";
-import { AggregationQuery } from "../../controllers/domain/aggregation-query.model";
+import { AggregationQueryDTO } from "../../controllers/dtos/aggregation-query.dto";
 
 // NOTE: Just a quick test to check that the service can be created/injected and used:
 // TimeSeriesAggregator is fully tested in @evelbulgroz/time-series, so no need to test it here.
@@ -14,7 +15,11 @@ describe('AggregatorService', () => {
 	
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
-			providers: [AggregatorService],
+			providers: [
+				AggregationQueryMapper,
+				AggregatorService,
+				TimeSeriesAggregator
+			],
 		}).compile();
 
 		aggregator = module.get<AggregatorService>(AggregatorService);	
@@ -47,17 +52,16 @@ describe('AggregatorService', () => {
 			  ]
 		};
 		
-		const dto = {
-			aggregatedType: 'TestType',
+		const dto = new AggregationQueryDTO({
+			aggregatedType: 'ConditioningLog', // only supported type
 			aggregatedProperty: 'duration',
 			aggregationType: AggregationType.SUM,
 			sampleRate: SampleRate.YEAR
-		}
+		});
 
-		const aggregationQuery = new AggregationQuery(dto);
 		
 		// act
-		const aggregatedLogs = aggregator.aggregate(testSeries, aggregationQuery);
+		const aggregatedLogs = aggregator.aggregate(testSeries, dto);
 		
 		// assert
 		expect(aggregatedLogs.data.length).toBe(3);

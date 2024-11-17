@@ -160,25 +160,24 @@ export class ConditioningDataService {
 	public async conditioningLogs(ctx: UserContext, queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
 		
-		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];		
+		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];		
 		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
 			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
 				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
 			}						
-			searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
+			accessibleLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
 		}
-		else { // if the user is an admin, they can access all logs			
-			searchableLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
+		else { // if the user is an admin, they can access all logs
+			accessibleLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
 		}
 		
+		// filter logs by query, if provided, else use all accessible logs
 		let query: QueryType | undefined;
 		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
 			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
 			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
-		}		
-
-		// filter logs by query, if provided, else use all searchable logs
-		const matchingLogs = query ? query.execute(searchableLogs) : searchableLogs;
+		}
+		const matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
 		
 		let sortedLogs = matchingLogs;
 		if (!query?.sortCriteria || query.sortCriteria.length === 0) {// default sort is ascending by start date and time
@@ -190,39 +189,51 @@ export class ConditioningDataService {
 
 	/**New API: Get aggregated time series of conditioning logs
 	 * @param ctx User context for the request (includes user id and roles)
-	 * @param aggregationQuery Validated aggregation query
-	 * @param logsQuery Optional data query to select logs to aggregate (else all available logs are aggregated)
+	 * @param aggregationQueryDTO Validated aggregation query
+	 * @param queryDTO Optional data query to select logs to aggregate (else all accessible logs are aggregated)
 	 * @returns Aggregated time series of conditioning logs
 	 * @remark Admins can access all logs, other users can only access their own logs
 	 */
 	public async aggretagedConditioningLogs(
 		ctx: UserContext,
-		aggregationQuery: AggregationQueryDTO,
-		logsQuery?: Query<ConditioningLog<any,ConditioningLogDTO>, ConditioningLogDTO>
+		aggregationQueryDTO: AggregationQueryDTO,
+		queryDTO?: QueryDTO
 	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		await this.isReady(); // initialize service if necessary
 
 		// constrain searchable logs to single user if user id is provided
-		let searchableLogs: ConditioningLog<any, ConditioningLogDTO>[];
+		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];
 		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
-			searchableLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
+			/*TODO: enable this check when other code is verified in tests
+			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
+			}
+			*/
+			accessibleLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
 		}
-		else { // use all logs
-			searchableLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
+		else { // if the user is an admin, they can access all logs
+			accessibleLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
 		}
 
+		// filter logs by query, if provided, else use all accessible logs
+		let query: QueryType | undefined;
+		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
+			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
+			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+		}
+		const matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
+
 		// convert searchable logs matching query to time series
-		const matchingLogs = logsQuery !== undefined ? logsQuery.execute(searchableLogs) : searchableLogs;
 		const timeSeries = this.toConditioningLogSeries(matchingLogs);
 
 		// aggregate time series
 		const aggregatedSeries = this.aggregator.aggregate(
 			timeSeries,
-			aggregationQuery,
+			aggregationQueryDTO,
 			(dataPoint: DataPoint<any>) => { // value extractor for Quantity values
-				const propValue = dataPoint.value[aggregationQuery.aggregatedProperty as keyof ConditioningLog<any, ConditioningLogDTO>];
+				const propValue = dataPoint.value[aggregationQueryDTO.aggregatedProperty as keyof ConditioningLog<any, ConditioningLogDTO>];
 				if (propValue instanceof Quantity) {
-					return propValue.to(aggregationQuery.aggregatedValueUnit ?? '').scalar;
+					return propValue.to(aggregationQueryDTO.aggregatedValueUnit ?? '').scalar;
 				}
 				else {
 					return propValue

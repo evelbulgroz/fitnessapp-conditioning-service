@@ -61,8 +61,6 @@ export class AppController {
 	 * @throws BadRequestException if data service method fails
 	 * @remark Audience: Admins (all data), Users (own data) accessing endpoint from a front-end application
 	 * @example http://localhost:3060/api/v3/conditioning/activities
-	 * @todo Delegate processing to service method
-	 
 	*/
 	@Get('activities')
 	//@ApiOperation({ summary: 'Get list of the number of times each conditioning activity has been logged' })

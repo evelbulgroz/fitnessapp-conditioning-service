@@ -59,3 +59,5 @@ export class QueryMapper<T extends Query<ConditioningLog<any, ConditioningLogDTO
 	
 	// toDTO() method is not needed for this mapper
 }
+
+export default QueryMapper;
