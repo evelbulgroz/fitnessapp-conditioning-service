@@ -26,6 +26,7 @@ import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
 import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
 
+/** Helper function to default sort logs ascending by start date and time */
 function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: ConditioningLog<any, ConditioningLogDTO>): number {
 	return (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0);
 }
@@ -39,31 +40,31 @@ interface UserLogsCacheEntry {
 	logs: ConditioningLog<any, ConditioningLogDTO>[];
 }
 
-/** Provides access to data from conditioning training sessions, as intermediary between controllers and repositories.
- * @remark Handles enforcement of business rules, and aggregation and other data processing unrelated to either persistence or controller logic.
+/** Provides access to data from conditioning training sessions, as intermediary between controller and repositories.
+ * @remark Handles enforcement of business rules, aggregation and other data processing unrelated to either persistence or request data sanitization.
  * @remark Uses a local cache to store logs by user id, to avoid repeated fetches from the persistence layer.
  * @remark Relies on repositories for persistence, and on controller(s) for request authentication, user context, data sanitization, and error logging.
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
- * @todo Refactor all data access methods to require UserContext instead of user id, to allow for more complex queries and enforce access rules.
- * @todo Refactor service and cache to orchestrate user and log data (e.g. adding entries to both when adding a new log for a user).
+ * @remark Admins can access all logs, other users can only access their own logs.
+ * @todo Add CRUD operations for conditioning logs, and implement caching and synchronization with user microservice
  */
 @Injectable()
 export class ConditioningDataService {
 	//--------------------------------- PRIVATE PROPERTIES ---------------------------------
 	
-	protected readonly userLogsSubject = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice (todo: implement deserialization and synchronization)
-	#isInitializing = false; // flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
+	protected readonly userLogsSubject = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
+	protected isInitializing = false; // flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
 	
-	// Inject manually to keep constructor signature clean
-	@Inject(Logger) private readonly logger: Logger;
-	@Inject(QueryMapper) private readonly queryMapper: QueryMapper<QueryType, QueryDTO>;
+	// Inject separately to keep constructor signature clean
+	@Inject(Logger) protected readonly logger: Logger;
+	@Inject(QueryMapper) protected readonly queryMapper: QueryMapper<QueryType, QueryDTO>;
 	
 	//--------------------------------- CONSTRUCTOR ---------------------------------
 
-	constructor(
-		private readonly aggregator: AggregatorService,
-		private readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		private readonly userRepo: UserRepository<any, UserDTO>
+	public constructor(
+		protected readonly aggregator: AggregatorService,
+		protected readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
+		protected readonly userRepo: UserRepository<any, UserDTO>
 	) { }
 
 	//--------------------------------- PUBLIC API ---------------------------------
@@ -88,14 +89,14 @@ export class ConditioningDataService {
 		});
 	}	
 	
-	/**New API: Get single, detailed conditioning log by user and entity id
+	/**New API: Get single, detailed conditioning log by log entity id
 	 * @param ctx user context for the request (includes user id and roles)
-	 * @param logId Entity id of the conditioning log to retrieve
-	 * @returns Detailed log, or undefined if not found
-	 * @throws NotFoundError if log is not found or access is denied
+	 * @param id Entity id of the conditioning log to retrieve, wrapped in a DTO
+	 * @returns Detailed log matching the entity id, if found and authorized
+	 * @throws NotFoundError if log is not initialized in cache or not found in persistence
 	 * @throws UnauthorizedAccessError if user is not authorized to access log
 	 * @throws PersistenceError if error occurs while fetching log from persistence
-	 * @remark Replaces overview logs in cache with detailed logs from persistence on demand, and updates subscribers
+	 * @remark Replaces overview log in cache with detailed log from persistence on demand, and updates cache subscribers
 	 */
 	public async conditioningLog(ctx: UserContext, id: EntityIdDTO): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
@@ -149,13 +150,13 @@ export class ConditioningDataService {
 		});
 	}
 
-	/**New API: Get all conditioning logs matching user and query (if provided)
+	/**New API: Get all conditioning logs for user and mathcing query (if provided)
 	 * @param ctx user context for the request (includes user id and roles)
-	 * @param queryDTO Optional query to filter logs (else all available logs for role are returned)
+	 * @param queryDTO Optional query to filter logs (else all accessible logs for role are returned)
 	 * @returns Array of conditioning logs (constrained by user context and query)
 	 * @throws UnauthorizedAccessError if user attempts authorized access to logs
 	 * @remark Overview logs are guaranteed to be available
-	 * @remark Full logs are loaded from persistence on demand using conditioningLogDetails(), and may be purged from cache to save memory
+	 * @remark Full logs are loaded into cache from persistence on demand using conditioningLogDetails(), and may be replaced in cache with overview logs to save memory
 	 */
 	public async conditioningLogs(ctx: UserContext, queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
@@ -189,11 +190,10 @@ export class ConditioningDataService {
 
 	/**New API: Get aggregated time series of conditioning logs
 	 * @param ctx User context for the request (includes user id and roles)
-	 * @param aggregationQueryDTO Validated aggregation query
-	 * @param queryDTO Optional data query to select logs to aggregate (else all accessible logs are aggregated)
+	 * @param aggregationQueryDTO Validated aggregation query DTO speficifying aggregation parameters
+	 * @param queryDTO Optional query to select logs to aggregate (else all accessible logs are aggregated)
 	 * @returns Aggregated time series of conditioning logs
 	 * @throws UnauthorizedAccessError if user attempts unauthorized access to logs
-	 * @remark Admins can access all logs, other users can only access their own logs
 	 */
 	public async aggretagedConditioningLogs(
 		ctx: UserContext,
@@ -291,7 +291,7 @@ export class ConditioningDataService {
 
 	//--------------------------------- PROTECTED METHODS ---------------------------------
 
-	/** Convert array of conditioning logs into time series (aggregation helper) */
+	/* Convert array of conditioning logs into time series (aggregation helper) */
 	protected toConditioningLogSeries(logs: ConditioningLog<any, ConditioningLogDTO>[]): ConditioningLogSeries<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO> {
 		// filter out any logs that do not have a start date, log id of logs missing start date
 		const logsWithDates = logs.filter(log => {
@@ -317,18 +317,18 @@ export class ConditioningDataService {
 		return series;
 	}
 
-	/** Initialize user-log cache */
+	/* Initialize user-log cache */
 	protected async initializeCache(): Promise<void> {		
 		const cache = this.userLogsSubject;
 		
 		// initialization already in progress, wait for it to complete
-		if (this.#isInitializing) { 
+		if (this.isInitializing) { 
 			const readyPromise = new Promise<void>((resolve) => { // resolves when initialization is complete
 				cache.pipe(
 					filter((data) => data.length > 0), // wait for cache to be populated
 					take(1)
 				).subscribe(() => {
-					this.#isInitializing = false;
+					this.isInitializing = false;
 					resolve(); // resolve with void
 				});
 			});
@@ -341,7 +341,7 @@ export class ConditioningDataService {
 		}
 
 		// cache not initialized, initialization not in progress -> initialize it
-		this.#isInitializing = true;
+		this.isInitializing = true;
 		this.logger.log(`${this.constructor.name}: Initializing ...`);
 
 		// fetch all logs from conditioning log repo
@@ -354,7 +354,7 @@ export class ConditioningDataService {
 		}
 		else {
 			this.logger.error(`${this.constructor.name}: Error initializing conditioning logs: ${logsResult.error}`);
-			this.#isInitializing = false;
+			this.isInitializing = false;
 		}
 		
 		// fetch all users from user repo
@@ -375,7 +375,7 @@ export class ConditioningDataService {
 		});
 		this.userLogsSubject.next(userLogs);
 		
-		this.#isInitializing = false;
+		this.isInitializing = false;
 		this.logger.log(`${this.constructor.name}: Initialization complete: Cached ${allLogs.length} logs for ${users.length} users.`);
 
 		return Promise.resolve(); // resolve with void
