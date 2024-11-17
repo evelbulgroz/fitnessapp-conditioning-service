@@ -101,7 +101,7 @@ export class ConditioningDataService {
 		return new Promise(async (resolve, reject) => {
 			await this.isReady(); // initialize service if necessary
 
-			const logId = id.entityId; // extract sanitized entity id from DTO
+			const logId = id.value; // extract sanitized entity id from DTO
 			
 			// check if log exists in cache, else throw NotFoundError
 			const entryWithLog = this.userLogsSubject.value.find((entry) => entry.logs.some((log) => log.entityId === logId));

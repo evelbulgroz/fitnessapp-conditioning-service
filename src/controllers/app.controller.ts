@@ -169,7 +169,7 @@ export class AppController {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const log = this.service.conditioningLog(userContext, logId); // todo: refactor service method to accept user context
 			if (!log) {
-				const errorMessage = `Log with id ${logId.entityId} not found`;
+				const errorMessage = `Log with id ${logId.value} not found`;
 				this.logger.error(errorMessage);
 				throw new NotFoundException(errorMessage);
 			}			

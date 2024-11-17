@@ -7,16 +7,16 @@ describe('EntityIdDTO', () => {
 		const validId: EntityId = '507f1f77bcf86cd799439011';
 		const dto = new EntityIdDTO(validId);
 		expect(dto).toBeInstanceOf(EntityIdDTO);
-		expect(dto.entityId).toBe(validId);
-		expect(typeof dto.entityId).toBe('string');
+		expect(dto.value).toBe(validId);
+		expect(typeof dto.value).toBe('string');
 	});
 
 	it('should create an instance with a valid ID that is a number', () => {
 		const validId: EntityId = 507;
 		const dto = new EntityIdDTO(validId);
 		expect(dto).toBeInstanceOf(EntityIdDTO);
-		expect(dto.entityId).toBe(validId);
-		expect(typeof dto.entityId).toBe('number');
+		expect(dto.value).toBe(validId);
+		expect(typeof dto.value).toBe('number');
 	});
 
 	it('throws an error if value is neither a string nor a number', () => {
