@@ -192,6 +192,7 @@ export class ConditioningDataService {
 	 * @param aggregationQueryDTO Validated aggregation query
 	 * @param queryDTO Optional data query to select logs to aggregate (else all accessible logs are aggregated)
 	 * @returns Aggregated time series of conditioning logs
+	 * @throws UnauthorizedAccessError if user attempts unauthorized access to logs
 	 * @remark Admins can access all logs, other users can only access their own logs
 	 */
 	public async aggretagedConditioningLogs(
@@ -204,11 +205,9 @@ export class ConditioningDataService {
 		// constrain searchable logs to single user if user id is provided
 		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];
 		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
-			/*TODO: enable this check when other code is verified in tests
 			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
 				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
 			}
-			*/
 			accessibleLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
 		}
 		else { // if the user is an admin, they can access all logs

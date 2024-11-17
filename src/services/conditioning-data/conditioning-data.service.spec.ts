@@ -30,6 +30,7 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
+import { AggregationQueryDTO } from '../../controllers/dtos/aggregation-query.dto';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -1074,12 +1075,12 @@ describe('ConditioningDataService', () => {
 		// TODO: Test default sorting of returned logs
 	});
 	
-	/*describe('Aggregation', () => {
-		let aggregationQuery: AggregationQuery;
+	describe('Aggregation', () => {
+		let aggregationQueryDTO: AggregationQueryDTO;
 		let aggregatorSpy: any;
-		let dataQuery: Query<any, any>;
+		let queryDTO: QueryDTO;
 		beforeEach(async () => {
-			aggregationQuery = new AggregationQuery({
+			aggregationQueryDTO = new AggregationQueryDTO({
 				aggregatedType: 'ConditioningLog',
 				aggregatedProperty: 'duration',
 				aggregationType: AggregationType.SUM,
@@ -1087,7 +1088,7 @@ describe('ConditioningDataService', () => {
 				aggregatedValueUnit: 'ms',				
 			});
 
-			dataQuery = new Query<any,any>({
+			queryDTO = new QueryDTO({
 				searchCriteria: [
 					{
 						key: 'activity',
@@ -1114,17 +1115,17 @@ describe('ConditioningDataService', () => {
 		
 		// NOTE:
 		// not testing that AggregatorService works, just that it is called with the right parameters
-		// leave deeper testing of the result to AggregatorService tests to  avoid duplication
+		// leave deeper testing of the result to AggregatorService tests to avoid duplication
 		it('can aggregate a time series of all ConditioningLogs owned by a user', async () => {
 			// arrange
 			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(userContext));
 			
 			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQuery, undefined);
+			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQueryDTO, undefined);
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
-			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
+			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
 			expect(aggregatedSeries).toBeDefined();			
 		});
 		
@@ -1133,31 +1134,40 @@ describe('ConditioningDataService', () => {
 			userContext.roles = ['admin'];
 
 			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQuery);
+			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQueryDTO);
 			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(userContext));
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
-			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
+			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
 			expect(aggregatedSeries).toBeDefined();
 		});
 		
-		it('aggreates only logs matching logs query, if provided', async () => {			
+		it('aggreates only logs matching query, if provided', async () => {			
 			// arrange
 			const searchableLogs = dataService['userLogsSubject'].value.find((entry) => entry.userId === userContext.userId)?.logs ?? [];
-			const matchingLogs = dataQuery.execute(searchableLogs);
+			const query = queryMapper.toDomain(queryDTO);
+			const matchingLogs = query.execute(searchableLogs);
 			const expectedTimeSeries = dataService['toConditioningLogSeries'](matchingLogs);
 
 			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQuery, dataQuery);
+			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQueryDTO, queryDTO);
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
-			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
+			expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
 			expect(aggregatedSeries).toBeDefined();
 		});
+
+		xit('throws UnauthorizedAccessError if user tries to acces logs of another user', async () => {
+			// arrange
+			const otherUser = users.find(user => user.userId !== userContext.userId)!;
+			const otherUserContext = new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']});
+			
+			// act/assert
+			expect(async () => await dataService.aggretagedConditioningLogs(otherUserContext, aggregationQueryDTO)).rejects.toThrow(UnauthorizedAccessError);
+		});
 	});
-	*/
 
 	describe('Utilities', () => {
 		describe('Conversion to time series', () => {
