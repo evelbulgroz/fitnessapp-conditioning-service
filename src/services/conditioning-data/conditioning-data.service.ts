@@ -151,6 +151,7 @@ export class ConditioningDataService {
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param queryDTO Optional query to filter logs (else all available logs for role are returned)
 	 * @returns Array of conditioning logs (constrained by user context and query)
+	 * @throws UnauthorizedAccessError if user attempts authorized access to logs
 	 * @remark Overview logs are guaranteed to be available
 	 * @remark Full logs are loaded from persistence on demand using conditioningLogDetails(), and may be purged from cache to save memory
 	 */
