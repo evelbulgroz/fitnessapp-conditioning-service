@@ -7,7 +7,7 @@ import { jest } from '@jest/globals';
 import { of, lastValueFrom } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
-import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger, Result } from '@evelbulgroz/ddd-base';
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
 import { AggregationQueryDTO } from './dtos/aggregation-query.dto';
@@ -19,6 +19,7 @@ import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { createTestingModule } from '../test/test-utils';
 import { CryptoService } from '../services/crypto/models/crypto-service.model';
+import { EntityIdDTO } from './dtos/entity-id.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthStrategy } from './strategies/jwt-auth.strategy';
 import { JwtSecretService } from '../services/jwt/jwt-secret.service';
@@ -31,13 +32,12 @@ import { UserDTO } from '../dtos/user.dto';
 import { UserJwtPayload } from '../services/jwt/models/user-jwt-payload.model';
 import { UserRepository } from '../repositories/user-repo.model';
 import { ValidationPipe } from './pipes/validation.pipe';
-import EntityIdDTO from './dtos/entity-id.dto';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
-// NOTE: Testing over Http to enable decorators and guards without having to do a ton of additional setup/mocking
-// NOTE: Only validating that the correct service methods are called with the correct parameters and return the correct results
-// NOTE: This in order to limit scope of tests to the controller: the service methods and e2e are tested elsewhere
+// NOTE: Testing over Http to enable decorators and guards without having to do a ton of additional setup/mocking.
+// NOTE: Only validating that the correct service methods are called with the correct parameters and return the correct results.
+// NOTE: This in order to limit scope of tests to the controller: the service methods and e2e are tested elsewhere.
 
 describe('AppController', () => {
 	let app: INestApplication;
