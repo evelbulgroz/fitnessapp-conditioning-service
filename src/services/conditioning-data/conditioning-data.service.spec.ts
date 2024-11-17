@@ -18,7 +18,7 @@ import { ConditioningDataService } from './conditioning-data.service';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
-import { EntityIdDTO } from '../../controllers/dtos/entityid.dto';
+import { EntityIdDTO } from '../../controllers/dtos/entity-id.dto';
 import { FileService } from '../file-service/file.service';
 import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';

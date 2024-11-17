@@ -1,6 +1,6 @@
 import { EntityId } from '@evelbulgroz/ddd-base';
 
-import { EntityIdDTO } from './entityid.dto';
+import { EntityIdDTO } from './entity-id.dto';
 
 describe('EntityIdDTO', () => {
 	it('should create an instance with a valid ID that is a string', () => {

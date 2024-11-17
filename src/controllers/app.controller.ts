@@ -24,7 +24,7 @@ import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { DefaultStatusCodeInterceptor } from './interceptors/status-code.interceptor';
 
-import { EntityIdDTO } from './dtos/entityid.dto';
+import { EntityIdDTO } from './dtos/entity-id.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
