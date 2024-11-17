@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
+import { BehaviorSubject, filter, firstValueFrom, Observable, take } from 'rxjs';
 
 import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';

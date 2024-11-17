@@ -3,7 +3,6 @@ Conditioning training microservice for hobbyist fitness app, with TypeScript and
 
 ## Design Intent
 * Provide a single source of truth about conditioning data for the app
-* Provide library of constructs specific to conditioning training domain, enabling [dependency inversion](https://en.wikipedia.org/wiki/Dependency_inversion_principle)
 
 ## Develop
 There is no development server: run tests to verify functionality after editing source.
@@ -26,7 +25,7 @@ npm run build
 ````
 
 ## Publish
-This project publishes shared types from the conditioning domain to GitHub Packages. Before publishing, update the version number in the `package.json` file.
+Before publishing, update the version number in the `package.json` file.
 
 Remember to follow semantic versioning rules. That is, given a version number MAJOR.MINOR.PATCH, increment the:
    - MAJOR version when you make incompatible API changes,
