@@ -4,7 +4,7 @@ import { createTestingModule } from '../../test/test-utils';
 
 import { jest } from '@jest/globals';
 
-import { Observable, Subscription, firstValueFrom, lastValueFrom, of } from 'rxjs';
+import { Observable, Subscription, firstValueFrom, of } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
@@ -12,7 +12,7 @@ import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
 import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 
-//import { AggregationQuery } from '../../controllers/domain/aggregation-query.model';
+import { AggregationQueryDTO } from '../../controllers/dtos/aggregation-query.dto';
 import { AggregatorService } from '../../services/aggregator/aggregator.service';
 import { ConditioningDataService } from './conditioning-data.service';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
@@ -30,7 +30,6 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
-import { AggregationQueryDTO } from '../../controllers/dtos/aggregation-query.dto';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -1110,8 +1109,7 @@ describe('ConditioningDataService', () => {
 		
 		afterEach(() => {
 			aggregatorSpy && aggregatorSpy.mockRestore();
-		});
-		
+		});		
 		
 		// NOTE:
 		// not testing that AggregatorService works, just that it is called with the right parameters

@@ -6,7 +6,7 @@ import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 import { Quantity } from '@evelbulgroz/quantity-class';
-import { Query, SearchFilterOperation, SortOperation } from '@evelbulgroz/query-fns';
+import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO } from '../../controllers/dtos/aggregation-query.dto';
 import { AggregatorService } from '../aggregator/aggregator.service';
@@ -17,6 +17,7 @@ import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.mo
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
 import { EntityIdDTO } from '../../controllers/dtos/entity-id.dto';
 import { QueryDTO } from '../../controllers/dtos/query.dto';
+import { QueryMapper } from './../../mappers/query.mapper';
 import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';
 import { User } from '../../domain/user.entity';
@@ -24,7 +25,6 @@ import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
 import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
-import { QueryMapper } from './../../mappers/query.mapper';
 
 function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: ConditioningLog<any, ConditioningLogDTO>): number {
 	return (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0);
