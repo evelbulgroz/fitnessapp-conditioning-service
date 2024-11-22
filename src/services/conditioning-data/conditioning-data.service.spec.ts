@@ -1077,7 +1077,6 @@ describe('ConditioningDataService', () => {
 	describe('Aggregation', () => {
 		let aggregationQueryDTO: AggregationQueryDTO;
 		let aggregatorSpy: any;
-		let queryDTO: QueryDTO;
 		beforeEach(async () => {
 			aggregationQueryDTO = new AggregationQueryDTO({
 				aggregatedType: 'ConditioningLog',
@@ -1087,18 +1086,6 @@ describe('ConditioningDataService', () => {
 				aggregatedValueUnit: 'ms',				
 			});
 
-			queryDTO = new QueryDTO({
-				searchCriteria: [
-					{
-						key: 'activity',
-						operation: SearchFilterOperation.EQUALS,
-						value: ActivityType.MTB
-					},
-				],
-				filterCriteria: [],
-				sortCriteria: [],
-			});
-			
 			aggregatorSpy = jest.spyOn(aggregatorService, 'aggregate')
 				.mockImplementation((timeseries, query, extractor) => {
 					return {} as any
@@ -1144,6 +1131,7 @@ describe('ConditioningDataService', () => {
 		it('aggreates only logs matching query, if provided', async () => {			
 			// arrange
 			const searchableLogs = dataService['userLogsSubject'].value.find((entry) => entry.userId === userContext.userId)?.logs ?? [];
+			const queryDTO = new QueryDTO({'activity': ActivityType.MTB});
 			const query = queryMapper.toDomain(queryDTO);
 			const matchingLogs = query.execute(searchableLogs);
 			const expectedTimeSeries = dataService['toConditioningLogSeries'](matchingLogs);
@@ -1157,13 +1145,14 @@ describe('ConditioningDataService', () => {
 			expect(aggregatedSeries).toBeDefined();
 		});
 
-		xit('throws UnauthorizedAccessError if user tries to acces logs of another user', async () => {
+		it('throws UnauthorizedAccessError if user tries to access logs of another user', async () => {
 			// arrange
+			const queryDTO = new QueryDTO({	userId: 'no-such-user'});
 			const otherUser = users.find(user => user.userId !== userContext.userId)!;
 			const otherUserContext = new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']});
 			
 			// act/assert
-			expect(async () => await dataService.aggretagedConditioningLogs(otherUserContext, aggregationQueryDTO)).rejects.toThrow(UnauthorizedAccessError);
+			expect(async () => await dataService.aggretagedConditioningLogs(otherUserContext, aggregationQueryDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
 		});
 	});
 
