@@ -103,7 +103,11 @@ export class ConditioningDataService {
 	 * @remark Logs and users are created/updated in the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
 	 */
-	public async createLog(ctx: UserContext, userIdDTO: EntityIdDTO, logDTO: ConditioningLogDTO): Promise<EntityId> {
+	public async createLog(
+		ctx: UserContext,
+		userIdDTO: EntityIdDTO,
+		logDTO: ConditioningLogDTO
+	): Promise<EntityId> {
 		// initialize service if necessary
 		await this.isReady();
 
@@ -146,18 +150,27 @@ export class ConditioningDataService {
 	
 	/**New API: Get single, detailed conditioning log by log entity id
 	 * @param ctx user context for the request (includes user id and roles)
-	 * @param id Entity id of the conditioning log to retrieve, wrapped in a DTO
+	 * @param userIdDTO Entity id of the user for whom to retrieve the log, wrapped in a DTO
+	 * @param logIdDTO Entity id of the conditioning log to retrieve, wrapped in a DTO
 	 * @returns Detailed log matching the entity id, if found and authorized
-	 * @throws NotFoundError if log is not initialized in cache or not found in persistence
 	 * @throws UnauthorizedAccessError if user is not authorized to access log
+	 * @throws NotFoundError if log is not initialized in cache or not found in persistence
 	 * @throws PersistenceError if error occurs while fetching log from persistence
 	 * @remark Replaces overview log in cache with detailed log from persistence on demand, and updates cache subscribers
 	 */
-	public async fetchLog(ctx: UserContext, id: EntityIdDTO): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async fetchLog(ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
 			await this.isReady(); // initialize service if necessary
 
-			const logId = id.value; // extract sanitized entity id from DTO
+			const logId = logIdDTO.value; // extract sanitized entity id from DTO
+
+			// check if user id matches context, else throw UnauthorizedAccessError
+			if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
+				if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+					reject(new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access log for user ${userIdDTO.value}.`));
+					return;
+				}
+			}
 			
 			// check if log exists in cache, else throw NotFoundError
 			const entryWithLog = this.userLogsSubject.value.find((entry) => entry.logs.some((log) => log.entityId === logId));
@@ -296,7 +309,11 @@ export class ConditioningDataService {
 	 * @remark Logs are deleted from the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can delete logs for any user, other users can only delete logs for themselves
 	 */
-	public async deleteLog(ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO): Promise<void> {
+	public async deleteLog(
+		ctx: UserContext,
+		userIdDTO: EntityIdDTO,
+		logIdDTO: EntityIdDTO
+	): Promise<void> {
 		// initialize service if necessary
 		await this.isReady();
 

@@ -168,8 +168,9 @@ export class AppController {
 	/**
 	 * @example http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef
 	 */
-	@Get('logs/:logId')
+	@Get('logs/:userId/:logId')
 	@ApiOperation({ summary: 'Get detailed conditioning log by ID' })
+	@ApiParam({ name: 'userId', description: 'User ID' })
 	@ApiParam({ name: 'logId', description: 'Log ID' })
 	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log ID, if found' })
 	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
@@ -179,11 +180,12 @@ export class AppController {
 	@UsePipes(new ValidationPipe({  whitelist: true, forbidNonWhitelisted: true,transform: true }))
 	public async fetchLog(
 		@Req() req: any,
+		@Param('userId') userIdDTO: EntityIdDTO,		
 		@Param('logId') logId: EntityIdDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const log = this.service.fetchLog(userContext, logId);
+			const log = this.service.fetchLog(userContext, userIdDTO, logId);
 			if (!log) {
 				const errorMessage = `Log with id ${logId.value} not found`;
 				this.logger.error(errorMessage);
