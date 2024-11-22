@@ -52,14 +52,3 @@ export class JsonWebtokenService extends JwtService {
 }
 
 export default JsonWebtokenService;
-
-
-
-/* Refactoring plan of action for improving use of the JWT "aud" property in my ms architecture:
-
-1. Refactor API gateway to include the names of the microservices that will process requests from a given user facing client when forwarding a login request from  that client to the authentication microservice.
-1. Refactor central auth service to accept a list of intended audiences at microservice registration, and add those as hashes to the 'aud' property of the issued token.
-2. Refactor auth service's refresh logic to transfer aud property from expired to refreshed token
-3. Publish separate interfacese for human user and microservice JWT payloads, with different required properties and validation logic from the auth service (see examples below)
-4. Refactor individual microservices to validate that their own service name is included in the hashed aud property when verifying tokens from requesting services.
-*/
