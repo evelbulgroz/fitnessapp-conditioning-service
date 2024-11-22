@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
 import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
-import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
+import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO } from '../../controllers/dtos/aggregation-query.dto';
 import { AggregatorService } from '../../services/aggregator/aggregator.service';
