@@ -37,6 +37,8 @@ import { RolesGuard } from './guards/roles.guard';
 import { TypeParamDTO } from './dtos/type-param.dto';
 import { UserContext, UserContextProps } from './domain/user-context.model';
 import { ValidationPipe } from './pipes/validation.pipe';
+import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
+import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 
 /** Main controller for the application.
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests.
@@ -117,14 +119,14 @@ export class AppController {
 	@ApiOperation({ summary: 'Aggregate conditioning logs using aggregation parameters and optional logs query' })
 	@ApiBody({ type: AggregationQueryDTO })
 	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
-	@ApiResponse({ status: 200, description: 'Aggregated data' })
+	@ApiResponse({ status: 200, description: 'Aggregated conditioning data as AggregatedTimeSeries from time-series library' })
   	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist:true, forbidNonWhitelisted: true, transform: true }))
 	public async aggregate(
 		@Req() req: any,
 		@Body() aggregationQueryDTO: AggregationQueryDTO,
 		@Query() queryDTO?: QueryDTO
-	): Promise<any> { // todo: change return type to match service method
+	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> { // todo: change return type to match service method
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
@@ -139,20 +141,20 @@ export class AppController {
 		}
 	}
 
-	@Put('logs/:id')
+	@Post('logs')
 	@ApiOperation({ summary: 'Create a new conditioning log' })
-	@ApiParam({ name: 'id', description: 'Log ID' })
-	//@ApiBody({ type: ConditioningLogDTO }) // todo: add schema for body, solve issue with needint dto to be a class, not an interface
-	@ApiResponse({ status: 200, description: 'Log updated successfully' })
-	@ApiResponse({ status: 404, description: 'Log not found' })
+	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
+	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async createLog(@Param('id') logId: EntityIdDTO, @Body() logDTO: ConditioningLogDTO): Promise<void> {
-		const updated = await (this.service as any).createLog(logId, logDTO); // not implemented in service yet
-		if (!updated) {
-		throw new NotFoundException(`Log with ID ${logId.value} not found`);
-		}
+	async createLog(@Body() logDTO: ConditioningLogDTO): Promise<EntityIdDTO> {
+	try {
+		const logId = await (this.service as any).createLog(logDTO); // Implement this method in your service
+		return new EntityIdDTO(logId);
+	} catch (error) {
+		throw new BadRequestException(`Failed to create log: ${error.message}`);
+	}
 	}
 	
 	/**
@@ -249,11 +251,11 @@ export class AppController {
 	@Get('rules/:type')
 	@ApiOperation({ summary: 'Get all property rules for a supported type (e.g. for deserialization and validation of domain objects on front end)' })
 	@ApiParam({ name: 'type', description: 'String name of entity type' })
-	@ApiResponse({ status: 200, description: 'Rules object containing all own and inherited sanitization rules for the specified type' })
+	@ApiResponse({ status: 200, description: 'Rules object containing all own and inherited sanitization rules for the specified type (as PropertySanitizationDataDTO from sanitizer-decorator library)' })
 	@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async fetchValidationRules(@Param('type') type: TypeParamDTO): Promise<any> {
+	public async fetchValidationRules(@Param('type') type: TypeParamDTO): Promise<{	[key: string]: PropertySanitizationDataDTO[] }> {
 		switch (type.value) {
 			case 'ConditioningLog':
 				const rules = ConditioningLog.getSanitizationRules();
