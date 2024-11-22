@@ -91,6 +91,7 @@ export class ConditioningDataService {
 
 	/**New API: Create a new conditioning log for a user
 	 * @param ctx User context for the request (includes user id and roles)
+	 * @param userIdDTO User id of the user for whom to create the log, wrapped in a DTO
 	 * @param logDTO Conditioning log DTO to create
 	 * @returns Entity id of the created log
 	 * @throws UnauthorizedAccessError if user is not authorized to create log
@@ -99,7 +100,24 @@ export class ConditioningDataService {
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
 	 */
 	public async createLog(ctx: UserContext, userIdDTO: EntityIdDTO, logDTO: ConditioningLogDTO): Promise<EntityId> {
-		throw new Error('Method not implemented.');		
+		await this.isReady(); // initialize service if necessary
+
+		// check if user is authorized to create log
+		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
+			if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to create log for user ${userIdDTO.value}.`);
+			}
+		}
+
+		// create log in persistence layer
+		const result = await this.logRepo.create(logDTO);
+		if (result.isFailure) { // creation failed -> throw persistence error
+			throw new PersistenceError(`${this.constructor.name}: Error creating conditioning log: ${result.error}`);
+		}
+
+		// log created successfully -> return entity id
+		const entityId = result.value as EntityId;
+		return Promise.resolve(entityId);
 	}
 	
 	/**New API: Get single, detailed conditioning log by log entity id
