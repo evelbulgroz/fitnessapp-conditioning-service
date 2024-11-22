@@ -97,14 +97,14 @@ export class ConditioningDataService {
 	 * @param logDTO DTO for conditioning log to create
 	 * @returns Entity id of the created log
 	 * @throws UnauthorizedAccessError if user is not authorized to create log
-	 * @throws PersistenceError if either log or user does not exist in persistence
+	 * @throws NotFoundError if user does not exist in persistence
 	 * @throws PersistenceError if error occurs while creating log or updating user in persistence
 	 * @logs Error if error occurs while rolling back log creation 
 	 * @remark Logs and users are created/updated in the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
 	 */
 	public async createLog(ctx: UserContext, userIdDTO: EntityIdDTO, logDTO: ConditioningLogDTO): Promise<EntityId> {
-		 // initialize service if necessary
+		// initialize service if necessary
 		await this.isReady();
 
 		// check if user is authorized to create log
@@ -117,7 +117,7 @@ export class ConditioningDataService {
 		// check if user exists in persistence layer
 		const userResult = await this.userRepo.fetchById(userIdDTO.value!);
 		if (userResult.isFailure) { // fetch failed -> throw persistence error
-			throw new PersistenceError(`${this.constructor.name}: Error fetching user ${userIdDTO.value}: ${userResult.error}`);
+			throw new NotFoundError(`${this.constructor.name}: User ${userIdDTO.value} not found.`);
 		}		
 
 
@@ -234,7 +234,7 @@ export class ConditioningDataService {
 		// check if log exists in repo, else throw NotFoundError
 		const logResult = await this.logRepo.fetchById(logIdDTO.value!);
 		if (logResult.isFailure) { // fetch failed -> throw persistence error
-			throw new PersistenceError(`${this.constructor.name}: Error fetching conditioning log ${logIdDTO.value}: ${logResult.error}`);
+			throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logIdDTO.value} not found.`);
 		}
 
 		// update log in persistence layer
@@ -291,13 +291,56 @@ export class ConditioningDataService {
 	 * @param logIdDTO Entity id of the conditioning log to delete, wrapped in a DTO
 	 * @returns void
 	 * @throws UnauthorizedAccessError if user is not authorized to delete log
-	 * @throws NotFoundError if log is not found in cache or not found in persistence
-	 * @throws PersistenceError if error occurs while deleting log in persistence
-	 * @remark Logs are deleted from the persistence layer, and removed from cache
+	 * @throws NotFoundError if either log or user is not found in persistence
+	 * @throws PersistenceError if error occurs while deleting log or updating user in persistence
+	 * @remark Logs are deleted from the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can delete logs for any user, other users can only delete logs for themselves
 	 */
-	public async deleteLog(ctx: UserContext, logIdDTO: EntityIdDTO): Promise<void> {
-		throw new Error('Method not implemented.');
+	public async deleteLog(ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO): Promise<void> {
+		// initialize service if necessary
+		await this.isReady();
+
+		// check if user is authorized to delete log
+		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
+			if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to create log for user ${userIdDTO.value}.`);
+			}
+		}
+
+		// check if log exists in persistence layer
+		const logResult = await this.logRepo.fetchById(logIdDTO.value!);
+		if (logResult.isFailure) { // fetch failed -> throw persistence error
+			throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logIdDTO.value} not found.`);
+		}
+
+		// check if user exists in persistence layer
+		const userResult = await this.userRepo.fetchById(userIdDTO.value!);
+		if (userResult.isFailure) { // fetch failed -> throw persistence error
+			throw new NotFoundError(`${this.constructor.name}: User ${userIdDTO.value} not found.`);
+		}
+		
+		// update user in persistence layer:
+		// rolling back log deletion is harder than rolling back user update, so update user first
+		const user = await firstValueFrom(userResult.value as Observable<User>);
+		const originalUserDTO = user.toJSON();
+		user.removeLog(logIdDTO.value!);
+		const userUpdateResult = await this.userRepo.update(user.toJSON());
+		if (userUpdateResult.isFailure) { // update failed -> throw persistence error
+			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
+		}
+
+		// delete log in persistence layer
+		const logDeleteResult = await this.logRepo.delete(logIdDTO.value!);
+		if (logDeleteResult.isFailure) { // deletion failed -> roll back user update, then throw persistence error
+			const userRollbackResult = await this.userRepo.update(originalUserDTO);
+			if (userRollbackResult.isFailure) { // rollback failed -> log error and continue
+				this.logger.error(`${this.constructor.name}: Error rolling back user update for ${userIdDTO.value}: ${userRollbackResult.error}`);
+			}
+			throw new PersistenceError(`${this.constructor.name}: Error deleting conditioning log: ${logDeleteResult.error}`);
+		}		
+		
+		// log deleted successfully -> return undefined
+		return Promise.resolve();
 	}
 
 	/**New API: Get aggregated time series of conditioning logs

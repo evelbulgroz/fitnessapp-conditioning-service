@@ -225,17 +225,22 @@ export class AppController {
 		}
 	}
 	
-	@Delete('logs/:id')
+	@Delete('logs/:userId/:logId')
 	@ApiOperation({ summary: 'Delete a conditioning log by ID' })
-	@ApiParam({ name: 'id', description: 'Log ID' })
+	@ApiParam({ name: 'userId', description: 'User ID' })
+	@ApiParam({ name: 'logId', description: 'Log ID' })
 	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async deleteLog(@Req() req: any, @Param('id') logIdDTO: EntityIdDTO): Promise<void> {
+	public async deleteLog(
+		@Req() req: any,
+		@Param('userId') userIdDTO: EntityIdDTO,		
+		@Param('logId') logIdDTO: EntityIdDTO
+	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.service.deleteLog(userContext, logIdDTO); // Implement this method in your service
+			void await this.service.deleteLog(userContext, userIdDTO, logIdDTO); // Implement this method in your service
 		} catch (error) {
 			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);

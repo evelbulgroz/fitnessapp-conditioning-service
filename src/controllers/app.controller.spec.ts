@@ -874,7 +874,7 @@ describe('AppController', () => {
 						);
 
 						urlPath = `${serverUrl}/logs/`;
-						url = urlPath + deletedLogId;
+						url = `${urlPath}${userContext.userId}/${deletedLogId}`;
 					});
 
 					afterEach(() => {
@@ -893,7 +893,8 @@ describe('AppController', () => {
 						expect(logSpy).toHaveBeenCalledTimes(1);
 						const params = logSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContext);
-						expect(params[1]).toEqual(new EntityIdDTO(deletedLogId));
+						expect(params[1]).toEqual(new EntityIdDTO(userContext.userId));
+						expect(params[2]).toEqual(new EntityIdDTO(deletedLogId));
 						
 						expect(response?.data).toBe(""); // void response returned as empty string
 					});
