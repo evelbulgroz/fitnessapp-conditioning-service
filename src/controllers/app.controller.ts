@@ -1,23 +1,8 @@
-import {
-	BadRequestException,
-	Body,
-	Controller,
-	Delete,
-	Get,
-	NotFoundException,
-	Param,
-	Patch,
-	Post,
-	Put,
-	Query,
-	Req,
-	UseGuards,
-	UseInterceptors,
-	UsePipes
-} from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
 import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, getSchemaPath } from '@nestjs/swagger';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
+import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 
 import { AggregationQueryDTO } from './dtos/aggregation-query.dto';
@@ -31,14 +16,13 @@ import { EntityIdDTO } from './dtos/entity-id.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
+import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
 import { QueryDTO } from './dtos/query.dto';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
 import { TypeParamDTO } from './dtos/type-param.dto';
 import { UserContext, UserContextProps } from './domain/user-context.model';
 import { ValidationPipe } from './pipes/validation.pipe';
-import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
-import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 
 /** Main controller for the application.
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests.
@@ -61,6 +45,153 @@ export class AppController {
 		private readonly logger: Logger,
 		private readonly service: ConditioningDataService
 	) {}
+
+	//------------------------------ SINGLE-LOG CRUD -----------------------------//
+	
+	@Post('log/:userId')
+	@ApiOperation({ summary: 'Create a new conditioning log for a user' })
+	@ApiParam({ name: 'userId', description: 'User ID' })
+	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
+	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
+	@ApiResponse({ status: 400, description: 'Invalid data' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	public async createLog(
+		@Req() req: any,
+		@Param('userId') userIdDTO: EntityIdDTO,
+		@Body() logDTO: ConditioningLogDTO
+	): Promise<EntityId> {
+		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			return await this.service.createLog(userContext, userIdDTO, logDTO); // Implement this method in your service
+		} catch (error) {
+			const errorMessage = `Failed to create log: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
+		}
+	}
+	
+	/**
+	 * @example http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef
+	 */
+	@Get('log/:userId/:logId')
+	@ApiOperation({ summary: 'Get detailed conditioning log by ID' })
+	@ApiParam({ name: 'userId', description: 'User ID' })
+	@ApiParam({ name: 'logId', description: 'Log ID' })
+	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log ID, if found' })
+	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
+	@ApiResponse({ status: 400, description: 'Request for log details failed' })
+	@ApiResponse({ status: 404, description: 'Log not found' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({  whitelist: true, forbidNonWhitelisted: true,transform: true }))
+	public async fetchLog(
+		@Req() req: any,
+		@Param('userId') userIdDTO: EntityIdDTO,		
+		@Param('logId') logId: EntityIdDTO
+	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			const log = this.service.fetchLog(userContext, userIdDTO, logId);
+			if (!log) {
+				const errorMessage = `Log with id ${logId.value} not found`;
+				this.logger.error(errorMessage);
+				throw new NotFoundException(errorMessage);
+			}			
+			return log;			
+		}
+		catch (error) {
+			const errorMessage = `Request for log details failed: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
+		}
+	}
+	
+	@Patch('log/:userId/:logId')
+	@ApiOperation({ summary: 'Update a conditioning log by user ID and log ID' })
+	@ApiParam({ name: 'userId', description: 'User ID' })
+	@ApiParam({ name: 'logId', description: 'Log ID' })
+	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
+	@ApiResponse({ status: 200, description: 'Log updated successfully' })
+	@ApiResponse({ status: 400, description: 'Invalid data' })
+	@ApiResponse({ status: 404, description: 'Log not found' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	public async updateLog(
+		@Req() req: any,
+		@Param('userId') userIdDTO: EntityIdDTO,
+		@Param('logId') logIdDTO: EntityIdDTO,
+		@Body() partialLogDTO: Partial<ConditioningLogDTO>
+	): Promise<void> {
+		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			void await this.service.updateLog(userContext, userIdDTO, logIdDTO, partialLogDTO);
+			// implicit return
+		} catch (error) {
+			const errorMessage = `Failed to update log with ID: ${logIdDTO.value}: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
+		}
+	}
+	
+	@Delete('log/:userId/:logId')
+	@ApiOperation({ summary: 'Delete a conditioning log by ID' })
+	@ApiParam({ name: 'userId', description: 'User ID' })
+	@ApiParam({ name: 'logId', description: 'Log ID' })
+	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
+	@ApiResponse({ status: 404, description: 'Log not found' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	public async deleteLog(
+		@Req() req: any,
+		@Param('userId') userIdDTO: EntityIdDTO,		
+		@Param('logId') logIdDTO: EntityIdDTO
+	): Promise<void> {
+		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			void await this.service.deleteLog(userContext, userIdDTO, logIdDTO); // Implement this method in your service
+		} catch (error) {
+			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
+		}
+	}
+
+	//---------------------------- BATCH LOG CRUD ---------------------------//
+
+	@Get('logs')
+	@ApiOperation({ summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)' })
+	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
+	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
+	@ApiResponse({ status: 400, description: 'Request for logs failed' })
+	@ApiResponse({ status: 404, description: 'No logs found' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	public async fetchLogs(@Req() req: any, @Query() queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
+			// query is always instantiated by the http framework, even of no parameters are provided in the request:
+			// therefore remove empty queries here, so that the service method can just check for undefined
+			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
+			const logs = await this.service.fetchLogs(userContext, queryDTO as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
+			if (logs.length === 0) {
+				const errorMessage = 'No logs found';
+				this.logger.error(errorMessage);
+				throw new NotFoundException(errorMessage);
+			}
+			return logs;
+		}
+		catch (error) {
+			const errorMessage = `Request for logs failed: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
+		}
+	}
+
+	//------------------------ TODO: SINGLE-USER CRUD -----------------------//
+
+	//------------------------ TODO: BATCH USER CRUD -----------------------//
+	
+	//--------------------------------- MISC --------------------------------//
 
 	/**
 	 * @todo Throw error if user tries to access another user's data (e.g. by passing a user id in the request)
@@ -142,143 +273,6 @@ export class AppController {
 		}
 	}
 
-	@Post('logs/:userId')
-	@ApiOperation({ summary: 'Create a new conditioning log for a user' })
-	@ApiParam({ name: 'userId', description: 'User ID' })
-	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
-	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
-	@ApiResponse({ status: 400, description: 'Invalid data' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async createLog(
-		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,
-		@Body() logDTO: ConditioningLogDTO
-	): Promise<EntityId> {
-		try {
-			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			return await this.service.createLog(userContext, userIdDTO, logDTO); // Implement this method in your service
-		} catch (error) {
-			const errorMessage = `Failed to create log: ${error.message}`;
-			this.logger.error(errorMessage);
-			throw new BadRequestException(errorMessage);
-		}
-	}
-	
-	/**
-	 * @example http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef
-	 */
-	@Get('logs/:userId/:logId')
-	@ApiOperation({ summary: 'Get detailed conditioning log by ID' })
-	@ApiParam({ name: 'userId', description: 'User ID' })
-	@ApiParam({ name: 'logId', description: 'Log ID' })
-	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log ID, if found' })
-	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
-	@ApiResponse({ status: 404, description: 'Log not found' })
-	@ApiResponse({ status: 400, description: 'Request for log details failed' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({  whitelist: true, forbidNonWhitelisted: true,transform: true }))
-	public async fetchLog(
-		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,		
-		@Param('logId') logId: EntityIdDTO
-	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
-		try {
-			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const log = this.service.fetchLog(userContext, userIdDTO, logId);
-			if (!log) {
-				const errorMessage = `Log with id ${logId.value} not found`;
-				this.logger.error(errorMessage);
-				throw new NotFoundException(errorMessage);
-			}			
-			return log;			
-		}
-		catch (error) {
-			const errorMessage = `Request for log details failed: ${error.message}`;
-			this.logger.error(errorMessage);
-			throw new BadRequestException(errorMessage);
-		}
-	}
-	
-	@Patch('logs/:userId/:logId')
-	@ApiOperation({ summary: 'Update a conditioning log by user ID and log ID' })
-	@ApiParam({ name: 'userId', description: 'User ID' })
-	@ApiParam({ name: 'logId', description: 'Log ID' })
-	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
-	@ApiResponse({ status: 200, description: 'Log updated successfully' })
-	@ApiResponse({ status: 404, description: 'Log not found' })
-	@ApiResponse({ status: 400, description: 'Invalid data' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async updateLog(
-		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,
-		@Param('logId') logIdDTO: EntityIdDTO,
-		@Body() partialLogDTO: Partial<ConditioningLogDTO>
-	): Promise<void> {
-		try {
-			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.service.updateLog(userContext, userIdDTO, logIdDTO, partialLogDTO);
-			// implicit return
-		} catch (error) {
-			const errorMessage = `Failed to update log with ID: ${logIdDTO.value}: ${error.message}`;
-			this.logger.error(errorMessage);
-			throw new BadRequestException(errorMessage);
-		}
-	}
-	
-	@Delete('logs/:userId/:logId')
-	@ApiOperation({ summary: 'Delete a conditioning log by ID' })
-	@ApiParam({ name: 'userId', description: 'User ID' })
-	@ApiParam({ name: 'logId', description: 'Log ID' })
-	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
-	@ApiResponse({ status: 404, description: 'Log not found' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async deleteLog(
-		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,		
-		@Param('logId') logIdDTO: EntityIdDTO
-	): Promise<void> {
-		try {
-			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.service.deleteLog(userContext, userIdDTO, logIdDTO); // Implement this method in your service
-		} catch (error) {
-			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
-			this.logger.error(errorMessage);
-			throw new BadRequestException(errorMessage);
-		}
-	}
-
-	@Get('logs')
-	@ApiOperation({ summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)' })
-	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
-	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
-	@ApiResponse({ status: 404, description: 'No logs found' })
-	@ApiResponse({ status: 400, description: 'Request for logs failed' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async fetchLogs(@Req() req: any, @Query() queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
-		try {
-			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
-			// query is always instantiated by the http framework, even of no parameters are provided in the request:
-			// therefore remove empty queries here, so that the service method can just check for undefined
-			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-			const logs = await this.service.fetchLogs(userContext, queryDTO as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
-			if (logs.length === 0) {
-				const errorMessage = 'No logs found';
-				this.logger.error(errorMessage);
-				throw new NotFoundException(errorMessage);
-			}
-			return logs;
-		}
-		catch (error) {
-			const errorMessage = `Request for logs failed: ${error.message}`;
-			this.logger.error(errorMessage);
-			throw new BadRequestException(errorMessage);
-		}
-	}
-
 	/**
 	 * @example http://localhost:3060/api/v3/conditioning/rules?type=ConditioningLog
 	*/
@@ -300,6 +294,8 @@ export class AppController {
 				throw new BadRequestException(`Invalid entity type: ${type.value}`);
 		}
 	}
+
+	//------------------------------ DEPRECATED -----------------------------//
 	
 	/** IN PRODUCTION: Get all conditioning logs grouped by activity type and aggregated by duration and date
 	 * @example http://localhost:3060/conditioning/api/v3/conditioning/sessions

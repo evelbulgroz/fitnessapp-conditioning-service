@@ -527,7 +527,7 @@ describe('AppController', () => {
 								return Promise.resolve(newLogId); // return the log
 							});
 
-						urlPath = `${serverUrl}/logs/`;
+						urlPath = `${serverUrl}/log/`;
 						url = urlPath + userContext.userId;
 					});
 
@@ -652,7 +652,7 @@ describe('AppController', () => {
 								}					
 							});
 
-						urlPath = `${serverUrl}/logs`;
+						urlPath = `${serverUrl}/log`;
 						url = `${urlPath}/${userContext.userId}/${logId}`;
 					});
 
@@ -678,7 +678,7 @@ describe('AppController', () => {
 						expect(response?.data).toEqual(log);
 					});
 
-					xit('throws if access token is missing', async () => {
+					it('throws if access token is missing', async () => {
 						// arrange
 						const response$ = http.get(url);
 
@@ -686,7 +686,7 @@ describe('AppController', () => {
 						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 					});
 
-					xit('throws if access token is invalid', async () => {
+					it('throws if access token is invalid', async () => {
 						// arrange
 						const invalidHeaders = { Authorization: `Bearer invalid` };
 						const response$ = http.get(url, { headers: invalidHeaders });
@@ -695,7 +695,7 @@ describe('AppController', () => {
 						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 					});
 
-					xit('throws if user information in token payload is invalid', async () => {
+					it('throws if user information in token payload is invalid', async () => {
 						// arrange
 						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
 						const userAccessToken = await jwt.sign(adminPayload);
@@ -705,7 +705,7 @@ describe('AppController', () => {
 						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 					});
 
-					xit('throws if log id is missing', async () => {
+					it('throws if log id is missing', async () => {
 						// arrange
 						const response$ = http.get(urlPath, { headers });
 
@@ -713,7 +713,7 @@ describe('AppController', () => {
 						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 					});
 
-					xit('throws if log id is invalid', async () => {
+					it('throws if log id is invalid', async () => {
 						// arrange
 						const response$ = http.get(urlPath + 'invalid', { headers });
 
@@ -721,7 +721,7 @@ describe('AppController', () => {
 						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 					});			
 
-					xit('throws if data service throws', async () => {
+					it('throws if data service throws', async () => {
 						// arrange
 						logSpy.mockRestore();
 						logSpy = jest.spyOn(conditioningDataService, 'fetchLog').mockImplementation(() => { throw new Error('Test Error'); });
@@ -756,7 +756,7 @@ describe('AppController', () => {
 							}
 						);
 
-						urlPath = `${serverUrl}/logs/`;
+						urlPath = `${serverUrl}/log/`;
 						url = `${urlPath}${userContext.userId}/${updatedLogId}`;
 					});
 
@@ -874,7 +874,7 @@ describe('AppController', () => {
 							}
 						);
 
-						urlPath = `${serverUrl}/logs/`;
+						urlPath = `${serverUrl}/log/`;
 						url = `${urlPath}${userContext.userId}/${deletedLogId}`;
 					});
 
