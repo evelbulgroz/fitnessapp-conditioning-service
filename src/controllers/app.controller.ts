@@ -148,12 +148,15 @@ export class AppController {
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async createLog(@Body() logDTO: ConditioningLogDTO): Promise<EntityIdDTO> {
+	async createLog(@Req() req: any, @Body() logDTO: ConditioningLogDTO): Promise<EntityIdDTO> {
 	try {
-		const logId = await (this.service as any).createLog(logDTO); // Implement this method in your service
+		const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+		const logId = await this.service.createLog(userContext, logDTO); // Implement this method in your service
 		return new EntityIdDTO(logId);
 	} catch (error) {
-		throw new BadRequestException(`Failed to create log: ${error.message}`);
+		const errorMessage = `Failed to create log: ${error.message}`;
+		this.logger.error(errorMessage);
+		throw new BadRequestException(errorMessage);
 	}
 	}
 	
@@ -195,10 +198,17 @@ export class AppController {
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async updateLog(@Param('id') logId: EntityIdDTO, @Body() partialLogDTO: Partial<ConditioningLogDTO>): Promise<void> {
-		const updated = await (this.service as any).updateLog(logId, partialLogDTO); // Implement this method in your service
-		if (!updated) {
-			throw new NotFoundException(`Log with ID ${logId.value} not found`);
+	async updateLog(@Req() req: any, @Param('id') logIdDTO: EntityIdDTO, @Body() partialLogDTO: Partial<ConditioningLogDTO>): Promise<void> {
+		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			const updated = await this.service.updateLog(userContext, logIdDTO, partialLogDTO); // Implement this method in your service
+			if (!updated) {
+				throw new NotFoundException(`Log with ID ${logIdDTO.value} not found`);
+			}
+		} catch (error) {
+			const errorMessage = `Failed to update log with id: ${logIdDTO.value}: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
 		}
 	}
 	
@@ -209,10 +219,14 @@ export class AppController {
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async deleteLog(@Param('id') logId: EntityIdDTO): Promise<void> {
-		const deleted = await (this.service as any).deleteLog(logId); // not implemented in service yet
-		if (!deleted) {
-		throw new NotFoundException(`Log with ID ${logId.value} not found`);
+	async deleteLog(@Req() req: any, @Param('id') logIdDTO: EntityIdDTO): Promise<void> {
+		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			void await this.service.deleteLog(userContext, logIdDTO); // Implement this method in your service
+		} catch (error) {
+			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
 		}
 	}
 

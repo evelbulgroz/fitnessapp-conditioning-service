@@ -4,7 +4,7 @@ import { HttpModule, HttpService } from '@nestjs/axios';
 import { ForbiddenException, INestApplication } from '@nestjs/common';
 
 import { jest } from '@jest/globals';
-import { of, lastValueFrom } from 'rxjs';
+import { of, lastValueFrom, single } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
 import { ConsoleLogger, Logger, Result } from '@evelbulgroz/ddd-base';
@@ -505,295 +505,301 @@ describe('AppController', () => {
 			});
 		});
 
-		describe('GET log', () => {
-			let log: ConditioningLog<any, ConditioningLogDTO>;
-			let logSpy: any;
-			let url: string;
-			let urlPath: string;
-			beforeEach(() => {
-				log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
-				logSpy = jest.spyOn(conditioningDataService, 'fetchLog')
-					.mockImplementation((ctx: any, entityId: EntityIdDTO) => {
-						void entityId;
-						if (ctx.roles?.includes('admin')) { // simulate an admin user requesting a log
-							return Promise.resolve(log); // return the log (admins can access all logs)
-						}
-						else if(ctx.roles?.includes('user')) { // simulate a normal user requesting a log
-							if (userContext.userId === ctx.userId) { // simulate a normal user requesting their own log
-								return Promise.resolve(log); // return the log
-							}
-							else { // simulate a normal user requesting another user's log
-								throw new ForbiddenException('User not authorized to access log'); // throw an error
-							}
-						}
-						else { // simulate a user without any roles
-							throw new ForbiddenException('User not authorized to access log'); // throw an error
-						}					
-					});
-
-				urlPath = `${serverUrl}/logs/`;
-				url = urlPath + uuid();
-			});
-
-			afterEach(() => {
-				logSpy && logSpy.mockRestore();
-				jest.clearAllMocks();
-			});
-			
-			it('provides a detailed conditioning log', async () => {
-				// arrange
-				const userLogId = uuid();
-				headers = { Authorization: `Bearer ${userAccessToken}` };
-				const url = urlPath + userLogId;
-
-				// act
-				const response = await lastValueFrom(http.get(url, { headers }));
-
-				// assert
-				expect(logSpy).toHaveBeenCalledTimes(1);
-				const params = logSpy.mock.calls[0];
-				expect(params[0]).toEqual(userContext);
-				expect(params[1]).toEqual(new EntityIdDTO(userLogId));
-				expect(response?.data).toBeDefined();
-				expect(response?.data).toEqual(log);
-			});
-
-			it('throws if access token is missing', async () => {
-				// arrange
-				const response$ = http.get(url);
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('throws if access token is invalid', async () => {
-				// arrange
-				const invalidHeaders = { Authorization: `Bearer invalid` };
-				const response$ = http.get(url, { headers: invalidHeaders });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('throws if user information in token payload is invalid', async () => {
-				// arrange
-				userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
-				const userAccessToken = await jwt.sign(adminPayload);
-				const response$ = http.get(url, { headers: { Authorization: `Bearer ${userAccessToken}` } });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('throws if log id is missing', async () => {
-				// arrange
-				const response$ = http.get(urlPath, { headers });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('throws if log id is invalid', async () => {
-				// arrange
-				const response$ = http.get(urlPath + 'invalid', { headers });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});			
-
-			it('throws if data service throws', async () => {
-				// arrange
-				logSpy.mockRestore();
-				logSpy = jest.spyOn(conditioningDataService, 'fetchLog').mockImplementation(() => { throw new Error('Test Error'); });
-				const response$ = http.get(urlPath, { headers });
-
-				// act/assert
-				await expect(lastValueFrom(response$)).rejects.toThrow();
-			});
-		});
-
 		describe('logs', () => {
-			let adminContext: UserContext;;
-			let adminLogs: ConditioningLog<any, ConditioningLogDTO>[];
-			let logsSpy: any;
-			let queryDTO: QueryDTO;
-			let queryDTOProps: QueryDTOProps;
-			let userLogs: ConditioningLog<any, ConditioningLogDTO>[];
-			let url: string;
-			beforeEach(() => {
-				adminContext = new UserContext(adminProps);
+			describe('single log', () => {
+				describe('retrieve', () => {
+					let log: ConditioningLog<any, ConditioningLogDTO>;
+					let logSpy: any;
+					let url: string;
+					let urlPath: string;
+					beforeEach(() => {
+						log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
+						logSpy = jest.spyOn(conditioningDataService, 'fetchLog')
+							.mockImplementation((ctx: any, entityId: EntityIdDTO) => {
+								void entityId;
+								if (ctx.roles?.includes('admin')) { // simulate an admin user requesting a log
+									return Promise.resolve(log); // return the log (admins can access all logs)
+								}
+								else if(ctx.roles?.includes('user')) { // simulate a normal user requesting a log
+									if (userContext.userId === ctx.userId) { // simulate a normal user requesting their own log
+										return Promise.resolve(log); // return the log
+									}
+									else { // simulate a normal user requesting another user's log
+										throw new ForbiddenException('User not authorized to access log'); // throw an error
+									}
+								}
+								else { // simulate a user without any roles
+									throw new ForbiddenException('User not authorized to access log'); // throw an error
+								}					
+							});
 
-				adminLogs = [
-					{ activity: 'SWIM' },
-					{ activity: 'BIKE' },
-					{ activity: 'RUN' },
-					{ activity: 'MTB' },
-					{ activity: 'MTB' },
-				] as unknown as ConditioningLog<any, ConditioningLogDTO>[];
-
-				userLogs = [
-					{ activity: 'SWIM' },
-					{ activity: 'RUN' },
-					{ activity: 'MTB' },
-				] as unknown as ConditioningLog<any, ConditioningLogDTO>[];
-				
-				queryDTOProps = {
-					start: '2021-01-01',
-					end: '2021-12-31',
-					activity: ActivityType.MTB,
-					userId: userContext.userId as unknown as string,
-					sortBy: 'duration',
-					order: 'ASC',
-					page: 1,
-					pageSize: 10,
-				};
-
-				queryDTO = new QueryDTO(queryDTOProps);
-
-				logsSpy = jest.spyOn(conditioningDataService, 'fetchLogs')
-					.mockImplementation((ctx: any, query?: any): any => { // todo: refactor service to use QueryDTO and UserContext
-						if (ctx.roles?.includes('admin')) { // simulate an admin user requesting logs
-							if (!query || !query?.userId) { // simulate a missing query or query not specifying user id
-								return Promise.resolve(adminLogs); // return all logs for all users
-							}
-							else { // simulate a query matching single user
-								return Promise.resolve([adminLogs[0]]); // admins can access all logs, so return first (i.e. 'matching) log
-							}
-						}
-						else if(ctx.roles?.includes('user')) { // simulate a normal user requesting logs
-							if (!query) {
-								return Promise.resolve(userLogs); // query not provided: return all logs for user
-							}
-							else if (query.userId !== userContext.userId ) { // if query with user id is provided, query user id must match that in the access token
-								throw new ForbiddenException('User not authorized to access logs'); // throw an error
-							}
-							else if (Object.keys(query).length === 1) { // simulate a query with only a user id
-								return Promise.resolve(userLogs); // return all logs for user
-							}
-							else { // simulate a query with additional criteria
-								return Promise.resolve([userLogs[0]]); // return first (i.e. 'matching) log for user
-							}
-						}
-						// else throw error if user has no roles
-						throw new ForbiddenException('User not authorized to access logs'); // throw an error
+						urlPath = `${serverUrl}/logs/`;
+						url = urlPath + uuid();
 					});
 
-				url = `${serverUrl}/logs`;
+					afterEach(() => {
+						logSpy && logSpy.mockRestore();
+						jest.clearAllMocks();
+					});
+					
+					it('provides a detailed conditioning log', async () => {
+						// arrange
+						const userLogId = uuid();
+						headers = { Authorization: `Bearer ${userAccessToken}` };
+						const url = urlPath + userLogId;
+
+						// act
+						const response = await lastValueFrom(http.get(url, { headers }));
+
+						// assert
+						expect(logSpy).toHaveBeenCalledTimes(1);
+						const params = logSpy.mock.calls[0];
+						expect(params[0]).toEqual(userContext);
+						expect(params[1]).toEqual(new EntityIdDTO(userLogId));
+						expect(response?.data).toBeDefined();
+						expect(response?.data).toEqual(log);
+					});
+
+					it('throws if access token is missing', async () => {
+						// arrange
+						const response$ = http.get(url);
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if access token is invalid', async () => {
+						// arrange
+						const invalidHeaders = { Authorization: `Bearer invalid` };
+						const response$ = http.get(url, { headers: invalidHeaders });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if user information in token payload is invalid', async () => {
+						// arrange
+						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
+						const userAccessToken = await jwt.sign(adminPayload);
+						const response$ = http.get(url, { headers: { Authorization: `Bearer ${userAccessToken}` } });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if log id is missing', async () => {
+						// arrange
+						const response$ = http.get(urlPath, { headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if log id is invalid', async () => {
+						// arrange
+						const response$ = http.get(urlPath + 'invalid', { headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});			
+
+					it('throws if data service throws', async () => {
+						// arrange
+						logSpy.mockRestore();
+						logSpy = jest.spyOn(conditioningDataService, 'fetchLog').mockImplementation(() => { throw new Error('Test Error'); });
+						const response$ = http.get(urlPath, { headers });
+
+						// act/assert
+						await expect(lastValueFrom(response$)).rejects.toThrow();
+					});
+				});
 			});
+		
+			describe('multiple logs', () => {
+				describe('logs', () => {
+					let adminContext: UserContext;;
+					let adminLogs: ConditioningLog<any, ConditioningLogDTO>[];
+					let logsSpy: any;
+					let queryDTO: QueryDTO;
+					let queryDTOProps: QueryDTOProps;
+					let userLogs: ConditioningLog<any, ConditioningLogDTO>[];
+					let url: string;
+					beforeEach(() => {
+						adminContext = new UserContext(adminProps);
 
-			afterEach(() => {
-				logsSpy && logsSpy.mockRestore();
-				jest.clearAllMocks();
-			});
+						adminLogs = [
+							{ activity: 'SWIM' },
+							{ activity: 'BIKE' },
+							{ activity: 'RUN' },
+							{ activity: 'MTB' },
+							{ activity: 'MTB' },
+						] as unknown as ConditioningLog<any, ConditioningLogDTO>[];
 
-			it('gives normal users access to a collection of all their conditioning logs', async () => {
-				// arrange
-				const response = await lastValueFrom(http.get(url, { headers }));
-				
-				// assert
-				expect(true).toBeTruthy(); // debug
-				expect(logsSpy).toHaveBeenCalledTimes(1);
-				expect(logsSpy).toHaveBeenCalledWith(userContext, undefined);
-				expect(response?.data).toBeDefined();
-				expect(response?.data).toEqual(userLogs);
-			});
+						userLogs = [
+							{ activity: 'SWIM' },
+							{ activity: 'RUN' },
+							{ activity: 'MTB' },
+						] as unknown as ConditioningLog<any, ConditioningLogDTO>[];
+						
+						queryDTOProps = {
+							start: '2021-01-01',
+							end: '2021-12-31',
+							activity: ActivityType.MTB,
+							userId: userContext.userId as unknown as string,
+							sortBy: 'duration',
+							order: 'ASC',
+							page: 1,
+							pageSize: 10,
+						};
 
-			it('optionally gives normal users access to their logs matching a query', async () => {
-				// arrange
-				
-				// act
-				const response = await lastValueFrom(http.get(url, { params: queryDTOProps, headers }));
-				
-				// assert
-				expect(logsSpy).toHaveBeenCalledTimes(1);
-				expect(logsSpy).toHaveBeenCalledWith(userContext, queryDTO);
-				expect(response?.data).toBeDefined();
-				expect(response?.data).toEqual([userLogs[0]]);
-			});
+						queryDTO = new QueryDTO(queryDTOProps);
 
-			it('gives admin users access to all logs for all users', async () => {
-				// arrange
-				const headers = { Authorization: `Bearer ${adminAccessToken}` };
-				
-				// act
-				const response = await lastValueFrom(http.get(url, { headers }));
+						logsSpy = jest.spyOn(conditioningDataService, 'fetchLogs')
+							.mockImplementation((ctx: any, query?: any): any => { // todo: refactor service to use QueryDTO and UserContext
+								if (ctx.roles?.includes('admin')) { // simulate an admin user requesting logs
+									if (!query || !query?.userId) { // simulate a missing query or query not specifying user id
+										return Promise.resolve(adminLogs); // return all logs for all users
+									}
+									else { // simulate a query matching single user
+										return Promise.resolve([adminLogs[0]]); // admins can access all logs, so return first (i.e. 'matching) log
+									}
+								}
+								else if(ctx.roles?.includes('user')) { // simulate a normal user requesting logs
+									if (!query) {
+										return Promise.resolve(userLogs); // query not provided: return all logs for user
+									}
+									else if (query.userId !== userContext.userId ) { // if query with user id is provided, query user id must match that in the access token
+										throw new ForbiddenException('User not authorized to access logs'); // throw an error
+									}
+									else if (Object.keys(query).length === 1) { // simulate a query with only a user id
+										return Promise.resolve(userLogs); // return all logs for user
+									}
+									else { // simulate a query with additional criteria
+										return Promise.resolve([userLogs[0]]); // return first (i.e. 'matching) log for user
+									}
+								}
+								// else throw error if user has no roles
+								throw new ForbiddenException('User not authorized to access logs'); // throw an error
+							});
 
-				// assert
-				expect(logsSpy).toHaveBeenCalledTimes(1);
-				expect(logsSpy).toHaveBeenCalledWith(adminContext, undefined);
-				expect(response?.data).toBeDefined();
-				expect(response?.data).toEqual(adminLogs);
-			});
+						url = `${serverUrl}/logs`;
+					});
 
-			it('optionally gives admin users access to logs matching a query', async () => {
-				// arrange
-				const headers = { Authorization: `Bearer ${adminAccessToken}` };
+					afterEach(() => {
+						logsSpy && logsSpy.mockRestore();
+						jest.clearAllMocks();
+					});
 
-				// act
-				const response = await lastValueFrom(http.get(url, { params: queryDTOProps, headers }));
+					it('gives normal users access to a collection of all their conditioning logs', async () => {
+						// arrange
+						const response = await lastValueFrom(http.get(url, { headers }));
+						
+						// assert
+						expect(true).toBeTruthy(); // debug
+						expect(logsSpy).toHaveBeenCalledTimes(1);
+						expect(logsSpy).toHaveBeenCalledWith(userContext, undefined);
+						expect(response?.data).toBeDefined();
+						expect(response?.data).toEqual(userLogs);
+					});
 
-				// assert
-				expect(logsSpy).toHaveBeenCalledTimes(1);
-				expect(logsSpy).toHaveBeenCalledWith(adminContext, queryDTO);
-				expect(response?.data).toBeDefined();
-				expect(response?.data).toEqual([adminLogs[0]]);
-			});
-			
-			it('fails if access token is missing', async () => {
-				// arrange
-				const response$ = http.get(url, { params: queryDTOProps });
+					it('optionally gives normal users access to their logs matching a query', async () => {
+						// arrange
+						
+						// act
+						const response = await lastValueFrom(http.get(url, { params: queryDTOProps, headers }));
+						
+						// assert
+						expect(logsSpy).toHaveBeenCalledTimes(1);
+						expect(logsSpy).toHaveBeenCalledWith(userContext, queryDTO);
+						expect(response?.data).toBeDefined();
+						expect(response?.data).toEqual([userLogs[0]]);
+					});
 
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
+					it('gives admin users access to all logs for all users', async () => {
+						// arrange
+						const headers = { Authorization: `Bearer ${adminAccessToken}` };
+						
+						// act
+						const response = await lastValueFrom(http.get(url, { headers }));
 
-			it('fails if access token is invalid', async () => {
-				// arrange
-				const invalidHeaders = { Authorization: `Bearer invalid` };
-				const response$ = http.get(url, { params: queryDTOProps, headers: invalidHeaders });
+						// assert
+						expect(logsSpy).toHaveBeenCalledTimes(1);
+						expect(logsSpy).toHaveBeenCalledWith(adminContext, undefined);
+						expect(response?.data).toBeDefined();
+						expect(response?.data).toEqual(adminLogs);
+					});
 
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
+					it('optionally gives admin users access to logs matching a query', async () => {
+						// arrange
+						const headers = { Authorization: `Bearer ${adminAccessToken}` };
 
-			it('fails if query is present but has invalid data', async () => {
-				// arrange
-				queryDTOProps.start = 'invalid'; // invalid date
-				const response$ = http.get(url, { params: queryDTOProps, headers });
+						// act
+						const response = await lastValueFrom(http.get(url, { params: queryDTOProps, headers }));
 
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
+						// assert
+						expect(logsSpy).toHaveBeenCalledTimes(1);
+						expect(logsSpy).toHaveBeenCalledWith(adminContext, queryDTO);
+						expect(response?.data).toBeDefined();
+						expect(response?.data).toEqual([adminLogs[0]]);
+					});
+					
+					it('fails if access token is missing', async () => {
+						// arrange
+						const response$ = http.get(url, { params: queryDTOProps });
 
-			it('fails if query is present but has non-whitelisted properties', async () => {
-				// arrange
-				(queryDTOProps as any).invalid = 'invalid'; // invalid property
-				const response$ = http.get(url, { params: queryDTOProps, headers });
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
 
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
+					it('fails if access token is invalid', async () => {
+						// arrange
+						const invalidHeaders = { Authorization: `Bearer invalid` };
+						const response$ = http.get(url, { params: queryDTOProps, headers: invalidHeaders });
 
-			it('fails if roles claim is missing', async () => {
-				// arrange
-				delete userPayload.roles;
-				const accessToken = await jwt.sign(userPayload);
-				const headers = { Authorization: `Bearer ${accessToken}` };
-				const response$ = http.get(url, { params: queryDTOProps, headers });
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
 
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
+					it('fails if query is present but has invalid data', async () => {
+						// arrange
+						queryDTOProps.start = 'invalid'; // invalid date
+						const response$ = http.get(url, { params: queryDTOProps, headers });
 
-			it('fails if roles claim is invalid', async () => {
-				// arrange
-				userPayload.roles = ['invalid'];
-				const accessToken = await jwt.sign(userPayload);
-				const headers = { Authorization: `Bearer ${accessToken}` };
-				const response$ = http.get(url, { params: queryDTOProps, headers });
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
 
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					it('fails if query is present but has non-whitelisted properties', async () => {
+						// arrange
+						(queryDTOProps as any).invalid = 'invalid'; // invalid property
+						const response$ = http.get(url, { params: queryDTOProps, headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('fails if roles claim is missing', async () => {
+						// arrange
+						delete userPayload.roles;
+						const accessToken = await jwt.sign(userPayload);
+						const headers = { Authorization: `Bearer ${accessToken}` };
+						const response$ = http.get(url, { params: queryDTOProps, headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('fails if roles claim is invalid', async () => {
+						// arrange
+						userPayload.roles = ['invalid'];
+						const accessToken = await jwt.sign(userPayload);
+						const headers = { Authorization: `Bearer ${accessToken}` };
+						const response$ = http.get(url, { params: queryDTOProps, headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+				});
 			});
 		});
 

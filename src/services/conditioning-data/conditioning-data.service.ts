@@ -88,6 +88,19 @@ export class ConditioningDataService {
 			resolve(true);
 		});
 	}	
+
+	/**New API: Create a new conditioning log for a user
+	 * @param ctx User context for the request (includes user id and roles)
+	 * @param logDTO Conditioning log DTO to create
+	 * @returns Entity id of the created log
+	 * @throws UnauthorizedAccessError if user is not authorized to create log
+	 * @throws PersistenceError if error occurs while creating log in persistenceersistence
+	 * @remark Logs are created in the persistence layer, and cached on demand when fetched
+	 * @remark Admins can create logs for any user, other users can only create logs for themselves
+	 */
+	public async createLog(ctx: UserContext, logDTO: ConditioningLogDTO): Promise<EntityId> {
+		throw new Error('Method not implemented.');
+	}
 	
 	/**New API: Get single, detailed conditioning log by log entity id
 	 * @param ctx user context for the request (includes user id and roles)
@@ -150,6 +163,21 @@ export class ConditioningDataService {
 		});
 	}
 
+	/**New API: Update an existing conditioning log for a user
+	 * @param ctx User context for the request (includes user id and roles)
+	 * @param logIdDTO Entity id of the conditioning log to update, wrapped in a DTO
+	 * @param logDTO Partial conditioning log DTO with updated properties
+	 * @returns Updated conditioning log, if found and authorized
+	 * @throws UnauthorizedAccessError if user is not authorized to update log
+	 * @throws NotFoundError if log is not found in cache or not found in persistence
+	 * @throws PersistenceError if error occurs while updating log in persistence
+	 * @remark Logs are updated in the persistence layer, and replaced in cache with overview logs
+	 * @remark Admins can update logs for any user, other users can only update logs for themselves
+	 */
+	public async updateLog(ctx: UserContext, logIdDTO: EntityIdDTO, logDTO: Partial<ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>> {
+		throw new Error('Method not implemented.');
+	}
+
 	/**New API: Get all conditioning logs for user and mathcing query (if provided)
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param queryDTO Optional query to filter logs (else all accessible logs for role are returned)
@@ -186,6 +214,20 @@ export class ConditioningDataService {
 		}
 		
 		return Promise.resolve(sortedLogs);
+	}
+
+	/**New API: Delete a conditioning log by entity id
+	 * @param ctx User context for the request (includes user id and roles)
+	 * @param logIdDTO Entity id of the conditioning log to delete, wrapped in a DTO
+	 * @returns void
+	 * @throws UnauthorizedAccessError if user is not authorized to delete log
+	 * @throws NotFoundError if log is not found in cache or not found in persistence
+	 * @throws PersistenceError if error occurs while deleting log in persistence
+	 * @remark Logs are deleted from the persistence layer, and removed from cache
+	 * @remark Admins can delete logs for any user, other users can only delete logs for themselves
+	 */
+	public async deleteLog(ctx: UserContext, logIdDTO: EntityIdDTO): Promise<void> {
+		throw new Error('Method not implemented.');
 	}
 
 	/**New API: Get aggregated time series of conditioning logs
