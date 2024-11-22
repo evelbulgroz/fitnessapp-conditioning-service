@@ -166,6 +166,7 @@ export class AppController {
 	@ApiOperation({ summary: 'Get detailed conditioning log by entity id' })
 	@ApiParam({ name: 'id', description: 'Log entity id (string or number' })
 	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log id, if found' })
+	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@ApiResponse({ status: 400, description: 'Request for log details failed' })
 	@Roles('admin', 'user')
@@ -197,13 +198,18 @@ export class AppController {
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async updateLog(@Req() req: any, @Param('id') logIdDTO: EntityIdDTO, @Body() partialLogDTO: Partial<ConditioningLogDTO>): Promise<void> {
+	async updateLog(
+		@Req() req: any,
+		@Param('id') logIdDTO: EntityIdDTO,
+		@Body() partialLogDTO: Partial<ConditioningLogDTO>
+	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const updated = await this.service.updateLog(userContext, logIdDTO, partialLogDTO); // Implement this method in your service
 			if (!updated) {
 				throw new NotFoundException(`Log with ID ${logIdDTO.value} not found`);
 			}
+			// implicit return
 		} catch (error) {
 			const errorMessage = `Failed to update log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -214,7 +220,7 @@ export class AppController {
 	@Delete('logs/:id')
 	@ApiOperation({ summary: 'Delete a conditioning log by ID' })
 	@ApiParam({ name: 'id', description: 'Log ID' })
-	@ApiResponse({ status: 200, description: 'Log deleted successfully' })
+	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
