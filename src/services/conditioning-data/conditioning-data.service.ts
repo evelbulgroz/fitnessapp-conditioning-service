@@ -98,8 +98,8 @@ export class ConditioningDataService {
 	 * @remark Logs are created in the persistence layer, and cached on demand when fetched
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
 	 */
-	public async createLog(ctx: UserContext, logDTO: ConditioningLogDTO): Promise<EntityId> {
-		throw new Error('Method not implemented.');
+	public async createLog(ctx: UserContext, userIdDTO: EntityIdDTO, logDTO: ConditioningLogDTO): Promise<EntityId> {
+		throw new Error('Method not implemented.');		
 	}
 	
 	/**New API: Get single, detailed conditioning log by log entity id

@@ -522,12 +522,13 @@ describe('AppController', () => {
 							className: 'ConditioningLog'
 						}
 						logSpy = jest.spyOn(conditioningDataService, 'createLog')
-							.mockImplementation((ctx: any, log: ConditioningLogDTO) => {
-								void ctx, log; // suppress unused variable warning
+							.mockImplementation((ctx: any, userIdDTO: EntityIdDTO, log: ConditioningLogDTO) => {
+								void ctx, userIdDTO, log; // suppress unused variable warning
 								return Promise.resolve(newLogId); // return the log
 							});
 
-						url = `${serverUrl}/logs`;
+						urlPath = `${serverUrl}/logs/`;
+						url = urlPath + userContext.userId;
 					});
 
 					afterEach(() => {
@@ -541,12 +542,13 @@ describe('AppController', () => {
 
 						// act
 						const response = await lastValueFrom(http.post(url, newLogDto, { headers }));
-
+						
 						// assert
 						expect(logSpy).toHaveBeenCalledTimes(1);
 						const params = logSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContext);
-						expect(params[1]).toEqual(newLogDto);
+						expect(params[1]).toEqual(new EntityIdDTO(userContext.userId));
+						expect(params[2]).toEqual(newLogDto);
 						
 						expect(response?.data).toBeDefined();
 						expect(response?.data).toEqual(newLogId);
@@ -574,6 +576,22 @@ describe('AppController', () => {
 						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
 						const userAccessToken = await jwt.sign(adminPayload);
 						const response$ = http.post(url, newLogDto, { headers: { Authorization: `Bearer ${userAccessToken}` } });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if user id is missing', async () => {
+						// arrange
+						const response$ = http.post(urlPath, newLogDto, { headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if user id is invalid', async () => {
+						// arrange
+						const response$ = http.post(urlPath + 'invalid', newLogDto, { headers });
 
 						// act/assert
 						expect(async () => await lastValueFrom(response$)).rejects.toThrow();

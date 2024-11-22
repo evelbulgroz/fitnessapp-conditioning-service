@@ -141,17 +141,22 @@ export class AppController {
 		}
 	}
 
-	@Post('logs')
+	@Post('logs/:id')
 	@ApiOperation({ summary: 'Create a new conditioning log' })
+	@ApiParam({ name: 'id', description: 'User entity id (from user microservice)' })
 	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
 	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async createLog(@Req() req: any, @Body() logDTO: ConditioningLogDTO): Promise<EntityId> {
+	public async createLog(
+		@Req() req: any,
+		@Param('id') userIdDTO: EntityIdDTO,
+		@Body() logDTO: ConditioningLogDTO
+	): Promise<EntityId> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			return await this.service.createLog(userContext, logDTO); // Implement this method in your service
+			return await this.service.createLog(userContext, userIdDTO, logDTO); // Implement this method in your service
 		} catch (error) {
 			const errorMessage = `Failed to create log: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -171,7 +176,10 @@ export class AppController {
 	@ApiResponse({ status: 400, description: 'Request for log details failed' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({  whitelist: true, forbidNonWhitelisted: true,transform: true }))
-	public async fetchLog(@Req() req: any, @Param('id') logId: EntityIdDTO ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async fetchLog(
+		@Req() req: any,
+		@Param('id') logId: EntityIdDTO
+	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const log = this.service.fetchLog(userContext, logId);
@@ -198,7 +206,7 @@ export class AppController {
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async updateLog(
+	public async updateLog(
 		@Req() req: any,
 		@Param('id') logIdDTO: EntityIdDTO,
 		@Body() partialLogDTO: Partial<ConditioningLogDTO>
@@ -224,7 +232,7 @@ export class AppController {
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async deleteLog(@Req() req: any, @Param('id') logIdDTO: EntityIdDTO): Promise<void> {
+	public async deleteLog(@Req() req: any, @Param('id') logIdDTO: EntityIdDTO): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			void await this.service.deleteLog(userContext, logIdDTO); // Implement this method in your service
