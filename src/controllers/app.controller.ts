@@ -139,22 +139,22 @@ export class AppController {
 		}
 	}
 
-	@Patch('logs/:id')
-	@ApiOperation({ summary: 'Partially update a conditioning log by ID' })
+	@Put('logs/:id')
+	@ApiOperation({ summary: 'Create a new conditioning log' })
 	@ApiParam({ name: 'id', description: 'Log ID' })
-	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
+	//@ApiBody({ type: ConditioningLogDTO }) // todo: add schema for body, solve issue with needint dto to be a class, not an interface
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async partialUpdateLog(@Param('id') logId: EntityIdDTO, @Body() partialLogDTO: Partial<ConditioningLogDTO>): Promise<void> {
-		const updated = await (this.service as any).partialUpdateLog(logId, partialLogDTO); // Implement this method in your service
+	async createLog(@Param('id') logId: EntityIdDTO, @Body() logDTO: ConditioningLogDTO): Promise<void> {
+		const updated = await (this.service as any).createLog(logId, logDTO); // not implemented in service yet
 		if (!updated) {
-			throw new NotFoundException(`Log with ID ${logId.value} not found`);
+		throw new NotFoundException(`Log with ID ${logId.value} not found`);
 		}
 	}
-
+	
 	/**
 	 * @example http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef
 	 */
@@ -184,22 +184,22 @@ export class AppController {
 		}
 	}
 	
-	@Put('logs/:id')
+	@Patch('logs/:id')
 	@ApiOperation({ summary: 'Update a conditioning log by ID' })
 	@ApiParam({ name: 'id', description: 'Log ID' })
-	//@ApiBody({ type: ConditioningLogDTO }) // todo: add schema for body, solve issue with needint dto to be a class, not an interface
+	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async updateLog(@Param('id') logId: EntityIdDTO, @Body() logDTO: ConditioningLogDTO): Promise<void> {
-		const updated = await (this.service as any).updateLog(logId, logDTO); // not implemented in service yet
+	async updateLog(@Param('id') logId: EntityIdDTO, @Body() partialLogDTO: Partial<ConditioningLogDTO>): Promise<void> {
+		const updated = await (this.service as any).updateLog(logId, partialLogDTO); // Implement this method in your service
 		if (!updated) {
-		throw new NotFoundException(`Log with ID ${logId.value} not found`);
+			throw new NotFoundException(`Log with ID ${logId.value} not found`);
 		}
 	}
-
+	
 	@Delete('logs/:id')
 	@ApiOperation({ summary: 'Delete a conditioning log by ID' })
 	@ApiParam({ name: 'id', description: 'Log ID' })

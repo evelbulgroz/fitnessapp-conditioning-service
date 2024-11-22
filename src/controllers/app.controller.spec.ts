@@ -93,11 +93,14 @@ describe('AppController', () => {
 					useValue: {
 						fetchaggretagedLogs: jest.fn(),
 						conditioningData: jest.fn(),
+						createLog: jest.fn(),
 						fetchLog: jest.fn(),
 						fetchLogs: jest.fn(),
 						fetchAdminLogs: jest.fn(),
 						fetchUserLogs: jest.fn(),
+						deleteLog: jest.fn(),
 						getByQuery: jest.fn(),
+						updateLog: jest.fn(),
 					},
 				},
 				{ // User repository
