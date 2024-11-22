@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { BehaviorSubject, filter, firstValueFrom, Observable, take } from 'rxjs';
+import { BehaviorSubject, filter, first, firstValueFrom, Observable, take } from 'rxjs';
 
 import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
@@ -94,15 +94,18 @@ export class ConditioningDataService {
 	/**New API: Create a new conditioning log for a user
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param userIdDTO User id of the user for whom to create the log, wrapped in a DTO
-	 * @param logDTO Conditioning log DTO to create
+	 * @param logDTO DTO for conditioning log to create
 	 * @returns Entity id of the created log
 	 * @throws UnauthorizedAccessError if user is not authorized to create log
-	 * @throws PersistenceError if error occurs while creating log in persistence
-	 * @remark Logs are created in the persistence layer, and propagated to cache via subscription
+	 * @throws PersistenceError if either log or user does not exist in persistence
+	 * @throws PersistenceError if error occurs while creating log or updating user in persistence
+	 * @logs Error if error occurs while rolling back log creation 
+	 * @remark Logs and users are created/updated in the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
 	 */
 	public async createLog(ctx: UserContext, userIdDTO: EntityIdDTO, logDTO: ConditioningLogDTO): Promise<EntityId> {
-		await this.isReady(); // initialize service if necessary
+		 // initialize service if necessary
+		await this.isReady();
 
 		// check if user is authorized to create log
 		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
@@ -111,12 +114,31 @@ export class ConditioningDataService {
 			}
 		}
 
+		// check if user exists in persistence layer
+		const userResult = await this.userRepo.fetchById(userIdDTO.value!);
+		if (userResult.isFailure) { // fetch failed -> throw persistence error
+			throw new PersistenceError(`${this.constructor.name}: Error fetching user ${userIdDTO.value}: ${userResult.error}`);
+		}		
+
+
 		// create log in persistence layer
 		const result = await this.logRepo.create(logDTO);
 		if (result.isFailure) { // creation failed -> throw persistence error
 			throw new PersistenceError(`${this.constructor.name}: Error creating conditioning log: ${result.error}`);
 		}
 		const newLog = result.value as ConditioningLog<any, ConditioningLogDTO>;
+
+		// add log to user in persistence layer, roll back log creation if user update fails
+		const user = await firstValueFrom(userResult.value as Observable<User>);
+		user.addLog(newLog.entityId!);
+		const userUpdateResult = await this.userRepo.update(user.toJSON());
+		if (userUpdateResult.isFailure) { // update failed -> roll back log creation, then throw persistence error
+			const deleteResult = await this.logRepo.delete(newLog.entityId!);
+			if (deleteResult.isFailure) { // deletion failed -> log error and continue
+				this.logger.error(`${this.constructor.name}: Error rolling back log creation for ${newLog.entityId}: ${deleteResult.error}`);
+			}
+			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
+		}
 
 		// log created successfully -> return entity id
 		return Promise.resolve(newLog.entityId!);
