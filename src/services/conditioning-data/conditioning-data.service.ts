@@ -164,7 +164,7 @@ export class ConditioningDataService {
 
 			const logId = logIdDTO.value; // extract sanitized entity id from DTO
 
-			// check if user id matches context, else throw UnauthorizedAccessError
+			// check if user id matches context decoed from access token
 			if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
 				if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
 					reject(new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access log for user ${userIdDTO.value}.`));
@@ -172,14 +172,14 @@ export class ConditioningDataService {
 				}
 			}
 			
-			// check if log exists in cache, else throw NotFoundError
+			// check if log exists in cache
 			const entryWithLog = this.userLogsSubject.value.find((entry) => entry.logs.some((log) => log.entityId === logId));
 			if (!entryWithLog) { // log not found in cache, cannot assess authorization -> throw NotFoundError
 				reject(new NotFoundError(`${this.constructor.name}: Conditioning log ${logId} not found or access denied.`));
 				return;
 			}
 				
-			// log exists, check if user is authorized to access it, else throw UnauthorizedAccessError
+			// log exists, check if user is authorized to access it
 			if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
 				const logOwnwerId = entryWithLog.userId;
 				if (logOwnwerId !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
