@@ -713,7 +713,125 @@ describe('AppController', () => {
 					});
 				});
 
-				//todo: update
+				describe('update', () => {
+					let logSpy: any;
+					let updatedLogDto: ConditioningLogDTO;
+					let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
+					let updatedLogId: EntityId;
+					let url: string;
+					let urlPath: string;
+					beforeEach(() => {
+						updatedLogId = uuid();
+						updatedLogDto = {
+							activity: ActivityType.SWIM,
+							isOverview: true,
+							duration: { value: 3600, unit: 's' },
+							className: 'ConditioningLog'
+						};
+						updatedLog = ConditioningLog.create(updatedLogDto).value as ConditioningLog<any, ConditioningLogDTO>;
+						const entityIdDTO = new EntityIdDTO(updatedLogId);
+						logSpy = jest.spyOn(conditioningDataService, 'updateLog')
+							.mockImplementation((ctx: UserContext, logIdDTO: EntityIdDTO, logDTO: Partial<ConditioningLogDTO>) => {
+								void ctx, logIdDTO, logDTO; // suppress unused variable warning
+								return Promise.resolve(updatedLog); // return the log
+							}
+						);
+
+						urlPath = `${serverUrl}/logs/`;
+						url = urlPath + uuid();
+					});
+
+					afterEach(() => {
+						logSpy && logSpy.mockRestore();
+						jest.clearAllMocks();
+					});
+
+					it('updates an existing conditioning log', async () => {
+						// arrange
+						headers = { Authorization: `Bearer ${userAccessToken}` };
+
+						// act
+						const response = await lastValueFrom(http.put(url, updatedLogDto, { headers }));
+
+						// assert
+						expect(logSpy).toHaveBeenCalledTimes(1);
+						const params = logSpy.mock.calls[0];
+						expect(params[0]).toEqual(userContext);
+						expect(params[1]).toEqual(updatedLogDto);
+						
+						expect(response?.data).toBeDefined();
+						expect(response?.data).toEqual(updatedLog);
+					});
+
+					it('throws if access token is missing', async () => {
+						// arrange
+						const response$ = http.put(url, updatedLogDto);
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if access token is invalid', async () => {
+						// arrange
+						const invalidHeaders = { Authorization: `Bearer invalid` };
+
+						// act/assert
+						const response$ = http.put(url, updatedLogDto, { headers: invalidHeaders });
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if user information in token payload is invalid', async () => {
+						// arrange
+						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
+						const userAccessToken = await jwt.sign(adminPayload);
+						const response$ = http.put(url, updatedLogDto, { headers: { Authorization: `Bearer ${userAccessToken}` } });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if log id is missing', async () => {
+						// arrange
+						const response$ = http.put(urlPath, updatedLogDto, { headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if log id is invalid', async () => {
+						// arrange
+						const response$ = http.put(urlPath + 'invalid', updatedLogDto, { headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if log data is missing', async () => {
+						// arrange
+						const response$ = http.put(urlPath, { headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if log data is invalid', async () => {
+						// arrange
+						const response$ = http.put(urlPath, 'invalid', { headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if data service throws', async () => {
+						// arrange
+						logSpy.mockRestore();
+						logSpy = jest.spyOn(conditioningDataService, 'updateLog').mockImplementation(() => { throw new Error('Test Error'); });
+						const response$ = http.put(urlPath, updatedLogDto, { headers });
+
+						// act/assert
+						await expect(lastValueFrom(response$)).rejects.toThrow();
+					});
+				});
 
 				//todo: delete
 			});
