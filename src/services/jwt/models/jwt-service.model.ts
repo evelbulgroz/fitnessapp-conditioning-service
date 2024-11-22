@@ -5,10 +5,11 @@ import { JwtSecretService } from "../jwt-secret.service";
 import { SignOptions } from "./jwt-sign-options.model";
 import { VerifyOptions } from "./jwt-verify-options.model";
 
-/** Base class defining the public API for services that provide JWT token signing, verification and decoding.
+/** Notionally abstract base class defining the public API for services that provide JWT token signing, verification and decoding.
  * @remark Intended for use as injection token in DI systems; not intended for direct use.
  * @remark Abstract classes have no runtime representation and are not injectable in TS/JS.
  * @remark Therefore, this class is not marked abstract, but should be treated as such.
+ * @remark If any of the methods are called directly, an error will be thrown.
  */
 export class JwtService {
 	/** Create a new instance of the JwtService.
@@ -23,6 +24,7 @@ export class JwtService {
 	 * @throws Error if the token cannot be decoded
 	 */
 	public async decode<T = JwtPayloadType>(token: string, options?: DecodeOptions): Promise<T>	{
+		void token, options; // keep compiler happy
 		throw new Error(`Implement 'decode' method in derived class`);
 	}
 	
@@ -34,6 +36,7 @@ export class JwtService {
 	 * @remark secretOrPrivateKey handled internally
 	 */
 	public async sign(payload: JwtPayload, options?: SignOptions): Promise<string> {
+		void payload, options; // keep compiler happy
 		throw new Error(`Implement 'sign' method in derived class`);
 	}
 
@@ -45,6 +48,7 @@ export class JwtService {
 	 * @remark secretOrPublicKey handled internally
 	 */
 	public async verify<T = JwtPayloadType>(token: string, options?: VerifyOptions): Promise<T>	{
+		void token, options; // keep compiler happy
 		throw new Error(`Implement 'verify' method in derived class`);
 	}
 }

@@ -34,7 +34,7 @@ describe('JsonWebtokenService', () => {
 				{
 					provide: JwtSecretService,
 					useFactory: (configService: ConfigService) => {
-						const secret = configService.get<string>('security.authentication.jwt.fitnessapp-authentication-service.tokenSecret')!;
+						const secret = configService.get<string>('security.authentication.jwt.accessToken.secret')!;
 						return new JwtSecretService(secret);
 					},
 					inject: [ConfigService],
@@ -62,20 +62,20 @@ describe('JsonWebtokenService', () => {
 		expect(service).toBeDefined();
 	});
 
-	xdescribe('microservice', () => {
-		let authServicename: string;
+	describe('microservice', () => {
+		let iss: string;
 		let sub: string;
 		let subName: string;
 		let secret: string;
 		let testPayload: JwtPayload;
 		let testToken: string;
 		beforeEach(() => {
-			authServicename = 'fitnessapp-authentication-service';
+			iss = config.get(`security.authentication.jwt.issuer`)!;
 			sub = uuid();
 			subName = 'fitnessapp-api-gateway';
-			secret = config.get(`security.authentication.jwt.${authServicename}.tokenSecret`)!;
+			secret = config.get(`security.authentication.jwt.accessToken.secret`)!;
 			testPayload = {
-				iss: 'fitnessapp-authentication-service',
+				iss,
 				sub,
 				aud: config.get<string>('app.servicename')!,
 				exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour from now
