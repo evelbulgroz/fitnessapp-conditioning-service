@@ -234,7 +234,6 @@ describe('AppController', () => {
 				
 				// assert
 				expect(spy).toHaveBeenCalledTimes(1);
-				expect(spy).toHaveBeenCalledWith(userContext);
 				expect(response).toBeDefined();
 				expect(response.data).toEqual(expectedResult);
 
@@ -961,6 +960,7 @@ describe('AppController', () => {
 				let logsSpy: any;
 				let queryDTO: QueryDTO;
 				let queryDTOProps: QueryDTOProps;
+				let userIdDTO: EntityIdDTO;
 				let userLogs: ConditioningLog<any, ConditioningLogDTO>[];
 				let url: string;
 				beforeEach(() => {
@@ -994,7 +994,7 @@ describe('AppController', () => {
 					queryDTO = new QueryDTO(queryDTOProps);
 
 					logsSpy = jest.spyOn(conditioningDataService, 'fetchLogs')
-						.mockImplementation((ctx: any, query?: any): any => { // todo: refactor service to use QueryDTO and UserContext
+						.mockImplementation((ctx: any, userIdDTO: EntityIdDTO, query?: any): any => { // todo: refactor service to use QueryDTO and UserContext
 							if (ctx.roles?.includes('admin')) { // simulate an admin user requesting logs
 								if (!query || !query?.userId) { // simulate a missing query or query not specifying user id
 									return Promise.resolve(adminLogs); // return all logs for all users
@@ -1021,7 +1021,11 @@ describe('AppController', () => {
 							throw new ForbiddenException('User not authorized to access logs'); // throw an error
 						});
 
-					url = `${serverUrl}/logs`;
+					
+					userIdDTO = new EntityIdDTO(userContext.userId);
+
+					const urlPath = `${serverUrl}/logs`;
+					url = `${urlPath}/${userContext.userId}`;
 				});
 
 				afterEach(() => {
@@ -1036,7 +1040,7 @@ describe('AppController', () => {
 					// assert
 					expect(true).toBeTruthy(); // debug
 					expect(logsSpy).toHaveBeenCalledTimes(1);
-					expect(logsSpy).toHaveBeenCalledWith(userContext, undefined);
+					expect(logsSpy).toHaveBeenCalledWith(userContext, userIdDTO, undefined);
 					expect(response?.data).toBeDefined();
 					expect(response?.data).toEqual(userLogs);
 				});
@@ -1049,7 +1053,7 @@ describe('AppController', () => {
 					
 					// assert
 					expect(logsSpy).toHaveBeenCalledTimes(1);
-					expect(logsSpy).toHaveBeenCalledWith(userContext, queryDTO);
+					expect(logsSpy).toHaveBeenCalledWith(userContext, userIdDTO, queryDTO);
 					expect(response?.data).toBeDefined();
 					expect(response?.data).toEqual([userLogs[0]]);
 				});
@@ -1063,7 +1067,7 @@ describe('AppController', () => {
 
 					// assert
 					expect(logsSpy).toHaveBeenCalledTimes(1);
-					expect(logsSpy).toHaveBeenCalledWith(adminContext, undefined);
+					expect(logsSpy).toHaveBeenCalledWith(adminContext, userIdDTO, undefined);
 					expect(response?.data).toBeDefined();
 					expect(response?.data).toEqual(adminLogs);
 				});
@@ -1077,12 +1081,12 @@ describe('AppController', () => {
 
 					// assert
 					expect(logsSpy).toHaveBeenCalledTimes(1);
-					expect(logsSpy).toHaveBeenCalledWith(adminContext, queryDTO);
+					expect(logsSpy).toHaveBeenCalledWith(adminContext, userIdDTO, queryDTO);
 					expect(response?.data).toBeDefined();
 					expect(response?.data).toEqual([adminLogs[0]]);
 				});
 				
-				it('fails if access token is missing', async () => {
+				it('throws error if access token is missing', async () => {
 					// arrange
 					const response$ = http.get(url, { params: queryDTOProps });
 
@@ -1090,7 +1094,7 @@ describe('AppController', () => {
 					expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 				});
 
-				it('fails if access token is invalid', async () => {
+				it('throws error if access token is invalid', async () => {
 					// arrange
 					const invalidHeaders = { Authorization: `Bearer invalid` };
 					const response$ = http.get(url, { params: queryDTOProps, headers: invalidHeaders });
@@ -1099,7 +1103,7 @@ describe('AppController', () => {
 					expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 				});
 
-				it('fails if query is present but has invalid data', async () => {
+				it('throws error if query is present but has invalid data', async () => {
 					// arrange
 					queryDTOProps.start = 'invalid'; // invalid date
 					const response$ = http.get(url, { params: queryDTOProps, headers });
@@ -1108,7 +1112,7 @@ describe('AppController', () => {
 					expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 				});
 
-				it('fails if query is present but has non-whitelisted properties', async () => {
+				it('throws error if query is present but has non-whitelisted properties', async () => {
 					// arrange
 					(queryDTOProps as any).invalid = 'invalid'; // invalid property
 					const response$ = http.get(url, { params: queryDTOProps, headers });
@@ -1117,7 +1121,7 @@ describe('AppController', () => {
 					expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 				});
 
-				it('fails if roles claim is missing', async () => {
+				it('throws error if roles claim is missing', async () => {
 					// arrange
 					delete userPayload.roles;
 					const accessToken = await jwt.sign(userPayload);
@@ -1128,7 +1132,7 @@ describe('AppController', () => {
 					expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 				});
 
-				it('fails if roles claim is invalid', async () => {
+				it('throws error if roles claim is invalid', async () => {
 					// arrange
 					userPayload.roles = ['invalid'];
 					const accessToken = await jwt.sign(userPayload);

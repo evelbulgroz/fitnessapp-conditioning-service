@@ -269,7 +269,11 @@ export class ConditioningDataService {
 	 * @remark Overview logs are guaranteed to be available
 	 * @remark Full logs are loaded into cache from persistence on demand using conditioningLogDetails(), and may be replaced in cache with overview logs to save memory
 	 */
-	public async fetchLogs(ctx: UserContext, queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+	public async fetchLogs(
+		ctx: UserContext,
+		userIdDTO: EntityIdDTO,
+		queryDTO?: QueryDTO
+	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
 		
 		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];		

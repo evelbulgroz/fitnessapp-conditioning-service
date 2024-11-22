@@ -158,21 +158,26 @@ export class AppController {
 
 	//---------------------------- BATCH LOG CRUD ---------------------------//
 
-	@Get('logs')
+	@Get('logs/:userId')
 	@ApiOperation({ summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)' })
+	@ApiParam({ name: 'userId', description: 'User ID' })
 	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
 	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
 	@ApiResponse({ status: 400, description: 'Request for logs failed' })
 	@ApiResponse({ status: 404, description: 'No logs found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async fetchLogs(@Req() req: any, @Query() queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+	public async fetchLogs(
+		@Req() req: any,
+		@Param('userId') userIdDTO: EntityIdDTO,
+		@Query() queryDTO?: QueryDTO
+	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
 			// therefore remove empty queries here, so that the service method can just check for undefined
 			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-			const logs = await this.service.fetchLogs(userContext, queryDTO as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
+			const logs = await this.service.fetchLogs(userContext, userIdDTO, queryDTO as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
 			if (logs.length === 0) {
 				const errorMessage = 'No logs found';
 				this.logger.error(errorMessage);
@@ -205,7 +210,7 @@ export class AppController {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult			
 			const activityCounts: Record<string, number> = {};			
-			const logs = await this.service.fetchLogs(userContext) ?? [];
+			const logs = await this.service.fetchLogs(userContext, {} as unknown as EntityIdDTO) ?? [];
 			Object.keys(ActivityType).forEach(activity => {
 				const count = logs.filter(log => log.activity === activity).length;
 				activityCounts[activity] = count;
