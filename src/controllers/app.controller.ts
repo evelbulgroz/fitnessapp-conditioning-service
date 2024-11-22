@@ -141,9 +141,9 @@ export class AppController {
 		}
 	}
 
-	@Post('logs/:id')
-	@ApiOperation({ summary: 'Create a new conditioning log' })
-	@ApiParam({ name: 'id', description: 'User entity id (from user microservice)' })
+	@Post('logs/:userId')
+	@ApiOperation({ summary: 'Create a new conditioning log for a user' })
+	@ApiParam({ name: 'userId', description: 'User ID' })
 	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
 	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
@@ -151,7 +151,7 @@ export class AppController {
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async createLog(
 		@Req() req: any,
-		@Param('id') userIdDTO: EntityIdDTO,
+		@Param('userId') userIdDTO: EntityIdDTO,
 		@Body() logDTO: ConditioningLogDTO
 	): Promise<EntityId> {
 		try {
@@ -167,10 +167,10 @@ export class AppController {
 	/**
 	 * @example http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef
 	 */
-	@Get('logs/:id')
-	@ApiOperation({ summary: 'Get detailed conditioning log by entity id' })
-	@ApiParam({ name: 'id', description: 'Log entity id (string or number' })
-	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log id, if found' })
+	@Get('logs/:logId')
+	@ApiOperation({ summary: 'Get detailed conditioning log by ID' })
+	@ApiParam({ name: 'logId', description: 'Log ID' })
+	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log ID, if found' })
 	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@ApiResponse({ status: 400, description: 'Request for log details failed' })
@@ -178,7 +178,7 @@ export class AppController {
 	@UsePipes(new ValidationPipe({  whitelist: true, forbidNonWhitelisted: true,transform: true }))
 	public async fetchLog(
 		@Req() req: any,
-		@Param('id') logId: EntityIdDTO
+		@Param('logId') logId: EntityIdDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
@@ -197,9 +197,10 @@ export class AppController {
 		}
 	}
 	
-	@Patch('logs/:id')
-	@ApiOperation({ summary: 'Update a conditioning log by ID' })
-	@ApiParam({ name: 'id', description: 'Log ID' })
+	@Patch('logs/:userId/:logId')
+	@ApiOperation({ summary: 'Update a conditioning log by user ID and log ID' })
+	@ApiParam({ name: 'userId', description: 'User ID' })
+	@ApiParam({ name: 'logId', description: 'Log ID' })
 	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
@@ -208,18 +209,16 @@ export class AppController {
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async updateLog(
 		@Req() req: any,
-		@Param('id') logIdDTO: EntityIdDTO,
+		@Param('userId') userIdDTO: EntityIdDTO,
+		@Param('logId') logIdDTO: EntityIdDTO,
 		@Body() partialLogDTO: Partial<ConditioningLogDTO>
 	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const updated = await this.service.updateLog(userContext, logIdDTO, partialLogDTO); // Implement this method in your service
-			if (!updated) {
-				throw new NotFoundException(`Log with ID ${logIdDTO.value} not found`);
-			}
+			void await this.service.updateLog(userContext, userIdDTO, logIdDTO, partialLogDTO);
 			// implicit return
 		} catch (error) {
-			const errorMessage = `Failed to update log with id: ${logIdDTO.value}: ${error.message}`;
+			const errorMessage = `Failed to update log with ID: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}

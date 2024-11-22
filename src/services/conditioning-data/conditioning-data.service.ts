@@ -25,6 +25,7 @@ import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
 import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
+import { log } from 'console';
 
 /** Helper function to default sort logs ascending by start date and time */
 function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: ConditioningLog<any, ConditioningLogDTO>): number {
@@ -46,6 +47,7 @@ interface UserLogsCacheEntry {
  * @remark Relies on repositories for persistence, and on controller(s) for request authentication, user context, data sanitization, and error logging.
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
+ * @todo Set up subscription to repo events to keep cache in sync with persistence layer
  * @todo Add CRUD operations for conditioning logs, and implement caching and synchronization with user microservice
  */
 @Injectable()
@@ -95,8 +97,8 @@ export class ConditioningDataService {
 	 * @param logDTO Conditioning log DTO to create
 	 * @returns Entity id of the created log
 	 * @throws UnauthorizedAccessError if user is not authorized to create log
-	 * @throws PersistenceError if error occurs while creating log in persistenceersistence
-	 * @remark Logs are created in the persistence layer, and cached on demand when fetched
+	 * @throws PersistenceError if error occurs while creating log in persistence
+	 * @remark Logs are created in the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
 	 */
 	public async createLog(ctx: UserContext, userIdDTO: EntityIdDTO, logDTO: ConditioningLogDTO): Promise<EntityId> {
@@ -114,10 +116,10 @@ export class ConditioningDataService {
 		if (result.isFailure) { // creation failed -> throw persistence error
 			throw new PersistenceError(`${this.constructor.name}: Error creating conditioning log: ${result.error}`);
 		}
+		const newLog = result.value as ConditioningLog<any, ConditioningLogDTO>;
 
 		// log created successfully -> return entity id
-		const entityId = result.value as EntityId;
-		return Promise.resolve(entityId);
+		return Promise.resolve(newLog.entityId!);
 	}
 	
 	/**New API: Get single, detailed conditioning log by log entity id
@@ -185,15 +187,43 @@ export class ConditioningDataService {
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param logIdDTO Entity id of the conditioning log to update, wrapped in a DTO
 	 * @param logDTO Partial conditioning log DTO with updated properties
-	 * @returns Updated conditioning log, if found and authorized
+	 * @returns void
 	 * @throws UnauthorizedAccessError if user is not authorized to update log
-	 * @throws NotFoundError if log is not found in cache or not found in persistence
+	 * @throws NotFoundError if log is not found in persistence
 	 * @throws PersistenceError if error occurs while updating log in persistence
-	 * @remark Logs are updated in the persistence layer, and replaced in cache with overview logs
+	 * @remark Logs are updated in the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can update logs for any user, other users can only update logs for themselves
 	 */
-	public async updateLog(ctx: UserContext, logIdDTO: EntityIdDTO, logDTO: Partial<ConditioningLogDTO>): Promise<ConditioningLog<any, ConditioningLogDTO>> {
-		throw new Error('Method not implemented.');
+	public async updateLog(
+		ctx: UserContext,
+		userIdDTO: EntityIdDTO,
+		logIdDTO: EntityIdDTO,
+		logDTO: Partial<ConditioningLogDTO>
+	): Promise<void> {
+		await this.isReady(); // initialize service if necessary
+
+		// check if user is authorized to update log
+		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
+			if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to update log for user ${userIdDTO.value}.`);
+			}
+		}
+
+		// check if log exists in repo, else throw NotFoundError
+		const logResult = await this.logRepo.fetchById(logIdDTO.value!);
+		if (logResult.isFailure) { // fetch failed -> throw persistence error
+			throw new PersistenceError(`${this.constructor.name}: Error fetching conditioning log ${logIdDTO.value}: ${logResult.error}`);
+		}
+
+		// update log in persistence layer
+		logDTO.entityId = logIdDTO.value; // ensure entity id is set in DTO
+		const logUpdateResult = await this.logRepo.update(logDTO);
+		if (logUpdateResult.isFailure) { // update failed -> throw persistence error
+			throw new PersistenceError(`${this.constructor.name}: Error updating conditioning log ${logIdDTO.value}: ${logUpdateResult.error}`);
+		}
+
+		// succcess -> resolve with void
+		return Promise.resolve();		
 	}
 
 	/**New API: Get all conditioning logs for user and mathcing query (if provided)

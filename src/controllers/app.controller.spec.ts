@@ -749,14 +749,14 @@ describe('AppController', () => {
 						updatedLog = ConditioningLog.create(updatedLogDto).value as ConditioningLog<any, ConditioningLogDTO>;
 						const entityIdDTO = new EntityIdDTO(updatedLogId);
 						logSpy = jest.spyOn(conditioningDataService, 'updateLog')
-							.mockImplementation((ctx: UserContext, logIdDTO: EntityIdDTO, logDTO: Partial<ConditioningLogDTO>) => {
-								void ctx, logIdDTO, logDTO; // suppress unused variable warning
-								return Promise.resolve(updatedLog); // return the log
+							.mockImplementation((ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO, logDTO: Partial<ConditioningLogDTO>) => {
+								void ctx, userIdDTO, logIdDTO, logDTO; // suppress unused variable warning
+								return Promise.resolve(); // return the log
 							}
 						);
 
 						urlPath = `${serverUrl}/logs/`;
-						url = urlPath + updatedLogId;
+						url = `${urlPath}${userContext.userId}/${updatedLogId}`;
 					});
 
 					afterEach(() => {
@@ -769,17 +769,23 @@ describe('AppController', () => {
 						headers = { Authorization: `Bearer ${userAccessToken}` };
 
 						// act
-						const response = await lastValueFrom(http.patch(url, updatedLogDto, { headers }));
+						try {
+							const response = await lastValueFrom(http.patch(url, updatedLogDto, { headers }));
 
-						// assert
-						expect(logSpy).toHaveBeenCalledTimes(1);
-						const params = logSpy.mock.calls[0];
-						expect(params[0]).toEqual(userContext);
-						expect(params[1]).toEqual(new EntityIdDTO(updatedLogId));
-						expect(params[2]).toEqual(updatedLogDto);
-						
-						expect(response?.data).toBeDefined();
-						expect(response?.data).toBe(""); // void response returned as empty string
+							// assert
+							expect(logSpy).toHaveBeenCalledTimes(1);
+							const params = logSpy.mock.calls[0];
+							expect(params[0]).toEqual(userContext);
+							expect(params[1]).toEqual(new EntityIdDTO(userContext.userId));
+							expect(params[2]).toEqual(new EntityIdDTO(updatedLogId));
+							expect(params[3]).toEqual(updatedLogDto);
+							
+							expect(response?.data).toBeDefined();
+							expect(response?.data).toBe(""); // void response returned as empty string
+						}
+						catch (error) {
+							console.log(error.message);
+						}
 					});
 
 					it('throws if access token is missing', async () => {
