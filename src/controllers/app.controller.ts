@@ -18,7 +18,7 @@ import {
 import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, getSchemaPath } from '@nestjs/swagger';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
-import { Logger } from '@evelbulgroz/ddd-base';
+import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 
 import { AggregationQueryDTO } from './dtos/aggregation-query.dto';
 import { ConditioningData } from '../domain/conditioning-data.model';
@@ -148,16 +148,15 @@ export class AppController {
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	async createLog(@Req() req: any, @Body() logDTO: ConditioningLogDTO): Promise<EntityIdDTO> {
-	try {
-		const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-		const logId = await this.service.createLog(userContext, logDTO); // Implement this method in your service
-		return new EntityIdDTO(logId);
-	} catch (error) {
-		const errorMessage = `Failed to create log: ${error.message}`;
-		this.logger.error(errorMessage);
-		throw new BadRequestException(errorMessage);
-	}
+	async createLog(@Req() req: any, @Body() logDTO: ConditioningLogDTO): Promise<EntityId> {
+		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			return await this.service.createLog(userContext, logDTO); // Implement this method in your service
+		} catch (error) {
+			const errorMessage = `Failed to create log: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
+		}
 	}
 	
 	/**
