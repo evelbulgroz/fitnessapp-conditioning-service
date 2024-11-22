@@ -606,7 +606,7 @@ describe('ConditioningDataService', () => {
 		});
 
 		
-		logsForRandomUser = await dataService.conditioningLogs(userContext!);// todo: get this directly from cache to not rely on method under test
+		logsForRandomUser = await dataService.fetchLogs(userContext!);// todo: get this directly from cache to not rely on method under test
 		randomLog = logsForRandomUser[Math.floor(Math.random() * logsForRandomUser.length)] as ConditioningLog<any, ConditioningLogDTO>;
 	});
 	
@@ -775,7 +775,7 @@ describe('ConditioningDataService', () => {
 		it('gives normal users access to a collection of all their conditioning logs', async () => {
 			// arrange
 			// act
-			const matches = await dataService.conditioningLogs(userContext);
+			const matches = await dataService.fetchLogs(userContext);
 			
 			// assert
 			expect(matches).toBeDefined();
@@ -791,7 +791,7 @@ describe('ConditioningDataService', () => {
 			const expectedLogs = query.execute(logsForRandomUser);
 			
 			// act
-			const matches = await dataService.conditioningLogs(userContext, queryDTO);
+			const matches = await dataService.fetchLogs(userContext, queryDTO);
 			
 			// assert
 			expect(matches).toBeDefined();
@@ -805,7 +805,7 @@ describe('ConditioningDataService', () => {
 			queryDTO.userId = otherUser.userId as unknown as string;
 			
 			// act/assert
-			expect(async () => await dataService.conditioningLogs(userContext, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
+			expect(async () => await dataService.fetchLogs(userContext, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
 		});
 		
 		it('gives admin users access to all logs for all users', async () => {
@@ -813,7 +813,7 @@ describe('ConditioningDataService', () => {
 			userContext.roles = ['admin'];
 			
 			// act
-			const allLogs = await dataService.conditioningLogs(userContext);
+			const allLogs = await dataService.fetchLogs(userContext);
 						
 			// assert
 			expect(allLogs).toBeDefined();
@@ -831,7 +831,7 @@ describe('ConditioningDataService', () => {
 			const expectedLogs = query.execute(allCachedLogs); // get matching logs from test data			
 						
 			// act
-			const allLogs = await dataService.conditioningLogs(userContext, queryDTO);
+			const allLogs = await dataService.fetchLogs(userContext, queryDTO);
 			
 			// assert
 			expect(allLogs).toBeDefined();
@@ -844,7 +844,7 @@ describe('ConditioningDataService', () => {
 			userContext.roles = ['admin'];
 			
 			// act
-			const allLogs = await dataService.conditioningLogs(userContext);
+			const allLogs = await dataService.fetchLogs(userContext);
 			
 			// implicitly returns undefined if data is empty
 			allLogs?.forEach((log, index) => {
@@ -883,7 +883,7 @@ describe('ConditioningDataService', () => {
 		let randomLog: ConditioningLog<any, ConditioningLogDTO> | undefined;
 		let randomLogId: EntityIdDTO;		
 		beforeEach(async () => {
-			data = await dataService.conditioningLogs(userContext); // get all logs for random user
+			data = await dataService.fetchLogs(userContext); // get all logs for random user
 			const randomIndex = Math.floor(Math.random() * data.length);
 			randomLog = data[randomIndex] as ConditioningLog<any, ConditioningLogDTO>;
 			randomLogId = new EntityIdDTO(randomLog!.entityId!);
@@ -903,7 +903,7 @@ describe('ConditioningDataService', () => {
 			// arrange
 			
 			//act
-			const detailedLog = await dataService.conditioningLog(userContext, randomLogId);
+			const detailedLog = await dataService.fetchLog(userContext, randomLogId);
 
 			// assert
 			expect(detailedLog!).toBeDefined();
@@ -915,11 +915,11 @@ describe('ConditioningDataService', () => {
 			// arrange
 			userContext.roles = ['admin'];
 			const otherUser = users.find(user => user.userId !== userContext.userId)!;
-			const otherUserLogs = await dataService.conditioningLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
+			const otherUserLogs = await dataService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
 			const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 			
 			//act
-			const detailedLog = await dataService.conditioningLog(userContext, new EntityIdDTO(randomOtherUserLog!.entityId!));
+			const detailedLog = await dataService.fetchLog(userContext, new EntityIdDTO(randomOtherUserLog!.entityId!));
 
 			// assert
 			expect(detailedLog!).toBeDefined();
@@ -930,19 +930,19 @@ describe('ConditioningDataService', () => {
 		it('throws NotFoundError if no log is found matching provided log entity id', async () => {
 			// arrange
 			// act/assert
-			expect(async () => await dataService.conditioningLog(userContext, new EntityIdDTO('no-such-log'))).rejects.toThrow(NotFoundError);
+			expect(async () => await dataService.fetchLog(userContext, new EntityIdDTO('no-such-log'))).rejects.toThrow(NotFoundError);
 		});			
 	
 		it('throws UnauthorizedAccessError if log is found but user is not authorized to access it', async () => {
 			// arrange
 			userContext.roles = ['user'];
 			const otherUser = users.find(user => user.userId !== userContext.userId)!;
-			const otherUserLogs = await dataService.conditioningLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
+			const otherUserLogs = await dataService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}));
 			const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 			const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 			
 			// act/assert
-			expect(() => dataService.conditioningLog(userContext, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+			expect(() => dataService.fetchLog(userContext, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
 		});
 
 		it('returns log directly from cache if already detailed', async () => {
@@ -961,7 +961,7 @@ describe('ConditioningDataService', () => {
 			cacheEntry!.logs[logIndex] = detailedLog;				
 			
 			//act
-			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog!.entityId!));
+			const retrievedLog = await dataService.fetchLog(userContext, new EntityIdDTO(randomLog!.entityId!));
 
 			// assert
 			expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
@@ -983,7 +983,7 @@ describe('ConditioningDataService', () => {
 			});
 
 			// act
-			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog!.entityId!));
+			const retrievedLog = await dataService.fetchLog(userContext, new EntityIdDTO(randomLog!.entityId!));
 
 			// assert
 			expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
@@ -999,7 +999,7 @@ describe('ConditioningDataService', () => {
 			);
 			
 			//act
-			const retrievedLog = await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog!.entityId!));
+			const retrievedLog = await dataService.fetchLog(userContext, new EntityIdDTO(randomLog!.entityId!));
 
 			// assert
 			expect(retrievedLog?.isOverview).toBe(true);
@@ -1015,7 +1015,7 @@ describe('ConditioningDataService', () => {
 
 			// act/assert
 				// tried, failed to verify that repoSpy is called using .toHaveBeenCalled()
-			expect(async () => await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
+			expect(async () => await dataService.fetchLog(userContext, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
 		});
 
 		it('throws NotFoundError if no log matching entity id is found in persistence', async () => {
@@ -1026,7 +1026,7 @@ describe('ConditioningDataService', () => {
 			});
 
 			// act/assert
-			expect(async () => await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(NotFoundError);
+			expect(async () => await dataService.fetchLog(userContext, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(NotFoundError);
 		});
 		
 		it('replaces log in cache with detailed log from persistence ', async () => {
@@ -1042,7 +1042,7 @@ describe('ConditioningDataService', () => {
 			});
 			
 			// act
-			void await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog?.entityId!));
+			void await dataService.fetchLog(userContext, new EntityIdDTO(randomLog?.entityId!));
 
 			// assert
 			const updatedLog = dataService['userLogsSubject'].value.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
@@ -1062,7 +1062,7 @@ describe('ConditioningDataService', () => {
 			});
 			
 			// act
-			void await dataService.conditioningLog(userContext, new EntityIdDTO(randomLog?.entityId!));
+			void await dataService.fetchLog(userContext, new EntityIdDTO(randomLog?.entityId!));
 
 			// assert
 			const updatedCache$ = dataService['userLogsSubject'].asObservable();
@@ -1103,10 +1103,10 @@ describe('ConditioningDataService', () => {
 		// leave deeper testing of the result to AggregatorService tests to avoid duplication
 		it('can aggregate a time series of all ConditioningLogs owned by a user', async () => {
 			// arrange
-			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(userContext));
+			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.fetchLogs(userContext));
 			
 			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQueryDTO, undefined);
+			const aggregatedSeries = await dataService.fetchaggretagedLogs(userContext, aggregationQueryDTO, undefined);
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
@@ -1119,8 +1119,8 @@ describe('ConditioningDataService', () => {
 			userContext.roles = ['admin'];
 
 			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQueryDTO);
-			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.conditioningLogs(userContext));
+			const aggregatedSeries = await dataService.fetchaggretagedLogs(userContext, aggregationQueryDTO);
+			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.fetchLogs(userContext));
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
@@ -1137,7 +1137,7 @@ describe('ConditioningDataService', () => {
 			const expectedTimeSeries = dataService['toConditioningLogSeries'](matchingLogs);
 
 			// act
-			const aggregatedSeries = await dataService.aggretagedConditioningLogs(userContext, aggregationQueryDTO, queryDTO);
+			const aggregatedSeries = await dataService.fetchaggretagedLogs(userContext, aggregationQueryDTO, queryDTO);
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
@@ -1152,7 +1152,7 @@ describe('ConditioningDataService', () => {
 			const otherUserContext = new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']});
 			
 			// act/assert
-			expect(async () => await dataService.aggretagedConditioningLogs(otherUserContext, aggregationQueryDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
+			expect(async () => await dataService.fetchaggretagedLogs(otherUserContext, aggregationQueryDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
 		});
 	});
 
@@ -1160,7 +1160,7 @@ describe('ConditioningDataService', () => {
 		describe('Conversion to time series', () => {
 			it('can convert an array of ConditioningLogs to a ConditioningLogSeries', async () => {
 				// arrange
-				const logs = await dataService.conditioningLogs(userContext);
+				const logs = await dataService.fetchLogs(userContext);
 				
 				// act
 				const series = dataService['toConditioningLogSeries'](logs);
@@ -1180,7 +1180,7 @@ describe('ConditioningDataService', () => {
 			
 			it('sorts logs by start date', async () => {
 				// arrange
-				const logs = await dataService.conditioningLogs(userContext);
+				const logs = await dataService.fetchLogs(userContext);
 				const unSortedLogs = logs.sort((a, b) => b.start!.getTime() - a.start!.getTime());
 				
 				// act
@@ -1198,7 +1198,7 @@ describe('ConditioningDataService', () => {
 
 			it('excludes logs without start date', async () => {
 				// arrange
-				const logs = await dataService.conditioningLogs(userContext);
+				const logs = await dataService.fetchLogs(userContext);
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, uuidv4(), undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
@@ -1212,7 +1212,7 @@ describe('ConditioningDataService', () => {
 
 			it('logs entity id of logs without start date', async () => {
 				// arrange
-				const logs = await dataService.conditioningLogs(userContext);
+				const logs = await dataService.fetchLogs(userContext);
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, uuidv4(), undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);

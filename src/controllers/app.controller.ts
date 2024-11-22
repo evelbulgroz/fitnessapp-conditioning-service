@@ -72,7 +72,7 @@ export class AppController {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult			
 			const activityCounts: Record<string, number> = {};			
-			const logs = await this.service.conditioningLogs(userContext) ?? [];
+			const logs = await this.service.fetchLogs(userContext) ?? [];
 			Object.keys(ActivityType).forEach(activity => {
 				const count = logs.filter(log => log.activity === activity).length;
 				activityCounts[activity] = count;
@@ -129,7 +129,7 @@ export class AppController {
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
 			// therefore remove empty queries here, so that the service method can just check for undefined
 			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-			return this.service.aggretagedConditioningLogs(userContext, aggregationQueryDTO as any, queryDTO as any); // todo: refactor service method to accept dtos
+			return this.service.fetchaggretagedLogs(userContext, aggregationQueryDTO as any, queryDTO as any); // todo: refactor service method to accept dtos
 		}
 		catch (error) {
 			const errorMessage = `Request for aggregation failed: ${error.message}`;
@@ -155,7 +155,7 @@ export class AppController {
 	public async fetchLog(@Req() req: any, @Param('id') logId: EntityIdDTO ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const log = this.service.conditioningLog(userContext, logId);
+			const log = this.service.fetchLog(userContext, logId);
 			if (!log) {
 				const errorMessage = `Log with id ${logId.value} not found`;
 				this.logger.error(errorMessage);
@@ -191,7 +191,7 @@ export class AppController {
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
 			// therefore remove empty queries here, so that the service method can just check for undefined
 			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-			const logs = await this.service.conditioningLogs(userContext, queryDTO as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
+			const logs = await this.service.fetchLogs(userContext, queryDTO as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
 			if (logs.length === 0) {
 				const errorMessage = 'No logs found';
 				this.logger.error(errorMessage);

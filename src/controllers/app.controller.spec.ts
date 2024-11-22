@@ -91,10 +91,10 @@ describe('AppController', () => {
 				{ // Data service
 					provide: ConditioningDataService,
 					useValue: {
-						aggretagedConditioningLogs: jest.fn(),
+						fetchaggretagedLogs: jest.fn(),
 						conditioningData: jest.fn(),
-						conditioningLog: jest.fn(),
-						conditioningLogs: jest.fn(),
+						fetchLog: jest.fn(),
+						fetchLogs: jest.fn(),
 						fetchAdminLogs: jest.fn(),
 						fetchUserLogs: jest.fn(),
 						getByQuery: jest.fn(),
@@ -198,7 +198,7 @@ describe('AppController', () => {
 			let logsSpy: any;
 			let url: string;
 			beforeEach(() => {
-				logsSpy = jest.spyOn(conditioningDataService, 'conditioningLogs').mockImplementationOnce(() => [
+				logsSpy = jest.spyOn(conditioningDataService, 'fetchLogs').mockImplementationOnce(() => [
 					{ activity: 'SWIM' },
 					{ activity: 'BIKE' },
 					{ activity: 'RUN' },
@@ -216,7 +216,7 @@ describe('AppController', () => {
 			
 			it('provides summary of conditioning activities performed by type ', async () => {
 				// arrange
-				const spy = jest.spyOn(conditioningDataService, 'conditioningLogs').mockImplementationOnce(() => [
+				const spy = jest.spyOn(conditioningDataService, 'fetchLogs').mockImplementationOnce(() => [
 					{ activity: 'SWIM' },
 					{ activity: 'BIKE' },
 					{ activity: 'RUN' },
@@ -269,7 +269,7 @@ describe('AppController', () => {
 			it('throws if data service throws', async () => {
 				// arrange
 				logsSpy.mockRestore();
-				logsSpy = jest.spyOn(conditioningDataService, 'conditioningLogs').mockImplementation(() => { throw new Error('Test Error'); });
+				logsSpy = jest.spyOn(conditioningDataService, 'fetchLogs').mockImplementation(() => { throw new Error('Test Error'); });
 				const response$ = http.get(url, { headers });
 
 				// act/assert
@@ -300,7 +300,7 @@ describe('AppController', () => {
 				] as any[];
 				
 				jest.clearAllMocks();
-				aggregationSpy = jest.spyOn(conditioningDataService, 'aggretagedConditioningLogs')
+				aggregationSpy = jest.spyOn(conditioningDataService, 'fetchaggretagedLogs')
 					.mockImplementation((ctx: UserContext) => {
 						if (ctx.roles?.includes('admin')) { // simulate an admin user requesting logs
 							return Promise.resolve(adminLogs as any)
@@ -509,7 +509,7 @@ describe('AppController', () => {
 			let urlPath: string;
 			beforeEach(() => {
 				log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
-				logSpy = jest.spyOn(conditioningDataService, 'conditioningLog')
+				logSpy = jest.spyOn(conditioningDataService, 'fetchLog')
 					.mockImplementation((ctx: any, entityId: EntityIdDTO) => {
 						void entityId;
 						if (ctx.roles?.includes('admin')) { // simulate an admin user requesting a log
@@ -601,7 +601,7 @@ describe('AppController', () => {
 			it('throws if data service throws', async () => {
 				// arrange
 				logSpy.mockRestore();
-				logSpy = jest.spyOn(conditioningDataService, 'conditioningLog').mockImplementation(() => { throw new Error('Test Error'); });
+				logSpy = jest.spyOn(conditioningDataService, 'fetchLog').mockImplementation(() => { throw new Error('Test Error'); });
 				const response$ = http.get(urlPath, { headers });
 
 				// act/assert
@@ -647,7 +647,7 @@ describe('AppController', () => {
 
 				queryDTO = new QueryDTO(queryDTOProps);
 
-				logsSpy = jest.spyOn(conditioningDataService, 'conditioningLogs')
+				logsSpy = jest.spyOn(conditioningDataService, 'fetchLogs')
 					.mockImplementation((ctx: any, query?: any): any => { // todo: refactor service to use QueryDTO and UserContext
 						if (ctx.roles?.includes('admin')) { // simulate an admin user requesting logs
 							if (!query || !query?.userId) { // simulate a missing query or query not specifying user id

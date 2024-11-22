@@ -98,7 +98,7 @@ export class ConditioningDataService {
 	 * @throws PersistenceError if error occurs while fetching log from persistence
 	 * @remark Replaces overview log in cache with detailed log from persistence on demand, and updates cache subscribers
 	 */
-	public async conditioningLog(ctx: UserContext, id: EntityIdDTO): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async fetchLog(ctx: UserContext, id: EntityIdDTO): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
 			await this.isReady(); // initialize service if necessary
 
@@ -158,7 +158,7 @@ export class ConditioningDataService {
 	 * @remark Overview logs are guaranteed to be available
 	 * @remark Full logs are loaded into cache from persistence on demand using conditioningLogDetails(), and may be replaced in cache with overview logs to save memory
 	 */
-	public async conditioningLogs(ctx: UserContext, queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+	public async fetchLogs(ctx: UserContext, queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
 		
 		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];		
@@ -195,7 +195,7 @@ export class ConditioningDataService {
 	 * @returns Aggregated time series of conditioning logs
 	 * @throws UnauthorizedAccessError if user attempts unauthorized access to logs
 	 */
-	public async aggretagedConditioningLogs(
+	public async fetchaggretagedLogs(
 		ctx: UserContext,
 		aggregationQueryDTO: AggregationQueryDTO,
 		queryDTO?: QueryDTO
