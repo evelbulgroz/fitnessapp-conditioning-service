@@ -58,7 +58,7 @@ describe('JsonWebtokenService', () => {
 		jest.clearAllMocks();
 	});
 
-	xit('can be created', () => {
+	it('can be created', () => {
 		expect(service).toBeDefined();
 	});
 
@@ -203,7 +203,7 @@ describe('JsonWebtokenService', () => {
 		});
 	});
 
-	xdescribe('user', () => {
+	describe('user', () => {
 		let sub: string;
 		let subName: string;
 		let testPayload: UserJwtPayload;
@@ -213,7 +213,7 @@ describe('JsonWebtokenService', () => {
 			sub = uuid();
 			subName = 'test-user';
 			testPayload = {
-				iss: encryptproperty('fitnessapp-authentication-service'),
+				iss: encryptproperty('security.authentication.jwt.issuer'),
 				sub,
 				aud: encryptproperty(config.get<string>('app.servicename')!),
 				exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour from now
@@ -222,7 +222,7 @@ describe('JsonWebtokenService', () => {
 				subName,
 				subType: 'user',
 			};
-			secret = config.get(`security.authentication.jwt.fitnessapp-authentication-service.tokenSecret`)!;
+			secret = config.get(`security.authentication.jwt.accessToken.secret`)!;
 			testToken = jwt.sign(testPayload, secret); // sign token with secret, circumventing the service
 		});
 
