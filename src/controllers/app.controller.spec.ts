@@ -502,7 +502,7 @@ describe('AppController', () => {
 			});
 		});
 
-		describe('log', () => {
+		describe('GET log', () => {
 			let log: ConditioningLog<any, ConditioningLogDTO>;
 			let logSpy: any;
 			let url: string;
@@ -528,7 +528,7 @@ describe('AppController', () => {
 						}					
 					});
 
-				urlPath = `${serverUrl}/log/`;
+				urlPath = `${serverUrl}/logs/`;
 				url = urlPath + uuid();
 			});
 

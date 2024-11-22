@@ -2,17 +2,20 @@ import {
 	BadRequestException,
 	Body,
 	Controller,
+	Delete,
 	Get,
 	NotFoundException,
 	Param,
+	Patch,
 	Post,
+	Put,
 	Query,
 	Req,
 	UseGuards,
 	UseInterceptors,
 	UsePipes
 } from '@nestjs/common';
-//import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, getSchemaPath } from '@nestjs/swagger';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { Logger } from '@evelbulgroz/ddd-base';
@@ -39,9 +42,9 @@ import { ValidationPipe } from './pipes/validation.pipe';
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests.
  * @remark It delegates the actual processing of data to the appropriate service methods, which are responsible for data access control, business logic and persistence.
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
- * @todo Implement API documentation using Swagger (OpenAPI) annotations and decorators (e.g. @ApiTags, @ApiOperation, @ApiResponse, @ApiQuery, @ApiParam)
  */
-//@ApiTags('conditioning')
+@ApiTags('conditioning')
+@ApiExtraModels(QueryDTO)
 @Controller() // set prefix in config
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
@@ -56,16 +59,12 @@ export class AppController {
 		private readonly service: ConditioningDataService
 	) {}
 
-	/** Get list of the number of times each conditioning activity has been logged.
-	 * @returns Object with activity names as keys and counts as values.
-	 * @throws BadRequestException if data service method fails.
-	 * @remark Audience: Admins (all data), Users (own data) accessing endpoint from a front-end application.
-	 * @example http://localhost:3060/api/v3/conditioning/activities
+	/**
 	 * @todo Throw error if user tries to access another user's data (e.g. by passing a user id in the request)
 	*/
 	@Get('activities')
-	//@ApiOperation({ summary: 'Get list of the number of times each conditioning activity has been logged' })
-	//@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
+	@ApiOperation({ summary: 'Get list of the number of times each conditioning activity has been logged' })
+	@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async activities(@Req() req: any): Promise<Record<string, number>> {
@@ -115,8 +114,10 @@ export class AppController {
 	});
 	 */
 	@Post('aggregate')
-	//@ApiOperation({ summary: 'Aggregate conditioning logs using aggregation parameters' })
-  	//@ApiResponse({ status: 200, description: 'Aggregated data' })
+	@ApiOperation({ summary: 'Aggregate conditioning logs using aggregation parameters and optional logs query' })
+	@ApiBody({ type: AggregationQueryDTO })
+	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
+	@ApiResponse({ status: 200, description: 'Aggregated data' })
   	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist:true, forbidNonWhitelisted: true, transform: true }))
 	public async aggregate(
@@ -138,18 +139,31 @@ export class AppController {
 		}
 	}
 
-	/** Get detailed conditioning log by entity id.
-	 * @param logId EntityId DTO wrapping log entity id (mapped from 'id' request parameter).
-	 * @returns ConditioningLog object matching log id, if found.
-	 * @throws BadRequestException if data service method fails.
-	 * @throws NotFoundException if no log is found with the specified id.
+	@Patch('logs/:id')
+	@ApiOperation({ summary: 'Partially update a conditioning log by ID' })
+	@ApiParam({ name: 'id', description: 'Log ID' })
+	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
+	@ApiResponse({ status: 200, description: 'Log updated successfully' })
+	@ApiResponse({ status: 404, description: 'Log not found' })
+	@ApiResponse({ status: 400, description: 'Invalid data' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	async partialUpdateLog(@Param('id') logId: EntityIdDTO, @Body() partialLogDTO: Partial<ConditioningLogDTO>): Promise<void> {
+		const updated = await (this.service as any).partialUpdateLog(logId, partialLogDTO); // Implement this method in your service
+		if (!updated) {
+			throw new NotFoundException(`Log with ID ${logId.value} not found`);
+		}
+	}
+
+	/**
 	 * @example http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef
 	 */
-	@Get('log/:id')
-	//@ApiOperation({ summary: 'Get conditioning log details by entity id' })
-	//@ApiParam({ name: 'id', description: 'EntityIdParam object containing log entity id' })
-	//@ApiResponse({ status: 200, description: 'ConditioningLog object matching log id, if found' })
-	//@ApiResponse({ status: 404, description: 'Log not found' })
+	@Get('logs/:id')
+	@ApiOperation({ summary: 'Get detailed conditioning log by entity id' })
+	@ApiParam({ name: 'id', description: 'Log entity id (string or number' })
+	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log id, if found' })
+	@ApiResponse({ status: 404, description: 'Log not found' })
+	@ApiResponse({ status: 400, description: 'Request for log details failed' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({  whitelist: true, forbidNonWhitelisted: true,transform: true }))
 	public async fetchLog(@Req() req: any, @Param('id') logId: EntityIdDTO ): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
@@ -170,19 +184,42 @@ export class AppController {
 		}
 	}
 	
-	/** Get conditioning logs for all users (role = admin), or for a specific user (role = user).
-	 * @param queryDTO Query parameters for filtering logs (optional for admins, required with user id for normal users)
-	 * @returns Array of ConditioningLogs, or empty array if none found
-	 * @throws BadRequestException if user role or user id is not found in request, or user id does not match authenticated user
-	 * @remark If query is not provided (admin), or only contains user id (normal user), all applicable logs are returned
-	 * @example http://localhost:3060/api/v3/conditioning/logs?activity=MTB&duration=50000
-	 */	
+	@Put('logs/:id')
+	@ApiOperation({ summary: 'Update a conditioning log by ID' })
+	@ApiParam({ name: 'id', description: 'Log ID' })
+	//@ApiBody({ type: ConditioningLogDTO }) // todo: add schema for body, solve issue with needint dto to be a class, not an interface
+	@ApiResponse({ status: 200, description: 'Log updated successfully' })
+	@ApiResponse({ status: 404, description: 'Log not found' })
+	@ApiResponse({ status: 400, description: 'Invalid data' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	async updateLog(@Param('id') logId: EntityIdDTO, @Body() logDTO: ConditioningLogDTO): Promise<void> {
+		const updated = await (this.service as any).updateLog(logId, logDTO); // not implemented in service yet
+		if (!updated) {
+		throw new NotFoundException(`Log with ID ${logId.value} not found`);
+		}
+	}
+
+	@Delete('logs/:id')
+	@ApiOperation({ summary: 'Delete a conditioning log by ID' })
+	@ApiParam({ name: 'id', description: 'Log ID' })
+	@ApiResponse({ status: 200, description: 'Log deleted successfully' })
+	@ApiResponse({ status: 404, description: 'Log not found' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	async deleteLog(@Param('id') logId: EntityIdDTO): Promise<void> {
+		const deleted = await (this.service as any).deleteLog(logId); // not implemented in service yet
+		if (!deleted) {
+		throw new NotFoundException(`Log with ID ${logId.value} not found`);
+		}
+	}
+
 	@Get('logs')
-	//@ApiOperation({ summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)' })
-	//@ApiQuery({ name: 'activity', required: false, type: String, description: 'Activity to filter logs by' })
-	//@ApiQuery({ name: 'duration', required: false, type: Number, description: 'Duration to filter logs by' })
-	//@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
-	//@ApiResponse({ status: 404, description: 'No logs found' })
+	@ApiOperation({ summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)' })
+	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
+	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
+	@ApiResponse({ status: 404, description: 'No logs found' })
+	@ApiResponse({ status: 400, description: 'Request for logs failed' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async fetchLogs(@Req() req: any, @Query() queryDTO?: QueryDTO): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
@@ -206,17 +243,14 @@ export class AppController {
 		}
 	}
 
-	/** Get all property sanitization rules for a supported type (e.g. for deserialization and validation of domain objects). 
-	 * @returns Rules object containing all sanitization rules for the specified type (as defined by own and inherited property decorators).
-	 * @throws BadRequestException if requested type is not supported.
-	 * @remark Intended to enable front-end to performing preemptive validation w/o making a request to the server, while using the correct rules.
+	/**
 	 * @example http://localhost:3060/api/v3/conditioning/rules?type=ConditioningLog
 	*/
 	@Get('rules/:type')
-	//@ApiOperation({ summary: 'Get all property rules for a supported type' })
-	//@ApiParam({ name: 'type', description: 'TypeParam object containing entity type' })
-	//@ApiResponse({ status: 200, description: 'EntityRules object containing all rules for the specified type' })
-	//@ApiResponse({ status: 400, description: 'Invalid entity type' })
+	@ApiOperation({ summary: 'Get all property rules for a supported type (e.g. for deserialization and validation of domain objects on front end)' })
+	@ApiParam({ name: 'type', description: 'String name of entity type' })
+	@ApiResponse({ status: 200, description: 'Rules object containing all own and inherited sanitization rules for the specified type' })
+	@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async fetchValidationRules(@Param('type') type: TypeParamDTO): Promise<any> {
@@ -236,6 +270,10 @@ export class AppController {
 	 * @todo Retire when frontend is updated to use the new, authenticated endpoints
 	 */
 	@Get('sessions')
+	@ApiOperation({ summary: 'Get all conditioning logs grouped by activity type and aggregated by duration and date' })
+	@ApiResponse({ status: 200, description: 'Conditioning data object' })
+	//@Roles('admin', 'user')
+	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async sessions(): Promise<ConditioningData> {
 		try {
 			return this.service.conditioningData();
