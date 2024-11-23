@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
-import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, EntityId, Logger, Result, EntityUpdatedEvent, Entity } from '@evelbulgroz/ddd-base';
 import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO } from '../../controllers/dtos/aggregation-query.dto';
@@ -30,7 +30,6 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
-import { after } from 'node:test';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -83,6 +82,7 @@ describe('ConditioningDataService', () => {
 						fetchAll: jest.fn(),
 						fetchById: jest.fn(),
 						update: jest.fn(),
+						updates$: of({} as EntityUpdatedEvent<any,any>),
 					}
 				}
 			],
@@ -973,6 +973,29 @@ describe('ConditioningDataService', () => {
 				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toJSON());
 			});
 
+			xit('updates cache with new log from repo update', async () => {
+				// set up spy on userRepo.updates$ to emit user with new log added
+				const updatedUser = User.create(randomUser.toJSON(), randomUser.entityId).value as User;
+				updatedUser.addLog(newLogId);
+				
+				const updateEvent = new EntityUpdatedEvent<any, any>({
+					eventId: uuidv4(),
+					eventName: 'EntityUpdatedEvent',
+					occurredOn: new Date(),
+					payload: updatedUser.toJSON(),
+				});
+				
+				(userRepo as any)['updates$'] = of(updateEvent as any);	// vary hard to spy on the observable from the repo, so brute force it
+
+				// act
+				void await dataService.createLog(userContext, randomUserIdDTO, newLogDTO);
+
+				// assert
+				const cache = dataService['userLogsSubject'].value;
+				const cacheEntry = cache.find(entry => entry.userId === randomUserId);
+				expect(cacheEntry).toBeDefined();
+				expect(cacheEntry!.logs.map(log => log?.entityId)).toContainEqual(newLogId);
+			});				
 		});
 
 		describe('retrieve', () => {
@@ -1158,9 +1181,7 @@ describe('ConditioningDataService', () => {
 			});
 
 			// TODO: Test default sorting of returned logs
-		});
-
-			
+		});			
 	});
 	
 	describe('Aggregation', () => {

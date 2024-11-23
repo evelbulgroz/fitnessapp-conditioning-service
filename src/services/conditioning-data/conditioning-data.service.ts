@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnApplicationBootstrap, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 
 import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
@@ -69,38 +69,21 @@ export class ConditioningDataService implements OnModuleInit, OnModuleDestroy {
 		protected readonly aggregator: AggregatorService,
 		protected readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		protected readonly userRepo: UserRepository<any, UserDTO>
-	) { }
+	) {
+		this.subscribeToRepoEvents(); // subscribe to repo events on construction
+	}
 
 	//----------------------------LIFECYCLE HOOKS ---------------------------//
 
 	onModuleInit() {
-		this.logger.log(`${this.constructor.name}: Initializing...`);
-
-		// subscribe to user repo events to keep cache in sync with persistence layer
-		/*
-		this.subscriptions.push(this.userRepo.updates$?.subscribe((event) => {
-			this.logger.log(`${this.constructor.name}: User event: ${event}`);
-		}));
-		*/
-
-		// subscribe to log repo events to keep cache in sync with persistence layer
-		
-		/*
-		this.subscriptions.push(this.logRepo.updates$?.subscribe((event) => {
-			this.logger.log(`${this.constructor.name}: Log event: ${event}`);
-		}));
-		*/
-		
-		/*
-		this.initializeCache().catch((error) => {
-			this.logger.error(`${this.constructor.name}: Error initializing cache: ${error}`);
-		});
-		*/
+		this.logger.log(`${this.constructor.name}: Starting up...`);
+		//this.subscribeToRepoEvents(); // subscribe to repo events on module init
+		//this.initializeCache(); // initialize cache on module init
 	}
 
 	onModuleDestroy() {
 		this.logger.log(`${this.constructor.name}: Shutting down...`);
-		this.subscriptions.forEach((subscription) => subscription.unsubscribe());
+		this.subscriptions.forEach((subscription) => subscription?.unsubscribe());
 	}
 	
 	//------------------------------ PUBLIC API -----------------------------//
@@ -509,32 +492,6 @@ export class ConditioningDataService implements OnModuleInit, OnModuleDestroy {
 
 	//-------------------------- PROTECTED METHODS --------------------------//
 
-	/* Convert array of conditioning logs into time series (aggregation helper) */
-	protected toConditioningLogSeries(logs: ConditioningLog<any, ConditioningLogDTO>[]): ConditioningLogSeries<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO> {
-		// filter out any logs that do not have a start date, log id of logs missing start date
-		const logsWithDates = logs.filter(log => {
-			if (log.start !== undefined) return true;
-			this.logger.warn(`${this.constructor.name}: Conditioning log ${log.entityId} has no start date, excluding from ConditioningLogSeries.`);
-			return false;
-		});
-		
-		// sort logs ascending by start date and time
-		logsWithDates.sort((a, b) => (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0));
-		// convert logs array to time series
-		const series =  { 
-			unit: 'ConditioningLog',
-			start: logsWithDates.length > 0 ? logsWithDates[0].start ?? undefined : undefined,
-			data: logsWithDates.map((log: ConditioningLog<any, ConditioningLogDTO>) => {
-				return {
-					timeStamp: log.start,
-					value: log
-				} as DataPoint<ConditioningLog<any, ConditioningLogDTO>>;
-			}
-		)};
-
-		return series;
-	}
-
 	/* Initialize user-log cache */
 	protected async initializeCache(): Promise<void> {		
 		const cache = this.userLogsSubject;
@@ -598,6 +555,47 @@ export class ConditioningDataService implements OnModuleInit, OnModuleDestroy {
 		this.logger.log(`${this.constructor.name}: Initialization complete: Cached ${allLogs.length} logs for ${users.length} users.`);
 
 		return Promise.resolve(); // resolve with void
+	}
+
+	/* Subscribe to and handle log and user repo events (constructor helper) */
+	protected subscribeToRepoEvents(): void {
+		// subscribe to user repo events
+		this.subscriptions.push(this.userRepo.updates$.subscribe((event) => {
+			//console.debug('event', JSON.stringify(event));
+		}));
+
+		// subscribe to log repo events
+		/*
+		this.subscriptions.push(this.logRepo.updates$?.subscribe((event) => {
+			this.logger?.log(`${this.constructor.name}: Log event: ${event}`);
+		}));
+		*/
+	}
+	
+	/* Convert array of conditioning logs into time series (aggregation helper) */
+	protected toConditioningLogSeries(logs: ConditioningLog<any, ConditioningLogDTO>[]): ConditioningLogSeries<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO> {
+		// filter out any logs that do not have a start date, log id of logs missing start date
+		const logsWithDates = logs.filter(log => {
+			if (log.start !== undefined) return true;
+			this.logger.warn(`${this.constructor.name}: Conditioning log ${log.entityId} has no start date, excluding from ConditioningLogSeries.`);
+			return false;
+		});
+		
+		// sort logs ascending by start date and time
+		logsWithDates.sort((a, b) => (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0));
+		// convert logs array to time series
+		const series =  { 
+			unit: 'ConditioningLog',
+			start: logsWithDates.length > 0 ? logsWithDates[0].start ?? undefined : undefined,
+			data: logsWithDates.map((log: ConditioningLog<any, ConditioningLogDTO>) => {
+				return {
+					timeStamp: log.start,
+					value: log
+				} as DataPoint<ConditioningLog<any, ConditioningLogDTO>>;
+			}
+		)};
+
+		return series;
 	}	
 }
 
