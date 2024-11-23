@@ -6,14 +6,15 @@ import { HttpModule, HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
 import {v4 as uuidv4} from 'uuid';
 
-import { EventSourceBuilder } from '../../utils/event-source-builder';
+//import { EventSourceBuilder } from '../../utils/event-source-builder.js';
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
-import { ConditioningLog } from '../../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from "../../dtos/conditioning-log.dto.js";
 import { ConsoleLogger, Logger, Result } from '@evelbulgroz/ddd-base';
+
+import { ConditioningLog } from '../../domain/conditioning-log.entity';
+import { ConditioningLogDTO } from "../../dtos/conditioning-log.dto";
 import { createTestingModule } from '../../test/test-utils';
 import { FileService } from '../../services/file-service/file.service';
-import { FsConditioningLogRepo } from './fs-conditioning-log.repository';
+import { FsConditioningLogRepo } from './fs-conditioning-log.repo';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000); // accomodate slow dev machine/connection

@@ -4,7 +4,7 @@ import { Observable } from "rxjs";
 
 import { ConditioningLog } from "../domain/conditioning-log.entity";
 import { ConditioningLogDTO } from "../dtos/conditioning-log.dto";
-import { EntityId, Result } from "@evelbulgroz/ddd-base";
+import { EntityId, Logger, Result } from "@evelbulgroz/ddd-base";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 import { Query } from "@evelbulgroz/query-fns";
 
@@ -17,9 +17,13 @@ import { Query } from "@evelbulgroz/query-fns";
 @Injectable()
 export class ConditioningLogRepo<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO> extends TrainingLogRepo<ConditioningLog<T,U>, U> {
 	
-	//--------------------------------- PUBLIC METHODS ---------------------------------
+	//---------------------------- CONSTRUCTOR ---------------------------//
+
+	public constructor(logger?: Logger, throttleTime?: number) {
+		super(logger, throttleTime);
+	}
 	
-	//----------------------------------- PUBLIC STATIC METHODS -----------------------------------
+	//------------------------ PUBLIC STATIC METHODS ------------------------//
 
 	/** Get the class constructor from a class name
 	 * @param className The name of the class to get

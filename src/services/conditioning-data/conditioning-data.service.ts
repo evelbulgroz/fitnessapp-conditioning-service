@@ -1,6 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 
-import { BehaviorSubject, filter, first, firstValueFrom, Observable, take } from 'rxjs';
+import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
 import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
@@ -13,7 +13,7 @@ import { AggregatorService } from '../aggregator/aggregator.service';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
-import { ConditioningLogRepo } from '../../repositories/conditioning-log-repo.model';
+import { ConditioningLogRepo } from '../../repositories/conditioning-log.repo';
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
 import { EntityIdDTO } from '../../controllers/dtos/entity-id.dto';
 import { QueryDTO } from '../../controllers/dtos/query.dto';
@@ -38,6 +38,7 @@ type QueryType = Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLog
 interface UserLogsCacheEntry {
 	userId: EntityId;
 	logs: ConditioningLog<any, ConditioningLogDTO>[];
+	lastAccessed?: Date;
 }
 
 /** Provides access to data from conditioning training sessions, as intermediary between controller and repositories.
@@ -50,17 +51,19 @@ interface UserLogsCacheEntry {
  * @todo Implement caching and synchronization with user microservice
  */
 @Injectable()
-export class ConditioningDataService {
-	//--------------------------------- PRIVATE PROPERTIES ---------------------------------
+export class ConditioningDataService implements OnModuleInit, OnModuleDestroy {
+	
+	//------------------------- PRIVATE PROPERTIES --------------------------//
 	
 	protected readonly userLogsSubject = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
 	protected isInitializing = false; // flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
+	protected readonly subscriptions: Subscription[] = []; // array to hold subscriptions to unsubsribe on destroy
 	
 	// Inject separately to keep constructor signature clean
 	@Inject(Logger) protected readonly logger: Logger;
 	@Inject(QueryMapper) protected readonly queryMapper: QueryMapper<QueryType, QueryDTO>;
 	
-	//--------------------------------- CONSTRUCTOR ---------------------------------
+	//----------------------------- CONSTRUCTOR -----------------------------//
 
 	public constructor(
 		protected readonly aggregator: AggregatorService,
@@ -68,7 +71,39 @@ export class ConditioningDataService {
 		protected readonly userRepo: UserRepository<any, UserDTO>
 	) { }
 
-	//--------------------------------- PUBLIC API ---------------------------------
+	//----------------------------LIFECYCLE HOOKS ---------------------------//
+
+	onModuleInit() {
+		this.logger.log(`${this.constructor.name}: Initializing...`);
+
+		// subscribe to user repo events to keep cache in sync with persistence layer
+		/*
+		this.subscriptions.push(this.userRepo.updates$?.subscribe((event) => {
+			this.logger.log(`${this.constructor.name}: User event: ${event}`);
+		}));
+		*/
+
+		// subscribe to log repo events to keep cache in sync with persistence layer
+		
+		/*
+		this.subscriptions.push(this.logRepo.updates$?.subscribe((event) => {
+			this.logger.log(`${this.constructor.name}: Log event: ${event}`);
+		}));
+		*/
+		
+		/*
+		this.initializeCache().catch((error) => {
+			this.logger.error(`${this.constructor.name}: Error initializing cache: ${error}`);
+		});
+		*/
+	}
+
+	onModuleDestroy() {
+		this.logger.log(`${this.constructor.name}: Shutting down...`);
+		this.subscriptions.forEach((subscription) => subscription.unsubscribe());
+	}
+	
+	//------------------------------ PUBLIC API -----------------------------//
 	
 	/**New API: Check if service is ready to use, i.e. has been initialized
 	 * @returns Promise that resolves when the service is ready to use
@@ -77,7 +112,7 @@ export class ConditioningDataService {
 	*/	
 	public async isReady(): Promise<boolean> {
 		return new Promise(async (resolve) => {
-			if (this.userLogsSubject.value.length === 0) { // lazy load logs if necessary
+			if (this.userLogsSubject.value.length === 0) { // load logs if cache is empty
 				try {
 					await this.initializeCache();
 				}
@@ -195,7 +230,7 @@ export class ConditioningDataService {
 				resolve(originalLog);
 				return;
 			}
-			else { // log is not detailed -> fetch full log from persistence
+			else { // log is not detailed -> fetch full log from persistence, replace in cache, and resolve
 				const result = await this.logRepo.fetchById(logId!);
 				if (result.isFailure) { // retrieval failed -> throw persistence error
 					reject(new PersistenceError(`${this.constructor.name}: Error retrieving conditioning log ${logId} from persistence layer: ${result.error}`));
@@ -205,6 +240,7 @@ export class ConditioningDataService {
 				detailedLog = await firstValueFrom(detailedLog$.pipe(take(1)));
 				if (detailedLog !== undefined) { // detailed log available					
 					entryWithLog.logs[index] = detailedLog; // replace original log in cache
+					entryWithLog.lastAccessed = new Date(); // update last accessed timestamp
 					this.userLogsSubject.next([...this.userLogsSubject.value]); // update cache with shallow copy to trigger subscribers
 					resolve(detailedLog);
 					return;
@@ -471,7 +507,7 @@ export class ConditioningDataService {
 		return Promise.resolve({ dataseries } as unknown as ConditioningData);
 	}
 
-	//--------------------------------- PROTECTED METHODS ---------------------------------
+	//-------------------------- PROTECTED METHODS --------------------------//
 
 	/* Convert array of conditioning logs into time series (aggregation helper) */
 	protected toConditioningLogSeries(logs: ConditioningLog<any, ConditioningLogDTO>[]): ConditioningLogSeries<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO> {
@@ -524,7 +560,7 @@ export class ConditioningDataService {
 
 		// cache not initialized, initialization not in progress -> initialize it
 		this.isInitializing = true;
-		this.logger.log(`${this.constructor.name}: Initializing ...`);
+		this.logger.log(`${this.constructor.name}: Initializing cache...`);
 
 		// fetch all logs from conditioning log repo
 		let allLogs: ConditioningLog<any, ConditioningLogDTO>[] = [];
@@ -551,9 +587,10 @@ export class ConditioningDataService {
 		}
 
 		// combine logs and users into user logs cache entries
+		const now = new Date();
 		const userLogs: UserLogsCacheEntry[] = users.map((user: User) => {	
 			const logs = allLogs.filter((log) => user.logs.includes(log.entityId!));
-			return { userId: user.userId!, logs: logs };
+			return { userId: user.userId!, logs: logs, lastAccessed: now };
 		});
 		this.userLogsSubject.next(userLogs);
 		
