@@ -4,6 +4,7 @@ import { firstValueFrom, Observable } from 'rxjs';
 
 import { Logger } from '@evelbulgroz/ddd-base';
 
+import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
@@ -17,9 +18,10 @@ import { UserRepository } from '../repositories/user.repo';
 @Injectable()
 export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 	constructor(
-		private readonly userRepo: UserRepository<User, UserDTO>,
+		//private readonly dataService: ConditioningDataService, // bug: very difficult to mock in tests
 		private readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		private readonly logger: Logger
+		private readonly logger: Logger,
+		private readonly userRepo: UserRepository<User, UserDTO>,		
 	) {
 		super();
 		void this.logRepo, this.userRepo, this.logger; // avoid unused variable warning

@@ -4,6 +4,7 @@ import { createTestingModule } from '../../test/test-utils';
 import { Logger } from '@evelbulgroz/ddd-base';
 //import { jest } from '@jest/globals';
 
+import { ConditioningDataService } from '../../services/conditioning-data/conditioning-data.service';
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log.repo';
 import { EventDispatcher } from '../../services/event-dispatcher/event-dispatcher.service';
@@ -28,10 +29,21 @@ describe('EventDispatcher', () => {
 		const module: TestingModule = await createTestingModule({
 			providers: [
 				{
+					provide: ConditioningDataService,
+					useValue: {
+						// add methods as needed
+					}
+				},
+				{
 					provide: ConditioningLogRepo,
 					useValue: {
-						create: jest.fn(),
-						// add other methods as needed
+						// add methods as needed
+					}
+				},
+				{
+					provide: ConditioningLogRepo,
+					useValue: {
+						// add methods as needed
 					}
 				},
 				EventDispatcher,
