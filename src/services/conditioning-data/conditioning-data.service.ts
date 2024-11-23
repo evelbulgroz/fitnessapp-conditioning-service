@@ -48,6 +48,7 @@ interface UserLogsCacheEntry {
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
  * @todo Set up subscription to repo events to keep cache in sync with persistence layer (in progress)
+ *  - When ready, inject event dispatcher and retire manual subscription management
  * @todo Implement caching and synchronization with user microservice
  */
 @Injectable()
