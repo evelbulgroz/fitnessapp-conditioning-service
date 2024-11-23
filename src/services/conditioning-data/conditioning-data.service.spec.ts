@@ -887,11 +887,11 @@ describe('ConditioningDataService', () => {
 		let randomLogIdDTO: EntityIdDTO;
 		let userIdDTO: EntityIdDTO
 		beforeEach(async () => {
+			userIdDTO = new EntityIdDTO(userContext.userId);
 			data = await dataService.fetchLogs(userContext, userIdDTO); // get all logs for random user
 			const randomIndex = Math.floor(Math.random() * data.length);
 			randomLog = data[randomIndex] as ConditioningLog<any, ConditioningLogDTO>;
 			randomLogIdDTO = new EntityIdDTO(randomLog!.entityId!);
-			userIdDTO = new EntityIdDTO(userContext.userId);
 			
 			const detailedLogMock = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 			repoSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
@@ -904,7 +904,7 @@ describe('ConditioningDataService', () => {
 			repoSpy && repoSpy.mockRestore();
 		});
 
-		it('can provide details for a conditioning log owned by a user', async () => {				
+		it('provides details for a conditioning log owned by a user', async () => {				
 			// arrange
 			
 			//act

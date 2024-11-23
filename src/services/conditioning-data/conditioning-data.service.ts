@@ -275,6 +275,13 @@ export class ConditioningDataService {
 		queryDTO?: QueryDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
+
+		// check if provided user id matches context decoded from access token
+		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
+			if (userIdDTO?.value !== ctx.userId) { // user id does not match -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${userIdDTO.value}.`);
+			}
+		}
 		
 		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];		
 		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs

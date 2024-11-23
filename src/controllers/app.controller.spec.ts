@@ -1103,6 +1103,22 @@ describe('AppController', () => {
 					expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 				});
 
+				it('throws error if user id is not provided', async () => {
+					// arrange
+					const response$ = http.get(`${serverUrl}/logs`, { headers });
+
+					// act/assert
+					expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				});
+
+				it('throws error if user id is invalid', async () => {
+					// arrange
+					const response$ = http.get(`${serverUrl}/logs/invalid`, { headers });
+
+					// act/assert
+					expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				});
+
 				it('throws error if query is present but has invalid data', async () => {
 					// arrange
 					queryDTOProps.start = 'invalid'; // invalid date
