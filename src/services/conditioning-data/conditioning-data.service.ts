@@ -1,10 +1,10 @@
 import { Inject, Injectable, OnApplicationBootstrap, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 
-import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
+import { BehaviorSubject, filter, firstValueFrom, last, lastValueFrom, Observable, Subscription, take } from 'rxjs';
 
 import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
-import { EntityId, Logger } from '@evelbulgroz/ddd-base';
+import { EntityId, EntityUpdatedEvent, Logger } from '@evelbulgroz/ddd-base';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
 
@@ -561,7 +561,7 @@ export class ConditioningDataService implements OnModuleInit, OnModuleDestroy {
 	protected subscribeToRepoEvents(): void {
 		// subscribe to user repo events
 		this.subscriptions.push(this.userRepo.updates$.subscribe((event) => {
-			//console.debug('event', JSON.stringify(event));
+			this.handleUserRepoEvent(event);
 		}));
 
 		// subscribe to log repo events
@@ -570,6 +570,60 @@ export class ConditioningDataService implements OnModuleInit, OnModuleDestroy {
 			this.logger?.log(`${this.constructor.name}: Log event: ${event}`);
 		}));
 		*/
+	}
+
+	/* Dispatcher for user repo domain events */
+	protected async handleUserRepoEvent(event: any) {
+		switch (event.constructor) {
+			case EntityUpdatedEvent: {
+				this.handleUserUpdatedEvent(event as any);
+				break;
+			}
+			default: {
+				this.logger.warn(`${this.constructor.name}: Unhandled user repo event: ${event.constructor.name}`);
+				break;
+			}
+		};
+	}
+	
+	/* Handler for update event from user repo (event handler)
+	 * @todo: specify generic type for event, tighten up type checks
+	 */
+	protected async handleUserUpdatedEvent(event: any) {// todo: specify generic type for event
+		const userDTO = event.payload as UserDTO;
+		const cacheEntry = this.userLogsSubject.value.find((entry) => entry.userId === userDTO.userId);
+		if (cacheEntry) {
+			const cachedLogs = cacheEntry.logs;
+			// filter out logs that are no longer included in user DTO
+			const includedLogs = cachedLogs.filter((log) => userDTO!.logs!.includes(log.entityId!));
+			
+			// fetch logs that are included in user DTO but not in cache
+			const cachedLogIds = cachedLogs.map((log) => log.entityId);
+			const addedLogIds = userDTO.logs!.filter((logId) => !cachedLogIds.includes(logId));
+			const addedLogs = [];
+			for (const logId of addedLogIds) {
+				//console.debug('fetching log:', logId);
+				const result = await this.logRepo.fetchById(logId);
+				if (result.isFailure) {
+					this.logger.error(`${this.constructor.name}: Error fetching log ${logId} for user ${userDTO.userId}: ${result.error}`);
+				}
+				else {
+					const log = await firstValueFrom(result.value as Observable<ConditioningLog<any, ConditioningLogDTO>>);
+					if (log) {
+						//console.debug('fetched log:', log.entityId);
+						void addedLogs.push(log);
+					}
+				}
+			}
+			
+			// update cache entry with included and added logs
+			cacheEntry.logs = includedLogs.concat(addedLogs);
+			cacheEntry.lastAccessed = new Date(); // update last accessed timestamp
+
+			// update cache with shallow copy to trigger subscribers
+			this.userLogsSubject.next([...this.userLogsSubject.value]);
+			this.logger.log(`${this.constructor.name}: User ${userDTO.userId} logs updated in cache.`);
+		}
 	}
 	
 	/* Convert array of conditioning logs into time series (aggregation helper) */

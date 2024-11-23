@@ -4,7 +4,7 @@ import { createTestingModule } from '../../test/test-utils';
 
 import { jest } from '@jest/globals';
 
-import { Observable, Subscription, firstValueFrom, of } from 'rxjs';
+import { Observable, Subject, Subscription, firstValueFrom, last, lastValueFrom, of, take } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
@@ -43,7 +43,10 @@ describe('ConditioningDataService', () => {
 	let logRepo: ConditioningLogRepo<any, ConditioningLogDTO>;
 	let queryMapper: QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>;
 	let userRepo: UserRepository<any, UserDTO>;
+	let updatesSubject: Subject<any>;
 	beforeEach(async () => {
+		updatesSubject = new Subject<any>();
+		
 		app = await createTestingModule({
 			imports: [
 				//ConfigModule is imported automatically by createTestingModule
@@ -82,7 +85,7 @@ describe('ConditioningDataService', () => {
 						fetchAll: jest.fn(),
 						fetchById: jest.fn(),
 						update: jest.fn(),
-						updates$: of({} as EntityUpdatedEvent<any,any>),
+						updates$: updatesSubject.asObservable(),
 					}
 				}
 			],
@@ -92,7 +95,7 @@ describe('ConditioningDataService', () => {
 		logRepo = app.get<ConditioningLogRepo<any, ConditioningLogDTO>>(ConditioningLogRepo);
 		queryMapper = app.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
 		userRepo = app.get<UserRepository<any, UserDTO>>(UserRepository);
-
+		
 		await app.init(); // initialize the module, triggering onModuleInit() and onApplicationBootstrap lifecycle hooks
 	});
 	
@@ -897,10 +900,11 @@ describe('ConditioningDataService', () => {
 		let logRepoFetchByidSpy: any
 		let userRepoFetchByidSpy: any;
 		beforeEach(async () => {
-			const newDetailedLog = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
-			logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => // return randomLog instead?
-				Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(newDetailedLog)))
-			);
+			//const newDetailedLog = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+			logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async (id: EntityId) => { // return randomLog instead?
+				const retrievedLog = ConditioningLog.create(logDTO, id ?? randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+				return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(retrievedLog)));
+			});
 			
 			userRepoFetchByidSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() =>
 				Promise.resolve(Result.ok(of(randomUser)))
@@ -913,6 +917,7 @@ describe('ConditioningDataService', () => {
 
 		describe('create', () => {
 			let existingUserLogIds: EntityId[];
+			let newLog: ConditioningLog<any, ConditioningLogDTO>;
 			let newLogId: string;
 			let newLogDTO: ConditioningLogDTO;
 			let logRepoCreateSpy: any;
@@ -920,9 +925,10 @@ describe('ConditioningDataService', () => {
 			beforeEach(() => {
 				existingUserLogIds = logsForRandomUser.map(log => log.entityId!);
 				newLogId = uuidv4();				
-				newLogDTO = testDTOs[Math.floor(Math.random() * testDTOs.length)];				
+				newLogDTO = testDTOs[Math.floor(Math.random() * testDTOs.length)];	
+				newLogDTO.entityId = newLogId;
+				newLog = ConditioningLog.create(newLogDTO, newLogId, undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logRepoCreateSpy = jest.spyOn(logRepo, 'create').mockImplementation(() => {
-					const newLog = ConditioningLog.create(newLogDTO, newLogId, undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 					return Promise.resolve(Result.ok<ConditioningLog<any, ConditioningLogDTO>>(newLog!))
 				});
 
@@ -974,31 +980,29 @@ describe('ConditioningDataService', () => {
 			});
 
 			xit('updates cache with new log from repo update', async () => {
-				// set up spy on userRepo.updates$ to emit user with new log added
-				const updatedUser = User.create(randomUser.toJSON(), randomUser.entityId).value as User;
-				updatedUser.addLog(newLogId);
+				// arrange
+				const newLogId = await dataService.createLog(userContext, randomUserIdDTO, newLogDTO);
+				console.debug('newLogId:', newLogId);
 				
+				//randomUser.addLog(newLogId);                
 				const updateEvent = new EntityUpdatedEvent<any, any>({
 					eventId: uuidv4(),
 					eventName: 'EntityUpdatedEvent',
 					occurredOn: new Date(),
-					payload: updatedUser.toJSON(),
+					payload: randomUser.toJSON(),
 				});
 				
-				// vary hard to spy on the observable from the repo, so brute force it
-				// bug: subscribers only receive an empty object, never the updated user
-
-				(userRepo as any)['updates$'] = of(updateEvent as any);
-
 				// act
-				void await dataService.createLog(userContext, randomUserIdDTO, newLogDTO);
-
+				updatesSubject.next(updateEvent); // simulate event from userRepo.updates$
+			
 				// assert
-				const cache = dataService['userLogsSubject'].value;
-				const cacheEntry = cache.find(entry => entry.userId === randomUserId);
-				expect(cacheEntry).toBeDefined();
-				expect(cacheEntry!.logs.map(log => log?.entityId)).toContainEqual(newLogId);
-			});				
+				// bug: runs before update event is processed
+				const updatedCache = await lastValueFrom(dataService['userLogsSubject'].pipe(take(1)));
+				expect(updatedCache).toBeDefined();
+				const cacheEntry = updatedCache.find(entry => entry.userId === randomUserId);
+				//const newLog = cacheEntry?.logs.find(log => log.entityId === newLogId);
+				//expect(newLog).toBeDefined();
+			});
 		});
 
 		describe('retrieve', () => {
