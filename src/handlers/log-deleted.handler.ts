@@ -3,12 +3,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
-import { LogUpdatedEvent } from '../events/log-updated.event';
 import { EventHandler } from './event.handler';
+import { LogDeletedEvent } from '../events/log-deleted.event';
 
 /** Log updated event handler */
 @Injectable()
-export class LogUpdatedHandler extends EventHandler<LogUpdatedEvent> {
+export class LogDeletedHandler extends EventHandler<LogDeletedEvent> {
 	constructor(
 		private readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly logger: Logger
@@ -16,12 +16,12 @@ export class LogUpdatedHandler extends EventHandler<LogUpdatedEvent> {
 		super();
 	}
 
-	public async handle(event: LogUpdatedEvent): Promise<void> {
+	public async handle(event: LogDeletedEvent): Promise<void> {
 		throw new Error('Method not implemented.');
 		const logDTO = event.payload;
 		// Handle the log update event
-		this.logger.log(`Log ${logDTO.entityId} updated.`);
+		this.logger.log(`Log ${logDTO.entityId} deleted.`);
 	}
 }
 
-export default LogUpdatedHandler;
+export default LogDeletedHandler;

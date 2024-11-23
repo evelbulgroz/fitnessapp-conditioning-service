@@ -11,6 +11,7 @@ import { UserDTO } from '../dtos/domain/user.dto';
 import { UserUpdatedEvent } from '../events/user-updated.event';
 import { UserRepository } from '../repositories/user.repo';
 
+/** User updated event handler */
 @Injectable()
 export class UserUpdatedHandler extends EventHandler<UserUpdatedEvent> {
 	constructor(
@@ -19,11 +20,13 @@ export class UserUpdatedHandler extends EventHandler<UserUpdatedEvent> {
 		private readonly logger: Logger
 	) {
 		super();
+		void this.logRepo, this.userRepo, this.logger; // avoid unused variable warning
 	}
 
 	public async handle(event: UserUpdatedEvent): Promise<void> {
-		const userDTO = event.payload;
-		/*const cacheEntry = this.userRepo.getUserLogsCacheEntry(userDTO.userId);
+		throw new Error('Method not implemented.');
+		/*const userDTO = event.payload;
+		const cacheEntry = this.userRepo.getUserLogsCacheEntry(userDTO.userId);
 		if (cacheEntry) {
 			const cachedLogs = cacheEntry.logs;
 			const includedLogs = cachedLogs.filter((log) => userDTO.logs.includes(log.entityId));
@@ -50,3 +53,5 @@ export class UserUpdatedHandler extends EventHandler<UserUpdatedEvent> {
 		}*/
 	}
 }
+
+export default UserUpdatedHandler;
