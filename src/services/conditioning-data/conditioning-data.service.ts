@@ -70,7 +70,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 	public constructor(
 		protected readonly aggregator: AggregatorService,
-		protected readonly eventDispatcher: EventDispatcher,
+		//protected readonly eventDispatcher: EventDispatcher, // bug: enabling this breaks UserUpdatedHandler tests
 		protected readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		protected readonly userRepo: UserRepository<any, UserDTO>
 	) {
