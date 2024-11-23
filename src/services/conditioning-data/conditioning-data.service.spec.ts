@@ -4,7 +4,7 @@ import { createTestingModule } from '../../test/test-utils';
 
 import { jest } from '@jest/globals';
 
-import { Observable, Subject, Subscription, firstValueFrom, last, lastValueFrom, of, take } from 'rxjs';
+import { firstValueFrom, Observable, of, Subject, Subscription } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
@@ -30,7 +30,6 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
-import { add } from 'lodash-es';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -96,8 +95,6 @@ describe('ConditioningDataService', () => {
 		logRepo = app.get<ConditioningLogRepo<any, ConditioningLogDTO>>(ConditioningLogRepo);
 		queryMapper = app.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
 		userRepo = app.get<UserRepository<any, UserDTO>>(UserRepository);
-		
-		await app.init(); // initialize the module, triggering onModuleInit() and onApplicationBootstrap lifecycle hooks
 	});
 	
 	// set up test data and spies		
@@ -627,13 +624,13 @@ describe('ConditioningDataService', () => {
 	});	
 
 	// tear down test environment
-	afterEach(() => {
+	afterEach(async () => {
 		logFetchAllSpy && logFetchAllSpy.mockRestore();
 		subs.forEach(sub => sub?.unsubscribe());
 		userFetchAllSpy && userFetchAllSpy.mockRestore();
-		jest.setTimeout(originalTimeout);
 		jest.clearAllMocks();
-		app.close(); // close the module, triggering onModuleDestroy(), beforeApplicationShutdown() and onApplicationShutdown() lifecycle hooks
+		jest.setTimeout(originalTimeout);
+		await app.close(); // close the module to trigger onModuleDestroy()
 	});
 
 	it('can be created', () => {

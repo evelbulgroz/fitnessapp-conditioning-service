@@ -1,6 +1,6 @@
-import { Inject, Injectable, OnApplicationBootstrap, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 
-import { BehaviorSubject, filter, firstValueFrom, last, lastValueFrom, Observable, Subscription, take } from 'rxjs';
+import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
 import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
@@ -47,11 +47,11 @@ interface UserLogsCacheEntry {
  * @remark Relies on repositories for persistence, and on controller(s) for request authentication, user context, data sanitization, and error logging.
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
- * @todo Set up subscription to repo events to keep cache in sync with persistence layer
+ * @todo Set up subscription to repo events to keep cache in sync with persistence layer (in progress)
  * @todo Implement caching and synchronization with user microservice
  */
 @Injectable()
-export class ConditioningDataService implements OnModuleInit, OnModuleDestroy {
+export class ConditioningDataService implements OnModuleDestroy {
 	
 	//------------------------- PRIVATE PROPERTIES --------------------------//
 	
@@ -70,16 +70,10 @@ export class ConditioningDataService implements OnModuleInit, OnModuleDestroy {
 		protected readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		protected readonly userRepo: UserRepository<any, UserDTO>
 	) {
-		this.subscribeToRepoEvents(); // subscribe to repo events on construction
+		this.subscribeToRepoEvents(); // deps not intialized in onModuleInit, so subscribe here
 	}
 
 	//----------------------------LIFECYCLE HOOKS ---------------------------//
-
-	onModuleInit() {
-		this.logger.log(`${this.constructor.name}: Starting up...`);
-		//this.subscribeToRepoEvents(); // subscribe to repo events on module init
-		//this.initializeCache(); // initialize cache on module init
-	}
 
 	onModuleDestroy() {
 		this.logger.log(`${this.constructor.name}: Shutting down...`);
@@ -561,7 +555,7 @@ export class ConditioningDataService implements OnModuleInit, OnModuleDestroy {
 	protected subscribeToRepoEvents(): void {
 		// subscribe to user repo events
 		this.subscriptions.push(this.userRepo.updates$.subscribe((event) => {
-			this.handleUserRepoEvent(event);
+			this.dispatchUserRepoEvent(event);
 		}));
 
 		// subscribe to log repo events
@@ -573,12 +567,13 @@ export class ConditioningDataService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	/* Dispatcher for user repo domain events */
-	protected async handleUserRepoEvent(event: any) {
+	protected async dispatchUserRepoEvent(event: any) {
 		switch (event.constructor) {
 			case EntityUpdatedEvent: {
 				this.handleUserUpdatedEvent(event as any);
 				break;
 			}
+			// add more cases as needed (e.g. EntityCreatedEvent, EntityDeletedEvent)
 			default: {
 				this.logger.warn(`${this.constructor.name}: Unhandled user repo event: ${event.constructor.name}`);
 				break;
