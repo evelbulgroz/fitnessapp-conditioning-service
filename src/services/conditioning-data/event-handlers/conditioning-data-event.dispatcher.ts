@@ -1,9 +1,17 @@
 // event-dispatcher.ts
 import { Injectable } from '@nestjs/common';
-import { UserUpdatedHandler } from './handlers/user-updated.handler';
-import { LogUpdatedHandler } from './handlers/log-updated.handler';
-import { UserUpdatedEvent } from './events/user-updated.event';
-import { LogUpdatedEvent } from './events/log-updated.event';
+
+import { DomainEvent, DomainEventDTO } from '@evelbulgroz/ddd-base';
+
+import { UserUpdatedHandler } from './user-updated.handler';
+import { LogUpdatedHandler } from './log-updated.handler';
+import { UserUpdatedEvent } from '../../../events/user-updated.event';
+//import { LogUpdatedEvent } from '../../../events/log-updated.event';
+
+// placeholder for LogUpdatedEvent
+class LogUpdatedEvent {
+	constructor(dto: any) {}
+}
 
 @Injectable()
 export class ConditioningDataEventDispatcher { // or EventDispatcher if system-wide
@@ -12,7 +20,7 @@ constructor(
 	private readonly logUpdatedHandler: LogUpdatedHandler
 ) {}
 
-async dispatch(event: any): Promise<void> {
+public async dispatch(event: DomainEvent<DomainEventDTO<any>, any>): Promise<void> {
 	switch (event.constructor) {
 		case UserUpdatedEvent:
 			await this.userUpdatedHandler.handle(event);
