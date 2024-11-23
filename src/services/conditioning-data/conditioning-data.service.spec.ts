@@ -30,6 +30,7 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
+import { add } from 'lodash-es';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -979,29 +980,32 @@ describe('ConditioningDataService', () => {
 				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toJSON());
 			});
 
-			xit('updates cache with new log from repo update', async () => {
+			it('updates cache with new log from repo update', (done) => {
 				// arrange
-				const newLogId = await dataService.createLog(userContext, randomUserIdDTO, newLogDTO);
-				console.debug('newLogId:', newLogId);
+				dataService.createLog(userContext, randomUserIdDTO, newLogDTO).then((newLogId) => {
+					const updateEvent = new EntityUpdatedEvent<any, any>({
+						eventId: uuidv4(),
+						eventName: 'EntityUpdatedEvent',
+						occurredOn: new Date(),
+						payload: randomUser.toJSON(),
+					});
+					
+					// act
+					updatesSubject.next(updateEvent); // simulate event from userRepo.updates$
 				
-				//randomUser.addLog(newLogId);                
-				const updateEvent = new EntityUpdatedEvent<any, any>({
-					eventId: uuidv4(),
-					eventName: 'EntityUpdatedEvent',
-					occurredOn: new Date(),
-					payload: randomUser.toJSON(),
+					// assert
+					let callCounter = 0;
+					const sub = dataService['userLogsSubject'].subscribe(updatedCache => {
+						callCounter++;						
+						if (callCounter > 1) { // ignore first call
+							const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
+							const addedLog = cacheEntry?.logs.find(log => log.entityId === newLogId);
+							expect(addedLog).toBeDefined();
+							sub.unsubscribe();
+							done();
+						}
+					});
 				});
-				
-				// act
-				updatesSubject.next(updateEvent); // simulate event from userRepo.updates$
-			
-				// assert
-				// bug: runs before update event is processed
-				const updatedCache = await lastValueFrom(dataService['userLogsSubject'].pipe(take(1)));
-				expect(updatedCache).toBeDefined();
-				const cacheEntry = updatedCache.find(entry => entry.userId === randomUserId);
-				//const newLog = cacheEntry?.logs.find(log => log.entityId === newLogId);
-				//expect(newLog).toBeDefined();
 			});
 		});
 
