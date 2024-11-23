@@ -28,12 +28,9 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 	}
 
 	public async handle(event: UserUpdatedEvent): Promise<void> {
-		throw new Error('Method not implemented.');
-		/*
 		const userDTO = event.payload as UserDTO;
-		// bug: 'this' refers to data service where code is copied from
-		// need to find other way to access userLogsSubject in data service
-		const cacheEntry = this.userLogsSubject.value.find((entry) => entry.userId === userDTO.userId);
+		const snapshot = this.logService.getCacheSnapshot(this);
+		const cacheEntry = snapshot.find((entry) => entry.userId === userDTO.userId);
 		if (cacheEntry) {
 			const cachedLogs = cacheEntry.logs;
 			// filter out logs that are no longer included in user DTO
@@ -63,10 +60,11 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 			cacheEntry.lastAccessed = new Date(); // update last accessed timestamp
 
 			// update cache with shallow copy to trigger subscribers
-			this.userLogsSubject.next([...this.userLogsSubject.value]);
+			this.logService.updateCache([...snapshot], this);
+
+			// log update
 			this.logger.log(`${this.constructor.name}: User ${userDTO.userId} logs updated in cache.`);
 		}
-			*/
 	}
 }
 
