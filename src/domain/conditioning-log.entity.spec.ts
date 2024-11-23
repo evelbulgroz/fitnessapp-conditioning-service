@@ -3,7 +3,7 @@
 
 //import { ActivityType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { ConditioningLog } from './conditioning-log.entity';
-import { ConditioningLogDTO } from "../dtos/conditioning-log.dto";
+import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
 import { ConditioningLap } from './conditioning-lap.model';
 import { Quantity } from '@evelbulgroz/quantity-class';
 

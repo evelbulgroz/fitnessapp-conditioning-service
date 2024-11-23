@@ -9,7 +9,7 @@ import path from 'path';
 
 //import { EventSourceBuilder } from '../../utils/event-source-builder';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from "../../dtos/conditioning-log.dto";
+import { ConditioningLogDTO } from "../../dtos/domain/conditioning-log.dto";
 import { ConditioningLogRepo } from '../conditioning-log.repo';
 import { EntityId,  Logger, Result } from "@evelbulgroz/ddd-base";
 import { FileService } from '../../services/file-service/file.service';

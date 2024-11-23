@@ -15,7 +15,7 @@ import { JwtAuthResult } from '../../services/jwt/models/jwt-auth-result.model';
 import { JwtAuthStrategy } from './jwt-auth.strategy';
 import { JwtService } from "../../services/jwt/models/jwt-service.model";
 import { User } from '../../domain/user.entity';
-import { UserDTO } from '../../dtos/user.dto';
+import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserJwtPayload } from '../../services/jwt/models/user-jwt-payload.model';
 import { UserRepository } from '../../repositories/user-repo.model';
 import { VerifyOptions as JwtVerifyOptions } from '../../services/jwt/models/jwt-verify-options.model';

@@ -3,7 +3,7 @@ import {jest} from '@jest/globals';
 import {v4 as uuidv4} from 'uuid';
 
 import { User } from './user.entity';
-import { UserDTO } from '../dtos/user.dto';
+import { UserDTO } from '../dtos/domain/user.dto';
 import { EntityId } from '@evelbulgroz/ddd-base';
 
 describe('User', () => {

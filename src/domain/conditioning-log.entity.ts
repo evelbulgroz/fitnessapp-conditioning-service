@@ -3,7 +3,7 @@ import { IsArray, IsLikeAll } from '@evelbulgroz/sanitizer-decorator';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { TrainingLog } from "@evelbulgroz/fitnessapp-base";
 
-import { ConditioningLogDTO } from "../dtos/conditioning-log.dto";
+import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
 import { ConditioningLap } from "./conditioning-lap.model";
 
 /**@description A concrete log of a conditioning activity, e.g. a bike ride, a swim, a run etc.

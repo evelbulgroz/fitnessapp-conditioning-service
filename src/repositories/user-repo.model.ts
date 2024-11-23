@@ -4,7 +4,7 @@ import { Observable } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
 import { User } from "../domain/user.entity";
-import { UserDTO } from "../dtos/user.dto";
+import { UserDTO } from "../dtos/domain/user.dto";
 import { Query } from "@evelbulgroz/query-fns";
 
 import { EntityCreatedEvent, EntityCreatedEventDTO, EntityDeletedEvent, EntityDeletedEventDTO, EntityDTO, EntityId, EntityUpdatedEvent, EntityUpdatedEventDTO, Repository, Result } from "@evelbulgroz/ddd-base";

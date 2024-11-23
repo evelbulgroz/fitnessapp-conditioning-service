@@ -4,7 +4,7 @@ import { Observable } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
 import { ConditioningLog } from "../domain/conditioning-log.entity";
-import { ConditioningLogDTO } from "../dtos/conditioning-log.dto";
+import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
 import { EntityCreatedEvent, EntityCreatedEventDTO, EntityDeletedEvent, EntityDeletedEventDTO, EntityDTO, EntityId, EntityUpdatedEvent, EntityUpdatedEventDTO, Logger, Result } from "@evelbulgroz/ddd-base";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 import { Query } from "@evelbulgroz/query-fns";

@@ -1,5 +1,5 @@
 import { EntityUpdatedEvent } from '@evelbulgroz/ddd-base';
-import { UserDTO } from '../../dtos/user.dto';
+import { UserDTO } from '../../dtos/domain/user.dto';
 
 import { UserUpdatedEventDTO } from './user-updated.dto';
 

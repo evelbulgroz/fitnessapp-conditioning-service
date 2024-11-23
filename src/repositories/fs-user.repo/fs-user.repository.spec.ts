@@ -8,7 +8,7 @@ import {v4 as uuidv4} from 'uuid';
 
 import { EventSourceBuilder } from '../../utils/event-source-builder';
 import { User } from '../../domain/user.entity';
-import { UserDTO } from "../../dtos/user.dto";
+import { UserDTO } from "../../dtos/domain/user.dto";
 import { ConsoleLogger, Logger, Result } from '@evelbulgroz/ddd-base';
 import { createTestingModule } from '../../test/test-utils';
 import { FileService } from '../../services/file-service/file.service';

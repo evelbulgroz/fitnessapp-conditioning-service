@@ -11,7 +11,7 @@ import { JwtPayloadType } from "../../services/jwt/models/jwt-payload.type";
 import { JwtService } from "../../services/jwt/models/jwt-service.model";
 import { VerifyOptions as JwtVerifyOptions } from "../../services/jwt/models/jwt-verify-options.model";
 import { User } from "../../domain/user.entity";
-import { UserDTO } from "../..//dtos/user.dto";
+import { UserDTO } from "../../dtos/domain/user.dto";
 import { UserRepository } from "../../repositories/user-repo.model";
 
 

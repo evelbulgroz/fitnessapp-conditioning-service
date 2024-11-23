@@ -8,21 +8,21 @@ import { EntityId, EntityUpdatedEvent, Logger } from '@evelbulgroz/ddd-base';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
 
-import { AggregationQueryDTO } from '../../controllers/dtos/aggregation-query.dto';
+import { AggregationQueryDTO } from '../../dtos/sanitization/aggregation-query.dto';
 import { AggregatorService } from '../aggregator/aggregator.service';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
+import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log.repo';
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
-import { EntityIdDTO } from '../../controllers/dtos/entity-id.dto';
-import { QueryDTO } from '../../controllers/dtos/query.dto';
+import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
+import { QueryDTO } from '../../dtos/sanitization/query.dto';
 import { QueryMapper } from './../../mappers/query.mapper';
 import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';
 import { User } from '../../domain/user.entity';
-import { UserContext } from '../../controllers/domain/user-context.model';
-import { UserDTO } from '../../dtos/user.dto';
+import { UserContext } from '../../domain/user-context.model';
+import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
 import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
 

@@ -2,7 +2,7 @@
 import { Entity, EntityId } from "@evelbulgroz/ddd-base";
 import { IsArray, IsDefined, IsInstanceOfOneOf, IsInstanceOfOneOfAll } from '@evelbulgroz/sanitizer-decorator';
 
-import UserDTO from "../dtos/user.dto.js";
+import UserDTO from "../dtos/domain/user.dto.js";
 
 /** A human user of the system, e.g. a coach or an athlete, with logs of conditioning activities
  * @remark Shallow implementation intended only to hold associations between users and logs

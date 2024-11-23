@@ -10,9 +10,9 @@ import { Logger } from '@evelbulgroz/ddd-base';
 import { BootstrapResponseDTO } from '../../dtos/registration/bootstrap-response.dto';
 import { LocateDataDTO } from '../../dtos/registration/locate-data.dto';
 import { ServiceDataDTO } from '../../dtos/registration/service-data.dto';
-import { ServiceLoginDataDTO } from '../../dtos/authentication/service-login-data.dto';
-import { ServiceLogoutDataDTO } from '../../dtos/authentication/service-logout-data.dto';
-import { ServiceTokenRefreshDataDTO } from '../../dtos/authentication/service-token-refresh-data.dto';
+import { ServiceLoginDataDTO } from '../../dtos/sanitization/service-login-data.dto';
+import { ServiceLogoutDataDTO } from '../../dtos/sanitization/service-logout-data.dto';
+import { ServiceTokenRefreshDataDTO } from '../../dtos/sanitization/service-token-refresh-data.dto';
 
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../domain/config-options.model';
 import { AuthService } from "../auth/auth-service.class";

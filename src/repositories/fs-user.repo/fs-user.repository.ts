@@ -11,7 +11,7 @@ import { EntityId, Logger, Result } from "@evelbulgroz/ddd-base";
 import { EndPointConfig } from '../../domain/config-options.model';
 import { FileService } from '../../services/file-service/file.service';
 import { User } from '../../domain/user.entity';
-import { UserDTO } from "../../dtos/user.dto";
+import { UserDTO } from "../../dtos/domain/user.dto";
 import { UserRepository } from '../user-repo.model';
 
 /**@classdesc Concrete implementation of UserRepo that uses the local file system to for persistence.

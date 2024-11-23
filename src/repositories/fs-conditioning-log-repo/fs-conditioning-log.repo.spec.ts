@@ -11,7 +11,7 @@ import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-ba
 import { ConsoleLogger, Logger, Result } from '@evelbulgroz/ddd-base';
 
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from "../../dtos/conditioning-log.dto";
+import { ConditioningLogDTO } from "../../dtos/domain/conditioning-log.dto";
 import { createTestingModule } from '../../test/test-utils';
 import { FileService } from '../../services/file-service/file.service';
 import { FsConditioningLogRepo } from './fs-conditioning-log.repo';
