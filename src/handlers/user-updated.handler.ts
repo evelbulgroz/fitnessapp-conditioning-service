@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
 
 import { Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
-import { EventHandler } from './event.handler';
+import { DomainEventHandler } from './domain-event.handler';
 import { User } from '../domain/user.entity';
 import { UserDTO } from '../dtos/domain/user.dto';
 import { UserUpdatedEvent } from '../events/user-updated.event';
@@ -15,7 +15,7 @@ import { UserRepository } from '../repositories/user.repo';
 
 /** User updated event handler */
 @Injectable()
-export class UserUpdatedHandler extends EventHandler<UserUpdatedEvent> {
+export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 	constructor(
 		private readonly userRepo: UserRepository<User, UserDTO>,
 		private readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
@@ -27,32 +27,44 @@ export class UserUpdatedHandler extends EventHandler<UserUpdatedEvent> {
 
 	public async handle(event: UserUpdatedEvent): Promise<void> {
 		throw new Error('Method not implemented.');
-		/*const userDTO = event.payload;
-		const cacheEntry = this.userRepo.getUserLogsCacheEntry(userDTO.userId);
+		/*
+		const userDTO = event.payload as UserDTO;
+		// bug: 'this' refers to data service where code is copied from
+		// need to find other way to access userLogsSubject in data service
+		const cacheEntry = this.userLogsSubject.value.find((entry) => entry.userId === userDTO.userId);
 		if (cacheEntry) {
 			const cachedLogs = cacheEntry.logs;
-			const includedLogs = cachedLogs.filter((log) => userDTO.logs.includes(log.entityId));
+			// filter out logs that are no longer included in user DTO
+			const includedLogs = cachedLogs.filter((log) => userDTO!.logs!.includes(log.entityId!));
+			
+			// fetch logs that are included in user DTO but not in cache
 			const cachedLogIds = cachedLogs.map((log) => log.entityId);
-			const addedLogIds = userDTO.logs.filter((logId) => !cachedLogIds.includes(logId));
+			const addedLogIds = userDTO.logs!.filter((logId) => !cachedLogIds.includes(logId));
 			const addedLogs = [];
-
 			for (const logId of addedLogIds) {
+				//console.debug('fetching log:', logId);
 				const result = await this.logRepo.fetchById(logId);
 				if (result.isFailure) {
-					this.logger.error(`Error fetching log ${logId} for user ${userDTO.userId}: ${result.error}`);
-				} else {
-					const log = await firstValueFrom(result.value);
+					this.logger.error(`${this.constructor.name}: Error fetching log ${logId} for user ${userDTO.userId}: ${result.error}`);
+				}
+				else {
+					const log = await firstValueFrom(result.value as Observable<ConditioningLog<any, ConditioningLogDTO>>);
 					if (log) {
-						addedLogs.push(log);
+						//console.debug('fetched log:', log.entityId);
+						void addedLogs.push(log);
 					}
 				}
 			}
-
+			
+			// update cache entry with included and added logs
 			cacheEntry.logs = includedLogs.concat(addedLogs);
-			cacheEntry.lastAccessed = new Date();
-			this.userRepo.updateUserLogsCacheEntry(cacheEntry);
-			this.logger.log(`User ${userDTO.userId} logs updated in cache.`);
-		}*/
+			cacheEntry.lastAccessed = new Date(); // update last accessed timestamp
+
+			// update cache with shallow copy to trigger subscribers
+			this.userLogsSubject.next([...this.userLogsSubject.value]);
+			this.logger.log(`${this.constructor.name}: User ${userDTO.userId} logs updated in cache.`);
+		}
+			*/
 	}
 }
 

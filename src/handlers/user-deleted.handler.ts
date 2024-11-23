@@ -5,7 +5,7 @@ import { Logger } from '@evelbulgroz/ddd-base';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
-import { EventHandler } from './event.handler';
+import { DomainEventHandler } from './domain-event.handler';
 import { User } from '../domain/user.entity';
 import { UserDeletedEvent } from '../events/user-deleted.event'
 import { UserDTO } from '../dtos/domain/user.dto';
@@ -13,7 +13,7 @@ import { UserRepository } from '../repositories/user.repo';;
 
 /** User deleted event handler */
 @Injectable()
-export class UserDeletedHandler extends EventHandler<UserDeletedEvent> {
+export class UserDeletedHandler extends DomainEventHandler<UserDeletedEvent> {
 	constructor(
 		private readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly userRepo: UserRepository<User, UserDTO>,

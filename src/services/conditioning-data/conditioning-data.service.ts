@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
 
 import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
@@ -15,6 +15,7 @@ import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log.repo';
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
+import { DomainEventHandler } from '../../handlers/domain-event.handler';
 import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
 import { EventDispatcher } from '../event-dispatcher/event-dispatcher.service';
 import { QueryDTO } from '../../dtos/sanitization/query.dto';
@@ -85,7 +86,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	
 	//------------------------------ PUBLIC API -----------------------------//
 	
-	/**New API: Check if service is ready to use, i.e. has been initialized
+	/** New API: Check if service is ready to use, i.e. has been initialized
 	 * @returns Promise that resolves when the service is ready to use
 	 * @remark Invokes initialization if not already initialized
 	 * @remark Only applies to new API, old API handles initialization internally
@@ -105,7 +106,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		});
 	}	
 
-	/**New API: Create a new conditioning log for a user
+	/** New API: Create a new conditioning log for a user
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param userIdDTO User id of the user for whom to create the log, wrapped in a DTO
 	 * @param logDTO DTO for conditioning log to create
@@ -162,7 +163,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		return Promise.resolve(newLog.entityId!);
 	}
 	
-	/**New API: Get single, detailed conditioning log by log entity id
+	/** New API: Get single, detailed conditioning log by log entity id
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to retrieve the log, wrapped in a DTO
 	 * @param logIdDTO Entity id of the conditioning log to retrieve, wrapped in a DTO
@@ -233,7 +234,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		});
 	}
 
-	/**New API: Update an existing conditioning log for a user
+	/** New API: Update an existing conditioning log for a user
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param logIdDTO Entity id of the conditioning log to update, wrapped in a DTO
 	 * @param logDTO Partial conditioning log DTO with updated properties
@@ -276,7 +277,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		return Promise.resolve();		
 	}
 
-	/**New API: Delete a conditioning log by entity id
+	/** New API: Delete a conditioning log by entity id
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param logIdDTO Entity id of the conditioning log to delete, wrapped in a DTO
 	 * @returns void
@@ -337,7 +338,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		return Promise.resolve();
 	}
 
-	/**New API: Get all conditioning logs for user and mathcing query (if provided)
+	/** New API: Get all conditioning logs for user and mathcing query (if provided)
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param queryDTO Optional query to filter logs (else all accessible logs for role are returned)
 	 * @returns Array of conditioning logs (constrained by user context and query)
@@ -386,7 +387,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		return Promise.resolve(sortedLogs);
 	}
 
-	/**New API: Get aggregated time series of conditioning logs
+	/** New API: Get aggregated time series of conditioning logs
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param aggregationQueryDTO Validated aggregation query DTO speficifying aggregation parameters
 	 * @param queryDTO Optional query to select logs to aggregate (else all accessible logs are aggregated)
@@ -439,8 +440,35 @@ export class ConditioningDataService implements OnModuleDestroy {
 		);
 		return Promise.resolve(aggregatedSeries);		
 	}
+
+	/** Get user logs cache for domain event handlers
+	 * @param caller Domain event handler requesting access to user logs cache
+	 * @returns Array of user logs cache entries (shallow copy of cache)
+	 * @throws UnauthorizedAccessError if caller is not a domain event handler
+	 * @remark Used by domain event handlers to access user logs cache
+	 */
+	public getCacheSnapshot(caller: DomainEventHandler<any>): UserLogsCacheEntry[] {
+		if (!(caller instanceof DomainEventHandler)) {
+			throw new UnauthorizedAccessError('Unauthorized access: only domain event handlers can access user logs cache.');
+		}
+		return [...this.userLogsSubject.value];
+	}
+
+	/** Update user logs cache for domain event handlers
+	 * @param newCache New cache to replace existing cache
+	 * @param caller Domain event handler updating user logs cache
+	 * @returns void
+	 * @throws UnauthorizedAccessError if caller is not a domain event handler
+	 * @remark Used by domain event handlers to update user logs cache
+	 */
+	public updateCache(newCache: UserLogsCacheEntry[], caller: DomainEventHandler<any>): void {
+		if (!(caller instanceof DomainEventHandler)) {
+			throw new UnauthorizedAccessError('Unauthorized access: only domain event handlers can update user logs cache.');
+		}
+		this.userLogsSubject.next(newCache);
+	}
 	
-	/**In production: Get aggregated conditioning data with series from all activities */
+	/** In production: Get aggregated conditioning data with series from all activities */
 	public async conditioningData(userId?: EntityId): Promise<ConditioningData> {	
 		await this.isReady(); // lazy load logs if necessary
 		let logs: ConditioningLog<any, ConditioningLogDTO>[];

@@ -4,10 +4,10 @@ import { HttpModule, HttpService } from '@nestjs/axios';
 import { ForbiddenException, INestApplication } from '@nestjs/common';
 
 import { jest } from '@jest/globals';
-import { of, lastValueFrom, single } from 'rxjs';
+import { of, lastValueFrom } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
-import { ConsoleLogger, Entity, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
 import { AggregationQueryDTO } from '../dtos/sanitization/aggregation-query.dto';

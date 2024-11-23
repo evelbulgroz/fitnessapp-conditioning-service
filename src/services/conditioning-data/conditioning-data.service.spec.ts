@@ -53,6 +53,7 @@ describe('ConditioningDataService', () => {
 	let aggregatorService: AggregatorService;
 	let app: TestingModule;
 	let dataService: ConditioningDataService;
+	let logger: Logger;
 	let logRepo: ConditioningLogRepo<any, ConditioningLogDTO>;
 	let queryMapper: QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>;
 	let userRepo: UserRepository<any, UserDTO>;
@@ -112,6 +113,7 @@ describe('ConditioningDataService', () => {
 		});
 		aggregatorService = app.get<AggregatorService>(AggregatorService);
 		dataService = app.get<ConditioningDataService>(ConditioningDataService);
+		logger = app.get<Logger>(Logger);
 		logRepo = app.get<ConditioningLogRepo<any, ConditioningLogDTO>>(ConditioningLogRepo);
 		queryMapper = app.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
 		userRepo = app.get<UserRepository<any, UserDTO>>(UserRepository);
@@ -912,7 +914,7 @@ describe('ConditioningDataService', () => {
 		});
 	});
 
-	describe('Single ConditioningLog', () => {
+	describe('ConditioningLog', () => {
 		// no need to test all logs, just a random one
 		// no need to test all detailed properties, rely on unit tests for isOverview property of ConditioningLog class
 		let logRepoFetchByidSpy: any
@@ -1372,6 +1374,50 @@ describe('ConditioningDataService', () => {
 				expect(warnSpy).toHaveBeenCalledWith(`${dataService.constructor.name}: Conditioning log ${logWithoutStart.entityId} has no start date, excluding from ConditioningLogSeries.`);
 				warnSpy.mockRestore();
 			});			
+		});
+
+		describe('Cache access', () => {
+			it('can provide a domain event handler with a snapshot of the cache', async () => {
+				// arrange
+				const expectedCache = dataService['userLogsSubject'].value;
+				const handler = new LogCreatedHandler(logRepo, logger);
+				
+				// act
+				const snapshot = dataService.getCacheSnapshot(handler);
+				
+				// assert
+				expect(snapshot).toBeDefined();
+				expect(snapshot).toEqual(expectedCache);
+			});
+
+			it('throws an UnauthorizedAccessError if caller is not an instance of a domain event handler', async () => {
+				// arrange
+				const caller = { name: 'test' };
+				
+				// act/assert
+				expect(() => dataService.getCacheSnapshot(caller as any)).toThrow(UnauthorizedAccessError);				
+			});
+
+			it('can update the cache with a new snapshot', async () => {
+				// arrange
+				const newCache = [...dataService['userLogsSubject'].value];
+				const handler = new LogCreatedHandler(logRepo, logger);
+				
+				// act
+				dataService.updateCache(newCache, handler);
+				
+				// assert
+				const newSnapshot = dataService.getCacheSnapshot(handler);
+				expect(newSnapshot).toEqual(newCache);
+			});
+
+			it('throws an UnauthorizedAccessError if caller is not an instance of a domain event handler', async () => {
+				// arrange
+				const caller = { name: 'test' };
+				
+				// act/assert
+				expect(() => dataService.updateCache([], caller as any)).toThrow(UnauthorizedAccessError);				
+			});
 		});
 	});
 });

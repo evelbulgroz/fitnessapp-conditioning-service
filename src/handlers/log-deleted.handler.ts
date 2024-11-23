@@ -5,12 +5,12 @@ import { Logger } from '@evelbulgroz/ddd-base';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
-import { EventHandler } from './event.handler';
+import { DomainEventHandler } from './domain-event.handler';
 import { LogDeletedEvent } from '../events/log-deleted.event';
 
 /** Log updated event handler */
 @Injectable()
-export class LogDeletedHandler extends EventHandler<LogDeletedEvent> {
+export class LogDeletedHandler extends DomainEventHandler<LogDeletedEvent> {
 	constructor(
 		private readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly logger: Logger
