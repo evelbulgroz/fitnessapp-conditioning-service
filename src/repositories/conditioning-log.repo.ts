@@ -6,8 +6,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { ConditioningLog } from "../domain/conditioning-log.entity";
 import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
 import { EntityCreatedEvent, EntityCreatedEventDTO, EntityDeletedEvent, EntityDeletedEventDTO, EntityDTO, EntityId, EntityUpdatedEvent, EntityUpdatedEventDTO, Logger, Result } from "@evelbulgroz/ddd-base";
-import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 import { Query } from "@evelbulgroz/query-fns";
+import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
+
+import { LogCreatedEvent } from "../events/log-created.event";
+import { LogDeletedEvent } from "../events/log-deleted.event";
+import { LogUpdatedEvent } from "../events/log-updated.event";
 
 /**@classdesc Describes and provides default features for any ConditioningLog repository
  * @remark Exists mostly to enable clients to depend on abstractions rather than a specific implementations
@@ -60,46 +64,46 @@ export class ConditioningLogRepo<T extends ConditioningLog<T,U>, U extends Condi
 	/** Create log created event
 	 * @param log The log to create the event for
 	 * @returns The log created event
-	 * @todo Refactor to return domain specific event (e.g. LogCreatedEvent)
-	 * @todo Add override modifier after updating base class library
 	 */
-	protected createEntityCreatedEvent(log?: T): EntityCreatedEvent<EntityCreatedEventDTO<any>, EntityDTO> {
-		return new EntityCreatedEvent(<EntityCreatedEventDTO<EntityDTO>>{
+	protected override createEntityCreatedEvent(log?: T): EntityCreatedEvent<EntityCreatedEventDTO<any>, EntityDTO> {
+		const event = new LogCreatedEvent({
 			eventId: uuidv4(),
-			eventName: 'EntityCreatedEvent',
+			eventName: 'LogCreatedEvent',
 			occurredOn: (new Date()).toUTCString(),
-			payload: log?.toJSON() as EntityDTO
+			payload: log?.toJSON() as ConditioningLogDTO
 		});
+
+		return event as any; // todo: sort out the generics later
 	}
 
 	/** Create log updated event
 	 * @param log The log to create the event for
 	 * @returns The log updated event
-	 * @todo Refactor to return domain specific event (e.g. LogUpdatedEvent)
-	 * @todo Add override modifier after updating base class library
 	 */
-	protected createEntityUpdatedEvent(log?: T): EntityUpdatedEvent<EntityUpdatedEventDTO<any>, EntityDTO> {
-		return new EntityUpdatedEvent(<EntityUpdatedEventDTO<EntityDTO>>{
+	protected override createEntityUpdatedEvent(log?: T): EntityUpdatedEvent<EntityUpdatedEventDTO<any>, EntityDTO> {
+		const event = new LogUpdatedEvent({
 			eventId: uuidv4(),
-			eventName: 'EntityUpdatedEvent',
+			eventName: 'LogUpdatedEvent',
 			occurredOn: (new Date()).toUTCString(),
-			payload: log?.toJSON() as Partial<EntityDTO>
+			payload: log?.toJSON() as ConditioningLogDTO
 		});
+
+		return event as any; // todo: sort out the generics later
 	}
 
 	/** Create log deleted event
 	 * @param id The log id to create the event for
 	 * @returns The log deleted event
-	 * @todo Refactor to return domain specific event (e.g. LogDeletedEvent)
-	 * @todo Add override modifier after updating base class library
 	 */
-	protected createEntityDeletedEvent(id?: EntityId): EntityDeletedEvent<EntityDeletedEventDTO<any>, EntityDTO> {
-		return new EntityDeletedEvent(<EntityDeletedEventDTO<EntityDTO>>{
+	protected override createEntityDeletedEvent(id?: EntityId): EntityDeletedEvent<EntityDeletedEventDTO<any>, EntityDTO> {
+		const event = new LogDeletedEvent({
 			eventId: uuidv4(),
-			eventName: 'EntityDeletedEvent',
+			eventName: 'LogDeletedEvent',
 			occurredOn: (new Date()).toUTCString(),
-			payload: {entityId: id } as Partial<EntityDTO>
+			payload: { entityId: id } as ConditioningLogDTO
 		});
+
+		return event as any; // todo: sort out the generics later
 	}
 
 	//---------------------------- PLACEHOLDERS -----------------------------//

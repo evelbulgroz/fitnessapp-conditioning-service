@@ -6,8 +6,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { User } from "../domain/user.entity";
 import { UserDTO } from "../dtos/domain/user.dto";
 import { Query } from "@evelbulgroz/query-fns";
-
 import { EntityCreatedEvent, EntityCreatedEventDTO, EntityDeletedEvent, EntityDeletedEventDTO, EntityDTO, EntityId, EntityUpdatedEvent, EntityUpdatedEventDTO, Repository, Result } from "@evelbulgroz/ddd-base";
+
+import { UserCreatedEvent } from "../events/user-created.event";
+import { UserUpdatedEvent } from "../events/user-updated.event";
+import { UserDeletedEvent } from "../events/user-deleted.event";
 
 /** Notionally abstract class that describes and provides default features for any User repository
  * @remark Exists mostly to enable clients to depend on abstractions rather than a specific implementations
@@ -53,46 +56,46 @@ export class UserRepository<T extends User, U extends UserDTO> extends Repositor
 	/** Create user created event
 	 * @param user The user to create the event for
 	 * @returns The user created event
-	 * @todo Refactor to return domain specific event (e.g. UserCreatedEvent)
-	 * @todo Add override modifier after updating base class library
 	 */
-	protected createEntityCreatedEvent(user?: T): EntityCreatedEvent<EntityCreatedEventDTO<any>, EntityDTO> {
-		return new EntityCreatedEvent(<EntityCreatedEventDTO<EntityDTO>>{
+	protected override createEntityCreatedEvent(user?: T): EntityCreatedEvent<EntityCreatedEventDTO<any>, EntityDTO> {
+		const event = new UserCreatedEvent({
 			eventId: uuidv4(),
-			eventName: 'EntityCreatedEvent',
+			eventName: 'UserCreatedEvent',
 			occurredOn: (new Date()).toUTCString(),
-			payload: user?.toJSON() as EntityDTO
+			payload: user?.toJSON() as UserDTO
 		});
+
+		return event as any; // todo: sort out the generics later
 	}
 
 	/** Create user updated event
 	 * @param user The user to create the event for
 	 * @returns The user updated event
-	 * @todo Refactor to return domain specific event (e.g. UserUpdatedEvent)
-	 * @todo Add override modifier after updating base class library
 	 */
-	protected createEntityUpdatedEvent(user?: T): EntityUpdatedEvent<EntityUpdatedEventDTO<any>, EntityDTO> {
-		return new EntityUpdatedEvent(<EntityUpdatedEventDTO<EntityDTO>>{
+	protected override createEntityUpdatedEvent(user?: T): EntityUpdatedEvent<EntityUpdatedEventDTO<any>, EntityDTO> {
+		const event = new UserUpdatedEvent({
 			eventId: uuidv4(),
-			eventName: 'EntityUpdatedEvent',
+			eventName: 'UserUpdatedEvent',
 			occurredOn: (new Date()).toUTCString(),
-			payload: user?.toJSON() as Partial<EntityDTO>
+			payload: user?.toJSON() as UserDTO
 		});
+
+		return event as any; // todo: sort out the generics later
 	}
 
 	/** Create user deleted event
 	 * @param id The user id to create the event for
 	 * @returns The user deleted event
-	 * @todo Refactor to return domain specific event (e.g. UserDeletedEvent)
-	 * @todo Add override modifier after updating base class library
 	 */
-	protected createEntityDeletedEvent(id?: EntityId): EntityDeletedEvent<EntityDeletedEventDTO<any>, EntityDTO> {
-		return new EntityDeletedEvent(<EntityDeletedEventDTO<EntityDTO>>{
+	protected override createEntityDeletedEvent(id?: EntityId): EntityDeletedEvent<EntityDeletedEventDTO<any>, EntityDTO> {
+		const event = new UserDeletedEvent({
 			eventId: uuidv4(),
-			eventName: 'EntityDeletedEvent',
+			eventName: 'UserDeletedEvent',
 			occurredOn: (new Date()).toUTCString(),
-			payload: {entityId: id } as Partial<EntityDTO>
+			payload: { entityId: id } as UserDTO
 		});
+
+		return event as any; // todo: sort out the generics later
 	}
 	
 	//-------------------------- PLACEHOLDERS FOR TEMPLATE METHODS ------------------------------//

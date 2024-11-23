@@ -57,9 +57,9 @@ describe('ConditioningDataService', () => {
 	let logRepo: ConditioningLogRepo<any, ConditioningLogDTO>;
 	let queryMapper: QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>;
 	let userRepo: UserRepository<any, UserDTO>;
-	let updatesSubject: Subject<any>;
+	let userRepoUpdatesSubject: Subject<any>;
 	beforeEach(async () => {
-		updatesSubject = new Subject<any>();
+		userRepoUpdatesSubject = new Subject<any>();
 		
 		app = await createTestingModule({
 			imports: [
@@ -106,7 +106,7 @@ describe('ConditioningDataService', () => {
 						fetchAll: jest.fn(),
 						fetchById: jest.fn(),
 						update: jest.fn(),
-						updates$: updatesSubject.asObservable(),
+						updates$: userRepoUpdatesSubject.asObservable(),
 					}
 				}
 			],
@@ -915,12 +915,9 @@ describe('ConditioningDataService', () => {
 	});
 
 	describe('ConditioningLog', () => {
-		// no need to test all logs, just a random one
-		// no need to test all detailed properties, rely on unit tests for isOverview property of ConditioningLog class
 		let logRepoFetchByidSpy: any
 		let userRepoFetchByidSpy: any;
 		beforeEach(async () => {
-			//const newDetailedLog = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 			logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async (id: EntityId) => { // return randomLog instead?
 				const retrievedLog = ConditioningLog.create(logDTO, id ?? randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(retrievedLog)));
@@ -1002,21 +999,21 @@ describe('ConditioningDataService', () => {
 			it('updates cache with new log from repo update', (done) => {
 				// arrange
 				dataService.createLog(userContext, randomUserIdDTO, newLogDTO).then((newLogId) => {
-					const updateEvent = new EntityUpdatedEvent<any, any>({
+					const updateEvent = new UserUpdatedEvent({
 						eventId: uuidv4(),
-						eventName: 'EntityUpdatedEvent',
-						occurredOn: new Date(),
+						eventName: 'UserUpdatedEvent',
+						occurredOn: (new Date()).toISOString(),
 						payload: randomUser.toJSON(),
 					});
 					
 					// act
-					updatesSubject.next(updateEvent); // simulate event from userRepo.updates$
+					userRepoUpdatesSubject.next(updateEvent); // simulate event from userRepo.updates$
 				
 					// assert
 					let callCounter = 0;
 					const sub = dataService['userLogsSubject'].subscribe(updatedCache => {
 						callCounter++;						
-						if (callCounter > 1) { // ignore first call
+						if (callCounter > 1) { // wait for event handler to complete
 							const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
 							const addedLog = cacheEntry?.logs.find(log => log.entityId === newLogId);
 							expect(addedLog).toBeDefined();
