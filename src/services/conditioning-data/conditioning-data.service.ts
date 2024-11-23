@@ -25,7 +25,6 @@ import { UserContext } from '../../controllers/domain/user-context.model';
 import { UserDTO } from '../../dtos/user.dto';
 import { UserRepository } from '../../repositories/user-repo.model';
 import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
-import { log } from 'console';
 
 /** Helper function to default sort logs ascending by start date and time */
 function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: ConditioningLog<any, ConditioningLogDTO>): number {
@@ -261,55 +260,6 @@ export class ConditioningDataService {
 		return Promise.resolve();		
 	}
 
-	/**New API: Get all conditioning logs for user and mathcing query (if provided)
-	 * @param ctx user context for the request (includes user id and roles)
-	 * @param queryDTO Optional query to filter logs (else all accessible logs for role are returned)
-	 * @returns Array of conditioning logs (constrained by user context and query)
-	 * @throws UnauthorizedAccessError if user attempts authorized access to logs
-	 * @remark Overview logs are guaranteed to be available
-	 * @remark Full logs are loaded into cache from persistence on demand using conditioningLogDetails(), and may be replaced in cache with overview logs to save memory
-	 */
-	public async fetchLogs(
-		ctx: UserContext,
-		userIdDTO: EntityIdDTO,
-		queryDTO?: QueryDTO
-	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
-		await this.isReady(); // initialize service if necessary
-
-		// check if provided user id matches context decoded from access token
-		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
-			if (userIdDTO?.value !== ctx.userId) { // user id does not match -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${userIdDTO.value}.`);
-			}
-		}
-		
-		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];		
-		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
-			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
-			}						
-			accessibleLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
-		}
-		else { // if the user is an admin, they can access all logs
-			accessibleLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
-		}
-		
-		// filter logs by query, if provided, else use all accessible logs
-		let query: QueryType | undefined;
-		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
-			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
-			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
-		}
-		const matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
-		
-		let sortedLogs = matchingLogs;
-		if (!query?.sortCriteria || query.sortCriteria.length === 0) {// default sort is ascending by start date and time
-			sortedLogs = matchingLogs.sort(compareLogsByStartDate);
-		}
-		
-		return Promise.resolve(sortedLogs);
-	}
-
 	/**New API: Delete a conditioning log by entity id
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param logIdDTO Entity id of the conditioning log to delete, wrapped in a DTO
@@ -369,6 +319,55 @@ export class ConditioningDataService {
 		
 		// log deleted successfully -> return undefined
 		return Promise.resolve();
+	}
+
+	/**New API: Get all conditioning logs for user and mathcing query (if provided)
+	 * @param ctx user context for the request (includes user id and roles)
+	 * @param queryDTO Optional query to filter logs (else all accessible logs for role are returned)
+	 * @returns Array of conditioning logs (constrained by user context and query)
+	 * @throws UnauthorizedAccessError if user attempts authorized access to logs
+	 * @remark Overview logs are guaranteed to be available
+	 * @remark Full logs are loaded into cache from persistence on demand using conditioningLogDetails(), and may be replaced in cache with overview logs to save memory
+	 */
+	public async fetchLogs(
+		ctx: UserContext,
+		userIdDTO: EntityIdDTO,
+		queryDTO?: QueryDTO
+	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
+		await this.isReady(); // initialize service if necessary
+
+		// check if provided user id matches context decoded from access token
+		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
+			if (userIdDTO?.value !== ctx.userId) { // user id does not match -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${userIdDTO.value}.`);
+			}
+		}
+		
+		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];		
+		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
+			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
+			}						
+			accessibleLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
+		}
+		else { // if the user is an admin, they can access all logs
+			accessibleLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
+		}
+		
+		// filter logs by query, if provided, else use all accessible logs
+		let query: QueryType | undefined;
+		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
+			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
+			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+		}
+		const matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
+		
+		let sortedLogs = matchingLogs;
+		if (!query?.sortCriteria || query.sortCriteria.length === 0) {// default sort is ascending by start date and time
+			sortedLogs = matchingLogs.sort(compareLogsByStartDate);
+		}
+		
+		return Promise.resolve(sortedLogs);
 	}
 
 	/**New API: Get aggregated time series of conditioning logs
