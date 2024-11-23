@@ -985,7 +985,10 @@ describe('ConditioningDataService', () => {
 					payload: updatedUser.toJSON(),
 				});
 				
-				(userRepo as any)['updates$'] = of(updateEvent as any);	// vary hard to spy on the observable from the repo, so brute force it
+				// vary hard to spy on the observable from the repo, so brute force it
+				// bug: subscribers only receive an empty object, never the updated user
+
+				(userRepo as any)['updates$'] = of(updateEvent as any);
 
 				// act
 				void await dataService.createLog(userContext, randomUserIdDTO, newLogDTO);
