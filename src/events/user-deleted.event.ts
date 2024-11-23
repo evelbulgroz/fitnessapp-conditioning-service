@@ -1,4 +1,5 @@
 import { EntityDeletedEvent } from '@evelbulgroz/ddd-base';
+
 import { UserDTO } from '../dtos/domain/user.dto';
 import { UserDeletedEventDTO } from './user-deleted.event.dto';
 

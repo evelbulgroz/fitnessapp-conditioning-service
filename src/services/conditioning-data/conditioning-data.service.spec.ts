@@ -29,7 +29,7 @@ import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error'
 import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
-import { UserRepository } from '../../repositories/user-repo.model';
+import { UserRepository } from '../../repositories/user.repo';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);

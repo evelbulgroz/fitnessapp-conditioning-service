@@ -30,7 +30,7 @@ import { QueryDTOProps } from '../test/models/query-dto.props';
 import { UserContext, UserContextProps } from '../domain/user-context.model';
 import { UserDTO } from '../dtos/domain/user.dto';
 import { UserJwtPayload } from '../services/jwt/models/user-jwt-payload.model';
-import { UserRepository } from '../repositories/user-repo.model';
+import { UserRepository } from '../repositories/user.repo';
 import { ValidationPipe } from './pipes/validation.pipe';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'

@@ -12,7 +12,7 @@ import { JwtService } from "../../services/jwt/models/jwt-service.model";
 import { VerifyOptions as JwtVerifyOptions } from "../../services/jwt/models/jwt-verify-options.model";
 import { User } from "../../domain/user.entity";
 import { UserDTO } from "../../dtos/domain/user.dto";
-import { UserRepository } from "../../repositories/user-repo.model";
+import { UserRepository } from "../../repositories/user.repo";
 
 
 /** Authentication strategy for JWT tokens for use with AuthGuard class.

@@ -23,7 +23,7 @@ import { PersistenceError } from '../../domain/persistence.error';
 import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
-import { UserRepository } from '../../repositories/user-repo.model';
+import { UserRepository } from '../../repositories/user.repo';
 import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
 
 /** Helper function to default sort logs ascending by start date and time */

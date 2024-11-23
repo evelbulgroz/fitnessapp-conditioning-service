@@ -3,9 +3,13 @@ import { Injectable } from '@nestjs/common';
 
 import { DomainEvent, DomainEventDTO } from '@evelbulgroz/ddd-base';
 
-import { UserUpdatedHandler } from '../../handlers/user-updated.handler';
-import { LogUpdatedHandler } from '../../handlers/log-updated.handler';
 import { UserUpdatedEvent } from '../../events/user-updated.event';
+
+
+import { LogUpdatedHandler } from '../../handlers/log-updated.handler';
+import { UserUpdatedHandler } from '../../handlers/user-updated.handler';
+
+
 //import { LogUpdatedEvent } from '../../../events/log-updated.event';
 
 // placeholder for LogUpdatedEvent

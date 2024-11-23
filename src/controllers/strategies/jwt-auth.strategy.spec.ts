@@ -17,7 +17,7 @@ import { JwtService } from "../../services/jwt/models/jwt-service.model";
 import { User } from '../../domain/user.entity';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserJwtPayload } from '../../services/jwt/models/user-jwt-payload.model';
-import { UserRepository } from '../../repositories/user-repo.model';
+import { UserRepository } from '../../repositories/user.repo';
 import { VerifyOptions as JwtVerifyOptions } from '../../services/jwt/models/jwt-verify-options.model';
 
 //process.env.NODE_ENV = 'not-test'; // set NODE_ENV to not-test to enable logging
