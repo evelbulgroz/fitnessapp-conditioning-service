@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "@evelbulgroz/command": "^1.0.0",
-    "@evelbulgroz/ddd-base": "^6.0.2",
-    "@evelbulgroz/fitnessapp-base": "^6.0.1",
+    "@evelbulgroz/ddd-base": "^6.0.3",
+    "@evelbulgroz/fitnessapp-base": "^6.0.2",
     "@evelbulgroz/quantity-class": "^1.0.1",
     "@evelbulgroz/query-fns": "^2.1.9",
     "@evelbulgroz/sanitizer-decorator": "^0.0.4",

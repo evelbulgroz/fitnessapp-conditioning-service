@@ -582,7 +582,9 @@ export class ConditioningDataService implements OnModuleDestroy {
 		return Promise.resolve(); // resolve with void
 	}
 
-	/* Subscribe to and handle log and user repo events (constructor helper) */
+	/* Subscribe to and handle log and user repo events (constructor helper)
+	 * @todo Use event dispatcher after upgrading ddd-base to 6.0.3
+	 */
 	protected subscribeToRepoEvents(): void {
 		// subscribe to user repo events
 		this.subscriptions.push(this.userRepo.updates$.subscribe((event) => {
