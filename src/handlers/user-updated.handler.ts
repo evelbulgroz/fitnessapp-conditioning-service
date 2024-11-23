@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 
 import { firstValueFrom, Observable } from 'rxjs';
 
@@ -18,13 +18,13 @@ import { UserRepository } from '../repositories/user.repo';
 @Injectable()
 export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 	constructor(
-		private readonly dataService: ConditioningDataService, // bug: very difficult to mock in tests
+		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService,
 		private readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly logger: Logger,
 		private readonly userRepo: UserRepository<User, UserDTO>,		
 	) {
 		super();
-		//void this.logRepo, this.userRepo, this.logger; // avoid unused variable warning
+		void this.logService, this.logRepo, this.userRepo, this.logger; // avoid unused variable warning
 	}
 
 	public async handle(event: UserUpdatedEvent): Promise<void> {

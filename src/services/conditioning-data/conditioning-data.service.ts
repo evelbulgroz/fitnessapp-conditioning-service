@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 
 import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
@@ -70,7 +70,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 	public constructor(
 		protected readonly aggregator: AggregatorService,
-		//protected readonly eventDispatcher: EventDispatcher, // bug: enabling this breaks UserUpdatedHandler tests
+		protected readonly eventDispatcher: EventDispatcher,
 		protected readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		protected readonly userRepo: UserRepository<any, UserDTO>
 	) {

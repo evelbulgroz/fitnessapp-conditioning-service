@@ -12,8 +12,7 @@ import { UserDTO } from '../dtos/domain/user.dto';
 import { UserRepository } from '../repositories/user.repo';
 
 describe('UserCreatedHandler', () => {
-	let dataService: ConditioningDataService;
-	//let handler: UserUpdatedHandler;
+	let handler: UserUpdatedHandler;
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
 			providers: [				
@@ -42,15 +41,13 @@ describe('UserCreatedHandler', () => {
 			],
 		});
 
-		dataService = module.get<ConditioningDataService>(ConditioningDataService);
-		//handler = module.get<UserUpdatedHandler>(UserUpdatedHandler);
+		handler = module.get<UserUpdatedHandler>(UserUpdatedHandler);
 	});
 
 	it('can be created', () => {		
-		expect(dataService).toBeDefined();
+		expect(handler).toBeDefined();
 	});
 
-	/*
 	describe('handle', () => {
 		let event: UserUpdatedEvent;
 		beforeEach(() => {
@@ -66,5 +63,4 @@ describe('UserCreatedHandler', () => {
 			await expect(handler.handle(event)).rejects.toThrow('Method not implemented.');
 		});
 	});
-	*/
 });
