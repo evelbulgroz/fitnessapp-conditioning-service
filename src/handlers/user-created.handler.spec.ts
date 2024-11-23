@@ -1,6 +1,7 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../test/test-utils';
-import { Logger } from '@nestjs/common';
+
+import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 //import { jest } from '@jest/globals';
 
@@ -30,7 +31,10 @@ describe('UserCreatedHandler', () => {
 						// add other methods as needed
 					}
 				},
-				Logger,
+				{
+					provide: Logger,
+					useClass: ConsoleLogger
+				},				
 			],
 		});
 

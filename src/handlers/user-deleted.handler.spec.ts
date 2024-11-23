@@ -1,8 +1,8 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../test/test-utils';
-import { Logger } from '@nestjs/common';
-
 //import { jest } from '@jest/globals';
+
+import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
 import { UserDeletedEvent } from '../events/user-deleted.event';
@@ -30,7 +30,10 @@ describe('UserCreatedHandler', () => {
 						// add other methods as needed
 					}
 				},
-				Logger,
+				{
+					provide: Logger,
+					useClass: ConsoleLogger
+				},				
 			],
 		});
 

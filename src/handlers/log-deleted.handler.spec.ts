@@ -1,6 +1,7 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../test/test-utils';
-import { Logger } from '@nestjs/common';
+
+import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 //import { jest } from '@jest/globals';
 
@@ -22,7 +23,10 @@ describe('LogDeletedHandler', () => {
 					}
 				},
 				LogDeletedHandler,
-				Logger,
+				{
+					provide: Logger,
+					useClass: ConsoleLogger
+				},				
 			],
 		});
 

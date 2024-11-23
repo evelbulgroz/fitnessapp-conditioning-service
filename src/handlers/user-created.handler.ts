@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
+import { Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
@@ -8,7 +10,6 @@ import { User } from '../domain/user.entity';
 import { UserCreatedEvent } from '../events/user-created.event';
 import { UserDTO } from '../dtos/domain/user.dto';
 import { UserRepository } from '../repositories/user.repo';
-import e from 'express';
 
 /** User created event handler */
 @Injectable()

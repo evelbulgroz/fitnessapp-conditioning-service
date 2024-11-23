@@ -16,6 +16,7 @@ import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log.repo';
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
 import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
+import { EventDispatcher } from '../event-dispatcher/event-dispatcher.service';
 import { QueryDTO } from '../../dtos/sanitization/query.dto';
 import { QueryMapper } from './../../mappers/query.mapper';
 import { NotFoundError } from '../../domain/not-found.error';
@@ -68,6 +69,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 	public constructor(
 		protected readonly aggregator: AggregatorService,
+		protected readonly eventDispatcher: EventDispatcher,
 		protected readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		protected readonly userRepo: UserRepository<any, UserDTO>
 	) {

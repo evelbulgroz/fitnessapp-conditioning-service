@@ -19,7 +19,20 @@ import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log.repo';
 import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
+import { EventDispatcher } from '../../services/event-dispatcher/event-dispatcher.service';
 import { FileService } from '../file-service/file.service';
+import { LogCreatedEvent } from '../../events/log-created.event';
+import { LogCreatedHandler } from '../../handlers/log-created.handler';
+import { LogDeletedEvent } from '../../events/log-deleted.event';
+import { LogDeletedHandler } from '../../handlers/log-deleted.handler';
+import { LogUpdatedEvent } from '../../events/log-updated.event';
+import { LogUpdatedHandler } from '../../handlers/log-updated.handler';
+import { UserCreatedEvent } from '../../events/user-created.event';
+import { UserCreatedHandler } from '../../handlers/user-created.handler';
+import { UserDeletedEvent } from '../../events/user-deleted.event';
+import { UserDeletedHandler } from '../../handlers/user-deleted.handler';
+import { UserUpdatedEvent } from '../../events/user-updated.event';
+import { UserUpdatedHandler } from '../../handlers/user-updated.handler';
 import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';
 import { QueryDTO } from '../../dtos/sanitization/query.dto';
@@ -59,6 +72,13 @@ describe('ConditioningDataService', () => {
 					}
 				},
 				ConfigService,
+				EventDispatcher,
+				LogCreatedHandler,
+				LogDeletedHandler,
+				LogUpdatedHandler,
+				UserCreatedHandler,
+				UserDeletedHandler,
+				UserUpdatedHandler,
 				FileService,
 				ConditioningDataService,
 				{

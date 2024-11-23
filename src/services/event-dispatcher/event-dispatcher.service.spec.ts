@@ -1,7 +1,7 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../test/test-utils';
-import { Logger } from '@nestjs/common';
 
+import { Logger } from '@evelbulgroz/ddd-base';
 //import { jest } from '@jest/globals';
 
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
