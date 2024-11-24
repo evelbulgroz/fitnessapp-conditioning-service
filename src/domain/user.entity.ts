@@ -8,7 +8,7 @@ import UserDTO from "../dtos/domain/user.dto.js";
  * @remark Shallow implementation intended only to hold associations between users and logs
  * @remark Could have used User as ddd aggregate root for logs, but opted for the flexibility of managing association separately
  * @remark This also allows log and user entities and repos to have more focused responsibilities
- * @remark To make this work, data service has responsibility for keeping associations in sync
+ * @remark To make this work, log data service has responsibility for keeping associations in sync
  */
 export class User extends Entity<any, UserDTO> {
 	//----------------------------- PROPERTIES ------------------------------//
@@ -42,17 +42,17 @@ export class User extends Entity<any, UserDTO> {
 		// use long chain of if statements to facilitate debugging
 		
 		// super returns false if other is undefined, null or wrong type, so no need to test for that
-		if(!super.equals(other, compareIds, compareRefs)) { //console.log('super.isEqual() failed');
+		if(!super.equals(other, compareIds, compareRefs)) {
 			return false;
 		}
-		if (this.userId !== other.userId) { //console.log('userId not equal');
+		if (this.userId !== other.userId) {
 			return false;
 		}
-		if (this.logs.length !== other.logs.length) { //console.log('logs.length not equal');
+		if (this.logs.length !== other.logs.length) {
 			return false;
 		}
-		// NOTE: Logs are stored as ids only, so we can compare by value
-		if (!this.logs.every((log, index) => log === other.logs[index])) { //console.log('logs not equal');
+		// logs are stored as ids only, so we can compare by value
+		if (!this.logs.every((logId) => other.logs.find((otherLogId) => logId === otherLogId) !== undefined)) {
 			return false;
 		}
 		return true;
