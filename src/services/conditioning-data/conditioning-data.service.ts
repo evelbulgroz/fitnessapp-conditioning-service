@@ -115,6 +115,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @logs Error if error occurs while rolling back log creation 
 	 * @remark Logs and users are created/updated in the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
+	 * @todo Revisit orchestration of user and log updates, to avoid inconsistencies in case of partial failure
 	 */
 	public async createLog(
 		ctx: UserContext,
@@ -151,6 +152,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		if (userUpdateResult.isFailure) { // update failed -> roll back log creation, then throw persistence error
 			const deleteResult = await this.logRepo.delete(newLog.entityId!);
 			if (deleteResult.isFailure) { // deletion failed -> log error and continue
+				this.purgeOrphanedLog(newLog.entityId!); // retry purging orphaned log from log repo before continuing
 				this.logger.error(`${this.constructor.name}: Error rolling back log creation for ${newLog.entityId}: ${deleteResult.error}`);
 			}
 			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
@@ -283,6 +285,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @throws PersistenceError if error occurs while deleting log or updating user in persistence
 	 * @remark Logs are deleted from the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can delete logs for any user, other users can only delete logs for themselves
+	 * @todo Revisit orchestration of user and log updates, to avoid inconsistencies in case of partial failure
 	 */
 	public async deleteLog(
 		ctx: UserContext,
@@ -325,7 +328,8 @@ export class ConditioningDataService implements OnModuleDestroy {
 		const logDeleteResult = await this.logRepo.delete(logIdDTO.value!);
 		if (logDeleteResult.isFailure) { // deletion failed -> roll back user update, then throw persistence error
 			const userRollbackResult = await this.userRepo.update(originalUserDTO);
-			if (userRollbackResult.isFailure) { // rollback failed -> log error and continue
+			if (userRollbackResult.isFailure) { // user rollback failed -> figure out how to handle error
+				// todo: figure out how to handle error
 				this.logger.error(`${this.constructor.name}: Error rolling back user update for ${userIdDTO.value}: ${userRollbackResult.error}`);
 			}
 			throw new PersistenceError(`${this.constructor.name}: Error deleting conditioning log: ${logDeleteResult.error}`);
@@ -577,6 +581,24 @@ export class ConditioningDataService implements OnModuleDestroy {
 		this.logger.log(`${this.constructor.name}: Initialization complete: Cached ${allLogs.length} logs for ${users.length} users.`);
 
 		return Promise.resolve(); // resolve with void
+	}
+
+	/* Purge log from log repo that has been orphaned by failed user update at log creation
+	 * @param logId Entity id of the log to purge from the log repo
+	 * @param retries Number of retries before giving up
+	 * @param delay Delay in milliseconds between retries
+	 */ 
+	protected async purgeOrphanedLog(logId: EntityId, retries = 5, delay = 500): Promise<void> {
+		const result = await this.logRepo.delete(logId);
+		if (result.isFailure) {
+			if (retries > 0) {
+				await new Promise((resolve) => setTimeout(resolve, delay));
+				await this.purgeOrphanedLog(logId, retries - 1, delay);
+			}
+			else {
+				this.logger.error(`${this.constructor.name}: Error purging orphaned log ${logId} from log repo: ${result.error}`);
+			}
+		}
 	}
 
 	/* Subscribe to and dispatch handling of log and user repo events (constructor helper)

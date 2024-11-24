@@ -11,7 +11,9 @@ import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
 import { LogUpdatedEvent } from '../events/log-updated.event';
 import { DomainEventHandler } from './domain-event.handler';
 
-/** Log updated event handler */
+/** Log updated event handler
+ * @remark Handles updating logs in log service cache, triggered by update events from log repository
+ */
 @Injectable()
 export class LogUpdatedHandler extends DomainEventHandler<LogUpdatedEvent> {
 	constructor(

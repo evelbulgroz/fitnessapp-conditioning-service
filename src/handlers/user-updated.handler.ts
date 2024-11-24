@@ -15,8 +15,9 @@ import { UserUpdatedEvent } from '../events/user-updated.event';
 import { UserRepository } from '../repositories/user.repo';
 
 /** User updated event handler
- * @remark Currently supports addition and removal of logs from cache entry for user
- * @remark Does not support content updates for existing logs
+ * @remark Handles addition and removal of logs from log service cache entry for user, triggered by update events from user repository
+ * @remark Users hold log ids, not logs themselves, so this handler does not handle log content updates
+ * @remark Users currently hold no other state that would require cache updates, so this handler only updates logs
  */
 @Injectable()
 export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {

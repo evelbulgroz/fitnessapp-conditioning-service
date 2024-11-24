@@ -11,7 +11,9 @@ import { UserDeletedEvent } from '../events/user-deleted.event'
 import { UserDTO } from '../dtos/domain/user.dto';
 import { UserRepository } from '../repositories/user.repo';;
 
-/** User deleted event handler */
+/** User deleted event handler
+ * @remark Placeholder: implement user deletion event handling when user deletion is implemented
+ */
 @Injectable()
 export class UserDeletedHandler extends DomainEventHandler<UserDeletedEvent> {
 	constructor(

@@ -14,7 +14,9 @@ import { UserCreatedEvent } from '../events/user-created.event';
 import { UserDTO } from '../dtos/domain/user.dto';
 import { UserRepository } from '../repositories/user.repo';
 
-/** User created event handler */
+/** User created event handler
+ * @remark Handles addition and log population of user in log service cache, triggered by creation events from user repository
+ */
 @Injectable()
 export class UserCreatedHandler extends DomainEventHandler<UserCreatedEvent> {
 	constructor(

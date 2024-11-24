@@ -8,7 +8,9 @@ import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
 import { DomainEventHandler } from './domain-event.handler';
 import { LogDeletedEvent } from '../events/log-deleted.event';
 
-/** Log updated event handler */
+/** Log updated event handler
+ * @remark Placeholder: logs are removed from log service cache when removed from user, so this handler may not be necessary
+ */
 @Injectable()
 export class LogDeletedHandler extends DomainEventHandler<LogDeletedEvent> {
 	constructor(

@@ -8,7 +8,9 @@ import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
 import { DomainEventHandler } from './domain-event.handler';
 import { LogCreatedEvent } from '../events/log-created.event';
 
-/** Log updated event handler */
+/** Log updated event handler
+ * @remark Placeholder: logs are added to to log service cache when added to user, so this handler may not be necessary
+ */
 @Injectable()
 export class LogCreatedHandler extends DomainEventHandler<LogCreatedEvent> {
 	constructor(
