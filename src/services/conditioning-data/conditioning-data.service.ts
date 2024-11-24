@@ -149,7 +149,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		const user = await firstValueFrom(userResult.value as Observable<User>);
 		user.addLog(newLog.entityId!);
 		const userUpdateResult = await this.userRepo.update(user.toJSON());
-		if (userUpdateResult.isFailure) { // update failed -> roll back log creation, then throw persistence error
+		if (userUpdateResult.isFailure) { // user update failed -> roll back log creation, then throw persistence error
 			const deleteResult = await this.logRepo.delete(newLog.entityId!);
 			if (deleteResult.isFailure) { // deletion failed -> log error and continue
 				this.purgeOrphanedLog(newLog.entityId!); // retry purging orphaned log from log repo before continuing
