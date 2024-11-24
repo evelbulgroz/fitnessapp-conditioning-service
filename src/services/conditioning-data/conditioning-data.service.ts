@@ -323,12 +323,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		// delete log in persistence layer
 		const logDeleteResult = await this.logRepo.delete(logIdDTO.value!);
 		if (logDeleteResult.isFailure) { // deletion failed -> roll back user update, then throw persistence error
-			const userRollbackResult = await this.userRepo.update(originalUserDTO);
-			if (userRollbackResult.isFailure) { // user rollback failed -> figure out how to handle error
-				this.rollBackUserUpdate(user, originalUserDTO); // retry rolling back user update before continuing
-				this.logger.error(`${this.constructor.name}: Error rolling back user update for ${userIdDTO.value}: ${userRollbackResult.error}`);
-			}
-			throw new PersistenceError(`${this.constructor.name}: Error deleting conditioning log: ${logDeleteResult.error}`);
+			this.rollBackUserUpdate(user, originalUserDTO); // retry rolling back user update before continuing
 		}		
 		
 		// log deleted successfully -> return undefined
