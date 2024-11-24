@@ -150,11 +150,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		user.addLog(newLog.entityId!);
 		const userUpdateResult = await this.userRepo.update(user.toJSON());
 		if (userUpdateResult.isFailure) { // user update failed -> roll back log creation, then throw persistence error
-			const deleteResult = await this.logRepo.delete(newLog.entityId!);
-			if (deleteResult.isFailure) { // deletion failed -> log error and continue
-				this.purgeOrphanedLog(newLog.entityId!); // retry purging orphaned log from log repo before continuing
-				this.logger.error(`${this.constructor.name}: Error rolling back log creation for ${newLog.entityId}: ${deleteResult.error}`);
-			}
+			this.deleteOrphanedLog(newLog.entityId!); // deleting orphaned log from log repo, retry if necessary
 			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
 		}
 
@@ -588,15 +584,15 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @param retries Number of retries before giving up
 	 * @param delay Delay in milliseconds between retries
 	 */ 
-	protected async purgeOrphanedLog(logId: EntityId, retries = 5, delay = 500): Promise<void> {
+	protected async deleteOrphanedLog(logId: EntityId, retries = 5, delay = 500): Promise<void> {
 		const result = await this.logRepo.delete(logId);
 		if (result.isFailure) {
 			if (retries > 0) {
 				await new Promise((resolve) => setTimeout(resolve, delay));
-				await this.purgeOrphanedLog(logId, retries - 1, delay);
+				await this.deleteOrphanedLog(logId, retries - 1, delay);
 			}
 			else {
-				this.logger.error(`${this.constructor.name}: Error purging orphaned log ${logId} from log repo: ${result.error}`);
+				this.logger.error(`${this.constructor.name}: Error deleting orphaned log ${logId} from log repo: ${result.error}`);
 			}
 		}
 	}
