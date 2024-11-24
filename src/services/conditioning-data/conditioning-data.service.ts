@@ -4,7 +4,7 @@ import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take
 
 import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
-import { EntityId, EntityUpdatedEvent, Logger } from '@evelbulgroz/ddd-base';
+import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
 
@@ -135,8 +135,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		const userResult = await this.userRepo.fetchById(userIdDTO.value!);
 		if (userResult.isFailure) { // fetch failed -> throw persistence error
 			throw new NotFoundError(`${this.constructor.name}: User ${userIdDTO.value} not found.`);
-		}		
-
+		}
 
 		// create log in persistence layer
 		const result = await this.logRepo.create(logDTO);
@@ -580,7 +579,10 @@ export class ConditioningDataService implements OnModuleDestroy {
 		return Promise.resolve(); // resolve with void
 	}
 
-	/* Subscribe to and dispatch handling of log and user repo events (constructor helper) */
+	/* Subscribe to and dispatch handling of log and user repo events (constructor helper)
+	 * @remark Uses events from user repo for log creation and deletion, as logs repo events have no user context
+	 * @remark Uses events from log repo for log updates, as user repo events do not contain log data
+	 */
 	protected subscribeToRepoEvents(): void {
 		// subscribe to user repo events
 		this.subscriptions.push(this.userRepo.updates$.subscribe((event) => {

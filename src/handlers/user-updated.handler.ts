@@ -14,7 +14,10 @@ import { UserDTO } from '../dtos/domain/user.dto';
 import { UserUpdatedEvent } from '../events/user-updated.event';
 import { UserRepository } from '../repositories/user.repo';
 
-/** User updated event handler */
+/** User updated event handler
+ * @remark Currently supports addition and removal of logs from cache entry for user
+ * @remark Does not support content updates for existing logs
+ */
 @Injectable()
 export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 	constructor(
@@ -28,6 +31,7 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 	}
 
 	public async handle(event: UserUpdatedEvent): Promise<void> {
+		console.debug('UserUpdatedHandler: handling event:', event);
 		const userDTO = event.payload as UserDTO;
 		const snapshot = this.logService.getCacheSnapshot(this);
 		const cacheEntry = snapshot.find((entry) => entry.userId === userDTO.userId);
@@ -41,7 +45,6 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 			const addedLogIds = userDTO.logs!.filter((logId) => !cachedLogIds.includes(logId));
 			const addedLogs = [];
 			for (const logId of addedLogIds) {
-				//console.debug('fetching log:', logId);
 				const result = await this.logRepo.fetchById(logId);
 				if (result.isFailure) {
 					this.logger.error(`${this.constructor.name}: Error fetching log ${logId} for user ${userDTO.userId}: ${result.error}`);
@@ -49,7 +52,6 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 				else {
 					const log = await firstValueFrom(result.value as Observable<ConditioningLog<any, ConditioningLogDTO>>);
 					if (log) {
-						//console.debug('fetched log:', log.entityId);
 						void addedLogs.push(log);
 					}
 				}
@@ -64,6 +66,9 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 
 			// log update
 			this.logger.log(`${this.constructor.name}: User ${userDTO.userId} logs updated in cache.`);
+		}
+		else {
+			this.logger.error(`${this.constructor.name}: User ${userDTO.userId} not found in cache.`);
 		}
 	}
 }

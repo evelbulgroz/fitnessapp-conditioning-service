@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 
-import { ConditioningDataService } from '../conditioning-data/conditioning-data.service'
 import { DomainEvent, DomainEventDTO } from '@evelbulgroz/ddd-base';
 import { LogCreatedEvent } from '../../events/log-created.event';
 import { LogCreatedHandler } from '../../handlers/log-created.handler';
@@ -33,6 +32,7 @@ constructor(
 ) {}
 
 public async dispatch(event: DomainEvent<DomainEventDTO<any>, any>): Promise<void> {
+	// Dispatch event to appropriate handler
 	switch (event.constructor) {
 		case LogCreatedEvent:
 			await this.logCreatedHandler.handle(event);

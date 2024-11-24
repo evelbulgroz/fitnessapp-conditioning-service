@@ -1,18 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 import { Logger } from '@evelbulgroz/ddd-base';
 
-
+import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
 import { LogUpdatedEvent } from '../events/log-updated.event';
 import { DomainEventHandler } from './domain-event.handler';
+import { firstValueFrom, Observable } from 'rxjs';
 
 /** Log updated event handler */
 @Injectable()
 export class LogUpdatedHandler extends DomainEventHandler<LogUpdatedEvent> {
 	constructor(
+		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService,
 		private readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly logger: Logger
 	) {
@@ -20,10 +22,28 @@ export class LogUpdatedHandler extends DomainEventHandler<LogUpdatedEvent> {
 	}
 
 	public async handle(event: LogUpdatedEvent): Promise<void> {
-		throw new Error('Method not implemented.');
 		const logDTO = event.payload;
-		// Handle the log update event
-		this.logger.log(`Log ${logDTO.entityId} updated.`);
+		
+		// fetch log from repo
+		const logResult = await this.logRepo.fetchById(logDTO.entityId!);
+		if (logResult.isFailure) {
+			this.logger.error(`LogUpdatedHandler: Error fetching log from repo: ${logResult.error}`);
+			return;
+		}
+		const log$ = logResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>>;
+		const log = await firstValueFrom(log$);
+
+		// update cache with updated log
+		const snapshot = this.logService.getCacheSnapshot(this);
+		const cacheEntry = snapshot.find((entry) => entry.logs.some((log) => log.entityId === logDTO.entityId));
+		if (cacheEntry) {
+			const logIndex = cacheEntry.logs.findIndex((log) => log.entityId === logDTO.entityId);
+			cacheEntry.logs[logIndex] = log;
+			this.logService.updateCache([...snapshot], this);
+		}
+		else {
+			this.logger.warn(`LogUpdatedHandler: Log ${logDTO.entityId} not found in cache`);
+		}
 	}
 }
 

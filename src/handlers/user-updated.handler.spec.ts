@@ -11,7 +11,7 @@ import { UserUpdatedHandler } from './user-updated.handler';
 import { UserDTO } from '../dtos/domain/user.dto';
 import { UserRepository } from '../repositories/user.repo';
 
-describe('UserCreatedHandler', () => {
+describe('UserUpdatedHandler', () => {
 	let handler: UserUpdatedHandler;
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
@@ -59,8 +59,8 @@ describe('UserCreatedHandler', () => {
 			});
 		});
 
-		it('is not implemented', async () => {
-			await expect(handler.handle(event)).rejects.toThrow('Method not implemented.');
+		it('needs testing!', async () => {
+			await expect(handler.handle(event)).resolves.toBeUndefined();
 		});
 	});
 });

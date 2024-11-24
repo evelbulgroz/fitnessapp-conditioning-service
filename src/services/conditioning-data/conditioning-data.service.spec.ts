@@ -52,13 +52,15 @@ describe('ConditioningDataService', () => {
 	// set up test environment and dependencies/mocks, and initialize the module
 	let aggregatorService: AggregatorService;
 	let app: TestingModule;
-	let dataService: ConditioningDataService;
+	let logService: ConditioningDataService;
 	let logger: Logger;
 	let logRepo: ConditioningLogRepo<any, ConditioningLogDTO>;
+	let logRepoUpdatesSubject: Subject<any>;
 	let queryMapper: QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>;
 	let userRepo: UserRepository<any, UserDTO>;
 	let userRepoUpdatesSubject: Subject<any>;
 	beforeEach(async () => {
+		logRepoUpdatesSubject = new Subject<any>();
 		userRepoUpdatesSubject = new Subject<any>();
 		
 		app = await createTestingModule({
@@ -86,9 +88,11 @@ describe('ConditioningDataService', () => {
 					provide: ConditioningLogRepo,
 					useValue: {
 						create: jest.fn(),
+						delete: jest.fn(),
 						fetchAll: jest.fn(),
 						fetchById: jest.fn(),
-						update$: jest.fn(),
+						update: jest.fn(),
+						updates$: logRepoUpdatesSubject.asObservable(),
 					}
 				},
 				{
@@ -112,7 +116,7 @@ describe('ConditioningDataService', () => {
 			],
 		});
 		aggregatorService = app.get<AggregatorService>(AggregatorService);
-		dataService = app.get<ConditioningDataService>(ConditioningDataService);
+		logService = app.get<ConditioningDataService>(ConditioningDataService);
 		logger = app.get<Logger>(Logger);
 		logRepo = app.get<ConditioningLogRepo<any, ConditioningLogDTO>>(ConditioningLogRepo);
 		queryMapper = app.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
@@ -624,7 +628,7 @@ describe('ConditioningDataService', () => {
 	let userContext: UserContext;
 	beforeEach(async () => {
 		// arrange
-		void await dataService.isReady();			
+		void await logService.isReady();			
 		
 		const users$ = (await userRepo.fetchAll()).value as Observable<User[]>;		
 		users = await firstValueFrom(users$);
@@ -640,7 +644,7 @@ describe('ConditioningDataService', () => {
 		});
 
 		
-		logsForRandomUser = dataService['userLogsSubject'].value.find(entry => entry.userId === randomUserId)?.logs || [];
+		logsForRandomUser = logService['userLogsSubject'].value.find(entry => entry.userId === randomUserId)?.logs || [];
 		randomLog = logsForRandomUser[Math.floor(Math.random() * logsForRandomUser.length)] as ConditioningLog<any, ConditioningLogDTO>;
 		randomLogIdDTO = new EntityIdDTO(randomLog.entityId!);
 	});	
@@ -656,22 +660,22 @@ describe('ConditioningDataService', () => {
 	});
 
 	it('can be created', () => {
-		expect(dataService).toBeTruthy();
+		expect(logService).toBeTruthy();
 	});
 
 	describe('Initialization', () => {
 		it('reports if/when it is initialized (i.e. ready)', async () => {
 			// arrange
-			dataService['userLogsSubject'].next([]); // force re-initialization
-			expect(dataService['userLogsSubject']).toBeDefined(); // sanity checks
-			expect(dataService['userLogsSubject'].value.length).toBe(0);
+			logService['userLogsSubject'].next([]); // force re-initialization
+			expect(logService['userLogsSubject']).toBeDefined(); // sanity checks
+			expect(logService['userLogsSubject'].value.length).toBe(0);
 
 			// act
-			const isReady = await dataService.isReady();
+			const isReady = await logService.isReady();
 
 			// assert
 			expect(isReady).toBe(true);
-			expect(dataService['userLogsSubject'].value.length).toBeGreaterThan(0);
+			expect(logService['userLogsSubject'].value.length).toBeGreaterThan(0);
 		});
 
 		it('populates cache with conditioning logs grouped by user id', async () => {
@@ -679,8 +683,8 @@ describe('ConditioningDataService', () => {
 			const expectedIds = users.map(user => user.userId);
 			
 			// act
-			await dataService.isReady();
-			const cache = dataService['userLogsSubject'].value;
+			await logService.isReady();
+			const cache = logService['userLogsSubject'].value;
 			const cachedIds = cache.map(entry => entry.userId);
 			
 			// assert
@@ -690,19 +694,19 @@ describe('ConditioningDataService', () => {
 
 		it('can be initialized multiple times without side effects', async () => {
 			// arrange
-			expect(dataService['userLogsSubject']).toBeDefined(); // sanity checks			
-			expect(dataService['userLogsSubject'].value.length).toBe(users.length)
-			const expectedLength = dataService['userLogsSubject'].value.length;
+			expect(logService['userLogsSubject']).toBeDefined(); // sanity checks			
+			expect(logService['userLogsSubject'].value.length).toBe(users.length)
+			const expectedLength = logService['userLogsSubject'].value.length;
 			const expectedIds = users.map(user => user.userId);
 
 			// act			
-			await dataService.isReady();
-			await dataService.isReady();
-			await dataService.isReady();
-			const cachedIds = dataService['userLogsSubject'].value.map(entry => entry.userId);
+			await logService.isReady();
+			await logService.isReady();
+			await logService.isReady();
+			const cachedIds = logService['userLogsSubject'].value.map(entry => entry.userId);
 
 			// assert
-			expect(dataService['userLogsSubject'].value.length).toBe(expectedLength);
+			expect(logService['userLogsSubject'].value.length).toBe(expectedLength);
 			expect(cachedIds).toEqual(expect.arrayContaining(expectedIds));
 		});
 	});
@@ -710,7 +714,7 @@ describe('ConditioningDataService', () => {
 	describe('ConditioningData', () => {
 		it('can provide a collection of ConditioningDataSeries for all users', async () => {
 			// act
-			const data = await dataService.conditioningData();
+			const data = await logService.conditioningData();
 			
 			// assert
 			expect(data).toBeDefined();
@@ -728,7 +732,7 @@ describe('ConditioningDataService', () => {
 		});
 
 		it('can provide a collection of ConditioningDataSeries for a single user by id', async () => {
-			const data = await dataService.conditioningData(randomUserId);
+			const data = await logService.conditioningData(randomUserId);
 			
 			expect(data).toBeDefined();
 			expect(data!.dataseries).toBeDefined();
@@ -746,35 +750,35 @@ describe('ConditioningDataService', () => {
 		
 		describe('each ConditioningDataSeries', () => {
 			it('has an activity id', async () => {
-				const data = await dataService.conditioningData(randomUserId);
+				const data = await logService.conditioningData(randomUserId);
 				expect(typeof data.dataseries[0].activityId).toBe('number');
 			});
 
 			it('has a series label', async () => {
-				const data = await dataService.conditioningData(randomUserId);
+				const data = await logService.conditioningData(randomUserId);
 				expect(typeof data.dataseries[0].label).toBe('string');
 			});
 
 			it('has a measurement unit', async () => {
-				const data = await dataService.conditioningData(randomUserId);
+				const data = await logService.conditioningData(randomUserId);
 				expect(typeof data.dataseries[0].unit).toBe('string');
 			});
 
 			it('has a collection of data points', async () => {
-				const data = await dataService.conditioningData(randomUserId);
+				const data = await logService.conditioningData(randomUserId);
 				expect(data.dataseries[0].data).toBeDefined();
 				expect(Array.isArray(data.dataseries[0].data)).toBe(true);
 			});
 	
 			describe('each data point', () => {
 				it('has a time stamp that is either a number or a Date', async () => {
-					const data = await dataService.conditioningData(randomUserId);
+					const data = await logService.conditioningData(randomUserId);
 					const timeStamp = data.dataseries[0].data[0].timeStamp;
 					expect(typeof timeStamp === 'number' || timeStamp.constructor.name === 'Date').toBe(true);
 				});
 
 				it('has a value that is a number', async () => {
-					const data = await dataService.conditioningData(randomUserId);
+					const data = await logService.conditioningData(randomUserId);
 					const value = data.dataseries[0].data[0].value;
 					expect(typeof value).toBe('number');
 				});
@@ -788,7 +792,7 @@ describe('ConditioningDataService', () => {
 		let queryDTOProps: QueryDTOProps;
 		let userIdDTO: EntityIdDTO;
 		beforeEach(() => {
-			allCachedLogs = [...dataService['userLogsSubject'].value]
+			allCachedLogs = [...logService['userLogsSubject'].value]
 				.flatMap(entry => entry.logs)				
 				.sort((a: any, b: any) => a.start.getTime() - b.start.getTime()); // ascending
 			const earliestStart = allCachedLogs[0].start;
@@ -814,7 +818,7 @@ describe('ConditioningDataService', () => {
 		it('gives normal users access to a collection of all their conditioning logs', async () => {
 			// arrange
 			// act
-			const matches = await dataService.fetchLogs(userContext, userIdDTO);
+			const matches = await logService.fetchLogs(userContext, userIdDTO);
 			
 			// assert
 			expect(matches).toBeDefined();
@@ -830,7 +834,7 @@ describe('ConditioningDataService', () => {
 			const expectedLogs = query.execute(logsForRandomUser);
 			
 			// act
-			const matches = await dataService.fetchLogs(userContext, userIdDTO, queryDTO);
+			const matches = await logService.fetchLogs(userContext, userIdDTO, queryDTO);
 			
 			// assert
 			expect(matches).toBeDefined();
@@ -844,7 +848,7 @@ describe('ConditioningDataService', () => {
 			queryDTO.userId = otherUser.userId as unknown as string;
 			
 			// act/assert
-			expect(async () => await dataService.fetchLogs(userContext, userIdDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
+			expect(async () => await logService.fetchLogs(userContext, userIdDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
 		});
 		
 		it('gives admin users access to all logs for all users', async () => {
@@ -852,7 +856,7 @@ describe('ConditioningDataService', () => {
 			userContext.roles = ['admin'];
 			
 			// act
-			const allLogs = await dataService.fetchLogs(userContext, userIdDTO);
+			const allLogs = await logService.fetchLogs(userContext, userIdDTO);
 						
 			// assert
 			expect(allLogs).toBeDefined();
@@ -870,7 +874,7 @@ describe('ConditioningDataService', () => {
 			const expectedLogs = query.execute(allCachedLogs); // get matching logs from test data			
 						
 			// act
-			const allLogs = await dataService.fetchLogs(userContext, userIdDTO, queryDTO);
+			const allLogs = await logService.fetchLogs(userContext, userIdDTO, queryDTO);
 			
 			// assert
 			expect(allLogs).toBeDefined();
@@ -883,7 +887,7 @@ describe('ConditioningDataService', () => {
 			userContext.roles = ['admin'];
 			
 			// act
-			const allLogs = await dataService.fetchLogs(userContext, userIdDTO);
+			const allLogs = await logService.fetchLogs(userContext, userIdDTO);
 			
 			// implicitly returns undefined if data is empty
 			allLogs?.forEach((log, index) => {
@@ -915,21 +919,21 @@ describe('ConditioningDataService', () => {
 	});
 
 	describe('ConditioningLog', () => {
-		let logRepoFetchByidSpy: any
-		let userRepoFetchByidSpy: any;
+		let logRepoFetchByIdSpy: any
+		let userRepoFetchByIdSpy: any;
 		beforeEach(async () => {
-			logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async (id: EntityId) => { // return randomLog instead?
+			logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async (id: EntityId) => { // return randomLog instead?
 				const retrievedLog = ConditioningLog.create(logDTO, id ?? randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(retrievedLog)));
 			});
 			
-			userRepoFetchByidSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() =>
+			userRepoFetchByIdSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() =>
 				Promise.resolve(Result.ok(of(randomUser)))
 			);
 		});
 
 		afterEach(() => {
-			logRepoFetchByidSpy && logRepoFetchByidSpy.mockRestore();
+			logRepoFetchByIdSpy && logRepoFetchByIdSpy.mockRestore();
 		});
 
 		describe('create', () => {
@@ -965,7 +969,7 @@ describe('ConditioningDataService', () => {
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
 				
 				// act
-				const returnedLogId = await dataService.createLog(userContext, randomUserIdDTO, newLogDTO);
+				const returnedLogId = await logService.createLog(userContext, randomUserIdDTO, newLogDTO);
 				
 				// assert
 				expect(typeof returnedLogId).toBe('string');
@@ -977,7 +981,7 @@ describe('ConditioningDataService', () => {
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
 				
 				// act
-				void await dataService.createLog(userContext, randomUserIdDTO, newLogDTO);
+				void await logService.createLog(userContext, randomUserIdDTO, newLogDTO);
 				
 				// assert
 				expect(logRepoCreateSpy).toHaveBeenCalledTimes(1);
@@ -989,17 +993,19 @@ describe('ConditioningDataService', () => {
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
 				
 				// act
-				void await dataService.createLog(userContext, randomUserIdDTO, newLogDTO);
+				void await logService.createLog(userContext, randomUserIdDTO, newLogDTO);
 				
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
 				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toJSON());
 			});
 
-			it('updates cache with new log from repo update', (done) => {
+			it('adds new log to cache following user repo update', (done) => {
 				// arrange
-				dataService.createLog(userContext, randomUserIdDTO, newLogDTO).then((newLogId) => {
-					const updateEvent = new UserUpdatedEvent({
+				expect(randomUser.logs).not.toContain(newLogId); // sanity check
+
+				logService.createLog(userContext, randomUserIdDTO, newLogDTO).then((newLogId) => {
+					const createEvent = new UserUpdatedEvent({
 						eventId: uuidv4(),
 						eventName: 'UserUpdatedEvent',
 						occurredOn: (new Date()).toISOString(),
@@ -1007,13 +1013,14 @@ describe('ConditioningDataService', () => {
 					});
 					
 					// act
-					userRepoUpdatesSubject.next(updateEvent); // simulate event from userRepo.updates$
+					userRepoUpdatesSubject.next(createEvent); // simulate event from userRepo.updates$
 				
 					// assert
 					let callCounter = 0;
-					const sub = dataService['userLogsSubject'].subscribe(updatedCache => {
+					const sub = logService['userLogsSubject'].subscribe(updatedCache => {
 						callCounter++;						
 						if (callCounter > 1) { // wait for event handler to complete
+							expect(randomUser.logs).toContain(newLogId);
 							const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
 							const addedLog = cacheEntry?.logs.find(log => log.entityId === newLogId);
 							expect(addedLog).toBeDefined();
@@ -1030,7 +1037,7 @@ describe('ConditioningDataService', () => {
 				// arrange
 				
 				//act
-				const detailedLog = await dataService.fetchLog(userContext, randomUserIdDTO, randomLogIdDTO);
+				const detailedLog = await logService.fetchLog(userContext, randomUserIdDTO, randomLogIdDTO);
 
 				// assert
 				expect(detailedLog!).toBeDefined();
@@ -1042,11 +1049,11 @@ describe('ConditioningDataService', () => {
 				// arrange
 				userContext.roles = ['admin'];
 				const otherUser = users.find(user => user.userId !== userContext.userId)!;
-				const otherUserLogs = await dataService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				const otherUserLogs = await logService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				
 				//act
-				const detailedLog = await dataService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomOtherUserLog!.entityId!));
+				const detailedLog = await logService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomOtherUserLog!.entityId!));
 
 				// assert
 				expect(detailedLog!).toBeDefined();
@@ -1060,57 +1067,57 @@ describe('ConditioningDataService', () => {
 				const otherUserId = new EntityIdDTO(otherUser.userId);
 
 				// act/assert
-				expect(async () => dataService.fetchLog(userContext, otherUserId, randomLogIdDTO)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => logService.fetchLog(userContext, otherUserId, randomLogIdDTO)).rejects.toThrow(UnauthorizedAccessError);
 			});
 			
 			it('throws NotFoundError if no log is found matching provided log entity id', async () => {
 				// arrange
 				// act/assert
-				expect(async () => await dataService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO('no-such-log'))).rejects.toThrow(NotFoundError);
+				expect(async () => await logService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO('no-such-log'))).rejects.toThrow(NotFoundError);
 			});			
 		
 			it('throws UnauthorizedAccessError if log is found but user is not authorized to access it', async () => {
 				// arrange
 				userContext.roles = ['user'];
 				const otherUser = users.find(user => user.userId !== userContext.userId)!;
-				const otherUserLogs = await dataService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				const otherUserLogs = await logService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 				
 				// act/assert
-				expect(() => dataService.fetchLog(userContext, randomUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+				expect(() => logService.fetchLog(userContext, randomUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('returns log directly from cache if already detailed', async () => {
 				// arrange
 					// reset spy to avoid side effects
-				logRepoFetchByidSpy.mockRestore();
-				logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById'); // should not be called
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById'); // should not be called
 				
 					// replace random log in cache with detailed log
 				const randomLogId = randomLog!.entityId!;
 				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
 				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
-				const cache = dataService['userLogsSubject'].value;
+				const cache = logService['userLogsSubject'].value;
 				const cacheEntry = cache.find(entry => entry.userId === randomUserId);
 				const logIndex = cacheEntry!.logs.findIndex(log => log.entityId === randomLogId);
 				cacheEntry!.logs[logIndex] = detailedLog;				
 				
 				//act
-				const retrievedLog = await dataService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
+				const retrievedLog = await logService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
 
 				// assert
 				expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
 				expect(retrievedLog?.isOverview).toBe(false);
 				expect(retrievedLog).toBe(detailedLog);
 
-				expect(logRepoFetchByidSpy).not.toHaveBeenCalled(); // may/not be reliable, but should be true
+				expect(logRepoFetchByIdSpy).not.toHaveBeenCalled(); // may/not be reliable, but should be true
 			});
 
 			it('retrieves detailed log from persistence if cached log is overview', async () => {
 				// arrange
-				logRepoFetchByidSpy.mockRestore();
-				logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					//  logs are initialized in cache as overviews, so any random cached log should be an overview
 					const randomLogId = randomLog!.entityId!;
 					const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
@@ -1119,7 +1126,7 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act
-				const retrievedLog = await dataService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
+				const retrievedLog = await logService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
 
 				// assert
 				expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
@@ -1130,12 +1137,12 @@ describe('ConditioningDataService', () => {
 				// arrange
 					// create a new log with isOverview set to true, and no detailed properties -> should be returned without checking for details
 				const detailedLogMock = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
-				logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
 					Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLogMock)))
 				);
 				
 				//act
-				const retrievedLog = await dataService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
+				const retrievedLog = await logService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
 
 				// assert
 				expect(retrievedLog?.isOverview).toBe(true);
@@ -1143,26 +1150,26 @@ describe('ConditioningDataService', () => {
 			
 			it('throws PersistenceError if retrieving detailed log from persistence fails', async () => {
 				// arrange
-				logRepoFetchByidSpy.mockRestore();
-				logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					// console.debug('fetchById mock called'); this gets called, despite toHaveBeenCalled() failing
 					return Promise.resolve(Result.fail<Observable<ConditioningLog<any, ConditioningLogDTO>>>('test error'))
 				});
 
 				// act/assert
 					// tried, failed to verify that repoSpy is called using .toHaveBeenCalled()
-				expect(async () => await dataService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
+				expect(async () => await logService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
 			});
 
 			it('throws NotFoundError if no log matching entity id is found in persistence', async () => {
 				// arrange
-				logRepoFetchByidSpy.mockRestore();
-				logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					return Promise.resolve(Result.ok<any>(of(undefined)));
 				});
 
 				// act/assert
-				expect(async () => await dataService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(NotFoundError);
+				expect(async () => await logService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(NotFoundError);
 			});
 			
 			it('replaces log in cache with detailed log from persistence ', async () => {
@@ -1171,17 +1178,17 @@ describe('ConditioningDataService', () => {
 				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
 				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				
-				logRepoFetchByidSpy.mockRestore();
-				logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					//  logs are initialized in cache as overviews, so any random cached log should be an overview
 					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
 				});
 				
 				// act
-				void await dataService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog?.entityId!));
+				void await logService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog?.entityId!));
 
 				// assert
-				const updatedLog = dataService['userLogsSubject'].value.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
+				const updatedLog = logService['userLogsSubject'].value.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
 				expect(updatedLog).toBe(detailedLog);
 			});
 
@@ -1191,24 +1198,173 @@ describe('ConditioningDataService', () => {
 				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
 				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				
-				logRepoFetchByidSpy.mockRestore();
-				logRepoFetchByidSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					// logs are initialized in cache as overviews, so any random cached log should be an overview
 					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
 				});
 				
 				// act
-				void await dataService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog?.entityId!));
+				void await logService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog?.entityId!));
 
 				// assert
-				const updatedCache$ = dataService['userLogsSubject'].asObservable();
+				const updatedCache$ = logService['userLogsSubject'].asObservable();
 				const updatedCache = await firstValueFrom(updatedCache$);
 				const updatedLog = updatedCache.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
 				expect(updatedLog).toBe(detailedLog);
 			});
 
 			// TODO: Test default sorting of returned logs
-		});			
+		});
+
+		describe('update', () => {
+			let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
+			let updatedLogDTO: ConditioningLogDTO;
+			let logRepoUpdateSpy: any;
+			let userRepoUpdateSpy: any;
+			beforeEach(() => {
+				updatedLogDTO = {...randomLog!.toJSON()};
+				updatedLogDTO.activity = ActivityType.RUN;
+				updatedLogDTO.duration = {unit: 'ms', value: 100 }; // 100 ms
+				updatedLog = ConditioningLog.create(updatedLogDTO, randomLog!.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+				logRepoUpdateSpy = jest.spyOn(logRepo, 'update').mockImplementation(() => {
+					return Promise.resolve(Result.ok<ConditioningLog<any, ConditioningLogDTO>>(updatedLog))
+				});
+
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(updatedLog)))
+				});
+
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.ok(randomUser))
+				);
+			});
+
+			afterEach(() => {
+				logRepoUpdateSpy && logRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy && userRepoUpdateSpy.mockRestore();
+				jest.clearAllMocks();
+			});
+
+			it('updates a conditioning log with new data and persists it in log repo', async () => {
+				// arrange
+				const updatedLogDTO = {...randomLog!.toJSON()};
+				updatedLogDTO.activity = ActivityType.RUN;
+				updatedLogDTO.duration = {unit: 'ms', value: 1}; // 1 ms
+
+				// act
+				void await logService.updateLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLogDTO);
+
+				// assert
+				expect(logRepoUpdateSpy).toHaveBeenCalledTimes(1);
+				expect(logRepoUpdateSpy).toHaveBeenCalledWith(updatedLogDTO);
+			});
+
+			it('replaces log in cache with updated log following log repo update', async () => {
+				// arrange
+				logService.updateLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLogDTO).then(() => {
+					const updateEvent = new LogUpdatedEvent({
+						eventId: uuidv4(),
+						eventName: 'LogUpdatedEvent',
+						occurredOn: (new Date()).toISOString(),
+						payload: updatedLog.toJSON(),
+					});
+					
+					// act
+					logRepoUpdatesSubject.next(updateEvent); // simulate event from userRepo.updates$
+				
+					// assert
+					let callCounter = 0;
+					const sub = logService['userLogsSubject'].subscribe(updatedCache => {
+						callCounter++;						
+						if (callCounter > 1) { // wait for event handler to complete
+							const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
+							const updatedCacheLog = cacheEntry?.logs.find(log => log.entityId === randomLog!.entityId);
+							expect(updatedCacheLog).toBe(updatedLog);
+							sub.unsubscribe();
+						}
+					});
+				});
+			});
+		});
+
+		describe('delete', () => {
+			let logRepoDeleteSpy: any;
+			let userRepoUpdateSpy: any;
+			beforeEach(() => {
+				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
+					return Promise.resolve(Result.ok<void>());
+				});
+
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.ok(randomUser))
+				);
+			});
+
+			afterEach(() => {
+				logRepoDeleteSpy && logRepoDeleteSpy.mockRestore();
+				userRepoUpdateSpy && userRepoUpdateSpy.mockRestore();
+				jest.clearAllMocks();
+			});
+
+			it('deletes a conditioning log and removes it from log repo', async () => {
+				// arrange
+				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
+
+				// act
+				void await logService.deleteLog(userContext, randomUserIdDTO, logIdDTO);
+
+				// assert
+				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
+				expect(logRepoDeleteSpy).toHaveBeenCalledWith(logIdDTO.value);
+			});
+
+			it('removes deleted log from user and persists user changes in user repo', async () => {
+				// arrange
+				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
+
+				// act
+				void await logService.deleteLog(userContext, randomUserIdDTO, logIdDTO);
+
+				// assert
+				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
+				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toJSON());
+			});
+
+			it('removes deleted log from cache following user repo update', async () => {
+				// arrange
+				const deletedLogId = randomLog!.entityId!;
+				const deletedLogIdDTO = new EntityIdDTO(deletedLogId);
+
+				expect(randomUser.logs).toContain(deletedLogId); // sanity check
+
+				logService.deleteLog(userContext, randomUserIdDTO, deletedLogIdDTO).then(() => {
+					const deleteEvent = new UserUpdatedEvent({
+						eventId: uuidv4(),
+						eventName: 'UserUpdatedEvent',
+						occurredOn: (new Date()).toISOString(),
+						payload: randomUser.toJSON(),
+					});
+					
+					// act
+					userRepoUpdatesSubject.next(deleteEvent); // simulate event from userRepo.updates$
+				
+					// assert
+					let callCounter = 0;
+					const sub = logService['userLogsSubject'].subscribe(updatedCache => {
+						callCounter++;						
+						if (callCounter > 1) { // wait for event handler to complete
+							expect(randomUser.logs).not.toContain(deletedLogId);
+							const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
+							const deletedLog = cacheEntry?.logs.find(log => log.entityId === randomLog!.entityId);
+							expect(deletedLog).toBeUndefined();
+							sub.unsubscribe();
+						}
+					});
+				});
+			});
+		});
 	});
 	
 	describe('Aggregation', () => {
@@ -1231,7 +1387,7 @@ describe('ConditioningDataService', () => {
 
 			userIdDTO = new EntityIdDTO(userContext.userId);
 
-			await dataService.isReady();
+			await logService.isReady();
 		});
 		
 		afterEach(() => {
@@ -1243,10 +1399,10 @@ describe('ConditioningDataService', () => {
 		// leave deeper testing of the result to AggregatorService tests to avoid duplication
 		it('can aggregate a time series of all ConditioningLogs owned by a user', async () => {
 			// arrange
-			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.fetchLogs(userContext, userIdDTO));
+			const expectedTimeSeries = logService['toConditioningLogSeries'](await logService.fetchLogs(userContext, userIdDTO));
 			
 			// act
-			const aggregatedSeries = await dataService.fetchaggretagedLogs(userContext, aggregationQueryDTO, undefined);
+			const aggregatedSeries = await logService.fetchaggretagedLogs(userContext, aggregationQueryDTO, undefined);
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
@@ -1259,8 +1415,8 @@ describe('ConditioningDataService', () => {
 			userContext.roles = ['admin'];
 
 			// act
-			const aggregatedSeries = await dataService.fetchaggretagedLogs(userContext, aggregationQueryDTO);
-			const expectedTimeSeries = dataService['toConditioningLogSeries'](await dataService.fetchLogs(userContext, userIdDTO));
+			const aggregatedSeries = await logService.fetchaggretagedLogs(userContext, aggregationQueryDTO);
+			const expectedTimeSeries = logService['toConditioningLogSeries'](await logService.fetchLogs(userContext, userIdDTO));
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
@@ -1270,14 +1426,14 @@ describe('ConditioningDataService', () => {
 		
 		it('aggreates only logs matching query, if provided', async () => {			
 			// arrange
-			const searchableLogs = dataService['userLogsSubject'].value.find((entry) => entry.userId === userContext.userId)?.logs ?? [];
+			const searchableLogs = logService['userLogsSubject'].value.find((entry) => entry.userId === userContext.userId)?.logs ?? [];
 			const queryDTO = new QueryDTO({'activity': ActivityType.MTB});
 			const query = queryMapper.toDomain(queryDTO);
 			const matchingLogs = query.execute(searchableLogs);
-			const expectedTimeSeries = dataService['toConditioningLogSeries'](matchingLogs);
+			const expectedTimeSeries = logService['toConditioningLogSeries'](matchingLogs);
 
 			// act
-			const aggregatedSeries = await dataService.fetchaggretagedLogs(userContext, aggregationQueryDTO, queryDTO);
+			const aggregatedSeries = await logService.fetchaggretagedLogs(userContext, aggregationQueryDTO, queryDTO);
 			
 			// assert
 			expect(aggregatorSpy).toHaveBeenCalled();
@@ -1292,7 +1448,7 @@ describe('ConditioningDataService', () => {
 			const otherUserContext = new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']});
 			
 			// act/assert
-			expect(async () => await dataService.fetchaggretagedLogs(otherUserContext, aggregationQueryDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
+			expect(async () => await logService.fetchaggretagedLogs(otherUserContext, aggregationQueryDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
 		});
 	});
 
@@ -1305,10 +1461,10 @@ describe('ConditioningDataService', () => {
 
 			it('can convert an array of ConditioningLogs to a ConditioningLogSeries', async () => {
 				// arrange
-				const logs = await dataService.fetchLogs(userContext, userIdDTO);
+				const logs = await logService.fetchLogs(userContext, userIdDTO);
 				
 				// act
-				const series = dataService['toConditioningLogSeries'](logs);
+				const series = logService['toConditioningLogSeries'](logs);
 				
 				// assert
 				expect(series).toBeDefined();
@@ -1325,11 +1481,11 @@ describe('ConditioningDataService', () => {
 			
 			it('sorts logs by start date', async () => {
 				// arrange
-				const logs = await dataService.fetchLogs(userContext, userIdDTO);
+				const logs = await logService.fetchLogs(userContext, userIdDTO);
 				const unSortedLogs = logs.sort((a, b) => b.start!.getTime() - a.start!.getTime());
 				
 				// act
-				const series = dataService['toConditioningLogSeries'](logs);
+				const series = logService['toConditioningLogSeries'](logs);
 
 				// assert
 				expect(series.data.length).toBe(logs.length);
@@ -1343,13 +1499,13 @@ describe('ConditioningDataService', () => {
 
 			it('excludes logs without start date', async () => {
 				// arrange
-				const logs = await dataService.fetchLogs(userContext, userIdDTO);
+				const logs = await logService.fetchLogs(userContext, userIdDTO);
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, uuidv4(), undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
 				
 				// act
-				const series = dataService['toConditioningLogSeries'](logs);
+				const series = logService['toConditioningLogSeries'](logs);
 
 				// assert
 				expect(series.data.length).toBe(logs.length - 1);
@@ -1357,18 +1513,18 @@ describe('ConditioningDataService', () => {
 
 			it('logs entity id of logs without start date', async () => {
 				// arrange
-				const logs = await dataService.fetchLogs(userContext, userIdDTO);
+				const logs = await logService.fetchLogs(userContext, userIdDTO);
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, uuidv4(), undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
-				const warnSpy = jest.spyOn(dataService['logger'], 'warn').mockImplementation(() => { }); // do nothing
+				const warnSpy = jest.spyOn(logService['logger'], 'warn').mockImplementation(() => { }); // do nothing
 				
 				// act
-				const series = dataService['toConditioningLogSeries'](logs);
+				const series = logService['toConditioningLogSeries'](logs);
 
 				// assert
 				expect(warnSpy).toHaveBeenCalled();
-				expect(warnSpy).toHaveBeenCalledWith(`${dataService.constructor.name}: Conditioning log ${logWithoutStart.entityId} has no start date, excluding from ConditioningLogSeries.`);
+				expect(warnSpy).toHaveBeenCalledWith(`${logService.constructor.name}: Conditioning log ${logWithoutStart.entityId} has no start date, excluding from ConditioningLogSeries.`);
 				warnSpy.mockRestore();
 			});			
 		});
@@ -1376,11 +1532,11 @@ describe('ConditioningDataService', () => {
 		describe('Cache access', () => {
 			it('can provide a domain event handler with a snapshot of the cache', async () => {
 				// arrange
-				const expectedCache = dataService['userLogsSubject'].value;
+				const expectedCache = logService['userLogsSubject'].value;
 				const handler = new LogCreatedHandler(logRepo, logger);
 				
 				// act
-				const snapshot = dataService.getCacheSnapshot(handler);
+				const snapshot = logService.getCacheSnapshot(handler);
 				
 				// assert
 				expect(snapshot).toBeDefined();
@@ -1392,19 +1548,19 @@ describe('ConditioningDataService', () => {
 				const caller = { name: 'test' };
 				
 				// act/assert
-				expect(() => dataService.getCacheSnapshot(caller as any)).toThrow(UnauthorizedAccessError);				
+				expect(() => logService.getCacheSnapshot(caller as any)).toThrow(UnauthorizedAccessError);				
 			});
 
 			it('can update the cache with a new snapshot', async () => {
 				// arrange
-				const newCache = [...dataService['userLogsSubject'].value];
+				const newCache = [...logService['userLogsSubject'].value];
 				const handler = new LogCreatedHandler(logRepo, logger);
 				
 				// act
-				dataService.updateCache(newCache, handler);
+				logService.updateCache(newCache, handler);
 				
 				// assert
-				const newSnapshot = dataService.getCacheSnapshot(handler);
+				const newSnapshot = logService.getCacheSnapshot(handler);
 				expect(newSnapshot).toEqual(newCache);
 			});
 
@@ -1413,7 +1569,7 @@ describe('ConditioningDataService', () => {
 				const caller = { name: 'test' };
 				
 				// act/assert
-				expect(() => dataService.updateCache([], caller as any)).toThrow(UnauthorizedAccessError);				
+				expect(() => logService.updateCache([], caller as any)).toThrow(UnauthorizedAccessError);				
 			});
 		});
 	});
