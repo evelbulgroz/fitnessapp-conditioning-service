@@ -49,7 +49,6 @@ interface UserLogsCacheEntry {
  * @remark Relies on repositories for persistence, and on controller(s) for request authentication, user context, data sanitization, and error logging.
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
- * @todo Revisit rollback logic now that ddd-base supports custom ids at entity creation
  */
 @Injectable()
 export class ConditioningDataService implements OnModuleDestroy {
@@ -115,7 +114,6 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @logs Error if error occurs while rolling back log creation 
 	 * @remark Logs and users are created/updated in the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
-	 * @todo Revisit rollback logic now that ddd-base supports custom ids at entity creation
 	 */
 	public async createLog(
 		ctx: UserContext,
@@ -281,7 +279,6 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @throws PersistenceError if error occurs while deleting log or updating user in persistence
 	 * @remark Logs are deleted from the persistence layer, and propagated to cache via subscription
 	 * @remark Admins can delete logs for any user, other users can only delete logs for themselves
-	 * @todo Revisit rollback logic now that ddd-base supports custom ids at entity creation
 	 */
 	public async deleteLog(
 		ctx: UserContext,
