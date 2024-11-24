@@ -22,13 +22,14 @@ import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
 import { TypeParamDTO } from '../dtos/sanitization/type-param.dto';
 import { UserContext, UserContextProps } from '../domain/user-context.model';
+//import { UserService } from '../services/user/user.service';
 import { ValidationPipe } from './pipes/validation.pipe';
 
 /** Main controller for the application.
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests.
  * @remark It delegates the actual processing of data to the appropriate service methods, which are responsible for data access control, business logic and persistence.
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
- * @todo Add CRUD endpoints for user entities
+ * @todo Implement user CRUD operations
  */
 @ApiTags('conditioning')
 @ApiExtraModels(QueryDTO)
@@ -43,7 +44,8 @@ import { ValidationPipe } from './pipes/validation.pipe';
 export class AppController {
 	constructor(
 		private readonly logger: Logger,
-		private readonly service: ConditioningDataService
+		private readonly LogService: ConditioningDataService,
+		//private readonly userService: UserService
 	) {}
 
 	//------------------------------ SINGLE-LOG CRUD -----------------------------//
@@ -63,7 +65,7 @@ export class AppController {
 	): Promise<EntityId> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			return await this.service.createLog(userContext, userIdDTO, logDTO); // Implement this method in your service
+			return await this.LogService.createLog(userContext, userIdDTO, logDTO); // Implement this method in your service
 		} catch (error) {
 			const errorMessage = `Failed to create log: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -91,7 +93,7 @@ export class AppController {
 	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const log = this.service.fetchLog(userContext, userIdDTO, logId);
+			const log = this.LogService.fetchLog(userContext, userIdDTO, logId);
 			if (!log) {
 				const errorMessage = `Log with id ${logId.value} not found`;
 				this.logger.error(errorMessage);
@@ -124,7 +126,7 @@ export class AppController {
 	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.service.updateLog(userContext, userIdDTO, logIdDTO, partialLogDTO);
+			void await this.LogService.updateLog(userContext, userIdDTO, logIdDTO, partialLogDTO);
 			// implicit return
 		} catch (error) {
 			const errorMessage = `Failed to update log with ID: ${logIdDTO.value}: ${error.message}`;
@@ -148,7 +150,7 @@ export class AppController {
 	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.service.deleteLog(userContext, userIdDTO, logIdDTO); // Implement this method in your service
+			void await this.LogService.deleteLog(userContext, userIdDTO, logIdDTO); // Implement this method in your service
 		} catch (error) {
 			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -177,7 +179,7 @@ export class AppController {
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
 			// therefore remove empty queries here, so that the service method can just check for undefined
 			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-			const logs = await this.service.fetchLogs(userContext, userIdDTO, queryDTO as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
+			const logs = await this.LogService.fetchLogs(userContext, userIdDTO, queryDTO as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
 			if (logs.length === 0) {
 				const errorMessage = 'No logs found';
 				this.logger.error(errorMessage);
@@ -194,7 +196,28 @@ export class AppController {
 
 	//------------------------ TODO: SINGLE-USER CRUD -----------------------//
 
-	//------------------------ TODO: BATCH USER CRUD -----------------------//
+	/** Create a new user here when a user is created in the user microservice
+	 * throws UnauthorizedException if requester is not user microservice
+	 * @todo Implement this method in user service
+	*/
+
+	/*
+	@Post()
+	async createUser(@Body() createUserDTO: CreateUserDTO): Promise<void> {
+		await this.userService.createUser(createUserDTO);
+	}
+	*/
+
+	/* Delete a user here when the corresponding user is deleted in the user microservice
+	 * throws UnauthorizedException if requester is not user microservice
+	 * @todo Implement this method in user service
+	*/
+	/*
+	@Delete(':id')
+		async deleteUser(@Param('id') userId: string): Promise<void> {
+		await this.userService.deleteUser(userId);
+	}
+	*/
 	
 	//--------------------------------- MISC --------------------------------//
 
@@ -210,7 +233,7 @@ export class AppController {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult			
 			const activityCounts: Record<string, number> = {};			
-			const logs = await this.service.fetchLogs(userContext, {} as unknown as EntityIdDTO) ?? [];
+			const logs = await this.LogService.fetchLogs(userContext, {} as unknown as EntityIdDTO) ?? [];
 			Object.keys(ActivityType).forEach(activity => {
 				const count = logs.filter(log => log.activity === activity).length;
 				activityCounts[activity] = count;
@@ -269,7 +292,7 @@ export class AppController {
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
 			// therefore remove empty queries here, so that the service method can just check for undefined
 			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-			return this.service.fetchaggretagedLogs(userContext, aggregationQueryDTO as any, queryDTO as any); // todo: refactor service method to accept dtos
+			return this.LogService.fetchaggretagedLogs(userContext, aggregationQueryDTO as any, queryDTO as any); // todo: refactor service method to accept dtos
 		}
 		catch (error) {
 			const errorMessage = `Request for aggregation failed: ${error.message}`;
@@ -313,7 +336,7 @@ export class AppController {
 	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async sessions(): Promise<ConditioningData> {
 		try {
-			return this.service.conditioningData();
+			return this.LogService.conditioningData();
 		}
 		catch (error) {
 			throw new BadRequestException(`Request for all sessions failed: ${error.message}`);
