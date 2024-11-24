@@ -583,7 +583,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		return Promise.resolve(); // resolve with void
 	}
 
-	/* Purge log from log repo that has been orphaned by failed user update at log creation
+	/* Purge log from log repo that has been orphaned by failed user update (log creation helper)
 	 * @param logId Entity id of the log to purge from the log repo
 	 * @param retries Number of retries before giving up
 	 * @param delay Delay in milliseconds between retries
@@ -601,7 +601,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		}
 	}
 
-	/* Roll back user update by updating user with original data
+	/* Roll back user update by updating user with original data (helper for log deletion)
 	 * @param user User entity to roll back
 	 * @param originalDTO Original user DTO to roll back to
 	 * @param retries Number of retries before giving up
