@@ -65,3 +65,23 @@ npm install -S @evelbulgroz/fitnessapp-conditioning-service
 /** Import into project */
 import { Feature } from '@evelbulgroz/fitnessapp-conditioning-service';
 ````
+
+## TODOs
+This microservice is nearing first release feature completion for its main responsibility of managing and serving `ConditioningLog`s.
+
+Beyond this responsibility, the overall goal is to develop this project to a state where it can function as a template for similar training data microservices, e.g. strength training etc.
+
+In broad strokes, what remains to be done is rounding out supporting features, consolidating and cleaning up, as follows:
+* Finalize error handling and rollback for now in `ConditioningDataService`
+* Figure out how `User` CRUD should work, and how it should collaborate with user/other microservices - if at all (consider adding a separate `UserController` and `UserDataService` for this purpose)
+* Copy over (de)registration logic to `AppModule` from API Gateway to be able to effectively authenticate and collaborate with other microservices
+* Solve any problems running the dev server
+* Get automated-generated `api-docs` endpoint working and tested
+* Pull generalizable JWT and other auth logic out into separate library/ies
+	* Wait until they have stabilized in operation for a while
+* Clean up code:
+	* Remove any stray unused logic
+	* Apply and comply with stricter compiler settings
+	* Apply linting
+
+*Note: Postpone deployment to production. For now, running in dev is sufficient*
