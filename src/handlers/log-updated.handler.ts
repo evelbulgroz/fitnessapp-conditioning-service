@@ -1,5 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
+import { firstValueFrom, Observable } from 'rxjs';
+
 import { Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
@@ -8,7 +10,6 @@ import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
 import { LogUpdatedEvent } from '../events/log-updated.event';
 import { DomainEventHandler } from './domain-event.handler';
-import { firstValueFrom, Observable } from 'rxjs';
 
 /** Log updated event handler */
 @Injectable()

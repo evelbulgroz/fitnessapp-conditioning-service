@@ -31,7 +31,6 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 	}
 
 	public async handle(event: UserUpdatedEvent): Promise<void> {
-		console.debug('UserUpdatedHandler: handling event:', event);
 		const userDTO = event.payload as UserDTO;
 		const snapshot = this.logService.getCacheSnapshot(this);
 		const cacheEntry = snapshot.find((entry) => entry.userId === userDTO.userId);

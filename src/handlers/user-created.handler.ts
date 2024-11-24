@@ -1,5 +1,7 @@
 import { Inject, Injectable, forwardRef } from '@nestjs/common';
 
+import { firstValueFrom, Observable } from 'rxjs';
+
 import { Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
@@ -11,7 +13,6 @@ import { User } from '../domain/user.entity';
 import { UserCreatedEvent } from '../events/user-created.event';
 import { UserDTO } from '../dtos/domain/user.dto';
 import { UserRepository } from '../repositories/user.repo';
-import { firstValueFrom, Observable } from 'rxjs';
 
 /** User created event handler */
 @Injectable()

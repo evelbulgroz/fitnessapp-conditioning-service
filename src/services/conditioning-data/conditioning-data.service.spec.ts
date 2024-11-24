@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
-import { ConsoleLogger, EntityId, Logger, Result, EntityUpdatedEvent } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
 import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO } from '../../dtos/sanitization/aggregation-query.dto';
@@ -20,16 +20,12 @@ import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepo } from '../../repositories/conditioning-log.repo';
 import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
 import { EventDispatcher } from '../../services/event-dispatcher/event-dispatcher.service';
-import { FileService } from '../file-service/file.service';
-import { LogCreatedEvent } from '../../events/log-created.event';
+import { FileService } from '../file-service/file.service';;
 import { LogCreatedHandler } from '../../handlers/log-created.handler';
-import { LogDeletedEvent } from '../../events/log-deleted.event';
 import { LogDeletedHandler } from '../../handlers/log-deleted.handler';
 import { LogUpdatedEvent } from '../../events/log-updated.event';
 import { LogUpdatedHandler } from '../../handlers/log-updated.handler';
-import { UserCreatedEvent } from '../../events/user-created.event';
 import { UserCreatedHandler } from '../../handlers/user-created.handler';
-import { UserDeletedEvent } from '../../events/user-deleted.event';
 import { UserDeletedHandler } from '../../handlers/user-deleted.handler';
 import { UserUpdatedEvent } from '../../events/user-updated.event';
 import { UserUpdatedHandler } from '../../handlers/user-updated.handler';
