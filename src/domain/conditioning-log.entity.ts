@@ -1,4 +1,4 @@
-import { EntityId, EntityMetadataDTO } from "@evelbulgroz/ddd-base";
+import { EntityMetadataDTO } from "@evelbulgroz/ddd-base";
 import { IsArray, IsLikeAll } from '@evelbulgroz/sanitizer-decorator';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { TrainingLog } from "@evelbulgroz/fitnessapp-base";
