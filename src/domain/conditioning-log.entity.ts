@@ -1,17 +1,20 @@
-import { EntityId } from "@evelbulgroz/ddd-base";
+import { EntityId, EntityMetadataDTO } from "@evelbulgroz/ddd-base";
 import { IsArray, IsLikeAll } from '@evelbulgroz/sanitizer-decorator';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { TrainingLog } from "@evelbulgroz/fitnessapp-base";
 
-import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
 import { ConditioningLap } from "./conditioning-lap.model";
+import { ConditioningLapDTO } from "src/dtos/domain/conditioning-lap.dto";
+import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
+import ConditioningLogPersistenceDTO from "src/dtos/domain/conditioning-log-persistence.dto";
+
 
 /**@description A concrete log of a conditioning activity, e.g. a bike ride, a swim, a run etc.
  * @template T The type of the log, e.g. ConditioningLog
  * @template U The type of the DTO, e.g. ConditioningLogDTO
  * @see {@link TrainingLog} for most of the class members, this class only adds the concept of laps
  * @see {@link ConditioningLap} for details of a lap
- * @note Laps are not included if log is an overview
+ * @remark Laps are not included if log is an overview
  */
 export class ConditioningLog<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO> extends TrainingLog<T, U> {
 	//----------------------------- PROPERTIES ------------------------------//
@@ -20,8 +23,18 @@ export class ConditioningLog<T extends ConditioningLog<T,U>, U extends Condition
 	
 	//----------------------------- CONSTRUCTOR -----------------------------//	
 	
-	protected constructor(dto: ConditioningLogDTO, id?: EntityId, createdOn?: Date, updatedOn?: Date, overview: boolean = true) {
-		super(dto, id, createdOn, updatedOn, overview);
+	/** Creates a new instance of ConditioningLog
+	 * @param dto The data transfer object used to create the entity, should include entity ID
+	 * @param metadataDTO Optional metadata for the entity (for use when re-serializing from JSON).
+	 * @param overview True if this is an overview of the activity, false if this is a detailed log of the activity (default: true).
+	 * @remark Follows the Entity pattern of having a protected constructor and a public static create() method.
+	 * @remark Defaulting to overview economizes on resources, e.g. storage, memory or bandwidth, as e.g. sensor logs may become very large.
+	 * @remark This also ensures that we can rely on default Entity.create() behavior, e.g. when initializing logs from persistence.
+	 * @remark Details can be fetched on demand, e.g. when user drills down into the activity, or when the user requests a detailed report.
+	 * @remark Laps are not included if log is an overview.
+	 */
+	protected constructor(dto: U, metadataDTO: EntityMetadataDTO, overview: boolean = true) {
+		super(dto, metadataDTO, overview);
 		if (!overview) { // not overview, so populate laps
 			this.laps = dto.laps
 			?
@@ -57,11 +70,24 @@ export class ConditioningLog<T extends ConditioningLog<T,U>, U extends Condition
 		return true;
 	}
 
-	public toJSON(): U {
+	public toDTO(): U {
 		return {
+			...super.toDTO(), // copy props from superclass(es)
+			laps: this.laps?.map(lap => JSON.parse(JSON.stringify(lap)) as ConditioningLapDTO) // serialize lap data
+		} as U;
+	}
+
+	public toJSON(): ConditioningLogPersistenceDTO<U, EntityMetadataDTO> {
+		const json: Record<string,any> =  {
 			...super.toJSON(), // copy props from superclass
-			laps: this.laps && JSON.parse(JSON.stringify(this.laps)) // deep copy on the cheap
+			...this.toDTO() // copy props from this class			
 		};
+
+		// remove props with undefined values
+		void Object.keys(json).map(key => json[key] === undefined && delete json[key]);
+
+		return json as ConditioningLogPersistenceDTO<U, EntityMetadataDTO>;
+		
 	}
 
 	//----------------------------- PROPERTIES -----------------------------//

@@ -3,7 +3,7 @@ import { TrainingLogDTO } from "@evelbulgroz/fitnessapp-base";
 
 export interface ConditioningLogDTO extends TrainingLogDTO {
 	/** Specifies a segment of a session, e.g. a lap in a pool/around a track, or a segment of a bike ride
-	 * @note May be empty if no laps, or undefined if this is an overview
+	 * @remark May be empty if no laps, or undefined if this is an overview
 	 */
 	laps?: ConditioningLapDTO[];
 }

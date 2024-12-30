@@ -2,7 +2,7 @@ import { ExceptionFilter, Catch, ArgumentsHost, HttpException, Logger } from '@n
 import { Request, Response } from 'express';
 
 /** Middleware to catch all exceptions and log them
- * @note This is a global exception filter
+ * @remark This is a global exception filter
  * @todo Add a logger service to log exceptions
  * @todo Use to replace exception handling in controllers
  * @example main.ts:

@@ -17,7 +17,7 @@ import { LogUpdatedEvent } from "../events/log-updated.event";
  * @remark Exists mostly to enable clients to depend on abstractions rather than a specific implementations
  * @remark Clients should inject this class and depend on the injector to provide the concrete implementation at runtime
  * @remark NestJS's DI system cannot inject abstract classes, so this class is not marked abstract though it should be treated as such
- * @note Must be extended by a concrete class specific to a particular persistence layer
+ * @remark Must be extended by a concrete class specific to a particular persistence layer
 */
 @Injectable()
 export class ConditioningLogRepo<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO> extends TrainingLogRepo<ConditioningLog<T,U>, U> {
