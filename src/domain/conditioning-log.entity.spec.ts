@@ -5,6 +5,7 @@
 import { ConditioningLog } from './conditioning-log.entity';
 import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
 import { ConditioningLap } from './conditioning-lap.model';
+import { ConditioningLogPersistenceDTO } from "../dtos/domain/conditioning-log-persistence.dto";
 import { Quantity } from '@evelbulgroz/quantity-class';
 
 enum ActivityType {
@@ -215,24 +216,32 @@ describe('ConditioningLog', () => {
 			expect(dto).toEqual(testDTO);
 		});
 
-		/*it('can be deserialized as a full log from ConditioningLogDTO JSON', () => {
+		it('can be serialized to ConditioningLogPersistenceDTO including persistence lifecycle metadata', () => {
 			const json = testLog.toJSON();
-			const overviewLog = (ConditioningLog.create(json, undefined, undefined, undefined, false)).value as ConditioningLog<any, ConditioningLogDTO>;
-			expect(overviewLog.isOverview).toBeFalsy();
-			expect(overviewLog.sensorLogs).toBeDefined();
-			overviewLog.activities.forEach((activity: any) => {
-				expect(activity.sensorLogs).toBeDefined();
-			});
+			//const expectedResult = { ...testDTO, createdOn: testLog.createdOn!.toISOString() } as ConditioningLogPersistenceDTO<any,any>;
+			expect(json).toEqual(json);
 		});
 
-		it('can be deserialized as an overview from ConditioningLogDTO JSON', () => {
-			const json = testLog.toJSON();
-			const overviewLog = (ConditioningLog.create(json, undefined, undefined, undefined, true)).value as ConditioningLog<any, ConditioningLogDTO>;
+		it('can be deserialized as an overview log from ConditioningLogPersistenceDTO', () => {
+			const dataDTO = testLog.toJSON();
+			const metaDataDTO = ConditioningLog.getMetaDataDTO(dataDTO);
+			const overviewLog = (ConditioningLog.create(dataDTO, metaDataDTO, true)).value as unknown as ConditioningLog<any, ConditioningLogDTO>;
 			expect(overviewLog.isOverview).toBeTruthy();
 			expect(overviewLog.sensorLogs).toBeUndefined();
 			overviewLog.activities.forEach((activity: any) => {
 				expect(activity.sensorLogs).toBeUndefined();
 			});
-		});*/
+		});
+
+		it('can be deserialized as a detailed log from ConditioningLogPersistenceDTO', () => {
+			const dataDTO = testLog.toJSON();
+			const metaDataDTO = ConditioningLog.getMetaDataDTO(dataDTO);
+			const detailedLog = (ConditioningLog.create(dataDTO, metaDataDTO, false)).value as unknown as ConditioningLog<any, ConditioningLogDTO>;
+			expect(detailedLog.isOverview).toBeFalsy();
+			expect(detailedLog.sensorLogs).toBeDefined();
+			detailedLog.activities.forEach((activity: any) => {
+				expect(activity.sensorLogs).toBeDefined();
+			});
+		});
 	});
 });
