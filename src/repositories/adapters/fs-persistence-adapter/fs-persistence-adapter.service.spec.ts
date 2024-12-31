@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { EntityMetadataDTO, FileSystemPersistenceAdapter } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, EntityMetadataDTO, FileSystemPersistenceAdapter } from '@evelbulgroz/ddd-base';
 
 import { FsPersistenceAdapterService } from './fs-persistence-adapter.service';
 import { ConditioningLogPersistenceDTO } from '../../../dtos/domain/conditioning-log-persistence.dto';
@@ -18,7 +18,7 @@ describe('FsPersistenceAdapterService', () => {
 		const module: TestingModule = await createTestingModule({
 			//ConfigModule is imported automatically by createTestingModule
 			providers: [
-				FsPersistenceAdapterService
+				FsPersistenceAdapterService,
 			],
 		});
 
