@@ -13,7 +13,7 @@ import { AggregatorService } from '../aggregator/aggregator.service';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
-import { ConditioningLogRepo } from '../../repositories/conditioning-log.repo';
+import { ConditioningLogRepository } from '../../repositories/conditioning-log.repo';
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
 import { DomainEventHandler } from '../../handlers/domain-event.handler';
 import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
@@ -68,7 +68,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	public constructor(
 		protected readonly aggregator: AggregatorService,
 		protected readonly eventDispatcher: EventDispatcher,
-		protected readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
+		protected readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		protected readonly userRepo: UserRepository<any, UserDTO>
 	) {
 		this.subscribeToRepoEvents(); // deps not intialized in onModuleInit, so subscribe here

@@ -10,7 +10,7 @@ import path from 'path';
 //import { EventSourceBuilder } from '../../utils/event-source-builder';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from "../../dtos/domain/conditioning-log.dto";
-import { ConditioningLogRepo } from '../conditioning-log.repo';
+import { ConditioningLogRepository } from '../conditioning-log.repo';
 import { EntityId,  Logger, Result } from "@evelbulgroz/ddd-base";
 import { FileService } from '../../services/file-service/file.service';
 import { EndPointConfig } from '../../domain/config-options.model';
@@ -20,7 +20,7 @@ import { EndPointConfig } from '../../domain/config-options.model';
  * @todo Move all logic re. collaboration with import service to data service, making repo oblivious to import service
 */
 @Injectable()
-export class FsConditioningLogRepo extends ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO> {
+export class FsConditioningLogRepo extends ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO> {
 	
 	//--------------------------------- INSTANCE PROPERTIES ---------------------------------
 
@@ -194,7 +194,7 @@ export class FsConditioningLogRepo extends ConditioningLogRepo<ConditioningLog<a
 	}
 
 	protected getClassFromDTO(dto: ConditioningLogDTO): Result<any> {
-		return ConditioningLogRepo.getClassFromName(dto.className);
+		return ConditioningLogRepository.getClassFromName(dto.className);
 	}
 
 	//----------------------------------- PRIVATE METHODS --------------------------------------------

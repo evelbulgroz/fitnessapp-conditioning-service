@@ -1,8 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
 
-import { Observable } from "rxjs";
-import { v4 as uuidv4 } from 'uuid';
-
 import {
 	EntityCreatedEvent,
 	EntityCreatedEventDTO,
@@ -18,20 +15,15 @@ import {
 	PersistenceAdapter,
 	Result
 } from "@evelbulgroz/ddd-base";
-import { Query } from "@evelbulgroz/query-fns";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
 import { ConditioningLog } from "../domain/conditioning-log.entity";
 import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
 import { ConditioningLogPersistenceDTO } from "../dtos/domain/conditioning-log-persistence.dto";
 
-import { LogCreatedEvent } from "../events/log-created.event";
-import { LogDeletedEvent } from "../events/log-deleted.event";
-import { LogUpdatedEvent } from "../events/log-updated.event";
-
 /**@classdesc Concrete implementation of an injectable ConditioningLogRepo that uses an adapter to interact with a persistence layer */
 @Injectable()
-export class ConditioningLogRepo<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO> extends TrainingLogRepo<ConditioningLog<T,U>, U> {
+export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO> extends TrainingLogRepo<ConditioningLog<T,U>, U> {
 	//------------------------------ CONSTRUCTOR ----------------------------//
 
 	public constructor(
@@ -53,9 +45,9 @@ export class ConditioningLogRepo<T extends ConditioningLog<T,U>, U extends Condi
 	// todo: so generic by now, it should be moved to the base class
 	protected async initializePersistence(): Promise<Result<void>> {
 			this.logger.log(`${this.constructor.name}: Initializing persistence...`);
-			const result = await this.adapter.initialize();
-			if (result.isFailure) {
-				return Promise.resolve(Result.fail<void>(result.error));
+			const initResult = await this.adapter.initialize();
+			if (initResult.isFailure) {
+				return Promise.resolve(Result.fail<void>(initResult.error));
 			}
 			this.logger.log(`${this.constructor.name}: Persistence initialized.`);
 			return Promise.resolve(Result.ok<void>());
@@ -71,7 +63,7 @@ export class ConditioningLogRepo<T extends ConditioningLog<T,U>, U extends Condi
 		}
 		const dtos = result.value as ConditioningLogPersistenceDTO<U, EntityMetadataDTO>[];
 		const logs = dtos.map(dto => {
-			const createResult = this.createEntityFromPersistenceDTO(dto, dto.entityId, true);
+			const createResult = this.createEntityFromPersistenceDTO(dto, true);
 			if (createResult.isFailure) {
 				this.logger.error(`${this.constructor.name}: Failed to create entity from DTO: ${createResult.error}`);
 				return undefined;
@@ -84,14 +76,13 @@ export class ConditioningLogRepo<T extends ConditioningLog<T,U>, U extends Condi
 		return Promise.resolve(Result.ok<void>());
 	}
 
-
 	//------------------- TEMPLATE METHOD IMPLEMENTATIONS -------------------//	
-
+	
 	// todo: figure out a better way to handle imports
 	protected async finalizeInitialization(): Promise<Result<void>> {
 		this.logger.log(`${this.constructor.name}: Finalizing initialization...`);
 		//await this.#subscribeToImportUpdates();
-		this.logger.log(`${this.constructor.name}: Initialization complete.`);
+		// base class initialization logs completion
 		return Promise.resolve(Result.ok<void>());
 	}
 	
@@ -117,14 +108,13 @@ export class ConditioningLogRepo<T extends ConditioningLog<T,U>, U extends Condi
 
 	/* Create a new entity from a persistence DTO
 	 * @param dto The persistence DTO to create the entity from
-	 * @param id The entity ID to assign to the new entity (optional override of the ID in the DTO)
 	 * @param overView If true, create an overview entity; otherwise, create a detailed entity
 	 * @returns The new entity
 	 * @throws Error if the entity class is unknown or unsupported
 	 * @remark Exists to enable the generic creation of User entities from DTOs, while staying DRY
 	 * @todo Remove when implemented in ddd-base library
 	 */
-	protected createEntityFromPersistenceDTO(dto: ConditioningLogPersistenceDTO<U, EntityMetadataDTO>, id?: EntityId, ...args: any[]): Result<T> {
+	protected createEntityFromPersistenceDTO(dto: ConditioningLogPersistenceDTO<U, EntityMetadataDTO>, ...args: any[]): Result<T> {
 		const factoryResult = this.getFactoryFromDTO(dto);
 		if (factoryResult.isFailure) {
 			return Result.fail<T>(`Unknown or unsupported entity type: ${dto.className}`);
@@ -138,14 +128,14 @@ export class ConditioningLogRepo<T extends ConditioningLog<T,U>, U extends Condi
 		const ClassRef = classResult.value as typeof ConditioningLog;				
 		const metadataDTO = ClassRef.getMetaDataDTO(dto);
 		
-		const createResult = factory(dto, metadataDTO, args);
+		const createResult = factory(dto, metadataDTO, ...args);
 		if (createResult.isFailure) {
 			return Result.fail<T>(`Failed to create entity: ${createResult.error}`);
 		}
 
 		// creation succeeded - return the new entity
-		return Result.ok<T>(createResult.value as unknown as T);
+		return Result.ok<T>(createResult.value as T);
 	}
 }
 
-export default ConditioningLogRepo;
+export default ConditioningLogRepository;

@@ -7,7 +7,7 @@ import { Logger } from '@evelbulgroz/ddd-base';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
-import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
+import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { LogUpdatedEvent } from '../events/log-updated.event';
 import { DomainEventHandler } from './domain-event.handler';
 
@@ -18,7 +18,7 @@ import { DomainEventHandler } from './domain-event.handler';
 export class LogUpdatedHandler extends DomainEventHandler<LogUpdatedEvent> {
 	constructor(
 		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService,
-		private readonly logRepo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
+		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly logger: Logger
 	) {
 		super();

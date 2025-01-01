@@ -1,17 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { TestingModule } from '@nestjs/testing';
 
 import { v4 as uuidv4 } from 'uuid';
 
 import { ConsoleLogger, EntityId, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 import { DeviceType, ActivityType, SensorType } from '@evelbulgroz/fitnessapp-base';
 
-import { ConditioningLogRepo } from './conditioning-log.repo';
+import { ConditioningLogRepository } from './conditioning-log.repo';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogPersistenceDTO } from '../dtos/domain/conditioning-log-persistence.dto';
 import { createTestingModule } from '../test/test-utils';
-import { firstValueFrom, Observable, of, take } from 'rxjs';
-import { after } from 'node:test';
+import { firstValueFrom, Observable } from 'rxjs';
 
 class PersistenceAdapterMock<T extends ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>> extends PersistenceAdapter<T> {
 	// cannot get generics to work with jest.fn(), so skipping for now
@@ -23,9 +22,11 @@ class PersistenceAdapterMock<T extends ConditioningLogPersistenceDTO<Conditionin
 	public fetchAll = jest.fn();
 }
 
-describe('ConditioningLogRepo', () => {
+// process.env.NODE_ENV = 'not-test'; // set NODE_ENV to not 'test' to enable logging
+
+describe('ConditioningLogRepository', () => {
 	let adapter: PersistenceAdapter<ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>>;
-	let repo: ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>;
+	let repo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>;
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
 		providers: [
@@ -42,12 +43,12 @@ describe('ConditioningLogRepo', () => {
 				provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
 				useValue: 100						// figure out how to get this from config
 			},
-			ConditioningLogRepo,
+			ConditioningLogRepository,
 		],
 		});
 
 		adapter = module.get<PersistenceAdapter<ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>>>(PersistenceAdapter);
-		repo = module.get<ConditioningLogRepo<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>>(ConditioningLogRepo);
+		repo = module.get<ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>>(ConditioningLogRepository);
 	});
 
 	let testDTOs: ConditioningLogDTO[];
@@ -478,13 +479,23 @@ describe('ConditioningLogRepo', () => {
 			});
 	});
 
+	
 	let fetchAllSpy: jest.SpyInstance;
+	let fetchByIdSpy: jest.SpyInstance;
+	let initSpy: jest.SpyInstance;
 	beforeEach(() => {
-		fetchAllSpy = jest.spyOn(repo['adapter'], 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
+		fetchAllSpy = jest.spyOn(adapter, 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
+		fetchByIdSpy = jest.spyOn(repo['adapter'], 'fetchById').mockImplementation((entityId: EntityId) => {
+			const dto = testPersistenceDTOs.find(dto => dto.entityId === entityId);
+			return Promise.resolve(Result.ok(dto));
+		});
+		initSpy = jest.spyOn(repo['adapter'], 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));		
 	});
 
 	afterEach(() => {
 		fetchAllSpy.mockRestore();
+		fetchByIdSpy.mockRestore();
+		initSpy.mockRestore();
 		jest.clearAllMocks();
 	});
 
@@ -493,16 +504,16 @@ describe('ConditioningLogRepo', () => {
 		expect(repo).toBeDefined();
 	});
 
-	xit('initializes cache with a collection of logs from persistence', async () => {
-		await repo.isReady();
-		console.debug('back from isReady', (repo as any).cache.value);
-		const fetchAllResult = await repo.fetchAll();
-		console.debug('fetchAllResult:', fetchAllResult);
+	it('initializes cache with a collection of overview logs from persistence', async () => {
+		const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
 		expect(fetchAllResult.isSuccess).toBeTruthy();
-		const logs = fetchAllResult.value as unknown as ConditioningLog<any, ConditioningLogDTO>[];
+		const logs$ = fetchAllResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
+		const logs = await firstValueFrom(logs$);
 		expect(logs).toHaveLength(testDTOs.length);
 		logs.forEach((log, index) => {
+			expect(log).toBeInstanceOf(ConditioningLog);
 			expect(log.entityId).toBe(testDTOs[index].entityId);
+			expect(log.isOverview).toBe(true);
 		});
 	});
 
