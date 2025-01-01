@@ -478,7 +478,6 @@ describe('ConditioningLogRepository', () => {
 				} as ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>;
 			});
 	});
-
 	
 	let fetchAllSpy: jest.SpyInstance;
 	let fetchByIdSpy: jest.SpyInstance;

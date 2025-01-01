@@ -1,20 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 
-import {
-	EntityCreatedEvent,
-	EntityCreatedEventDTO,
-	EntityDeletedEvent,
-	EntityDeletedEventDTO,
-	EntityDTO,
-	EntityFactory,
-	EntityId,
-	EntityMetadataDTO,
-	EntityUpdatedEvent,
-	EntityUpdatedEventDTO,
-	Logger,
-	PersistenceAdapter,
-	Result
-} from "@evelbulgroz/ddd-base";
+import { EntityFactory,	EntityMetadataDTO, Logger, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
 import { ConditioningLog } from "../domain/conditioning-log.entity";
@@ -30,7 +16,6 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		protected readonly adapter: PersistenceAdapter<ConditioningLogPersistenceDTO<U, EntityMetadataDTO>>,
 		protected readonly logger: Logger,
 		@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
-		//protected readonly throttleTime?: number
 	) {
 		super(adapter, logger, throttleTime);
 	}
