@@ -51,6 +51,8 @@ describe('ConditioningLogRepository', () => {
 		repo = module.get<ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>>(ConditioningLogRepository);
 	});
 
+	let randomIndex: number;
+	let randomDTO: ConditioningLogDTO;
 	let testDTOs: ConditioningLogDTO[];
 	let testPersistenceDTOs: ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>[];
 	beforeEach(() => {
@@ -60,7 +62,7 @@ describe('ConditioningLogRepository', () => {
 				meta: {
 					sourceId: {
 						source: DeviceType.SUUNTO_T6,
-						id: "20200806-090329"
+						id: "20000806-090329"
 					}
 				},
 				isOverview: false,
@@ -135,7 +137,7 @@ describe('ConditioningLogRepository', () => {
 				meta: {
 				  sourceId: {
 					source: DeviceType.SUUNTO_T6,
-					id: "20200806-090329"
+					id: "20010806-090329"
 				  }
 				},
 				isOverview: false,
@@ -183,7 +185,7 @@ describe('ConditioningLogRepository', () => {
 				meta: {
 				sourceId: {
 					source: DeviceType.SUUNTO_T6,
-					id: "20200807-090329"
+					id: "20020807-090329"
 				}
 				},
 				isOverview: false,
@@ -231,7 +233,7 @@ describe('ConditioningLogRepository', () => {
 				meta: {
 				sourceId: {
 					source: DeviceType.SUUNTO_T6,
-					id: "20200808-090329"
+					id: "20030808-090329"
 				}
 				},
 				isOverview: false,
@@ -279,7 +281,7 @@ describe('ConditioningLogRepository', () => {
 				meta: {
 				sourceId: {
 					source: DeviceType.SUUNTO_T6,
-					id: "20200809-090329"
+					id: "20040809-090329"
 				}
 				},
 				isOverview: false,
@@ -327,7 +329,7 @@ describe('ConditioningLogRepository', () => {
 				meta: {
 				sourceId: {
 					source: DeviceType.SUUNTO_T6,
-					id: "20200810-090329"
+					id: "20050810-090329"
 				}
 				},
 				isOverview: false,
@@ -375,7 +377,7 @@ describe('ConditioningLogRepository', () => {
 				meta: {
 				sourceId: {
 					source: DeviceType.SUUNTO_T6,
-					id: "20200811-090329"
+					id: "20060811-090329"
 				}
 				},
 				isOverview: false,
@@ -423,7 +425,7 @@ describe('ConditioningLogRepository', () => {
 				meta: {
 				sourceId: {
 					source: DeviceType.SUUNTO_T6,
-					id: "20200812-090329"
+					id: "20070812-090329"
 				}
 				},
 				isOverview: false,
@@ -477,6 +479,9 @@ describe('ConditioningLogRepository', () => {
 				...dto,				
 				} as ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>;
 			});
+
+		randomIndex = Math.floor(Math.random() * testDTOs.length);
+		randomDTO = testDTOs[randomIndex];
 	});
 	
 	let fetchAllSpy: jest.SpyInstance;
@@ -484,11 +489,15 @@ describe('ConditioningLogRepository', () => {
 	let initSpy: jest.SpyInstance;
 	beforeEach(() => {
 		fetchAllSpy = jest.spyOn(adapter, 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
-		fetchByIdSpy = jest.spyOn(repo['adapter'], 'fetchById').mockImplementation((entityId: EntityId) => {
+		fetchByIdSpy = jest.spyOn(repo['adapter'], 'fetchById').mockImplementation((entityId: EntityId) => { // this may no longer be necessary
 			const dto = testPersistenceDTOs.find(dto => dto.entityId === entityId);
 			return Promise.resolve(Result.ok(dto));
 		});
 		initSpy = jest.spyOn(repo['adapter'], 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));		
+	});
+
+	beforeEach(async () => {
+		await repo.isReady();
 	});
 
 	afterEach(() => {
@@ -497,7 +506,6 @@ describe('ConditioningLogRepository', () => {
 		initSpy.mockRestore();
 		jest.clearAllMocks();
 	});
-
 
 	it('can be created', () => {
 		expect(repo).toBeDefined();
@@ -511,8 +519,28 @@ describe('ConditioningLogRepository', () => {
 		expect(logs).toHaveLength(testDTOs.length);
 		logs.forEach((log, index) => {
 			expect(log).toBeInstanceOf(ConditioningLog);
-			expect(log.entityId).toBe(testDTOs[index].entityId);
+			const dto = testDTOs.find(dto => dto.entityId === log.entityId);
+			expect(dto).toBeDefined();
+			expect(log.entityId).toBe(dto!.entityId);
 			expect(log.isOverview).toBe(true);
+		});
+	});
+
+	describe('Method overrides', () => {
+		describe('getEntityFromDTO', () => {
+			it('returns an entity from the cache by ID', async () => {
+				const entity = repo['getEntityFromDTO'](randomDTO);
+				expect(entity).toBeDefined();
+				expect(entity!.entityId).toBe(randomDTO.entityId);
+			});
+
+			it('returns an entity from the cache by source metadata, if find by id fails', async () => {
+				const originalId = randomDTO.entityId;
+				randomDTO.entityId = 'invalid id';
+				const entity = repo['getEntityFromDTO'](randomDTO);
+				expect(entity).toBeDefined();
+				expect(entity!.entityId).toBe(originalId);
+			});
 		});
 	});
 

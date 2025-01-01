@@ -72,10 +72,12 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	}
 	
 	protected getEntityFromDTO(dto: U): T | undefined {
-		return (this.getCachedEntityById(dto.entityId!) ?? // try to find the entity by ID in the cache
-			this.cache.value.find(e => { // try to find the entity by source ID in the cache
-				return (e.meta?.sourceId?.id === dto.meta?.sourceId?.id && e.meta?.sourceId?.source === dto.meta?.sourceId?.source);
-		})) as T | undefined;
+		let entity = this.getCachedEntityById(dto.entityId!);// try to find the entity by ID in the cache
+		if (entity) { return entity as T; }
+		return this.cache.value.find(e => { // try to find the entity by source ID in the cache
+			// comparing primitives, so no need to serialize the entiry or deserialize the DTO
+			return (e.meta?.sourceId?.id === dto.meta?.sourceId?.id && e.meta?.sourceId?.source === dto.meta?.sourceId?.source);
+		}) as T | undefined;
 	}
 
 	protected getClassFromDTO(dto: U): Result<any> {
