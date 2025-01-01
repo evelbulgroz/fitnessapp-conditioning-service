@@ -27,7 +27,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	//-------------------------- PROTECTED METHODS --------------------------//
 	
 	// initialize the repository
-	// todo: so generic by now, it should be moved to the base class
+	// todo: retire when implemented in ddd-base library
 	protected async initializePersistence(): Promise<Result<void>> {
 			this.logger.log(`${this.constructor.name}: Initializing persistence...`);
 			const initResult = await this.adapter.initialize();
@@ -39,7 +39,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	}
 	
 	// populate cache from data directory (cache is populated with overviews only, load details on demand)
-	// todo: so generic by now, it should be moved to the base class
+	// todo: retire when implemented in ddd-base library
 	protected async populateEntityCache(): Promise<Result<void>> {
 		this.logger.log(`${this.constructor.name}: Populating cache...`);
 		const result = await this.adapter.fetchAll();
