@@ -489,10 +489,6 @@ describe('ConditioningLogRepository', () => {
 	let initSpy: jest.SpyInstance;
 	beforeEach(() => {
 		fetchAllSpy = jest.spyOn(adapter, 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
-		fetchByIdSpy = jest.spyOn(repo['adapter'], 'fetchById').mockImplementation((entityId: EntityId) => { // this may no longer be necessary
-			const dto = testPersistenceDTOs.find(dto => dto.entityId === entityId);
-			return Promise.resolve(Result.ok(dto));
-		});
 		initSpy = jest.spyOn(repo['adapter'], 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));		
 	});
 
@@ -502,7 +498,6 @@ describe('ConditioningLogRepository', () => {
 
 	afterEach(() => {
 		fetchAllSpy.mockRestore();
-		fetchByIdSpy.mockRestore();
 		initSpy.mockRestore();
 		jest.clearAllMocks();
 	});
