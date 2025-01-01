@@ -7,7 +7,13 @@ import { ConditioningLog } from "../domain/conditioning-log.entity";
 import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
 import { ConditioningLogPersistenceDTO } from "../dtos/domain/conditioning-log-persistence.dto";
 
-/**@classdesc Concrete implementation of an injectable ConditioningLogRepo that uses an adapter to interact with a persistence layer */
+/**@classdesc Concrete implementation of an injectable ConditioningLogRepo that uses an adapter to interact with a persistence layer
+ * @template T The type of the log, e.g. ConditioningLog
+ * @template U The type of the DTO, e.g. ConditioningLogDTO
+ * @remark This class is a repository for ConditioningLog entities, and is intended to be injected into other classes, e.g. services.
+ * @remark Implements a few template methods but otherwise relies on the base class for most of its functionality.
+ * @todo Retire methods that are in the process of being implemented in the ddd-base library.
+ */
 @Injectable()
 export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO> extends TrainingLogRepo<ConditioningLog<T,U>, U> {
 	//------------------------------ CONSTRUCTOR ----------------------------//
@@ -22,11 +28,10 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	
 	//------------------------------ PUBLIC API -----------------------------//
 
-	// NOTE: Public API methods are inherited from the base class
+	// NOTE: Currently, base class public API is fully sufficient for this class
 		
 	//-------------------------- PROTECTED METHODS --------------------------//
 	
-	// initialize the repository
 	// todo: retire when implemented in ddd-base library
 	protected async initializePersistence(): Promise<Result<void>> {
 			this.logger.log(`${this.constructor.name}: Initializing persistence...`);
@@ -38,7 +43,6 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 			return Promise.resolve(Result.ok<void>());
 	}
 	
-	// populate cache from data directory (cache is populated with overviews only, load details on demand)
 	// todo: retire when implemented in ddd-base library
 	protected async populateEntityCache(): Promise<Result<void>> {
 		this.logger.log(`${this.constructor.name}: Populating cache...`);
@@ -93,14 +97,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 
 	//----------------------- OTHER PROTECTED METHODS -----------------------//
 
-	/* Create a new entity from a persistence DTO
-	 * @param dto The persistence DTO to create the entity from
-	 * @param overView If true, create an overview entity; otherwise, create a detailed entity
-	 * @returns The new entity
-	 * @throws Error if the entity class is unknown or unsupported
-	 * @remark Exists to enable the generic creation of User entities from DTOs, while staying DRY
-	 * @todo Remove when implemented in ddd-base library
-	 */
+	// @todo Remove when implemented in ddd-base library
 	protected createEntityFromPersistenceDTO(dto: ConditioningLogPersistenceDTO<U, EntityMetadataDTO>, ...args: any[]): Result<T> {
 		const factoryResult = this.getFactoryFromDTO(dto);
 		if (factoryResult.isFailure) {

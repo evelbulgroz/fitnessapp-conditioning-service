@@ -2,7 +2,7 @@ import { TestingModule } from '@nestjs/testing';
 
 import { v4 as uuidv4 } from 'uuid';
 
-import { ConsoleLogger, EntityId, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 import { DeviceType, ActivityType, SensorType } from '@evelbulgroz/fitnessapp-base';
 
 import { ConditioningLogRepository } from './conditioning-log.repo';
@@ -23,6 +23,8 @@ class PersistenceAdapterMock<T extends ConditioningLogPersistenceDTO<Conditionin
 }
 
 // process.env.NODE_ENV = 'not-test'; // set NODE_ENV to not 'test' to enable logging
+
+// NOTE: Only testing functionality that is not inherited from the base class, or that overrides base class functionality
 
 describe('ConditioningLogRepository', () => {
 	let adapter: PersistenceAdapter<ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>>;
