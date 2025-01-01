@@ -485,7 +485,6 @@ describe('ConditioningLogRepository', () => {
 	});
 	
 	let fetchAllSpy: jest.SpyInstance;
-	let fetchByIdSpy: jest.SpyInstance;
 	let initSpy: jest.SpyInstance;
 	beforeEach(() => {
 		fetchAllSpy = jest.spyOn(adapter, 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
