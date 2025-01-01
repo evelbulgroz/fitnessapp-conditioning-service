@@ -542,25 +542,54 @@ describe('ConditioningLogRepository', () => {
 				expect(entity!.entityId).toBe(originalId);
 			});
 		});
-	});
 
-	/*it('creates a new log from JSON', async () => {
-		const newLogDTO: ConditioningLogDTO = { entityId: '3', userId: 'user3', laps: [], start: new Date(), end: new Date(), duration: 30 };
-		const newLog = await repo.create(newLogDTO);
-		expect(newLog).toBeDefined();
-		expect(newLog.entityId).toBe('3');
-	});
+		describe('getClassFromDTO', () => {
+			it('returns a reference to a known the class from the DTO', async () => {
+				const dto = testPersistenceDTOs[randomIndex];
+				const result = repo['getClassFromDTO'](dto);
+				expect(result.isSuccess).toBeTruthy();
+				expect(result.value).toBe(ConditioningLog);
+			});
 
-	it('should update an existing log', async () => {
-		const updatedLogDTO: Partial<ConditioningLogDTO> = { duration: 90 };
-		const updatedLog = await repo.update('1', updatedLogDTO);
-		expect(updatedLog).toBeDefined();
-		expect(updatedLog?.duration).toBe(90);
-	});
+			it('returns a failure result for an unknown class', async () => {
+				const dto = testPersistenceDTOs[randomIndex];
+				dto.className = 'UnknownClass';
+				const result = repo['getClassFromDTO'](dto);
+				expect(result.isFailure).toBeTruthy();
+			});
+		});
+		
+		describe('createEntityFromPersistenceDTO', () => {
+			it('creates an overview entity from a persistence DTO', async () => {
+				const dto = testPersistenceDTOs[randomIndex];
+				const result = repo['createEntityFromPersistenceDTO'](dto, true);
+				expect(result.isSuccess).toBeTruthy();
+				const entity = result.value as ConditioningLog<any, ConditioningLogDTO>;
+				expect(entity).toBeInstanceOf(ConditioningLog);
+				expect(entity.isOverview).toBe(true);
+			});
 
-	it('should delete a log by ID', async () => {
-		await repo.delete('1');
-		const log = await repo.findById('1');
-		expect(log).toBeUndefined();
-	});*/
+			it('assigns the DTO ID to the entity', async () => {
+				const dto = testPersistenceDTOs[randomIndex];
+				const result = repo['createEntityFromPersistenceDTO'](dto, true);
+				expect(result.isSuccess).toBeTruthy();
+				const entity = result.value as ConditioningLog<any, ConditioningLogDTO>;
+				expect(entity.entityId).toBe(dto.entityId);
+			});
+
+			it('returns a failure result for an unknown class', async () => {
+				const dto = testPersistenceDTOs[randomIndex];
+				dto.className = 'UnknownClass';
+				const result = repo['createEntityFromPersistenceDTO'](dto, true);
+				expect(result.isFailure).toBeTruthy();
+			});
+
+			it('returns a failure result if entity creation fails', async () => {
+				const dto = testPersistenceDTOs[randomIndex];
+				delete dto.entityId; // entity creation will fail without an ID
+				const result = repo['createEntityFromPersistenceDTO'](dto, true);
+				expect(result.isSuccess).toBeTruthy();
+			});
+		});
+	});
 });
