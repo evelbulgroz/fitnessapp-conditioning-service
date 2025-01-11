@@ -20,35 +20,6 @@ export class FsPersistenceAdapterService<T extends ConditioningLogPersistenceDTO
 		void config //suppress unused variable warning
 		super(config.get<string>('modules.conditioning.repos.fs.dataDir') ?? 'no-such-dir');
 	}
-
-	/**
-	* @todo: Retire this when implemented in ddd-base library
-	*/
-	public async initialize(): Promise<Result<void>> {
-		try {
-			// Check if the storage path exists (throws if it doesn't)
-			await fs.access(this.storagePath);
-		
-			// Test read and write permissions (throws if either is missing)
-			await fs.access(this.storagePath, fs.constants.R_OK | fs.constants.W_OK);
-		}
-		catch (err) {
-			if (err.code === 'ENOENT') {
-				// Storage path does not exist, create it
-				try {
-					await fs.mkdir(this.storagePath, { recursive: true });
-				}
-				catch (mkdirErr) { // Error creating directory
-					return Promise.resolve(Result.fail<void>(mkdirErr.message));
-				}
-			}
-			else { // Permission error
-				return Promise.resolve(Result.fail<void>(err.message));
-			}
-		}
-	
-		return Promise.resolve(Result.ok<void>());
-	}
 }
 
 export default FsPersistenceAdapterService;

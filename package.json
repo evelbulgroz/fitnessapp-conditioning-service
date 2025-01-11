@@ -22,12 +22,7 @@
   },
   "dependencies": {
     "@evelbulgroz/command": "^1.0.0",
-    "@evelbulgroz/ddd-base": "^7.0.1",
-    "@evelbulgroz/fitnessapp-base": "^7.0.0",
     "@evelbulgroz/quantity-class": "^1.0.1",
-    "@evelbulgroz/query-fns": "^2.2.6",
-    "@evelbulgroz/sanitizer-decorator": "^0.1.1",
-    "@evelbulgroz/time-series": "^2.0.1",
     "@nestjs/axios": "^3.1.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.3.0",
@@ -42,6 +37,11 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@evelbulgroz/ddd-base": "^8.0.1",
+    "@evelbulgroz/fitnessapp-base": "^7.0.1",
+    "@evelbulgroz/query-fns": "^2.2.7",
+    "@evelbulgroz/sanitizer-decorator": "^0.1.2",
+    "@evelbulgroz/time-series": "^2.0.2",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
