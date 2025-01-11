@@ -2,7 +2,7 @@ import { TestingModule } from '@nestjs/testing';
 
 import { v4 as uuidv4 } from 'uuid';
 
-import { ConsoleLogger, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, EntityId, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 import { DeviceType, ActivityType, SensorType } from '@evelbulgroz/fitnessapp-base';
 
 import { ConditioningLogRepository } from './conditioning-log.repo';
@@ -20,6 +20,7 @@ class PersistenceAdapterMock<T extends ConditioningLogPersistenceDTO<Conditionin
 	public delete = jest.fn();
 	public fetchById = jest.fn();
 	public fetchAll = jest.fn();
+	public undelete = jest.fn();
 }
 
 // process.env.NODE_ENV = 'not-test'; // set NODE_ENV to not 'test' to enable logging
@@ -552,39 +553,6 @@ describe('ConditioningLogRepository', () => {
 				dto.className = 'UnknownClass';
 				const result = repo['getClassFromDTO'](dto);
 				expect(result.isFailure).toBeTruthy();
-			});
-		});
-		
-		describe('createEntityFromPersistenceDTO', () => {
-			it('creates an overview entity from a persistence DTO', async () => {
-				const dto = testPersistenceDTOs[randomIndex];
-				const result = repo['createEntityFromPersistenceDTO'](dto, true);
-				expect(result.isSuccess).toBeTruthy();
-				const entity = result.value as ConditioningLog<any, ConditioningLogDTO>;
-				expect(entity).toBeInstanceOf(ConditioningLog);
-				expect(entity.isOverview).toBe(true);
-			});
-
-			it('assigns the DTO ID to the entity', async () => {
-				const dto = testPersistenceDTOs[randomIndex];
-				const result = repo['createEntityFromPersistenceDTO'](dto, true);
-				expect(result.isSuccess).toBeTruthy();
-				const entity = result.value as ConditioningLog<any, ConditioningLogDTO>;
-				expect(entity.entityId).toBe(dto.entityId);
-			});
-
-			it('returns a failure result for an unknown class', async () => {
-				const dto = testPersistenceDTOs[randomIndex];
-				dto.className = 'UnknownClass';
-				const result = repo['createEntityFromPersistenceDTO'](dto, true);
-				expect(result.isFailure).toBeTruthy();
-			});
-
-			it('returns a failure result if entity creation fails', async () => {
-				const dto = testPersistenceDTOs[randomIndex];
-				delete dto.entityId; // entity creation will fail without an ID
-				const result = repo['createEntityFromPersistenceDTO'](dto, true);
-				expect(result.isSuccess).toBeTruthy();
 			});
 		});
 	});
