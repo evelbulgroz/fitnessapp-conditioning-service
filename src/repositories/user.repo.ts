@@ -34,12 +34,12 @@ import { UserUndeletedEvent } from "../events/user-undeleted.event";
  * @remark Must be extended by a concrete class specific to a particular persistence layer
 */
 @Injectable()
-export class UserRepository<T extends User, U extends UserDTO> extends Repository<User, U> {
+export class UserRepository extends Repository<User, UserDTO> {
 
 	//------------------------------ CONSTRUCTOR ----------------------------//
 	
 		public constructor(
-			protected readonly adapter: PersistenceAdapter<EntityPersistenceDTO<U, EntityMetadataDTO>>,
+			protected readonly adapter: PersistenceAdapter<EntityPersistenceDTO<UserDTO, EntityMetadataDTO>>,
 			protected readonly logger: Logger,
 			@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
 		) {
@@ -70,7 +70,7 @@ export class UserRepository<T extends User, U extends UserDTO> extends Repositor
 	
 	//------------------- TEMPLATE METHOD IMPLEMENTATIONS -------------------//	
 		
-		protected getClassFromDTO(dto: U): Result<any> {
+		protected getClassFromDTO(dto: UserDTO): Result<any> {
 			const className = dto.className;
 			switch (className) {
 				case 'User':
@@ -87,12 +87,12 @@ export class UserRepository<T extends User, U extends UserDTO> extends Repositor
 	 * @param user The user to create the event for
 	 * @returns The user created event
 	 */
-	protected override createEntityCreatedEvent(user?: T): EntityCreatedEvent<EntityCreatedEventDTO<any>, EntityDTO> {
+	protected override createEntityCreatedEvent(user?: User): UserCreatedEvent {
 		const event = new UserCreatedEvent({
 			eventId: uuidv4(),
 			eventName: 'UserCreatedEvent',
 			occurredOn: (new Date()).toUTCString(),
-			payload: user?.toJSON() as UserDTO
+			payload: user?.toDTO() as UserDTO
 		});
 
 		return event as any; // todo: sort out the generics later
@@ -102,12 +102,12 @@ export class UserRepository<T extends User, U extends UserDTO> extends Repositor
 	 * @param user The user to create the event for
 	 * @returns The user updated event
 	 */
-	protected override createEntityUpdatedEvent(user?: T): EntityUpdatedEvent<EntityUpdatedEventDTO<any>, EntityDTO> {
+	protected override createEntityUpdatedEvent(user?: User): UserUpdatedEvent {
 		const event = new UserUpdatedEvent({
 			eventId: uuidv4(),
 			eventName: 'UserUpdatedEvent',
 			occurredOn: (new Date()).toUTCString(),
-			payload: user?.toJSON() as UserDTO
+			payload: user?.toDTO() as UserDTO
 		});
 
 		return event as any; // todo: sort out the generics later
@@ -117,23 +117,23 @@ export class UserRepository<T extends User, U extends UserDTO> extends Repositor
 	 * @param id The user id to create the event for
 	 * @returns The user deleted event
 	 */
-	protected override createEntityDeletedEvent(id?: EntityId): EntityDeletedEvent<EntityDeletedEventDTO<any>, EntityDTO> {
+	protected override createEntityDeletedEvent(id?: EntityId): UserDeletedEvent {
 		const event = new UserDeletedEvent({
 			eventId: uuidv4(),
 			eventName: 'UserDeletedEvent',
 			occurredOn: (new Date()).toUTCString(),
-			payload: { entityId: id } as UserDTO
+			payload: { entityId: id } as Partial<UserDTO>
 		});
 
 		return event as any; // todo: sort out the generics later
 	}
 
-	protected createEntityUndeletedEvent(entityId: EntityId, undeletionDate: Date): EntityUndeletedEvent<EntityUndeletedEventDTO<any>, EntityDTO> {
+	protected createEntityUndeletedEvent(entityId: EntityId, undeletionDate: Date): UserUndeletedEvent {
 		const event = new UserUndeletedEvent({
 			eventId: uuidv4(),
 			eventName: UserUndeletedEvent.name,
 			occurredOn: undeletionDate.toISOString(),
-			payload: { entityId } as Partial<EntityDTO>
+			payload: { entityId } as Partial<UserDTO>
 		});
 		return event as any; // todo: sort out the generics later
 	}

@@ -9,7 +9,7 @@ import { UserDTO } from "../dtos/domain/user.dto";
  * @remark This also allows log and user entities and repos to have more focused responsibilities
  * @remark To make this work, log data service has responsibility for keeping associations in sync
  */
-export class User extends Entity<any, UserDTO> {
+export class User extends Entity<User, UserDTO> {
 	//----------------------------- PROPERTIES ------------------------------//
 
 	private _logs: EntityId[]; // holds log ids only, not the actual log entities
@@ -36,6 +36,15 @@ export class User extends Entity<any, UserDTO> {
 	}
 
 	// updateLog() not needed because we're only holding primitive log ids
+
+	//----------------------- ENTITY METHOD OVERRIDES -----------------------//
+
+	public clone(includeId?: boolean, includeMetaData?: boolean): User {
+		const clone = super.clone(includeId, includeMetaData) as User;
+		clone.userId = this.userId;
+		clone.logs = [...this.logs]; // shallow copy
+		return clone;
+	}
 	
 	public equals(other: User, compareIds: boolean = false, compareRefs: boolean = true): boolean {
 		// use long chain of if statements to facilitate debugging
