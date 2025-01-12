@@ -27,7 +27,7 @@ describe('User', () => {
 			className: 'User',
 		};
 
-		testUser = (User.create(testDTO, testDTO.entityId, undefined, undefined)).value as User;
+		testUser = (User.create(testDTO)).value as User;
 	});
 
 	afterEach(() => {
@@ -158,7 +158,7 @@ describe('User', () => {
 		let other: User;
 
 		beforeEach(() => {
-			other = (User.create(testDTO, uuidv4(), undefined, undefined, false)).value as User;
+			other = (User.create(testDTO, undefined, false)).value as User;
 		});
 
 		it('returns true if equal (by value)', () => {
@@ -178,10 +178,8 @@ describe('User', () => {
 	});
 
 	describe('Serialization', () => {
-		it('can be serialized to UserDTO JSON', () => {
-			const json = testUser.toJSON();
-			delete json.createdOn; // CRUD dates not included in DTO
-			delete json.updatedOn;
+		it('can be serialized to UserDTO', () => {
+			const json = testUser.toDTO();
 			expect(json).toEqual(testDTO);
 		});
 	});

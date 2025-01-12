@@ -1,8 +1,7 @@
+import { Entity, EntityId, EntityMetadataDTO } from "@evelbulgroz/ddd-base";
+import { IsArray, IsDefined, IsInstanceOfOneOf, IsInstanceOfOneOfAll, IsNotEmpty } from '@evelbulgroz/sanitizer-decorator';
 
-import { Entity, EntityId } from "@evelbulgroz/ddd-base";
-import { IsArray, IsDefined, IsInstanceOfOneOf, IsInstanceOfOneOfAll } from '@evelbulgroz/sanitizer-decorator';
-
-import UserDTO from "../dtos/domain/user.dto";
+import { UserDTO } from "../dtos/domain/user.dto";
 
 /** A human user of the system, e.g. a coach or an athlete, with logs of conditioning activities
  * @remark Shallow implementation intended only to hold associations between users and logs
@@ -18,8 +17,8 @@ export class User extends Entity<any, UserDTO> {
 	
 	//----------------------------- CONSTRUCTOR -----------------------------//	
 	
-	protected constructor(dto: UserDTO, id?: EntityId, createdOn?: Date, updatedOn?: Date, overview: boolean = true) {
-		super(dto, id, createdOn, updatedOn, overview);
+	protected constructor(dto: UserDTO, metaDataDTO?: EntityMetadataDTO, overview: boolean = true) {
+		super(dto, metaDataDTO, overview);
 		this.userId = dto.userId; // invoke setters to activate validation
 		this.logs = dto.logs ?? [];
 	}
@@ -58,9 +57,9 @@ export class User extends Entity<any, UserDTO> {
 		return true;
 	}
 
-	public toJSON(): UserDTO {
+	public toDTO(): UserDTO {
 		return {
-			...super.toJSON(), // copy props from superclass
+			...super.toDTO(), // copy props from superclass
 			userId: this.userId,
 			logs: [...this.logs] // shallow copy
 		};
@@ -70,7 +69,7 @@ export class User extends Entity<any, UserDTO> {
 	
 	/** The logs for the user
 	 * @throws Error if logs is not an array of strings or numbers
-	 * @remark To keep thing simple and decopuled, holds logs by id only, not the actual log entities.
+	 * @remark To keep thing simple and decoupled, holds logs by id only, not the actual log entities.
 	 * @remark It is the responsibility of the data service to keep the logs in sync with the user and to serve the actual log entities
 	 */
 	@IsDefined(undefined, { message: 'Logs must be defined' })
@@ -85,12 +84,14 @@ export class User extends Entity<any, UserDTO> {
 	}
 	public get logs(): EntityId[] { return [...this._logs]; } // shallow copy
 	
-	/** @description The user's id in the user microservice
+	/** The user's id in the user microservice
 	 * @remark EntityId managed by repo is not the same as the user id in the user microservice, which should be used for requests
 	 * @remark Therefore, this property is necessary to support requests by user id
 	 * @remark Service is responsible for keeping this unique and in sync with the user id in the user microservice
 	 */
+	@IsDefined(undefined, { message: 'User id must be defined' })
 	@IsInstanceOfOneOf([String, Number], { message: 'User id must be a string or number' })
+	@IsNotEmpty({ message: 'User id cannot be empty' })
 	public set userId(value: EntityId) { this._userId = value; }
 	public get userId(): EntityId { return this._userId; }	
 }
