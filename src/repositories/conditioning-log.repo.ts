@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 
-import { EntityFactory,	EntityMetadataDTO, Logger, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
+import { EntityMetadataDTO, Logger, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
 import { ConditioningLog } from "../domain/conditioning-log.entity";
@@ -11,8 +11,7 @@ import { ConditioningLogPersistenceDTO } from "../dtos/domain/conditioning-log-p
  * @template T The type of the log, e.g. ConditioningLog
  * @template U The type of the DTO, e.g. ConditioningLogDTO
  * @remark This class is a repository for ConditioningLog entities, and is intended to be injected into other classes, e.g. services.
- * @remark Implements a few template methods but otherwise relies on the base class for most of its functionality.
- * @todo Retire methods that are in the process of being implemented in the ddd-base library.
+ * @remark Implements a few method overrides but otherwise relies on the base class for most of its functionality.
  */
 @Injectable()
 export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO> extends TrainingLogRepo<ConditioningLog<T,U>, U> {

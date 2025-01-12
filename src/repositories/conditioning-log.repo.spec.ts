@@ -1,8 +1,9 @@
 import { TestingModule } from '@nestjs/testing';
 
 import { v4 as uuidv4 } from 'uuid';
+import { firstValueFrom, Observable } from 'rxjs';
 
-import { ConsoleLogger, EntityId, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 import { DeviceType, ActivityType, SensorType } from '@evelbulgroz/fitnessapp-base';
 
 import { ConditioningLogRepository } from './conditioning-log.repo';
@@ -10,7 +11,6 @@ import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogPersistenceDTO } from '../dtos/domain/conditioning-log-persistence.dto';
 import { createTestingModule } from '../test/test-utils';
-import { firstValueFrom, Observable } from 'rxjs';
 
 class PersistenceAdapterMock<T extends ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>> extends PersistenceAdapter<T> {
 	// cannot get generics to work with jest.fn(), so skipping for now
