@@ -27,7 +27,7 @@ describe('User', () => {
 			className: 'User',
 		};
 
-		testUser = (User.create(testDTO)).value as User;
+		testUser = (User.create(testDTO)).value as unknown as User;
 	});
 
 	afterEach(() => {
@@ -158,7 +158,7 @@ describe('User', () => {
 		let other: User;
 
 		beforeEach(() => {
-			other = (User.create(testDTO, undefined, false)).value as User;
+			other = (User.create(testDTO, undefined, false)).value as unknown as User;
 		});
 
 		it('returns true if equal (by value)', () => {
