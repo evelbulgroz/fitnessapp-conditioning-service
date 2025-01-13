@@ -114,15 +114,15 @@ export class UserRepository extends Repository<User, UserDTO> {
 	}
 
 	/** Create user deleted event
-	 * @param id The user id to create the event for
+	 * @param entityId The user id to create the event for
 	 * @returns The user deleted event
 	 */
-	protected override createEntityDeletedEvent(id?: EntityId): UserDeletedEvent {
+	protected override createEntityDeletedEvent(entityId?: EntityId): UserDeletedEvent {
 		const event = new UserDeletedEvent({
 			eventId: uuidv4(),
 			eventName: 'UserDeletedEvent',
 			occurredOn: (new Date()).toUTCString(),
-			payload: { entityId: id } as Partial<UserDTO>
+			payload: { entityId } as Partial<UserDTO>
 		});
 
 		return event as any; // todo: sort out the generics later
