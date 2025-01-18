@@ -6,7 +6,7 @@ import { Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningDataService } from '../../services/conditioning-data/conditioning-data.service';
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
-import { ConditioningLogRepo } from '../../repositories/conditioning-log.repo';
+import { ConditioningLogRepository } from '../../repositories/conditioning-log.repo';
 import { EventDispatcher } from '../../services/event-dispatcher/event-dispatcher.service';
 import { LogCreatedEvent } from '../../events/log-created.event';
 import { LogCreatedHandler } from '../../handlers/log-created.handler';
@@ -35,13 +35,13 @@ describe('EventDispatcher', () => {
 					}
 				},
 				{
-					provide: ConditioningLogRepo,
+					provide: ConditioningLogRepository,
 					useValue: {
 						// add methods as needed
 					}
 				},
 				{
-					provide: ConditioningLogRepo,
+					provide: ConditioningLogRepository,
 					useValue: {
 						// add methods as needed
 					}

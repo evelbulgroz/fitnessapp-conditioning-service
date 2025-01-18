@@ -18,7 +18,7 @@ import { UserRepository } from '../repositories/user.repo';;
 export class UserDeletedHandler extends DomainEventHandler<UserDeletedEvent> {
 	constructor(
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		private readonly userRepo: UserRepository<User, UserDTO>,
+		private readonly userRepo: UserRepository,
 		private readonly logger: Logger
 	) {
 		super();

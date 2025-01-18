@@ -22,7 +22,7 @@ export class UserCreatedHandler extends DomainEventHandler<UserCreatedEvent> {
 	constructor(
 		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService,
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		private readonly userRepo: UserRepository<User, UserDTO>,
+		private readonly userRepo: UserRepository,
 		private readonly logger: Logger
 	) {
 		super();
@@ -34,16 +34,14 @@ export class UserCreatedHandler extends DomainEventHandler<UserCreatedEvent> {
 		const userDTO = event.payload as UserDTO;
 		const userResult = User.create(
 			userDTO,
-			userDTO.entityId,
-			userDTO.createdOn ? new Date(userDTO.createdOn) : undefined,
-			userDTO.updatedOn ? new Date(userDTO.updatedOn) : undefined,
+			{ createdOn: event.occurredOn }
 			// constructor sets logs from dto, so no need to pass them here
 		);
 		if (userResult.isFailure) {
 			this.logger.error(`${this.constructor.name}: Error creating user ${userDTO.entityId}: ${userResult.error}`);
 			return;
 		}
-		const user = userResult.value as User;
+		const user = userResult.value as unknown as  User;
 
 		// populate logs for user and update cache
 		const snapshot = this.logService.getCacheSnapshot(this);

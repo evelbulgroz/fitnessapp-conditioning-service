@@ -5,7 +5,7 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 //import { jest } from '@jest/globals';
 
-import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
+import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { LogDeletedEvent } from '../events/log-deleted.event';
 import { LogDeletedHandler } from './log-deleted.handler';
@@ -16,7 +16,7 @@ describe('LogDeletedHandler', () => {
 		const module: TestingModule = await createTestingModule({
 			providers: [
 				{
-					provide: ConditioningLogRepo,
+					provide: ConditioningLogRepository,
 					useValue: {
 						create: jest.fn(),
 						// add other methods as needed

@@ -6,7 +6,7 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 //import { jest } from '@jest/globals';
 
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
-import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
+import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { UserCreatedEvent } from '../events/user-created.event';
 import { UserCreatedHandler } from './user-created.handler';
 import { UserDTO } from '../dtos/domain/user.dto';
@@ -24,7 +24,7 @@ describe('UserCreatedHandler', () => {
 					},
 				},
 				{
-					provide: ConditioningLogRepo,
+					provide: ConditioningLogRepository,
 					useValue: {
 						create: jest.fn(),
 						// add other methods as needed

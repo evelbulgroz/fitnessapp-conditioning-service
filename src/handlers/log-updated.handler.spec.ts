@@ -5,7 +5,7 @@ import { createTestingModule } from '../test/test-utils';
 import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
-import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
+import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { LogUpdatedEvent } from '../events/log-updated.event';
 import { LogUpdatedHandler } from './log-updated.handler';
@@ -22,7 +22,7 @@ describe('LogUpdatedHandler', () => {
 					},
 				},
 				{
-					provide: ConditioningLogRepo,
+					provide: ConditioningLogRepository,
 					useValue: {
 						create: jest.fn(),
 						// add other methods as needed

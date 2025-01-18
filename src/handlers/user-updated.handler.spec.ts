@@ -5,7 +5,7 @@ import { createTestingModule } from '../test/test-utils';
 import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
-import { ConditioningLogRepo } from '../repositories/conditioning-log.repo';
+import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { UserUpdatedEvent } from '../events/user-updated.event';
 import { UserUpdatedHandler } from './user-updated.handler';
 import { UserDTO } from '../dtos/domain/user.dto';
@@ -23,7 +23,7 @@ describe('UserUpdatedHandler', () => {
 					},
 				},
 				{
-					provide: ConditioningLogRepo,
+					provide: ConditioningLogRepository,
 					useValue: {
 						// add methods as needed
 					}

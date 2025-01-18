@@ -25,7 +25,7 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService,
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly logger: Logger,
-		private readonly userRepo: UserRepository<User, UserDTO>,		
+		private readonly userRepo: UserRepository,		
 	) {
 		super();
 		void this.logService, this.logRepo, this.userRepo, this.logger; // avoid unused variable warning

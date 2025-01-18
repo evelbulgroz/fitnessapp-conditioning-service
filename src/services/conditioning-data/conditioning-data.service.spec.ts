@@ -17,7 +17,7 @@ import { AggregatorService } from '../../services/aggregator/aggregator.service'
 import { ConditioningDataService } from './conditioning-data.service';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
-import { ConditioningLogRepo } from '../../repositories/conditioning-log.repo';
+import { ConditioningLogRepository } from '../../repositories/conditioning-log.repo';
 import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
 import { EventDispatcher } from '../../services/event-dispatcher/event-dispatcher.service';
 import { FileService } from '../file-service/file.service';;
@@ -50,10 +50,10 @@ describe('ConditioningDataService', () => {
 	let app: TestingModule;
 	let logService: ConditioningDataService;
 	let logger: Logger;
-	let logRepo: ConditioningLogRepo<any, ConditioningLogDTO>;
+	let logRepo: ConditioningLogRepository<any, ConditioningLogDTO>;
 	let logRepoUpdatesSubject: Subject<any>;
 	let queryMapper: QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>;
-	let userRepo: UserRepository<any, UserDTO>;
+	let userRepo: UserRepository;
 	let userRepoUpdatesSubject: Subject<any>;
 	beforeEach(async () => {
 		logRepoUpdatesSubject = new Subject<any>();
@@ -81,7 +81,7 @@ describe('ConditioningDataService', () => {
 				FileService,
 				ConditioningDataService,
 				{
-					provide: ConditioningLogRepo,
+					provide: ConditioningLogRepository,
 					useValue: {
 						create: jest.fn(),
 						delete: jest.fn(),
@@ -114,9 +114,9 @@ describe('ConditioningDataService', () => {
 		aggregatorService = app.get<AggregatorService>(AggregatorService);
 		logService = app.get<ConditioningDataService>(ConditioningDataService);
 		logger = app.get<Logger>(Logger);
-		logRepo = app.get<ConditioningLogRepo<any, ConditioningLogDTO>>(ConditioningLogRepo);
+		logRepo = app.get<ConditioningLogRepository<any, ConditioningLogDTO>>(ConditioningLogRepository);
 		queryMapper = app.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
-		userRepo = app.get<UserRepository<any, UserDTO>>(UserRepository);
+		userRepo = app.get<UserRepository>(UserRepository);
 	});
 	
 	// set up test data and spies		
@@ -584,7 +584,7 @@ describe('ConditioningDataService', () => {
 			.mockImplementation(() => {
 				return Promise.resolve(
 					Result.ok(of(testDTOs
-						.map(dto => ConditioningLog.create(dto, dto.entityId, undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>)))
+						.map(dto => ConditioningLog.create(dto, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>)))
 				);
 			});
 
@@ -599,17 +599,15 @@ describe('ConditioningDataService', () => {
 					entityId: uuidv4(),
 					userId: 'testuser1', // id in user microservice, usually a uuid
 					logs: firstHalfOfLogIds,
-				},
-				uuidv4()
-			).value as User,
+				}
+			).value as unknown as User,
 			User.create(
 				<UserDTO>{
 					entityId: uuidv4(),
 					userId: 'testuser2', // id in user microservice, usually a uuid
 					logs: secondHalfOfLogIds,
-				},
-				uuidv4()
-			).value as User
+				}
+			).value as unknown as User
 		]))));
 	});
 
@@ -922,7 +920,7 @@ describe('ConditioningDataService', () => {
 		let userRepoFetchByIdSpy: any;
 		beforeEach(async () => {
 			logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async (id: EntityId) => { // return randomLog instead?
-				const retrievedLog = ConditioningLog.create(logDTO, id ?? randomLog?.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+				const retrievedLog = ConditioningLog.create(logDTO, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(retrievedLog)));
 			});
 			
@@ -947,7 +945,7 @@ describe('ConditioningDataService', () => {
 				newLogId = uuidv4();				
 				newLogDTO = testDTOs[Math.floor(Math.random() * testDTOs.length)];	
 				newLogDTO.entityId = newLogId;
-				newLog = ConditioningLog.create(newLogDTO, newLogId, undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
+				newLog = ConditioningLog.create(newLogDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logRepoCreateSpy = jest.spyOn(logRepo, 'create').mockImplementation(() => {
 					return Promise.resolve(Result.ok<ConditioningLog<any, ConditioningLogDTO>>(newLog!))
 				});
@@ -1096,7 +1094,7 @@ describe('ConditioningDataService', () => {
 					// replace random log in cache with detailed log
 				const randomLogId = randomLog!.entityId!;
 				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
-				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+				const detailedLog = ConditioningLog.create(dto, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				const cache = logService['userLogsSubject'].value;
 				const cacheEntry = cache.find(entry => entry.userId === randomUserId);
 				const logIndex = cacheEntry!.logs.findIndex(log => log.entityId === randomLogId);
@@ -1120,7 +1118,7 @@ describe('ConditioningDataService', () => {
 					//  logs are initialized in cache as overviews, so any random cached log should be an overview
 					const randomLogId = randomLog!.entityId!;
 					const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
-					const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+					const detailedLog = ConditioningLog.create(dto, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
 				});
 
@@ -1135,7 +1133,7 @@ describe('ConditioningDataService', () => {
 			it('passes through log from persistence as-is, without checking if details are actually available ', async () => {
 				// arrange
 					// create a new log with isOverview set to true, and no detailed properties -> should be returned without checking for details
-				const detailedLogMock = ConditioningLog.create(logDTO, randomLog?.entityId, undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
+				const detailedLogMock = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
 					Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLogMock)))
 				);
@@ -1175,7 +1173,7 @@ describe('ConditioningDataService', () => {
 				// arrange
 				const randomLogId = randomLog!.entityId!;
 				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
-				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+				const detailedLog = ConditioningLog.create(dto, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				
 				logRepoFetchByIdSpy.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
@@ -1195,7 +1193,7 @@ describe('ConditioningDataService', () => {
 				// arrange
 				const randomLogId = randomLog!.entityId!;
 				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
-				const detailedLog = ConditioningLog.create(dto, randomLogId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+				const detailedLog = ConditioningLog.create(dto, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				
 				logRepoFetchByIdSpy.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
@@ -1225,7 +1223,7 @@ describe('ConditioningDataService', () => {
 				updatedLogDTO = {...randomLog!.toJSON()};
 				updatedLogDTO.activity = ActivityType.RUN;
 				updatedLogDTO.duration = {unit: 'ms', value: 100 }; // 100 ms
-				updatedLog = ConditioningLog.create(updatedLogDTO, randomLog!.entityId, undefined, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+				updatedLog = ConditioningLog.create(updatedLogDTO, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				logRepoUpdateSpy = jest.spyOn(logRepo, 'update').mockImplementation(() => {
 					return Promise.resolve(Result.ok<ConditioningLog<any, ConditioningLogDTO>>(updatedLog))
 				});
@@ -1500,7 +1498,7 @@ describe('ConditioningDataService', () => {
 				// arrange
 				const logs = await logService.fetchLogs(userContext, userIdDTO);
 				logDTO.start = undefined;
-				const logWithoutStart = ConditioningLog.create(logDTO, uuidv4(), undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
+				const logWithoutStart = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
 				
 				// act
@@ -1514,7 +1512,7 @@ describe('ConditioningDataService', () => {
 				// arrange
 				const logs = await logService.fetchLogs(userContext, userIdDTO);
 				logDTO.start = undefined;
-				const logWithoutStart = ConditioningLog.create(logDTO, uuidv4(), undefined, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
+				const logWithoutStart = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
 				const warnSpy = jest.spyOn(logService['logger'], 'warn').mockImplementation(() => { }); // do nothing
 				

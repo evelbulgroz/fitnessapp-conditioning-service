@@ -69,7 +69,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		protected readonly aggregator: AggregatorService,
 		protected readonly eventDispatcher: EventDispatcher,
 		protected readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		protected readonly userRepo: UserRepository<any, UserDTO>
+		protected readonly userRepo: UserRepository
 	) {
 		this.subscribeToRepoEvents(); // deps not intialized in onModuleInit, so subscribe here
 	}
@@ -320,7 +320,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		// delete log in persistence layer
 		const logDeleteResult = await this.logRepo.delete(logIdDTO.value!);
 		if (logDeleteResult.isFailure) { // deletion failed -> roll back user update, then throw persistence error
-			this.rollBackUserUpdate(user, originalUserDTO); // retry rolling back user update before continuing
+			this.rollBackUserUpdate(user, originalUserDTO as any); // retry rolling back user update before continuing
 		}		
 		
 		// log deleted successfully -> return undefined
