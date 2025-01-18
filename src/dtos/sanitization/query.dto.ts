@@ -83,13 +83,13 @@ export class QueryDTO extends DataTransferObject {
 	
 	/** Start date for the log */
 	@IsDate({ allowNull: false, allowUndefined: false, message: 'start must be a date' })
-	@IsBefore('end', { compareToOtherProperty: true, message: 'start must be before end' })
+	@IsBefore('end', { compareToOtherProperty: true, allowUndefined: true, message: 'start must be before end' })
 	set start(value: Date | undefined) { this._start = value; }
 	get start() { return this._start; }
 
 	/** End date for the log */
 	@IsDate({ allowNull: false, allowUndefined: false, message: 'end must be a date' })
-	@IsAfter('start', { compareToOtherProperty: true, message: 'end must be after start' })
+	@IsAfter('start', { compareToOtherProperty: true, allowUndefined: true, message: 'end must be after start' })
 	set end(value: Date | undefined) { this._end = value; }
 	get end() { return this._end; }
 
