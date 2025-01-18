@@ -1,7 +1,7 @@
 import { TestingModule } from '@nestjs/testing';
 
 import { v4 as uuidv4 } from 'uuid';
-import { firstValueFrom, Observable } from 'rxjs';
+import { firstValueFrom, Observable, take } from 'rxjs';
 
 import { ConsoleLogger, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 import { DeviceType, ActivityType, SensorType } from '@evelbulgroz/fitnessapp-base';
@@ -56,6 +56,7 @@ describe('ConditioningLogRepository', () => {
 
 	let randomIndex: number;
 	let randomDTO: ConditioningLogDTO;
+	let randomPersistenceDTO: ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>;
 	let testDTOs: ConditioningLogDTO[];
 	let testPersistenceDTOs: ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>[];
 	beforeEach(() => {
@@ -485,12 +486,15 @@ describe('ConditioningLogRepository', () => {
 
 		randomIndex = Math.floor(Math.random() * testDTOs.length);
 		randomDTO = testDTOs[randomIndex];
+		randomPersistenceDTO = testPersistenceDTOs[randomIndex];
 	});
 	
 	let fetchAllSpy: jest.SpyInstance;
+	let fetchByIdSpy: jest.SpyInstance;
 	let initSpy: jest.SpyInstance;
 	beforeEach(() => {
 		fetchAllSpy = jest.spyOn(adapter, 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
+		fetchByIdSpy = jest.spyOn(adapter, 'fetchById').mockResolvedValue(Promise.resolve(Result.ok(randomPersistenceDTO)));
 		initSpy = jest.spyOn(repo['adapter'], 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));		
 	});
 
@@ -499,8 +503,9 @@ describe('ConditioningLogRepository', () => {
 	});
 
 	afterEach(() => {
-		fetchAllSpy.mockRestore();
-		initSpy.mockRestore();
+		fetchAllSpy && fetchAllSpy.mockRestore();
+		fetchByIdSpy && fetchByIdSpy.mockRestore();
+		initSpy && initSpy.mockRestore();
 		jest.clearAllMocks();
 	});
 
@@ -508,22 +513,59 @@ describe('ConditioningLogRepository', () => {
 		expect(repo).toBeDefined();
 	});
 
-	describe('Public API', () => {
-		// todo: move public API tests here
+	describe('Initialization', () => {
+		it('initializes cache with a collection of overview logs from persistence', async () => {
+			const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
+			expect(fetchAllResult.isSuccess).toBeTruthy();
+			const logs$ = fetchAllResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
+			const logs = await firstValueFrom(logs$);
+			expect(logs).toHaveLength(testDTOs.length);
+			logs.forEach((log, index) => {
+				expect(log).toBeInstanceOf(ConditioningLog);
+				const dto = testDTOs.find(dto => dto.entityId === log.entityId);
+				expect(dto).toBeDefined();
+				expect(log.entityId).toBe(dto!.entityId);
+				expect(log.isOverview).toBe(true);
+			});
+		});
 	});
 
-	it('initializes cache with a collection of overview logs from persistence', async () => {
-		const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
-		expect(fetchAllResult.isSuccess).toBeTruthy();
-		const logs$ = fetchAllResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
-		const logs = await firstValueFrom(logs$);
-		expect(logs).toHaveLength(testDTOs.length);
-		logs.forEach((log, index) => {
-			expect(log).toBeInstanceOf(ConditioningLog);
-			const dto = testDTOs.find(dto => dto.entityId === log.entityId);
-			expect(dto).toBeDefined();
-			expect(log.entityId).toBe(dto!.entityId);
-			expect(log.isOverview).toBe(true);
+	describe('Public API', () => {
+		// NOTE: Repository methods are fully tested in the base class, so only testing fetchById here
+		// to sample that the base class methods are called correctly.
+
+		describe('fetchById', () => {
+			it('fetches a conditioning log by ID', async () => {				
+				// arrange
+				// act
+				const fetchResult = await repo.fetchById(randomDTO.entityId!);
+				
+				// assert
+				expect(fetchResult.isSuccess).toBeTruthy();
+				const log$ = fetchResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>>;
+				const log = await firstValueFrom(log$.pipe(take(1)));
+				expect(log).toBeDefined();
+				expect(log).toBeInstanceOf(ConditioningLog);
+				expect(log!.entityId).toBe(randomDTO.entityId);
+			});
+		});
+	});	
+
+	describe('Template Method Implementations', () => {
+		describe('getClassFromDTO', () => {
+			it('returns a reference to a known the class from the DTO', async () => {
+				const dto = testPersistenceDTOs[randomIndex];
+				const result = repo['getClassFromDTO'](dto);
+				expect(result.isSuccess).toBeTruthy();
+				expect(result.value).toBe(ConditioningLog);
+			});
+
+			it('returns a failure result for an unknown class', async () => {
+				const dto = testPersistenceDTOs[randomIndex];
+				dto.className = 'UnknownClass';
+				const result = repo['getClassFromDTO'](dto);
+				expect(result.isFailure).toBeTruthy();
+			});
 		});
 	});
 
@@ -613,22 +655,6 @@ describe('ConditioningLogRepository', () => {
 				const entity = repo['getEntityFromDTO'](randomDTO);
 				expect(entity).toBeDefined();
 				expect(entity!.entityId).toBe(originalId);
-			});
-		});
-
-		describe('getClassFromDTO', () => {
-			it('returns a reference to a known the class from the DTO', async () => {
-				const dto = testPersistenceDTOs[randomIndex];
-				const result = repo['getClassFromDTO'](dto);
-				expect(result.isSuccess).toBeTruthy();
-				expect(result.value).toBe(ConditioningLog);
-			});
-
-			it('returns a failure result for an unknown class', async () => {
-				const dto = testPersistenceDTOs[randomIndex];
-				dto.className = 'UnknownClass';
-				const result = repo['getClassFromDTO'](dto);
-				expect(result.isFailure).toBeTruthy();
 			});
 		});
 	});

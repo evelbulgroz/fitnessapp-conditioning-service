@@ -96,7 +96,7 @@ describe('UserRepo', () => {
 	});
 
 	describe('Public API', () => {
-		// NOTE: Repository methods are tested in the base class, so only the User specific methods are tested here,
+		// NOTE: Repository methods are fully tested in the base class, so only the User specific methods are tested here,
 		// as well as a single test for fetchAll to sample that the base class methods are called correctly.
 
 		describe('fetchAll', () => {

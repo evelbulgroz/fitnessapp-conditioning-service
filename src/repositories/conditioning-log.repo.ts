@@ -13,16 +13,15 @@ import { ConditioningLogPersistenceDTO } from "../dtos/domain/conditioning-log-p
 import { ConditioningLogUndeletedEvent } from "../events/conditioning-log-undeleted.event";
 import { ConditioningLogUpdatedEvent } from "../events/conditioning-log-updated.event";
 
-/**@classdesc Concrete implementation of an injectable ConditioningLogRepo that uses an adapter to interact with a persistence layer
+/** Concrete implementation of an injectable ConditioningLogRepo that uses an adapter to interact with a persistence layer
  * @template T The type of the log, e.g. ConditioningLog
  * @template U The type of the DTO, e.g. ConditioningLogDTO
  * @remark This class is a repository for ConditioningLog entities, and is intended to be injected into other classes, e.g. services.
  * @remark Implements a few method overrides but otherwise relies on the base class for most of its functionality.
- * @todo ADd tests for custom CRUD events, as in the UserRepo
  */
 @Injectable()
 export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO> extends TrainingLogRepo<ConditioningLog<T,U>, U> {
-	//------------------------------ CONSTRUCTOR ----------------------------//
+	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 
 	public constructor(
 		protected readonly adapter: PersistenceAdapter<ConditioningLogPersistenceDTO<U, EntityMetadataDTO>>,
@@ -32,11 +31,11 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		super(adapter, logger, throttleTime);
 	}
 	
-	//------------------------------ PUBLIC API -----------------------------//
+	//---------------------------------------- PUBLIC API ---------------------------------------//
 
 	// NOTE: Currently, base class public API is fully sufficient for this class
 		
-	//------------------- TEMPLATE METHOD IMPLEMENTATIONS -------------------//	
+	//----------------------------- TEMPLATE METHOD IMPLEMENTATIONS -----------------------------//	
 	
 	protected getClassFromDTO(dto: U): Result<any> {
 		const className = dto.className;
@@ -49,7 +48,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		}
 	}
 	
-	//--------------------- PROTECTED METHOD OVERRIDES ----------------------//
+	//------------------------------- PROTECTED METHOD OVERRIDES --------------------------------//
 	
 	// todo: figure out a better way to handle imports
 	/*
@@ -125,9 +124,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 			// comparing primitives, so no need to serialize the entiry or deserialize the DTO
 			return (e.meta?.sourceId?.id === dto.meta?.sourceId?.id && e.meta?.sourceId?.source === dto.meta?.sourceId?.source);
 		}) as T | undefined;
-	}
-
-	
+	}	
 }
 
 export default ConditioningLogRepository;
