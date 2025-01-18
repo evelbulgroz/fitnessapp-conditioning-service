@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -84,11 +85,10 @@ export class UserRepository extends Repository<User, UserDTO> {
 		
 	//---------------------- PROTECTED METHOD OVERRIDES ---------------------//
 
-	// NOTE: Overriding base class methods to return domain specific event types
-
 	/** Create user created event
 	 * @param user The user to create the event for
 	 * @returns The user created event
+	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityCreatedEvent(user?: User): UserCreatedEvent {
 		return new UserCreatedEvent({
@@ -102,6 +102,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 	/** Create user updated event
 	 * @param user The user to create the event for
 	 * @returns The user updated event
+	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityUpdatedEvent(user: User): UserUpdatedEvent {
 		return new UserUpdatedEvent({
@@ -115,6 +116,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 	/** Create user deleted event
 	 * @param entityId The user id to create the event for
 	 * @returns The user deleted event
+	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityDeletedEvent(entityId?: EntityId): UserDeletedEvent {
 		return new UserDeletedEvent({
@@ -129,6 +131,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 	 * @param entityId The user id to create the event for
 	 * @param undeletionDate The date the user was undeleted
 	 * @returns The user undeleted event
+	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityUndeletedEvent(entityId: EntityId, undeletionDate: Date): UserUndeletedEvent {
 		return new UserUndeletedEvent({

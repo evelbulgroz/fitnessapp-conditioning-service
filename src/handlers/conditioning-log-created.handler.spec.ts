@@ -7,7 +7,7 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
-import { ConditioningLogLogCreatedEvent } from '../events/conditioning-log-created.event';
+import { ConditioningLogCreatedEvent } from '../events/conditioning-log-created.event';
 import { ConditioningLogCreatedHandler } from './conditioning-log-created.handler';
 
 describe('ConditioningLogCreatedHandler', () => {
@@ -38,11 +38,11 @@ describe('ConditioningLogCreatedHandler', () => {
 	});
 
 	describe('handle', () => {
-		let event: ConditioningLogLogCreatedEvent;
+		let event: ConditioningLogCreatedEvent;
 		beforeEach(() => {
-			event = new ConditioningLogLogCreatedEvent({
+			event = new ConditioningLogCreatedEvent({
 				eventId: '1',
-				eventName: ConditioningLogLogCreatedEvent.name,
+				eventName: ConditioningLogCreatedEvent.name,
 				occurredOn: (new Date()).toISOString(),
 				payload: { entityId: '1' } as ConditioningLogDTO
 			});

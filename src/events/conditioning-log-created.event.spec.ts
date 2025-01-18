@@ -1,11 +1,11 @@
-import { ConditioningLogLogCreatedEvent } from './conditioning-log-created.event';
+import { ConditioningLogCreatedEvent } from './conditioning-log-created.event';
 import { ConditioningLogCreatedEventDTO } from './conditioning-log-created.event.dto';
 
 describe('ConditioningLogCreatedEvent', () => {
 	it('can be created', () => {
-		expect(new ConditioningLogLogCreatedEvent({
+		expect(new ConditioningLogCreatedEvent({
 			eventId: '123',
-			eventName: ConditioningLogLogCreatedEvent.name,
+			eventName: ConditioningLogCreatedEvent.name,
 			occurredOn: (new Date()).toISOString(),
 			payload: {
 				entityId: '123',

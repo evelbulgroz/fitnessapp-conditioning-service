@@ -228,7 +228,7 @@ describe('UserRepo', () => {
 
 	describe('Protected Method Overrides', () => {
 		describe('createEntityCreatedEvent', () => {
-			it('can create user created event', () => {
+			it('returns a UserCreatedEvent', () => {
 				// arrange
 				const createResult = User.create(randomDTO);
 				expect(createResult.isSuccess).toBe(true);
@@ -247,7 +247,7 @@ describe('UserRepo', () => {
 		});
 
 		describe('createEntityUpdatedEvent', () => {
-			it('can create user updated event', () => {
+			it('returns a UserUpdatedEvent', () => {
 				// arrange
 				const createResult = User.create(randomDTO);
 				expect(createResult.isSuccess).toBe(true);
@@ -266,7 +266,7 @@ describe('UserRepo', () => {
 		});
 
 		describe('createEntityDeletedEvent', () => {
-			it('can create user deleted event', () => {
+			it('returns a UserDeletedEvent', () => {
 				// arrange
 				const createResult = User.create(randomDTO);
 				expect(createResult.isSuccess).toBe(true);
@@ -285,7 +285,7 @@ describe('UserRepo', () => {
 		});
 
 		describe('createEntityUndeletedEvent', () => {
-			it('can create user undeleted event', () => {
+			it('returns a UserUndeletedEvent', () => {
 				// arrange
 				const createResult = User.create(randomDTO);
 				expect(createResult.isSuccess).toBe(true);

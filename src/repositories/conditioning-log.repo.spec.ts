@@ -523,7 +523,79 @@ describe('ConditioningLogRepository', () => {
 		});
 	});
 
-	describe('Method overrides', () => {
+	describe('Protected Method Overrides', () => {
+		describe('createEntityCreatedEvent', () => {
+			it('returns a ConditioningLogCreatedEvent', async () => {
+				// arrange
+				const createResult = ConditioningLog.create({...randomDTO, entityId: uuidv4()});
+				const log = createResult.value as ConditioningLog<any, ConditioningLogDTO>;
+				
+				// act
+				const event = repo['createEntityCreatedEvent'](log);
+
+				// assert
+				expect(event).toBeDefined();
+				expect(event.eventId).toBeDefined();
+				expect(event.eventName).toBe('ConditioningLogCreatedEvent');
+				expect(event.occurredOn).toBeDefined();
+				expect(event.payload).toEqual(log.toDTO());
+			});
+		});
+
+		describe('createEntityUpdatedEvent', () => {
+			it('returns a ConditioningLogUpdatedEvent', async () => {
+				// arrange
+				const createResult = ConditioningLog.create({...randomDTO, entityId: uuidv4()});
+				const log = createResult.value as ConditioningLog<any, ConditioningLogDTO>;
+				
+				// act
+				const event = repo['createEntityUpdatedEvent'](log);
+
+				// assert
+				expect(event).toBeDefined();
+				expect(event.eventId).toBeDefined();
+				expect(event.eventName).toBe('ConditioningLogUpdatedEvent');
+				expect(event.occurredOn).toBeDefined();
+				expect(event.payload).toEqual(log.toDTO());
+			});			
+		});
+
+		describe('createEntityDeletedEvent', () => {
+			it('returns a ConditioningLogDeletedEvent', async () => {
+				// arrange
+				const createResult = ConditioningLog.create({...randomDTO, entityId: uuidv4()});
+				const log = createResult.value as ConditioningLog<any, ConditioningLogDTO>;
+				
+				// act
+				const event = repo['createEntityDeletedEvent'](log.entityId);
+
+				// assert
+				expect(event).toBeDefined();
+				expect(event.eventId).toBeDefined();
+				expect(event.eventName).toBe('ConditioningLogDeletedEvent');
+				expect(event.occurredOn).toBeDefined();
+				expect(event.payload).toEqual({ entityId: log.entityId, className: 'ConditioningLog' });
+			});
+		});
+
+		describe('createEntityUndeletedEvent', () => {
+			it('returns a ConditioningLogUndeletedEvent', async () => {
+				// arrange
+				const createResult = ConditioningLog.create({...randomDTO, entityId: uuidv4()});
+				const log = createResult.value as ConditioningLog<any, ConditioningLogDTO>;
+				
+				// act
+				const event = repo['createEntityUndeletedEvent'](log.entityId!, new Date());
+
+				// assert
+				expect(event).toBeDefined();
+				expect(event.eventId).toBeDefined();
+				expect(event.eventName).toBe('ConditioningLogUndeletedEvent');
+				expect(event.occurredOn).toBeDefined();
+				expect(event.payload).toEqual({ entityId: log.entityId, className: 'ConditioningLog' });
+			});
+		});
+
 		describe('getEntityFromDTO', () => {
 			it('returns an entity from the cache by ID', async () => {
 				const entity = repo['getEntityFromDTO'](randomDTO);

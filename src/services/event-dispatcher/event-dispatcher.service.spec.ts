@@ -8,7 +8,7 @@ import { ConditioningDataService } from '../../services/conditioning-data/condit
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepository } from '../../repositories/conditioning-log.repo';
 import { EventDispatcher } from '../../services/event-dispatcher/event-dispatcher.service';
-import { ConditioningLogLogCreatedEvent } from '../../events/conditioning-log-created.event';
+import { ConditioningLogCreatedEvent } from '../../events/conditioning-log-created.event';
 import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
 import { ConditioningLogDeletedEvent } from '../../events/conditioning-log-deleted.event';
 import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-deleted.handler';
@@ -79,9 +79,9 @@ describe('EventDispatcher', () => {
 		describe('log events', () => {		
 			it('dispatches log created event to log created handler', async () => {
 				// arrange
-				const event = new ConditioningLogLogCreatedEvent({
+				const event = new ConditioningLogCreatedEvent({
 					eventId: '1',
-					eventName: ConditioningLogLogCreatedEvent.name,
+					eventName: ConditioningLogCreatedEvent.name,
 					occurredOn: (new Date()).toISOString(),
 					payload: { entityId: '1' } as ConditioningLogDTO
 				});

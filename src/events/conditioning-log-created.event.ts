@@ -6,10 +6,10 @@ import ConditioningLogDTO from '../dtos/domain/conditioning-log.dto';
 /** Conditioning log created domain event
  * @remarks Dispatched when a conditioning log is created in the repository
  */
-export class ConditioningLogLogCreatedEvent extends EntityCreatedEvent<ConditioningLogCreatedEventDTO, ConditioningLogDTO> {
+export class ConditioningLogCreatedEvent extends EntityCreatedEvent<ConditioningLogCreatedEventDTO, ConditioningLogDTO> {
 	constructor(dto: ConditioningLogCreatedEventDTO) {
 		super(dto);
 	}
 }
 
-export default ConditioningLogLogCreatedEvent;
+export default ConditioningLogCreatedEvent;
