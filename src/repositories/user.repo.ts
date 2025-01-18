@@ -21,11 +21,14 @@ import { UserUndeletedEvent } from "../events/user-undeleted.event";
 import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
 import { Observable } from "rxjs";
 
-/** Concrete User repository */
+/** Concrete implementation of an injectable UserRepository that uses an adapter to interact with a persistence layer
+ * @remark This class is a repository for User entities, and is intended to be injected into other classes, e.g. services.
+ * @remark Implements a few method overrides but otherwise relies on the base class for most of its functionality.
+ */
 @Injectable()
 export class UserRepository extends Repository<User, UserDTO> {
 
-	//------------------------------ CONSTRUCTOR ----------------------------//
+	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 	
 		public constructor(
 			protected readonly adapter: PersistenceAdapter<EntityPersistenceDTO<UserDTO, EntityMetadataDTO>>,
@@ -35,7 +38,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 			super(adapter, logger, throttleTime);
 		}
 	
-	//------------------------------ PUBLIC API -----------------------------//
+	//---------------------------------------- PUBLIC API ---------------------------------------//
 
 	/** Get the class constructor from a class name
 	 * @param className The name of the class to get
@@ -77,13 +80,14 @@ export class UserRepository extends Repository<User, UserDTO> {
 	// and is fully sufficient for the User entity.
 
 	
-	//------------------- TEMPLATE METHOD IMPLEMENTATIONS -------------------//	
+	//----------------------------- TEMPLATE METHOD IMPLEMENTATIONS -----------------------------//	
 		
-		protected getClassFromDTO(dto: UserDTO): Result<any> {
+	
+	protected getClassFromDTO(dto: UserDTO): Result<any> {
 			return UserRepository.getClassFromName(dto.className);			
 		}
 		
-	//---------------------- PROTECTED METHOD OVERRIDES ---------------------//
+	//-------------------------------- PROTECTED METHOD OVERRIDES -------------------------------//
 
 	/** Create user created event
 	 * @param user The user to create the event for
