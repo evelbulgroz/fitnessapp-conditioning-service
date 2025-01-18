@@ -25,11 +25,11 @@ import { UserContext, UserContextProps } from '../domain/user-context.model';
 //import { UserService } from '../services/user/user.service';
 import { ValidationPipe } from './pipes/validation.pipe';
 
-/** Main controller for the application.
- * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests.
+/** Controller serving requests for conditioning data
+ * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests for conditioning data.
  * @remark It delegates the actual processing of data to the appropriate service methods, which are responsible for data access control, business logic and persistence.
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
- * @todo Implement user CRUD operations
+ * @todo Move user CRUD operations to a separate controller, and refactor to use a user service
  */
 @ApiTags('conditioning')
 @ApiExtraModels(QueryDTO)
@@ -41,7 +41,7 @@ import { ValidationPipe } from './pipes/validation.pipe';
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
-export class AppController {
+export class ConditioningController {
 	constructor(
 		private readonly logger: Logger,
 		private readonly LogService: ConditioningDataService,
@@ -346,4 +346,4 @@ export class AppController {
 	}
 }
 
-export default AppController;
+export default ConditioningController;

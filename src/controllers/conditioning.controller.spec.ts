@@ -12,7 +12,7 @@ import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
 import { AggregationQueryDTO } from '../dtos/sanitization/aggregation-query.dto';
 import { AggregationQueryDTOProps }	from '../test/models/aggregation-query-dto.props';
-import { AppController } from './app.controller';
+import { ConditioningController } from './conditioning.controller';
 import { BcryptCryptoService } from '../services/crypto/bcrypt-crypto.service';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
@@ -38,9 +38,9 @@ import { ValidationPipe } from './pipes/validation.pipe';
 // NOTE: Only validating that the correct service methods are called with the correct parameters and return the correct results.
 // NOTE: This in order to limit scope of tests to the controller: the service methods and e2e are tested elsewhere.
 
-describe('AppController', () => {
+describe('ConditioningController', () => {
 	let app: INestApplication;
-	let appController: AppController;
+	let appController: ConditioningController;
 	let conditioningDataService: ConditioningDataService;
 	let config: ConfigService;
 	let crypto: CryptoService;
@@ -54,7 +54,7 @@ describe('AppController', () => {
 			imports: [
 				HttpModule, // implicitly imports HttpService, adding service to providers array causes error
 			],
-			controllers: [AppController],
+			controllers: [ConditioningController],
 			providers: [
 				ConfigService,
 				{ // CryptoService
@@ -113,7 +113,7 @@ describe('AppController', () => {
 		});
 		
 		app = module.createNestApplication();
-		appController = module.get<AppController>(AppController);
+		appController = module.get<ConditioningController>(ConditioningController);
 		conditioningDataService = module.get<ConditioningDataService>(ConditioningDataService);
 		config = module.get<ConfigService>(ConfigService);
 		crypto = module.get<CryptoService>(CryptoService);
