@@ -15,14 +15,15 @@ import { UserService } from './user.service';
 
 
 describe('UserService', () => {
+	// set up test environment and dependencies/mocks, and initialize the module
+	let app: TestingModule;
 	let config: ConfigService;
-	let module: TestingModule;
 	let service: UserService;
 	let userRepoUpdatesSubject: Subject<any>;
 	beforeEach(async () => {
 		userRepoUpdatesSubject = new Subject<any>();				
 
-		module = await createTestingModule({
+		app = await createTestingModule({
 			imports: [
 				// ConfigModule is imported automatically by createTestingModule
 			],
@@ -52,10 +53,11 @@ describe('UserService', () => {
 			],
 		});
 
-		config = module.get<ConfigService>(ConfigService);
-		service = module.get<UserService>(UserService);
+		config = app.get<ConfigService>(ConfigService);
+		service = app.get<UserService>(UserService);
 	});
 
+	// set up test data and spies
 	let randomDTO: UserDTO;
 	let randomIndex: number;
 	let randomUser: User;
@@ -79,6 +81,12 @@ describe('UserService', () => {
 			userType: 'service', // 'service' or 'user'
 			roles: ['admin'], // roles assigned to the user
 		});
+	});
+
+	// tear down test environment
+	afterEach(async () => {
+		jest.clearAllMocks();
+		await app.close();
 	});
 
 	it('can be created', () => {
