@@ -1,11 +1,11 @@
 import { UserUndeletedEvent } from './user-undeleted.event';
 import { UserUndeletedEventDTO } from './user-undeleted.event.dto';
 
-describe('UserUneletedEvent', () => {
+describe('UserUndeletedEvent', () => {
 	it('can be created', () => {
 		expect(new UserUndeletedEvent({
 			eventId: '123',
-			eventName: 'UserDeletedEvent',
+			eventName: UserUndeletedEvent.name,
 			occurredOn: (new Date()).toISOString(),
 			payload: {
 				userId: '123',
