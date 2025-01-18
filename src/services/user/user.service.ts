@@ -91,6 +91,80 @@ export class UserService {
 		return user.entityId!;
 	}
 
+	/** Fetch all user entities from the User repository
+	 * @param ctx The user context for the user to be fetched
+	 * @returns A promise that resolves to an array of all user entities in the repository
+	 * @throws An error if the user entity could not be fetched from the repository
+	 * @remark Intended to be mostly triggered by a user fetch event received from the user microservice
+	 * @remark Caller is expected to catch, handle and log any errors
+	 */
+	public async fetchAll(ctx: UserContext): Promise<User[]> {
+		// do common checks
+		await this.isReady();
+		this.checkIsValidCaller(ctx, 'fetchAll');
+		
+		// fetch all user entities from the user repository
+		const fetchResult = await this.userRepo.fetchAll();
+		if (fetchResult.isFailure) {
+			throw new PersistenceError(`Failed to fetch user entities: ${fetchResult.error}`);
+		}
+		const users$ = fetchResult.value as Observable<User[]>;
+		const users = await firstValueFrom(users$.pipe(take(1)));
+		return users;
+	}
+
+	/** Fetch a user entity by its id in the User repository
+	 * @param ctx The user context for the user to be fetched
+	 * @param userIdDTO The user id in the user microservice of the user to be fetched
+	 * @returns A promise that resolves to the user entity if found, or undefined if not found
+	 * @throws An error if the user id is not defined
+	 * @throws An error if the user entity could not be fetched from the repository
+	 * @remark Intended to be mostly triggered by a user fetch event received from the user microservice
+	 * @remark Caller is expected to catch, handle and log any errors
+	 */
+	public async fetchById(ctx: UserContext, userIdDTO: EntityIdDTO, id: EntityId): Promise<User | undefined> {
+		// do common checks
+		await this.isReady();
+		this.checkIsValidCaller(ctx, 'fetchById');
+		this.checkIsValidId(userIdDTO, 'fetchById');
+		
+		// fetch user entity from the user repository
+		const fetchResult = await this.userRepo.fetchById(id);
+		if (fetchResult.isFailure) {
+			throw new PersistenceError(`Failed to fetch user entity: ${fetchResult.error}`);
+		}
+		const user$ = fetchResult.value as Observable<User>;
+		const user = await firstValueFrom(user$.pipe(take(1)));
+		return user;
+	}
+
+	/** Fetch a user by id in the user microservice
+	 * @param ctx The user context for the user to be fetched
+	 * @param userIdDTO The user id in the user microservice of the user to be fetched
+	 * @returns A promise that resolves to the user entity if found, or undefined if not found
+	 * @throws An error if the user id is not defined
+	 * @throws An error if the user entity could not be fetched from the repository
+	 * @remark Intended to be mostly triggered by a user fetch event received from the user microservice
+	 * @remark Caller is expected to catch, handle and log any errors
+	 */
+	public async fetchByUserId(ctx: UserContext, userIdDTO: EntityIdDTO): Promise<User | undefined> {
+		// do common checks
+		await this.isReady();
+		this.checkIsValidCaller(ctx, 'fetchByUserId');
+		this.checkIsValidId(userIdDTO, 'fetchByUserId');
+		
+		// fetch user entity from the user repository
+		const users = await this.findUserByMicroserviceId(userIdDTO.value! as string);
+		if (!users || users.length === 0) {
+			return undefined; // user not found, return undefined
+		}
+		else if (users.length > 1) {
+			throw new PersistenceError(`User entity with id ${userIdDTO.value} is not unique`);
+		}
+		const user = users[0];
+		return user;
+	}
+
 	/** Delete a user entity and remove it in the User repository
 	 * @param ctx The user context for the user to be deleted
 	 * @param userIdDTO The user id in the user microservice of the user to be deleted

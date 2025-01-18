@@ -92,4 +92,13 @@ describe('UserService', () => {
 	it('can be created', () => {
 		expect(service).toBeDefined();
 	});
+
+	describe('Public API', () => {
+		describe('create()', () => { });
+		describe('fetchAll()', () => { });
+		describe('fetchById()', () => { });
+		describe('fetchByUserId()', () => { });
+		describe('delete()', () => { });	
+		describe('undelete()', () => { });
+	});
 });
