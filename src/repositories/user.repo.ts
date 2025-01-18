@@ -123,7 +123,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 			eventId: uuidv4(),
 			eventName: UserDeletedEvent.name,
 			occurredOn: (new Date()).toUTCString(),
-			payload: { entityId } as Partial<UserDTO>
+			payload: { entityId, className: 'User' } as Partial<UserDTO>
 		});
 	}
 
@@ -138,7 +138,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 			eventId: uuidv4(),
 			eventName: UserUndeletedEvent.name,
 			occurredOn: undeletionDate.toISOString(),
-			payload: { entityId } as Partial<UserDTO>
+			payload: { entityId, className: 'User' } as Partial<UserDTO>
 		});
 	}
 }

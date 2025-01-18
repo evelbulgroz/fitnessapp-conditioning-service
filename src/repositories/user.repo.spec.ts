@@ -280,7 +280,7 @@ describe('UserRepo', () => {
 				expect(event.eventId).toBeDefined();
 				expect(event.eventName).toBe('UserDeletedEvent');
 				expect(event.occurredOn).toBeDefined();
-				expect(event.payload).toEqual({ entityId: user.userId });
+				expect(event.payload).toEqual({ entityId: user.userId, className: 'User' });
 			});
 		});
 
@@ -299,7 +299,7 @@ describe('UserRepo', () => {
 				expect(event.eventId).toBeDefined();
 				expect(event.eventName).toBe('UserUndeletedEvent');
 				expect(event.occurredOn).toBeDefined();
-				expect(event.payload).toEqual({ entityId: user.userId });
+				expect(event.payload).toEqual({ entityId: user.userId, className: 'User' });
 			});
 		});
 	});

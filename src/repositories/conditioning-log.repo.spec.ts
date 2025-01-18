@@ -508,6 +508,10 @@ describe('ConditioningLogRepository', () => {
 		expect(repo).toBeDefined();
 	});
 
+	describe('Public API', () => {
+		// todo: move public API tests here
+	});
+
 	it('initializes cache with a collection of overview logs from persistence', async () => {
 		const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
 		expect(fetchAllResult.isSuccess).toBeTruthy();
