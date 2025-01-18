@@ -116,6 +116,37 @@ describe('UserRepo', () => {
 			});
 		});
 
+		describe('fetchByUserId', () => {
+			it('can fetch a user by user id', async () => {
+				// arrange
+				const userId = randomDTO.userId;
+				
+				// act
+				const result = await repo.fetchByUserId(userId);
+				
+				// assert
+				expect(result.isSuccess).toBe(true);
+				const users$ = result.value as unknown as Observable<User[]>;
+				const users = await firstValueFrom(users$);
+				expect(users.length).toBe(1);
+				expect(users[0].toDTO()).toEqual(randomDTO);
+			});
+
+			it('returns empty array if user id is unknown', async () => {
+				// arrange
+				const userId = uuidv4();
+				
+				// act
+				const result = await repo.fetchByUserId(userId);
+				
+				// assert
+				expect(result.isSuccess).toBe(true);
+				const users$ = result.value as unknown as Observable<User[]>;
+				const users = await firstValueFrom(users$);
+				expect(users.length).toBe(0);
+			});
+		});
+
 		describe('getClassFromName', () => {
 			it('can get class from known name', () => {
 				// arrange

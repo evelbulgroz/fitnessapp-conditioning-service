@@ -15,12 +15,12 @@ import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserRepository } from '../../repositories/user.repo';
 
-/** Processes User CRUD events received from the User microservice.
+/** Processes User CRUD events received via requests from the User microservice.
  * @remark The user microservice holds all business data for the user, name, contact info, etc.
  * @remark The user entity in this microservice serves only to match a user's id in the user microservice to the ids of the logs the user has created here.
  * @remark This microservice acts as slave to the user microservice re. user management.
  * @remark Therefore, this service only needs to process create, delete and undelete events received as domain events from the user microservice.
- * @remark Relies on the User repository for chaching and persistence of user entities.
+ * @remark Depends on the User repository for caching and persistence of user entities.
  */
 @Injectable()
 export class UserService {
@@ -89,25 +89,6 @@ export class UserService {
 		// creation successful -> return the new user id
 		const user = createResult.value as User;
 		return user.entityId!;
-	}
-
-	/** Fetch a user by its user id in the user microservice */
-	public async fetchByUserId(ctx: UserContext, userIdDTO: EntityIdDTO): Promise<User | undefined> {
-		// do common checks
-		await this.isReady();
-		this.checkIsValidCaller(ctx, 'fetchByUserId');
-		this.checkIsValidId(userIdDTO, 'fetchByUserId');
-		
-		// fetch user entity from the user repository
-		const users = await this.findUserByMicroserviceId(userIdDTO.value! as string);
-		if (!users || users.length === 0) {
-			return undefined; // user not found, return undefined
-		}
-		else if (users.length > 1) {
-			throw new PersistenceError(`User entity with id ${userIdDTO.value} is not unique`);
-		}
-		const user = users[0];
-		return user;
 	}
 
 	/** Delete a user

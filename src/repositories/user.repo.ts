@@ -17,6 +17,8 @@ import { UserDTO } from "../dtos/domain/user.dto";
 import { UserUpdatedEvent } from "../events/user-updated.event";
 import { UserDeletedEvent } from "../events/user-deleted.event";
 import { UserUndeletedEvent } from "../events/user-undeleted.event";
+import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
+import { Observable } from "rxjs";
 
 /** Concrete User repository */
 @Injectable()
@@ -48,6 +50,26 @@ export class UserRepository extends Repository<User, UserDTO> {
 			default:
 				return Result.fail<any>(`Unknown or unsupported user type: ${className}`);
 		}
+	}
+
+	/* Find user by microservice id
+	 * @param userId The user id in the user microservice
+	 * @returns A Result wrapping a promise that resolves to matching user entity/s if found, or undefined if not found
+	 * @returns {failure} If fetching user from the repository fails
+	 * @remark Internally calls fetchByQuery with a query that searches by userId
+	 */
+	public fetchByUserId(userId: EntityId): Promise<Result<Observable<User[]>>> {
+		const query = new Query<User, any>({
+			searchCriteria: [
+				{
+					key: 'userId',
+					operation: SearchFilterOperation.EQUALS,
+					value: userId
+				}
+			]
+		});
+
+		return this.fetchByQuery(query);
 	}
 
 	// NOTE: Rest of the public API is inherited from the base class,
