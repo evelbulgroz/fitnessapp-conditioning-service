@@ -13,7 +13,6 @@ import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserRepository } from '../../repositories/user.repo';
 import { UserService } from './user.service';
-import { before } from 'node:test';
 
 
 describe('UserService', () => {
@@ -141,6 +140,18 @@ describe('UserService', () => {
 				userRepoCreateSpy = jest.spyOn(userRepo, 'create').mockReturnValue(Promise.resolve(Result.ok(newUser)));				
 			});
 
+			it('initializes the service', async () => {
+				// arrange
+				userRepoFetchByQuerySpy.mockRestore();
+				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
+				
+				// act
+				const result = await service.create(userContext, newUserIdDTO);
+
+				// assert
+				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
+			});
+
 			it('can create a new User entity', async () => {
 				// arrange
 				userRepoFetchByQuerySpy.mockRestore();
@@ -214,6 +225,18 @@ describe('UserService', () => {
 		});
 		
 		describe('fetchByUserId()', () => {
+			it('initializes the service', async () => {
+				// arrange
+				userRepoFetchByQuerySpy.mockRestore();
+				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
+				
+				// act
+				const result = await service.fetchByUserId(userContext, randomUserId);
+
+				// assert
+				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
+			});
+
 			it('can fetch a User entity by its user id in the user microservice', async () => {
 				// arrange
 				
@@ -270,6 +293,16 @@ describe('UserService', () => {
 		});
 		
 		describe('delete()', () => {
+			it('initializes the service', async () => {
+				// arrange
+				
+				// act
+				const result = await service.delete(userContext, randomUserId);
+
+				// assert
+				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
+			});
+
 			it('can delete a User entity by its user id in the user microservice', async () => {
 				// arrange
 				
@@ -379,6 +412,16 @@ describe('UserService', () => {
 		});	
 		
 		describe('undelete()', () => {
+			it('initializes the service', async () => {
+				// arrange
+				
+				// act
+				const result = await service.undelete(userContext, randomUserId);
+
+				// assert
+				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
+			});
+
 			it('can undelete a User entity by its user id in the user microservice', async () => {
 				// arrange
 				randomUser.deletedOn = new Date(randomUser.createdOn!.getTime() + 1000);
