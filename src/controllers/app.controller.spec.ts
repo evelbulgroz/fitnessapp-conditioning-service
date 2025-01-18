@@ -28,7 +28,6 @@ import { JsonWebtokenService } from '../services/jwt/json-webtoken.service';
 import { QueryDTO } from '../dtos/sanitization/query.dto';
 import { QueryDTOProps } from '../test/models/query-dto.props';
 import { UserContext, UserContextProps } from '../domain/user-context.model';
-import { UserDTO } from '../dtos/domain/user.dto';
 import { UserJwtPayload } from '../services/jwt/models/user-jwt-payload.model';
 import { UserRepository } from '../repositories/user.repo';
 import { ValidationPipe } from './pipes/validation.pipe';
@@ -48,7 +47,7 @@ describe('AppController', () => {
 	let http: HttpService;
 	let jwt: JwtService;
 	let serverUrl: string;
-	let userRepo: UserRepository<any, UserDTO>;
+	let userRepo: UserRepository;
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
 			// ConfigModule is imported automatically by createTestingModule
@@ -120,7 +119,7 @@ describe('AppController', () => {
 		crypto = module.get<CryptoService>(CryptoService);
 		http = module.get<HttpService>(HttpService);
 		jwt = module.get<JwtService>(JwtService);
-		userRepo = module.get<UserRepository<any, UserDTO>>(UserRepository);
+		userRepo = module.get<UserRepository>(UserRepository);
 
 		app.useGlobalPipes(new ValidationPipe());
 		await app.listen(0); // enter 0 to let the OS choose a free port

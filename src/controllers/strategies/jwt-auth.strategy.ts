@@ -30,7 +30,7 @@ export class JwtAuthStrategy extends AuthStrategy {
 		private readonly crypto: CryptoService,
 		private readonly jwtService: JwtService,
 		private readonly logger: Logger,
-		private readonly userRepo: UserRepository<User, UserDTO>
+		private readonly userRepo: UserRepository
 	) {
 		super();
 		this.MAX_TOKEN_SIZE = this.config.get<number>('security.jwt.maxTokenSize')!; // Retrieve the max token size from config

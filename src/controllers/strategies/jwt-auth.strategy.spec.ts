@@ -27,7 +27,7 @@ describe('JwtAuthStrategy', () => {
 	let crypto: CryptoService;
 	let jwtAuthStrategy: JwtAuthStrategy;
 	let jwtService: JwtService;
-	let userRepo: UserRepository<User, UserDTO>;
+	let userRepo: UserRepository;
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
 			imports: [
@@ -63,7 +63,7 @@ describe('JwtAuthStrategy', () => {
 		crypto = module.get<CryptoService>(CryptoService);
 		jwtAuthStrategy = module.get<JwtAuthStrategy>(JwtAuthStrategy);
 		jwtService = module.get<JwtService>(JwtService);
-		userRepo = module.get<UserRepository<User, UserDTO>>(UserRepository);
+		userRepo = module.get<UserRepository>(UserRepository);
 	});
 
 	let issuer: string;
@@ -88,7 +88,7 @@ describe('JwtAuthStrategy', () => {
 
 		secret = config.get(`security.authentication.jwt.accessToken.secret`)!;
 		token = jwt.sign(payload, secret); // sign token with secret, circumventing the service
-		user = (User.create({entityId: uuid(), userId: payload.sub} as UserDTO)).value as User;
+		user = (User.create({entityId: uuid(), userId: payload.sub} as UserDTO)).value as unknown as User;
 		
 		retriveUserSpy = jest.spyOn(userRepo, 'fetchById').mockResolvedValue(Result.ok(of(user)));
 		verifySpy = jest.spyOn(jwtService, 'verify').mockResolvedValue(payload);
