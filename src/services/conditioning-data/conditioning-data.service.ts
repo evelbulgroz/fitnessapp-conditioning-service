@@ -49,6 +49,7 @@ interface UserLogsCacheEntry {
  * @remark Relies on repositories for persistence, and on controller(s) for request authentication, user context, data sanitization, and error logging.
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
+ * @remark Local cache is kept in sync with repository data via subscriptions to log and user repo events.
  * @todo Add support for soft deletion and undeletion of logs, and inclusion/exclusion of deleted logs in log retrieval.
  */
 @Injectable()
