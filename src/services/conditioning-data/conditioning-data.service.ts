@@ -170,7 +170,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @throws PersistenceError if error occurs while fetching log from persistence
 	 * @remark Replaces overview log in cache with detailed log from persistence on demand, and updates cache subscribers
 	 */
-	public async fetchLog(ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async fetchLog(ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO, includeDeleted = false): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
 			await this.isReady(); // initialize service if necessary
 
@@ -242,7 +242,8 @@ export class ConditioningDataService implements OnModuleDestroy {
 	public async fetchLogs(
 		ctx: UserContext,
 		userIdDTO: EntityIdDTO,
-		queryDTO?: QueryDTO
+		queryDTO?: QueryDTO,
+		includeDeleted = false
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
 
@@ -291,6 +292,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		ctx: UserContext,
 		aggregationQueryDTO: AggregationQueryDTO,
 		queryDTO?: QueryDTO
+		, includeDeleted = false
 	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		await this.isReady(); // initialize service if necessary
 
@@ -392,7 +394,8 @@ export class ConditioningDataService implements OnModuleDestroy {
 	public async deleteLog(
 		ctx: UserContext,
 		userIdDTO: EntityIdDTO,
-		logIdDTO: EntityIdDTO
+		logIdDTO: EntityIdDTO,
+		softDelete = true
 	): Promise<void> {
 		// initialize service if necessary
 		await this.isReady();
