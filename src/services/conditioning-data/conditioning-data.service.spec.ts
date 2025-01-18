@@ -921,8 +921,7 @@ describe('ConditioningDataService', () => {
 		let logRepoFetchByIdSpy: any
 		let userRepoFetchByIdSpy: any;
 		beforeEach(async () => {
-			logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async (id: EntityId) => { // return randomLog instead?
-				const retrievedLog = ConditioningLog.create(logDTO, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+			logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 				return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(randomLog)));
 			});
 			
@@ -996,7 +995,7 @@ describe('ConditioningDataService', () => {
 				
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
-				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toJSON());
+				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toDTO());
 			});
 
 			it('adds new log to cache entry', async () => {
@@ -1046,6 +1045,11 @@ describe('ConditioningDataService', () => {
 		describe('retrieve', () => {
 			it('provides details for a conditioning log owned by a user', async () => {
 				// arrange
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+					randomLog.sensorLogs = []; // if sensorLogs is not undefined, isOverview will be false
+					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(randomLog)))
+				});
 				
 				//act
 				const detailedLog = await logService.fetchLog(userContext, randomUserIdDTO, randomLogIdDTO);
@@ -1062,6 +1066,12 @@ describe('ConditioningDataService', () => {
 				const otherUser = users.find(user => user.userId !== userContext.userId)!;
 				const otherUserLogs = await logService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
+
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+					randomOtherUserLog!.sensorLogs = []; // if sensorLogs is not undefined, isOverview will be false
+					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(randomOtherUserLog!)))
+				});
 				
 				//act
 				const detailedLog = await logService.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomOtherUserLog!.entityId!));
