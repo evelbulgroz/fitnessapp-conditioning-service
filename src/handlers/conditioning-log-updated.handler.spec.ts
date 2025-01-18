@@ -7,11 +7,11 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
-import { LogUpdatedEvent } from '../events/log-updated.event';
-import { LogUpdatedHandler } from './log-updated.handler';
+import { ConditioningLogUpdatedEvent } from '../events/conditioning-log-updated.event';
+import { ConditioningLogUpdateHandler } from './conditioning-log-updated.handler';
 
 describe('LogUpdatedHandler', () => {
-	let handler: LogUpdatedHandler;
+	let handler: ConditioningLogUpdateHandler;
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
 			providers: [
@@ -28,7 +28,7 @@ describe('LogUpdatedHandler', () => {
 						// add other methods as needed
 					}
 				},
-				LogUpdatedHandler,
+				ConditioningLogUpdateHandler,
 				{
 					provide: Logger,
 					useClass: ConsoleLogger
@@ -36,7 +36,7 @@ describe('LogUpdatedHandler', () => {
 			],
 		});
 
-		handler = module.get<LogUpdatedHandler>(LogUpdatedHandler);
+		handler = module.get<ConditioningLogUpdateHandler>(ConditioningLogUpdateHandler);
 	});
 
 	it('can be created', () => {
@@ -44,11 +44,11 @@ describe('LogUpdatedHandler', () => {
 	});
 
 	xdescribe('handle', () => {
-		let event: LogUpdatedEvent;
+		let event: ConditioningLogUpdatedEvent;
 		beforeEach(() => {
-			event = new LogUpdatedEvent({
+			event = new ConditioningLogUpdatedEvent({
 				eventId: '1',
-				eventName: 'LogUpdatedEvent',
+				eventName: ConditioningLogUpdatedEvent.name,
 				occurredOn: (new Date()).toISOString(),
 				payload: { entityId: '1' } as ConditioningLogDTO
 			});

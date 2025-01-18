@@ -21,10 +21,10 @@ import { ConditioningLogRepository } from '../../repositories/conditioning-log.r
 import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
 import { EventDispatcher } from '../../services/event-dispatcher/event-dispatcher.service';
 import { FileService } from '../file-service/file.service';;
-import { LogCreatedHandler } from '../../handlers/log-created.handler';
-import { LogDeletedHandler } from '../../handlers/log-deleted.handler';
-import { LogUpdatedEvent } from '../../events/log-updated.event';
-import { LogUpdatedHandler } from '../../handlers/log-updated.handler';
+import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
+import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-deleted.handler';
+import { ConditioningLogUpdatedEvent } from '../../events/conditioning-log-updated.event';
+import { ConditioningLogUpdateHandler } from '../../handlers/conditioning-log-updated.handler';
 import { UserCreatedHandler } from '../../handlers/user-created.handler';
 import { UserDeletedHandler } from '../../handlers/user-deleted.handler';
 import { UserUpdatedEvent } from '../../events/user-updated.event';
@@ -72,9 +72,9 @@ describe('ConditioningDataService', () => {
 				},
 				ConfigService,
 				EventDispatcher,
-				LogCreatedHandler,
-				LogDeletedHandler,
-				LogUpdatedHandler,
+				ConditioningLogCreatedHandler,
+				ConditioningLogDeletedHandler,
+				ConditioningLogUpdateHandler,
 				UserCreatedHandler,
 				UserDeletedHandler,
 				UserUpdatedHandler,
@@ -655,6 +655,10 @@ describe('ConditioningDataService', () => {
 
 	it('can be created', () => {
 		expect(logService).toBeTruthy();
+	});
+
+	describe('Public API', () => {
+		// todo: move tests for public API methods here
 	});
 
 	describe('Initialization', () => {
@@ -1283,9 +1287,9 @@ describe('ConditioningDataService', () => {
 			it('replaces log in cache with updated log following log repo update', async () => {
 				// arrange
 				logService.updateLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLogDTO).then(() => {
-					const updateEvent = new LogUpdatedEvent({
+					const updateEvent = new ConditioningLogUpdatedEvent({
 						eventId: uuidv4(),
-						eventName: 'LogUpdatedEvent',
+						eventName: ConditioningLogUpdatedEvent.name,
 						occurredOn: (new Date()).toISOString(),
 						payload: updatedLog.toJSON(),
 					});
@@ -1552,7 +1556,7 @@ describe('ConditioningDataService', () => {
 			it('can provide a domain event handler with a snapshot of the cache', async () => {
 				// arrange
 				const expectedCache = logService['userLogsSubject'].value;
-				const handler = new LogCreatedHandler(logRepo, logger);
+				const handler = new ConditioningLogCreatedHandler(logRepo, logger);
 				
 				// act
 				const snapshot = logService.getCacheSnapshot(handler);
@@ -1573,7 +1577,7 @@ describe('ConditioningDataService', () => {
 			it('can update the cache with a new snapshot', async () => {
 				// arrange
 				const newCache = [...logService['userLogsSubject'].value];
-				const handler = new LogCreatedHandler(logRepo, logger);
+				const handler = new ConditioningLogCreatedHandler(logRepo, logger);
 				
 				// act
 				logService.updateCache(newCache, handler);

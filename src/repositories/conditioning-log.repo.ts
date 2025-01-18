@@ -12,6 +12,7 @@ import { ConditioningLogPersistenceDTO } from "../dtos/domain/conditioning-log-p
  * @template U The type of the DTO, e.g. ConditioningLogDTO
  * @remark This class is a repository for ConditioningLog entities, and is intended to be injected into other classes, e.g. services.
  * @remark Implements a few method overrides but otherwise relies on the base class for most of its functionality.
+ * @todo Emit custom CRUD events, as in the UserRepo
  */
 @Injectable()
 export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO> extends TrainingLogRepo<ConditioningLog<T,U>, U> {

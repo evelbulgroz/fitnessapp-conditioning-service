@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
 import { DomainEvent, DomainEventDTO } from '@evelbulgroz/ddd-base';
-import { LogCreatedEvent } from '../../events/log-created.event';
-import { LogCreatedHandler } from '../../handlers/log-created.handler';
-import { LogDeletedEvent } from '../../events/log-deleted.event';
-import { LogDeletedHandler } from '../../handlers/log-deleted.handler';
-import { LogUpdatedEvent } from '../../events/log-updated.event';
-import { LogUpdatedHandler } from '../../handlers/log-updated.handler';
+import { ConditioningLogLogCreatedEvent } from '../../events/conditioning-log-created.event';
+import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
+import { ConditioningLogDeletedEvent } from '../../events/conditioning-log-deleted.event';
+import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-deleted.handler';
+import { ConditioningLogUpdatedEvent } from '../../events/conditioning-log-updated.event';
+import { ConditioningLogUpdateHandler } from '../../handlers/conditioning-log-updated.handler';
 import { UserCreatedEvent } from '../../events/user-created.event';
 import { UserCreatedHandler } from '../../handlers/user-created.handler';
 import { UserDeletedEvent } from '../../events/user-deleted.event';
@@ -23,9 +23,9 @@ import { UserUpdatedHandler } from '../../handlers/user-updated.handler';;
 @Injectable()
 export class EventDispatcher {
 constructor(
-	private readonly logCreatedHandler: LogCreatedHandler,
-	private readonly logUpdatedHandler: LogUpdatedHandler,
-	private readonly logDeletedHandler: LogDeletedHandler,
+	private readonly logCreatedHandler: ConditioningLogCreatedHandler,
+	private readonly logUpdatedHandler: ConditioningLogUpdateHandler,
+	private readonly logDeletedHandler: ConditioningLogDeletedHandler,
 	private readonly userCreatedHandler: UserCreatedHandler,	
 	private readonly userUpdatedHandler: UserUpdatedHandler,
 	private readonly userDeletedHandler: UserDeletedHandler,
@@ -34,13 +34,13 @@ constructor(
 public async dispatch(event: DomainEvent<DomainEventDTO<any>, any>): Promise<void> {
 	// Dispatch event to appropriate handler
 	switch (event.constructor) {
-		case LogCreatedEvent:
+		case ConditioningLogLogCreatedEvent:
 			await this.logCreatedHandler.handle(event);
 			break;
-		case LogUpdatedEvent:
+		case ConditioningLogUpdatedEvent:
 			await this.logUpdatedHandler.handle(event);
 			break;
-		case LogDeletedEvent:
+		case ConditioningLogDeletedEvent:
 			await this.logDeletedHandler.handle(event);
 			break;
 		case UserCreatedEvent:

@@ -8,12 +8,12 @@ import { ConditioningDataService } from '../../services/conditioning-data/condit
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepository } from '../../repositories/conditioning-log.repo';
 import { EventDispatcher } from '../../services/event-dispatcher/event-dispatcher.service';
-import { LogCreatedEvent } from '../../events/log-created.event';
-import { LogCreatedHandler } from '../../handlers/log-created.handler';
-import { LogDeletedEvent } from '../../events/log-deleted.event';
-import { LogDeletedHandler } from '../../handlers/log-deleted.handler';
-import { LogUpdatedEvent } from '../../events/log-updated.event';
-import { LogUpdatedHandler } from '../../handlers/log-updated.handler';
+import { ConditioningLogLogCreatedEvent } from '../../events/conditioning-log-created.event';
+import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
+import { ConditioningLogDeletedEvent } from '../../events/conditioning-log-deleted.event';
+import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-deleted.handler';
+import { ConditioningLogUpdatedEvent } from '../../events/conditioning-log-updated.event';
+import { ConditioningLogUpdateHandler } from '../../handlers/conditioning-log-updated.handler';
 import { UserCreatedEvent } from '../../events/user-created.event';
 import { UserCreatedHandler } from '../../handlers/user-created.handler';
 import { UserDeletedEvent } from '../../events/user-deleted.event';
@@ -47,9 +47,9 @@ describe('EventDispatcher', () => {
 					}
 				},
 				EventDispatcher,
-				LogCreatedHandler,
-				LogDeletedHandler,
-				LogUpdatedHandler,
+				ConditioningLogCreatedHandler,
+				ConditioningLogDeletedHandler,
+				ConditioningLogUpdateHandler,
 				UserCreatedHandler,
 				UserDeletedHandler,
 				UserUpdatedHandler,
@@ -79,14 +79,14 @@ describe('EventDispatcher', () => {
 		describe('log events', () => {		
 			it('dispatches log created event to log created handler', async () => {
 				// arrange
-				const event = new LogCreatedEvent({
+				const event = new ConditioningLogLogCreatedEvent({
 					eventId: '1',
-					eventName: 'LogCreatedEvent',
+					eventName: ConditioningLogLogCreatedEvent.name,
 					occurredOn: (new Date()).toISOString(),
 					payload: { entityId: '1' } as ConditioningLogDTO
 				});
 
-				const handleSpy = jest.spyOn(LogCreatedHandler.prototype, 'handle');
+				const handleSpy = jest.spyOn(ConditioningLogCreatedHandler.prototype, 'handle');
 
 				// act
 				// handler method not implemented yet, so expect an error
@@ -100,14 +100,14 @@ describe('EventDispatcher', () => {
 
 			it('dispatches log updated event to log updated handler', async () => {
 				// arrange
-				const event = new LogUpdatedEvent({
+				const event = new ConditioningLogUpdatedEvent({
 					eventId: '1',
-					eventName: 'LogUpdatedEvent',
+					eventName: ConditioningLogUpdatedEvent.name,
 					occurredOn: (new Date()).toISOString(),
 					payload: { entityId: '1' } as ConditioningLogDTO
 				});
 
-				const handleSpy = jest.spyOn(LogUpdatedHandler.prototype, 'handle');
+				const handleSpy = jest.spyOn(ConditioningLogUpdateHandler.prototype, 'handle');
 
 				// act
 				// handler method not implemented yet, so expect an error
@@ -121,14 +121,14 @@ describe('EventDispatcher', () => {
 
 			it('dispatches log deleted event to log deleted handler', async () => {
 				// arrange
-				const event = new LogDeletedEvent({
+				const event = new ConditioningLogDeletedEvent({
 					eventId: '1',
-					eventName: 'LogDeletedEvent',
+					eventName: ConditioningLogDeletedEvent.name,
 					occurredOn: (new Date()).toISOString(),
 					payload: { entityId: '1' } as ConditioningLogDTO
 				});
 
-				const handleSpy = jest.spyOn(LogDeletedHandler.prototype, 'handle');
+				const handleSpy = jest.spyOn(ConditioningLogDeletedHandler.prototype, 'handle');
 
 				// act
 				// handler method not implemented yet, so expect an error

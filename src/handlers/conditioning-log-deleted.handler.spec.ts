@@ -5,13 +5,13 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 //import { jest } from '@jest/globals';
 
-import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
-import { LogCreatedEvent } from '../events/log-created.event';
-import { LogCreatedHandler } from './log-created.handler';
+import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
+import { ConditioningLogDeletedEvent } from '../events/conditioning-log-deleted.event';
+import { ConditioningLogDeletedHandler } from './conditioning-log-deleted.handler';
 
-describe('LogCreatedHandler', () => {
-	let handler: LogCreatedHandler;
+describe('LogDeletedHandler', () => {
+	let handler: ConditioningLogDeletedHandler;
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
 			providers: [
@@ -22,15 +22,15 @@ describe('LogCreatedHandler', () => {
 						// add other methods as needed
 					}
 				},
-				LogCreatedHandler,
+				ConditioningLogDeletedHandler,
 				{
 					provide: Logger,
 					useClass: ConsoleLogger
-				},
+				},				
 			],
 		});
 
-		handler = module.get<LogCreatedHandler>(LogCreatedHandler);
+		handler = module.get<ConditioningLogDeletedHandler>(ConditioningLogDeletedHandler);
 	});
 
 	it('can be created', () => {
@@ -38,11 +38,11 @@ describe('LogCreatedHandler', () => {
 	});
 
 	describe('handle', () => {
-		let event: LogCreatedEvent;
+		let event: ConditioningLogDeletedEvent;
 		beforeEach(() => {
-			event = new LogCreatedEvent({
+			event = new ConditioningLogDeletedEvent({
 				eventId: '1',
-				eventName: 'LogCreatedEvent',
+				eventName: ConditioningLogDeletedEvent.name,
 				occurredOn: (new Date()).toISOString(),
 				payload: { entityId: '1' } as ConditioningLogDTO
 			});

@@ -8,14 +8,14 @@ import { ConditioningDataService } from '../services/conditioning-data/condition
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
-import { LogUpdatedEvent } from '../events/log-updated.event';
+import { ConditioningLogUpdatedEvent } from '../events/conditioning-log-updated.event';
 import { DomainEventHandler } from './domain-event.handler';
 
 /** Log updated event handler
  * @remark Handles updating logs in log service cache, triggered by update events from log repository
  */
 @Injectable()
-export class LogUpdatedHandler extends DomainEventHandler<LogUpdatedEvent> {
+export class ConditioningLogUpdateHandler extends DomainEventHandler<ConditioningLogUpdatedEvent> {
 	constructor(
 		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService,
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
@@ -24,7 +24,7 @@ export class LogUpdatedHandler extends DomainEventHandler<LogUpdatedEvent> {
 		super();
 	}
 
-	public async handle(event: LogUpdatedEvent): Promise<void> {
+	public async handle(event: ConditioningLogUpdatedEvent): Promise<void> {
 		const logDTO = event.payload;
 		
 		// fetch log from repo
@@ -50,4 +50,4 @@ export class LogUpdatedHandler extends DomainEventHandler<LogUpdatedEvent> {
 	}
 }
 
-export default LogUpdatedHandler;
+export default ConditioningLogUpdateHandler;
