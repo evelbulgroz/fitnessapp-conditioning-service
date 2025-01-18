@@ -62,7 +62,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 	 * @returns {failure} If fetching user from the repository fails
 	 * @remark Internally calls fetchByQuery with a query that searches by userId
 	 */
-	public fetchByUserId(userId: EntityId): Promise<Result<Observable<User[]>>> {
+	public fetchByUserId(userId: EntityId, includeDeleted = false): Promise<Result<Observable<User[]>>> {
 		const query = new Query<User, any>({
 			searchCriteria: [
 				{
@@ -73,7 +73,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 			]
 		});
 
-		return this.fetchByQuery(query);
+		return this.fetchByQuery(query, includeDeleted);
 	}
 
 	// NOTE: Rest of the public API is inherited from the base class,

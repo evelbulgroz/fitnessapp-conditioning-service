@@ -1,7 +1,7 @@
 import { TestingModule } from '@nestjs/testing';
 
 import { v4 as uuidv4 } from 'uuid';
-import { firstValueFrom, Observable } from 'rxjs';
+import { firstValueFrom, Observable, take } from 'rxjs';
 
 import { ConsoleLogger, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 
@@ -21,6 +21,8 @@ class PersistenceAdapterMock<T extends UserPersistenceDTO> extends PersistenceAd
 	public fetchAll = jest.fn();
 	public undelete = jest.fn();
 }
+
+//process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
 describe('UserRepo', () => {
 	let adapter: PersistenceAdapter<UserPersistenceDTO>;
@@ -55,10 +57,10 @@ describe('UserRepo', () => {
 	let testPersistenceDTOs: UserPersistenceDTO[];
 	beforeEach(() => {
 		testDTOs = [
-			{ userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
-			{ userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
-			{ userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
-			{ userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
+			{ entityId: uuidv4(), userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
+			{ entityId: uuidv4(), userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
+			{ entityId: uuidv4(), userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
+			{ entityId: uuidv4(), userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
 		];
 
 		const now = Date.now();
@@ -73,11 +75,14 @@ describe('UserRepo', () => {
 		randomDTO = testDTOs[randomIndex];		
 	});
 		
-	let fetchAllSpy: jest.SpyInstance;
-	let initSpy: jest.SpyInstance;
+	let adapterDeleteSpy: jest.SpyInstance;
+	let adapterFetchAllSpy: jest.SpyInstance;
+	let adapterFetchByQuerySpy: jest.SpyInstance;
+	let adapterInitSpy: jest.SpyInstance;
 	beforeEach(() => {
-		fetchAllSpy = jest.spyOn(adapter, 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
-		initSpy = jest.spyOn(repo['adapter'], 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));		
+		adapterDeleteSpy = jest.spyOn(adapter, 'delete').mockResolvedValue(Promise.resolve(Result.ok()));
+		adapterFetchAllSpy = jest.spyOn(adapter, 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
+		adapterInitSpy = jest.spyOn(adapter, 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));		
 	});
 
 	beforeEach(async () => {
@@ -85,8 +90,9 @@ describe('UserRepo', () => {
 	});
 
 	afterEach(() => {
-		fetchAllSpy.mockRestore();
-		initSpy.mockRestore();
+		adapterDeleteSpy?.mockRestore();
+		adapterFetchAllSpy?.mockRestore();
+		adapterInitSpy?.mockRestore();
 		jest.clearAllMocks();
 	});
 	
@@ -106,8 +112,8 @@ describe('UserRepo', () => {
 				const result = await repo.fetchAll();
 				
 				// assert
-				expect(fetchAllSpy).toHaveBeenCalledTimes(1);
-				expect(initSpy).toHaveBeenCalledTimes(1);		
+				expect(adapterFetchAllSpy).toHaveBeenCalledTimes(1);
+				expect(adapterInitSpy).toHaveBeenCalledTimes(1);		
 				expect(result.isSuccess).toBe(true);
 				
 				const users$ = result.value as unknown as Observable<User[]>;
@@ -146,6 +152,41 @@ describe('UserRepo', () => {
 				const users$ = result.value as unknown as Observable<User[]>;
 				const users = await firstValueFrom(users$);
 				expect(users.length).toBe(0);
+			});
+
+			it('by default does not include deleted users', async () => {
+				// arrange
+				const cachedUser = repo['retrieveCacheEntry'](randomDTO.entityId!) as User; // get reference to entity in cache, so we can modify it
+				cachedUser['_updatedOn'] = undefined; // clear updatedOn to avoid conflict with soft delete, circumventing setter validation
+				const deleteResult = await repo.delete(randomDTO.entityId!, true); // soft delete the user
+				expect(deleteResult.isSuccess).toBe(true); // sanity check
+				
+				// act
+				const fetchResult = await repo.fetchByUserId(cachedUser.userId);
+				
+				// assert
+				expect(fetchResult.isSuccess).toBe(true);
+				const users$ = fetchResult.value as unknown as Observable<User[]>;
+				const users = await firstValueFrom(users$);
+				expect(users.length).toBe(0);
+			});
+
+			it('optionally can include deleted users', async () => {
+				// arrange
+				const cachedUser = repo['retrieveCacheEntry'](randomDTO.entityId!) as User; // get reference to entity in cache, so we can modify it
+				cachedUser['_updatedOn'] = undefined; // clear updatedOn to avoid conflict with soft delete, circumventing setter validation
+				const deleteResult = await repo.delete(randomDTO.entityId!, true); // soft delete the user
+				expect(deleteResult.isSuccess).toBe(true); // sanity check
+				
+				// act
+				const result = await repo.fetchByUserId(cachedUser.userId, true);
+				
+				// assert
+				expect(result.isSuccess).toBe(true);
+				const users$ = result.value as unknown as Observable<User[]>;
+				const users = await firstValueFrom(users$);
+				expect(users.length).toBe(1);
+				expect(users[0].toDTO()).toEqual(randomDTO);
 			});
 		});
 
