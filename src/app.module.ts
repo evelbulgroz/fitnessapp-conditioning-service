@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { QueryMapper } from './mappers/query.mapper';
 import { FsPersistenceAdapterService } from './repositories/adapters/fs-persistence-adapter/fs-persistence-adapter.service';
 import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
+import { UserService } from './services/user/user.service';
 
 @Module({
 	imports: [],
@@ -17,7 +18,8 @@ import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
 		{
 			provide: PersistenceAdapter,
 			useClass: FsPersistenceAdapterService,
-		}
+		},
+		UserService
 	],
 })
 export class AppModule {}

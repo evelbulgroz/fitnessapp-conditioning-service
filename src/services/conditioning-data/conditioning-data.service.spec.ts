@@ -39,8 +39,6 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserRepository } from '../../repositories/user.repo';
-import { random } from 'lodash-es';
-import { log } from 'console';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -63,7 +61,7 @@ describe('ConditioningDataService', () => {
 		
 		app = await createTestingModule({
 			imports: [
-				//ConfigModule is imported automatically by createTestingModule
+				// ConfigModule is imported automatically by createTestingModule
 			],
 			providers: [
 				{
@@ -80,7 +78,7 @@ describe('ConditioningDataService', () => {
 				UserCreatedHandler,
 				UserDeletedHandler,
 				UserUpdatedHandler,
-				FileService,
+				//FileService,
 				ConditioningDataService,
 				{
 					provide: ConditioningLogRepository,

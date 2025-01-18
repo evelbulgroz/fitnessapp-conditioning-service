@@ -49,11 +49,12 @@ interface UserLogsCacheEntry {
  * @remark Relies on repositories for persistence, and on controller(s) for request authentication, user context, data sanitization, and error logging.
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
+ * @todo Add support for soft deletion and undeletion of logs, and inclusion/exclusion of deleted logs in log retrieval.
  */
 @Injectable()
 export class ConditioningDataService implements OnModuleDestroy {
 	
-	//------------------------- PRIVATE PROPERTIES --------------------------//
+	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
 	
 	protected readonly userLogsSubject = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
 	protected isInitializing = false; // flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
@@ -63,7 +64,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	@Inject(Logger) protected readonly logger: Logger;
 	@Inject(QueryMapper) protected readonly queryMapper: QueryMapper<QueryType, QueryDTO>;
 	
-	//----------------------------- CONSTRUCTOR -----------------------------//
+	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
 	public constructor(
 		protected readonly aggregator: AggregatorService,
@@ -74,14 +75,14 @@ export class ConditioningDataService implements OnModuleDestroy {
 		this.subscribeToRepoEvents(); // deps not intialized in onModuleInit, so subscribe here
 	}
 
-	//----------------------------LIFECYCLE HOOKS ---------------------------//
+	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
 	onModuleDestroy() {
 		this.logger.log(`${this.constructor.name}: Shutting down...`);
 		this.subscriptions.forEach((subscription) => subscription?.unsubscribe());
 	}
 	
-	//------------------------------ PUBLIC API -----------------------------//
+	//---------------------------------------- PUBLIC API ---------------------------------------//
 	
 	/** New API: Check if service is ready to use, i.e. has been initialized
 	 * @returns Promise that resolves when the service is ready to use
@@ -101,7 +102,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 			}
 			resolve(true);
 		});
-	}	
+	}
 
 	/** New API: Create a new conditioning log for a user
 	 * @param ctx User context for the request (includes user id and roles)
@@ -151,6 +152,8 @@ export class ConditioningDataService implements OnModuleDestroy {
 			this.deleteOrphanedLog(newLog.entityId!); // deleting orphaned log from log repo, retry if necessary
 			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
 		}
+
+		// NOTE: cache is updated via subscription to user repo updates, no need to update cache here
 
 		// log created successfully -> return entity id
 		return Promise.resolve(newLog.entityId!);
@@ -266,6 +269,8 @@ export class ConditioningDataService implements OnModuleDestroy {
 			throw new PersistenceError(`${this.constructor.name}: Error updating conditioning log ${logIdDTO.value}: ${logUpdateResult.error}`);
 		}
 
+		// NOTE: cache is updated via subscription to user repo updates, no need to update cache here
+
 		// succcess -> resolve with void
 		return Promise.resolve();		
 	}
@@ -321,7 +326,9 @@ export class ConditioningDataService implements OnModuleDestroy {
 		const logDeleteResult = await this.logRepo.delete(logIdDTO.value!);
 		if (logDeleteResult.isFailure) { // deletion failed -> roll back user update, then throw persistence error
 			this.rollBackUserUpdate(user, originalUserDTO as any); // retry rolling back user update before continuing
-		}		
+		}
+
+		// NOTE: cache is updated via subscription to user repo updates, no need to update cache here
 		
 		// log deleted successfully -> return undefined
 		return Promise.resolve();
@@ -504,7 +511,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		return Promise.resolve({ dataseries } as unknown as ConditioningData);
 	}
 
-	//-------------------------- PROTECTED METHODS --------------------------//
+	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
 	/* Initialize user-log cache */
 	protected async initializeCache(): Promise<void> {		
