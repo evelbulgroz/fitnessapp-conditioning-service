@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
+import { firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
-import { Entity, EntityId, Logger } from '@evelbulgroz/ddd-base';
+import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 
 import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
-import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';
 import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
 import { User } from '../../domain/user.entity';
@@ -19,7 +18,7 @@ import { UserRepository } from '../../repositories/user.repo';
  * @remark The user microservice holds all business data for the user, name, contact info, etc.
  * @remark The user entity in this microservice serves only to match a user's id in the user microservice to the ids of the logs the user has created here.
  * @remark This microservice acts as slave to the user microservice re. user management.
- * @remark Therefore, this service only needs to process create, delete and undelete events received as domain events from the user microservice.
+ * @remark Therefore, this service only needs to process create, delete and undelete events received from the user microservice.
  * @remark Depends on the User repository for caching and persistence of user entities.
  */
 @Injectable()

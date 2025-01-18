@@ -113,7 +113,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @throws NotFoundError if user does not exist in persistence
 	 * @throws PersistenceError if error occurs while creating log or updating user in persistence
 	 * @logs Error if error occurs while rolling back log creation 
-	 * @remark Logs and users are created/updated in the persistence layer, and propagated to cache via subscription
+	 * @remark Logs and users are created/updated in the persistence layer, and propagated to cache via subscription to user repo updates
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
 	 */
 	public async createLog(
@@ -238,7 +238,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @throws UnauthorizedAccessError if user is not authorized to update log
 	 * @throws NotFoundError if log is not found in persistence
 	 * @throws PersistenceError if error occurs while updating log in persistence
-	 * @remark Logs are updated in the persistence layer, and propagated to cache via subscription
+	 * @remark Logs are updated in the persistence layer, and propagated to cache via subscription to user repo updates
 	 * @remark Admins can update logs for any user, other users can only update logs for themselves
 	 */
 	public async updateLog(
@@ -282,7 +282,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @throws UnauthorizedAccessError if user is not authorized to delete log
 	 * @throws NotFoundError if either log or user is not found in persistence
 	 * @throws PersistenceError if error occurs while deleting log or updating user in persistence
-	 * @remark Logs are deleted from the persistence layer, and propagated to cache via subscription
+	 * @remark Logs are deleted from the persistence layer, and propagated to cache via subscription to user repo updates
 	 * @remark Admins can delete logs for any user, other users can only delete logs for themselves
 	 */
 	public async deleteLog(
@@ -317,7 +317,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		const user = await firstValueFrom(userResult.value as Observable<User>);
 		const originalUserDTO = user.toJSON();
 		user.removeLog(logIdDTO.value!);
-		const userUpdateResult = await this.userRepo.update(user.toJSON());
+		const userUpdateResult = await this.userRepo.update(user.toJSON()); // todo: call delete with toDTO
 		if (userUpdateResult.isFailure) { // update failed -> throw persistence error
 			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
 		}
