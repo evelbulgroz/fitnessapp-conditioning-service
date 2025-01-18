@@ -117,6 +117,8 @@ describe('UserRepo', () => {
 		});
 
 		describe('fetchByUserId', () => {
+			// NOTE: fetchByQuery is fully tested in the base class, so testing the basics here
+
 			it('can fetch a user by user id', async () => {
 				// arrange
 				const userId = randomDTO.userId;
