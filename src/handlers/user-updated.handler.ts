@@ -32,17 +32,18 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 	}
 
 	public async handle(event: UserUpdatedEvent): Promise<void> {
+		// get existing entry from cache snapshot
 		const userDTO = event.payload as UserDTO;
 		const snapshot = this.logService.getCacheSnapshot(this);
-		const cacheEntry = snapshot.find((entry) => entry.userId === userDTO.userId);
+		const cacheEntry = snapshot.find(entry => entry.userId === userDTO.userId);
 		if (cacheEntry) {
 			const cachedLogs = cacheEntry.logs;
 			// filter out logs that are no longer included in user DTO
 			const includedLogs = cachedLogs.filter((log) => userDTO!.logs!.includes(log.entityId!));
 			
-			// fetch logs that are included in user DTO but not in cache
-			const cachedLogIds = cachedLogs.map((log) => log.entityId);
-			const addedLogIds = userDTO.logs!.filter((logId) => !cachedLogIds.includes(logId));
+			// find logs that are included in user DTO but not in cache
+			const cachedLogIds = cachedLogs.map(log => log.entityId);
+			const addedLogIds = userDTO.logs!.filter(logId => !cachedLogIds.includes(logId));
 			const addedLogs = [];
 			for (const logId of addedLogIds) {
 				const result = await this.logRepo.fetchById(logId);
@@ -56,7 +57,7 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 					}
 				}
 			}
-			
+
 			// update cache entry with included and added logs
 			cacheEntry.logs = includedLogs.concat(addedLogs);
 			cacheEntry.lastAccessed = new Date(); // update last accessed timestamp
@@ -70,6 +71,8 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 		else {
 			this.logger.error(`${this.constructor.name}: User ${userDTO.userId} not found in cache.`);
 		}
+
+		// implicitly return Promise.resolve(void)
 	}
 }
 

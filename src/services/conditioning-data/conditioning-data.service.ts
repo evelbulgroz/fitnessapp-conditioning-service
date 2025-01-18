@@ -146,7 +146,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		// add log to user in persistence layer, roll back log creation if user update fails
 		const user = await firstValueFrom(userResult.value as Observable<User>);
 		user.addLog(newLog.entityId!);
-		const userUpdateResult = await this.userRepo.update(user.toJSON());
+		const userUpdateResult = await this.userRepo.update(user.toDTO());
 		if (userUpdateResult.isFailure) { // user update failed -> roll back log creation, then throw persistence error
 			this.deleteOrphanedLog(newLog.entityId!); // deleting orphaned log from log repo, retry if necessary
 			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
@@ -614,13 +614,13 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 */
 	protected subscribeToRepoEvents(): void {
 		// subscribe to user repo events
-		this.subscriptions.push(this.userRepo.updates$.subscribe((event) => {
-			this.eventDispatcher.dispatch(event as any); // todo: sort out typing later
+		this.subscriptions.push(this.userRepo.updates$.subscribe(async (event) => {
+			await this.eventDispatcher.dispatch(event as any); // todo: sort out typing later
 		}));
 
 		// subscribe to log repo events
-		this.subscriptions.push(this.logRepo.updates$?.subscribe((event) => {
-			this.eventDispatcher.dispatch(event as any); // todo: sort out typing later
+		this.subscriptions.push(this.logRepo.updates$?.subscribe(async (event) => {
+			await this.eventDispatcher.dispatch(event as any); // todo: sort out typing later
 		}));
 	}	
 	

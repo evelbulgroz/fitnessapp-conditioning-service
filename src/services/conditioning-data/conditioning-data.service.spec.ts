@@ -4,7 +4,7 @@ import { createTestingModule } from '../../test/test-utils';
 
 import { jest } from '@jest/globals';
 
-import { firstValueFrom, Observable, of, Subject, Subscription } from 'rxjs';
+import { firstValueFrom, Observable, of, Subject, Subscription, take } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
@@ -39,6 +39,8 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserRepository } from '../../repositories/user.repo';
+import { random } from 'lodash-es';
+import { log } from 'console';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -921,7 +923,7 @@ describe('ConditioningDataService', () => {
 		beforeEach(async () => {
 			logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async (id: EntityId) => { // return randomLog instead?
 				const retrievedLog = ConditioningLog.create(logDTO, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
-				return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(retrievedLog)));
+				return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(randomLog)));
 			});
 			
 			userRepoFetchByIdSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() =>
@@ -997,35 +999,47 @@ describe('ConditioningDataService', () => {
 				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toJSON());
 			});
 
-			it('adds new log to cache following user repo update', (done) => {
+			it('adds new log to cache entry', async () => {
 				// arrange
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
-
-				logService.createLog(userContext, randomUserIdDTO, newLogDTO).then((newLogId) => {
-					const createEvent = new UserUpdatedEvent({
-						eventId: uuidv4(),
-						eventName: 'UserUpdatedEvent',
-						occurredOn: (new Date()).toISOString(),
-						payload: randomUser.toJSON(),
-					});
-					
-					// act
-					userRepoUpdatesSubject.next(createEvent); // simulate event from userRepo.updates$
 				
-					// assert
-					let callCounter = 0;
-					const sub = logService['userLogsSubject'].subscribe(updatedCache => {
-						callCounter++;						
-						if (callCounter > 1) { // wait for event handler to complete
-							expect(randomUser.logs).toContain(newLogId);
-							const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
-							const addedLog = cacheEntry?.logs.find(log => log.entityId === newLogId);
-							expect(addedLog).toBeDefined();
-							sub.unsubscribe();
-							done();
-						}
-					});
+				const randomUserDTO = randomUser.toDTO();
+				randomUserDTO.logs!.push(newLogId);
+
+				const createEvent = new UserUpdatedEvent({
+					eventId: uuidv4(),
+					eventName: UserUpdatedEvent.name,
+					occurredOn: (new Date()).toISOString(),
+					payload: randomUserDTO,
 				});
+
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async (id: EntityId) => {
+					const newLog = ConditioningLog.create(newLogDTO, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(newLog)));
+				});				
+				
+				const userUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() => {
+					userRepoUpdatesSubject.next(createEvent); // simulate event from userRepo.updates$
+					return Promise.resolve(Result.ok(randomUser))
+				});
+				
+				
+				// act
+				void await logService.createLog(userContext, randomUserIdDTO, newLogDTO);
+				
+				// assert
+				expect(randomUser.logs).toContain(newLogId); // sanity check
+
+				const updatedCache$ = logService['userLogsSubject'].pipe(take(2));
+				const updatedCache = await firstValueFrom(updatedCache$);
+				const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
+				const addedLog = cacheEntry?.logs.find(log => log.entityId === newLogId);
+				expect(addedLog).toBeDefined();
+
+				// clean up
+				logRepoFetchByIdSpy && logRepoFetchByIdSpy.mockRestore();
+				userUpdateSpy && userUpdateSpy.mockRestore();
 			});
 		});
 
