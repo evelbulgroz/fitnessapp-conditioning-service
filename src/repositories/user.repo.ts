@@ -2,23 +2,14 @@ import { Inject, Injectable } from "@nestjs/common";
 import { v4 as uuidv4 } from 'uuid';
 
 import {
-	EntityCreatedEvent,
-	EntityCreatedEventDTO,
-	EntityDeletedEvent,
-	EntityDeletedEventDTO,
-	EntityDTO,
 	EntityId,
 	EntityMetadataDTO,
 	EntityPersistenceDTO,
-	EntityUpdatedEvent,
-	EntityUpdatedEventDTO,
 	Logger,
 	PersistenceAdapter,
 	Repository,
 	Result
 } from "@evelbulgroz/ddd-base";
-import { EntityUndeletedEvent } from '@evelbulgroz/ddd-base/dist/events/entity-undeleted.event.class'; // workaround until included in ddd-base package
-import { EntityUndeletedEventDTO } from '@evelbulgroz/ddd-base/dist/dtos/entity-undeleted.event.dto'; // workaround until included in ddd-base package
 
 import { User } from "../domain/user.entity";
 import { UserCreatedEvent } from "../events/user-created.event";
@@ -27,12 +18,7 @@ import { UserUpdatedEvent } from "../events/user-updated.event";
 import { UserDeletedEvent } from "../events/user-deleted.event";
 import { UserUndeletedEvent } from "../events/user-undeleted.event";
 
-/** Notionally abstract class that describes and provides default features for any User repository
- * @remark Exists mostly to enable clients to depend on abstractions rather than a specific implementations
- * @remark Clients should inject this class and depend on the injector to provide the concrete implementation at runtime
- * @remark NestJS's DI system cannot inject abstract classes, so this class is not marked abstract though it should be treated as such
- * @remark Must be extended by a concrete class specific to a particular persistence layer
-*/
+/** Concrete User repository */
 @Injectable()
 export class UserRepository extends Repository<User, UserDTO> {
 
@@ -46,7 +32,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 			super(adapter, logger, throttleTime);
 		}
 	
-	//------------------------ PUBLIC STATIC METHODS ------------------------//
+	//------------------------------ PUBLIC API -----------------------------//
 
 	/** Get the class constructor from a class name
 	 * @param className The name of the class to get
@@ -64,53 +50,44 @@ export class UserRepository extends Repository<User, UserDTO> {
 		}
 	}
 
-	//------------------------------ PUBLIC API -----------------------------//
+	// NOTE: Rest of the public API is inherited from the base class,
+	// and is fully sufficient for the User entity.
 
-	// NOTE: Currently, base class public API is fully sufficient for this class
 	
 	//------------------- TEMPLATE METHOD IMPLEMENTATIONS -------------------//	
 		
 		protected getClassFromDTO(dto: UserDTO): Result<any> {
-			const className = dto.className;
-			switch (className) {
-				case 'User':
-					return Result.ok<any>(User);
-				// Add more cases as needed
-				default:
-					return Result.fail<any>(`Unknown or unsupported log type: ${className}`);
-			}
+			return UserRepository.getClassFromName(dto.className);			
 		}
 		
 	//---------------------- PROTECTED METHOD OVERRIDES ---------------------//
+
+	// NOTE: Overriding base class methods to return domain specific event types
 
 	/** Create user created event
 	 * @param user The user to create the event for
 	 * @returns The user created event
 	 */
 	protected override createEntityCreatedEvent(user?: User): UserCreatedEvent {
-		const event = new UserCreatedEvent({
+		return new UserCreatedEvent({
 			eventId: uuidv4(),
-			eventName: 'UserCreatedEvent',
+			eventName: UserCreatedEvent.name,
 			occurredOn: (new Date()).toUTCString(),
 			payload: user?.toDTO() as UserDTO
 		});
-
-		return event as any; // todo: sort out the generics later
 	}
 
 	/** Create user updated event
 	 * @param user The user to create the event for
 	 * @returns The user updated event
 	 */
-	protected override createEntityUpdatedEvent(user?: User): UserUpdatedEvent {
-		const event = new UserUpdatedEvent({
+	protected override createEntityUpdatedEvent(user: User): UserUpdatedEvent {
+		return new UserUpdatedEvent({
 			eventId: uuidv4(),
-			eventName: 'UserUpdatedEvent',
+			eventName: UserUpdatedEvent.name,
 			occurredOn: (new Date()).toUTCString(),
-			payload: user?.toDTO() as UserDTO
+			payload: user?.toDTO()
 		});
-
-		return event as any; // todo: sort out the generics later
 	}
 
 	/** Create user deleted event
@@ -118,24 +95,26 @@ export class UserRepository extends Repository<User, UserDTO> {
 	 * @returns The user deleted event
 	 */
 	protected override createEntityDeletedEvent(entityId?: EntityId): UserDeletedEvent {
-		const event = new UserDeletedEvent({
+		return new UserDeletedEvent({
 			eventId: uuidv4(),
-			eventName: 'UserDeletedEvent',
+			eventName: UserDeletedEvent.name,
 			occurredOn: (new Date()).toUTCString(),
 			payload: { entityId } as Partial<UserDTO>
 		});
-
-		return event as any; // todo: sort out the generics later
 	}
 
-	protected createEntityUndeletedEvent(entityId: EntityId, undeletionDate: Date): UserUndeletedEvent {
-		const event = new UserUndeletedEvent({
+	/** Create user undeleted event
+	 * @param entityId The user id to create the event for
+	 * @param undeletionDate The date the user was undeleted
+	 * @returns The user undeleted event
+	 */
+	protected override createEntityUndeletedEvent(entityId: EntityId, undeletionDate: Date): UserUndeletedEvent {
+		return new UserUndeletedEvent({
 			eventId: uuidv4(),
 			eventName: UserUndeletedEvent.name,
 			occurredOn: undeletionDate.toISOString(),
 			payload: { entityId } as Partial<UserDTO>
 		});
-		return event as any; // todo: sort out the generics later
 	}
 }
 

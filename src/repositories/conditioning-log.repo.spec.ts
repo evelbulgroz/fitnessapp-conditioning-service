@@ -33,7 +33,7 @@ describe('ConditioningLogRepository', () => {
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
 		providers: [
-			//ConfigModule is imported automatically by createTestingModule
+			// ConfigModule is imported automatically by createTestingModule
 			{
 				provide: PersistenceAdapter,
 				useClass: PersistenceAdapterMock,
