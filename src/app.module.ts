@@ -8,12 +8,14 @@ import { QueryMapper } from './mappers/query.mapper';
 import { FsPersistenceAdapterService } from './repositories/adapters/fs-persistence-adapter/fs-persistence-adapter.service';
 import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { UserService } from './services/user/user.service';
+import { UserController } from './controllers/user.controller';
 
 @Module({
 	imports: [],
 	controllers: [
 		AppController,
-		ConditioningController
+		ConditioningController,
+		UserController
 	],
 	providers: [
 		AggregationQueryMapper,

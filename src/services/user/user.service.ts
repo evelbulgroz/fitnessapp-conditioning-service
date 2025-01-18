@@ -233,3 +233,5 @@ export class UserService {
 		return user;
 	}
 }
+
+export default UserService;
