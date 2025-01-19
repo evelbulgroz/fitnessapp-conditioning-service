@@ -39,6 +39,7 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserRepository } from '../../repositories/user.repo';
+import e from 'express';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -636,7 +637,6 @@ describe('ConditioningDataService', () => {
 			userType: 'user',
 			roles: ['user']
 		});
-
 		
 		logsForRandomUser = logService['cache'].value.find(entry => entry.userId === randomUserId)?.logs || [];
 		randomLog = logsForRandomUser[Math.floor(Math.random() * logsForRandomUser.length)] as ConditioningLog<any, ConditioningLogDTO>;
@@ -714,6 +714,41 @@ describe('ConditioningDataService', () => {
 				expect(matches).toBeDefined();
 				expect(matches).toBeInstanceOf(Array);
 				expect(matches.length).toBe(expectedLogs.length);
+			});
+
+			it('by default excludes soft deleted logs', async () => {
+				// arrange
+				randomLog['_updatedOn'] = undefined;
+				randomLog.deletedOn = new Date(randomLog.createdOn!.getTime() + 1000);
+				const expectedLogs = logsForRandomUser.filter(log => log.deletedOn === undefined);
+
+				// act
+				const matches = await logService.fetchLogs(userContext, userIdDTO);
+				
+				// assert
+				expect(matches).toBeDefined();
+				expect(matches).toBeInstanceOf(Array);
+				expect(matches.length).toBe(logsForRandomUser.length - 1);
+				expect(matches.length).toBe(expectedLogs.length);
+				expect(matches).not.toContainEqual(randomLog);
+				expect(matches).toEqual(expect.arrayContaining(expectedLogs));
+			});
+
+			it('optionally can include soft deleted logs', async () => {
+				// bug: this test randomly fails -> investigate random logs creation in test data
+				// arrange
+				randomLog['_updatedOn'] = undefined;
+				randomLog.deletedOn = new Date(randomLog.createdOn!.getTime() + 1000);
+				const expectedLogs = logsForRandomUser;
+
+				// act
+				const matches = await logService.fetchLogs(userContext, userIdDTO, queryDTO, true);
+				
+				// assert
+				expect(matches).toBeDefined();
+				expect(matches).toBeInstanceOf(Array);
+				expect(matches.length).toBe(logsForRandomUser.length);
+				expect(matches).toEqual(expect.arrayContaining(expectedLogs));
 			});
 
 			it('throws UnauthorizedAccessError if normal user tries to access logs for another user', async () => {
