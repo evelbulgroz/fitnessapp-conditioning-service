@@ -278,8 +278,12 @@ export class ConditioningDataService implements OnModuleDestroy {
 			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
 			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
 		}
-		const matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
+		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
+
+		// filter out soft deleted logs, if not included
+		matchingLogs = matchingLogs.filter((log) => includeDeleted || !log.deletedOn );
 		
+		// sort logs by start date and time, if no sort criteria provided
 		let sortedLogs = matchingLogs;
 		if (!query?.sortCriteria || query.sortCriteria.length === 0) {// default sort is ascending by start date and time
 			sortedLogs = matchingLogs.sort(compareLogsByStartDate);

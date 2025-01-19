@@ -658,7 +658,139 @@ describe('ConditioningDataService', () => {
 	});
 
 	describe('Public API', () => {
-		// todo: move tests for public API methods here
+		// todo: move all tests for public API methods here
+
+		describe('fetchLogs', () => {
+			let allCachedLogs: ConditioningLog<any, ConditioningLogDTO>[];
+			let queryDTO: QueryDTO;
+			let queryDTOProps: QueryDTOProps;
+			let userIdDTO: EntityIdDTO;
+			beforeEach(() => {
+				allCachedLogs = [...logService['cache'].value]
+					.flatMap(entry => entry.logs)				
+					.sort((a: any, b: any) => a.start.getTime() - b.start.getTime()); // ascending
+				const earliestStart = allCachedLogs[0].start;
+				
+				allCachedLogs.sort((a: any, b: any) => a.end.getTime() - b.end.getTime()); // ascending
+				const latestEnd = allCachedLogs[allCachedLogs.length - 1].end;
+				
+				queryDTOProps = {
+					start: earliestStart!.toISOString(),
+					end: latestEnd!.toISOString(),
+					activity: ActivityType.MTB,
+					userId: userContext.userId as unknown as string,
+					sortBy: 'duration',
+					order: 'ASC',
+					//page: 1, // paging not yet implemented
+					//pageSize: 10,
+				};
+				queryDTO = new QueryDTO(queryDTOProps);
+
+				userIdDTO = new EntityIdDTO(userContext.userId);
+			});
+
+			it('gives normal users access to a collection of all their conditioning logs', async () => {
+				// arrange
+				// act
+				const matches = await logService.fetchLogs(userContext, userIdDTO);
+				
+				// assert
+				expect(matches).toBeDefined();
+				expect(matches).toBeInstanceOf(Array);
+				expect(matches.length).toBe(logsForRandomUser.length);
+			});
+
+			it('optionally gives normal users access to their logs matching a query', async () => {
+				// arrange
+				const queryDtoClone = new QueryDTO(queryDTOProps);
+				queryDtoClone.userId = undefined; // logs don't have userId, so this should be ignored
+				const query = queryMapper.toDomain(queryDtoClone); // mapper excludes undefined properties
+				const expectedLogs = query.execute(logsForRandomUser);
+				
+				// act
+				const matches = await logService.fetchLogs(userContext, userIdDTO, queryDTO);
+				
+				// assert
+				expect(matches).toBeDefined();
+				expect(matches).toBeInstanceOf(Array);
+				expect(matches.length).toBe(expectedLogs.length);
+			});
+
+			it('throws UnauthorizedAccessError if normal user tries to access logs for another user', async () => {
+				// arrange
+				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				queryDTO.userId = otherUser.userId as unknown as string;
+				
+				// act/assert
+				expect(async () => await logService.fetchLogs(userContext, userIdDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
+			});
+			
+			it('gives admin users access to all logs for all users', async () => {
+				// arrange
+				userContext.roles = ['admin'];
+				
+				// act
+				const allLogs = await logService.fetchLogs(userContext, userIdDTO);
+							
+				// assert
+				expect(allLogs).toBeDefined();
+				expect(allLogs).toBeInstanceOf(Array);
+				expect(allLogs.length).toBe(testDTOs.length);
+			});
+
+			it('optionally gives admin users access to all logs matching a query', async () => {
+				// arrange
+				userContext.roles = ['admin'];
+				
+				const queryDtoClone = new QueryDTO(queryDTOProps);
+				queryDtoClone.userId = undefined; // logs don't have userId, so this should be ignored
+				const query = queryMapper.toDomain(queryDtoClone); // mapper excludes undefined properties
+				const expectedLogs = query.execute(allCachedLogs); // get matching logs from test data			
+							
+				// act
+				const allLogs = await logService.fetchLogs(userContext, userIdDTO, queryDTO);
+				
+				// assert
+				expect(allLogs).toBeDefined();
+				expect(allLogs).toBeInstanceOf(Array);
+				expect(allLogs.length).toBe(expectedLogs.length);
+			});
+			
+			it('by default sorts logs ascending by start date and time, if available', async () => {
+				// arrange
+				userContext.roles = ['admin'];
+				
+				// act
+				const allLogs = await logService.fetchLogs(userContext, userIdDTO);
+				
+				// implicitly returns undefined if data is empty
+				allLogs?.forEach((log, index) => {
+					if (index > 0) {
+						const previousLog = allLogs[index - 1];
+						if (log.start && previousLog.start) {
+							expect(log.start.getTime()).toBeGreaterThanOrEqual(previousLog.start.getTime());
+						}
+					}
+				});
+			});
+
+			describe('each log', () => {
+				// just test a random log:
+				// until we have a mock of import service with mock data,
+				// going through all logs is too time consuming,
+				// and should be unnecessary
+				it('is an instance of ConditioningLog', async () => {
+					expect(randomLog).toBeDefined();
+					expect(typeof randomLog).toBe('object');
+					expect(randomLog).toBeInstanceOf(ConditioningLog);				
+				});
+				
+				it('defaults to an overview', async () => {
+					expect(randomLog.isOverview).toBeDefined();
+					expect(randomLog.isOverview).toBe(true);
+				});
+			});
+		});
 	});
 
 	describe('Initialization', () => {
@@ -782,139 +914,7 @@ describe('ConditioningDataService', () => {
 				});
 			});			
 		});
-	});
-
-	describe('ConditioningLogs', () => {
-		let allCachedLogs: ConditioningLog<any, ConditioningLogDTO>[];
-		let queryDTO: QueryDTO;
-		let queryDTOProps: QueryDTOProps;
-		let userIdDTO: EntityIdDTO;
-		beforeEach(() => {
-			allCachedLogs = [...logService['cache'].value]
-				.flatMap(entry => entry.logs)				
-				.sort((a: any, b: any) => a.start.getTime() - b.start.getTime()); // ascending
-			const earliestStart = allCachedLogs[0].start;
-			
-			allCachedLogs.sort((a: any, b: any) => a.end.getTime() - b.end.getTime()); // ascending
-			const latestEnd = allCachedLogs[allCachedLogs.length - 1].end;
-			
-			queryDTOProps = {
-				start: earliestStart!.toISOString(),
-				end: latestEnd!.toISOString(),
-				activity: ActivityType.MTB,
-				userId: userContext.userId as unknown as string,
-				sortBy: 'duration',
-				order: 'ASC',
-				//page: 1, // paging not yet implemented
-				//pageSize: 10,
-			};
-			queryDTO = new QueryDTO(queryDTOProps);
-
-			userIdDTO = new EntityIdDTO(userContext.userId);
-		});
-
-		it('gives normal users access to a collection of all their conditioning logs', async () => {
-			// arrange
-			// act
-			const matches = await logService.fetchLogs(userContext, userIdDTO);
-			
-			// assert
-			expect(matches).toBeDefined();
-			expect(matches).toBeInstanceOf(Array);
-			expect(matches.length).toBe(logsForRandomUser.length);
-		});
-
-		it('optionally gives normal users access to their logs matching a query', async () => {
-			// arrange
-			const queryDtoClone = new QueryDTO(queryDTOProps);
-			queryDtoClone.userId = undefined; // logs don't have userId, so this should be ignored
-			const query = queryMapper.toDomain(queryDtoClone); // mapper excludes undefined properties
-			const expectedLogs = query.execute(logsForRandomUser);
-			
-			// act
-			const matches = await logService.fetchLogs(userContext, userIdDTO, queryDTO);
-			
-			// assert
-			expect(matches).toBeDefined();
-			expect(matches).toBeInstanceOf(Array);
-			expect(matches.length).toBe(expectedLogs.length);
-		});
-
-		it('throws UnauthorizedAccessError if normal user tries to access logs for another user', async () => {
-			// arrange
-			const otherUser = users.find(user => user.userId !== userContext.userId)!;
-			queryDTO.userId = otherUser.userId as unknown as string;
-			
-			// act/assert
-			expect(async () => await logService.fetchLogs(userContext, userIdDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
-		});
-		
-		it('gives admin users access to all logs for all users', async () => {
-			// arrange
-			userContext.roles = ['admin'];
-			
-			// act
-			const allLogs = await logService.fetchLogs(userContext, userIdDTO);
-						
-			// assert
-			expect(allLogs).toBeDefined();
-			expect(allLogs).toBeInstanceOf(Array);
-			expect(allLogs.length).toBe(testDTOs.length);
-		});
-
-		it('optionally gives admin users access to all logs matching a query', async () => {
-			// arrange
-			userContext.roles = ['admin'];
-			
-			const queryDtoClone = new QueryDTO(queryDTOProps);
-			queryDtoClone.userId = undefined; // logs don't have userId, so this should be ignored
-			const query = queryMapper.toDomain(queryDtoClone); // mapper excludes undefined properties
-			const expectedLogs = query.execute(allCachedLogs); // get matching logs from test data			
-						
-			// act
-			const allLogs = await logService.fetchLogs(userContext, userIdDTO, queryDTO);
-			
-			// assert
-			expect(allLogs).toBeDefined();
-			expect(allLogs).toBeInstanceOf(Array);
-			expect(allLogs.length).toBe(expectedLogs.length);
-		});
-		
-		it('by default sorts logs ascending by start date and time, if available', async () => {
-			// arrange
-			userContext.roles = ['admin'];
-			
-			// act
-			const allLogs = await logService.fetchLogs(userContext, userIdDTO);
-			
-			// implicitly returns undefined if data is empty
-			allLogs?.forEach((log, index) => {
-				if (index > 0) {
-					const previousLog = allLogs[index - 1];
-					if (log.start && previousLog.start) {
-						expect(log.start.getTime()).toBeGreaterThanOrEqual(previousLog.start.getTime());
-					}
-				}
-			});
-		});
-
-		describe('each log', () => {
-			// just test a random log:
-			// until we have a mock of import service with mock data,
-			// going through all logs is too time consuming,
-			// and should be unnecessary
-			it('is an instance of ConditioningLog', async () => {
-				expect(randomLog).toBeDefined();
-				expect(typeof randomLog).toBe('object');
-				expect(randomLog).toBeInstanceOf(ConditioningLog);				
-			});
-			
-			it('defaults to an overview', async () => {
-				expect(randomLog.isOverview).toBeDefined();
-				expect(randomLog.isOverview).toBe(true);
-			});
-		});
-	});
+	});	
 
 	describe('ConditioningLog', () => {
 		// TODO: Add error handling tests for all mutating CRUD operations,
