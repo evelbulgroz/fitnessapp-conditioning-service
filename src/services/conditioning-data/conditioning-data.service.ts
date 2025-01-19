@@ -362,10 +362,12 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @param logDTO Partial conditioning log DTO with updated properties
 	 * @returns void
 	 * @throws UnauthorizedAccessError if user is not authorized to update log
-	 * @throws NotFoundError if log is not found in persistence
+	 * @throws NotFoundError if log is not found in persistence while excluding soft deleted logs
 	 * @throws PersistenceError if error occurs while updating log in persistence
 	 * @remark Logs are updated in the persistence layer, and propagated to cache via subscription to user repo updates
 	 * @remark Admins can update logs for any user, other users can only update logs for themselves
+	 * @remark Log entity id must be set in the DTO, else the update will fail
+	 * @remark Does not support direct update of soft deleted logs, undelete first if necessary
 	 */
 	public async updateLog(
 		ctx: UserContext,
@@ -444,13 +446,13 @@ export class ConditioningDataService implements OnModuleDestroy {
 		const user = await firstValueFrom(userResult.value as Observable<User>);
 		const originalUserDTO = user.toJSON();
 		user.removeLog(logIdDTO.value!);
-		const userUpdateResult = await this.userRepo.update(user.toJSON()); // todo: call delete with toDTO
+		const userUpdateResult = await this.userRepo.update(user.toPersistenceDTO()); // todo: call delete with toDTO
 		if (userUpdateResult.isFailure) { // update failed -> throw persistence error
 			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
 		}
 
-		// delete log in persistence layer
-		const logDeleteResult = await this.logRepo.delete(logIdDTO.value!);
+		// (soft) delete log in persistence layer
+		const logDeleteResult = await this.logRepo.delete(logIdDTO.value!, softDelete);
 		if (logDeleteResult.isFailure) { // deletion failed -> roll back user update, then throw persistence error
 			this.rollBackUserUpdate(user, originalUserDTO as any); // retry rolling back user update before continuing
 		}

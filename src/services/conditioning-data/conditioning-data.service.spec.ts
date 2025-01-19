@@ -1404,7 +1404,7 @@ describe('ConditioningDataService', () => {
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
-				expect(logRepoDeleteSpy).toHaveBeenCalledWith(logIdDTO.value);
+				expect(logRepoDeleteSpy).toHaveBeenCalledWith(logIdDTO.value, true); // true: soft delete is default
 			});
 
 			it('removes deleted log from user and persists user changes in user repo', async () => {
@@ -1486,7 +1486,7 @@ describe('ConditioningDataService', () => {
 			// NOTE:
 			// not testing that AggregatorService works, just that it is called with the right parameters
 			// leave deeper testing of the result to AggregatorService tests to avoid duplication
-			xit('can aggregate a time series of all ConditioningLogs owned by a user', async () => {
+			it('can aggregate a time series of all ConditioningLogs owned by a user', async () => {
 				// arrange
 				const expectedTimeSeries = logService['toConditioningLogSeries'](await logService.fetchLogs(userContext, userIdDTO));
 				
@@ -1499,7 +1499,7 @@ describe('ConditioningDataService', () => {
 				expect(aggregatedSeries).toBeDefined();			
 			});
 			
-			xit(`can aggregate a time series of all ConditioningLogs for all users if user role is 'admin'`, async () => {
+			it(`can aggregate a time series of all ConditioningLogs for all users if user role is 'admin'`, async () => {
 				// arrange
 				userContext.roles = ['admin'];
 
@@ -1513,7 +1513,7 @@ describe('ConditioningDataService', () => {
 				expect(aggregatedSeries).toBeDefined();
 			});
 			
-			xit('aggreates only logs matching query, if provided', async () => {			
+			it('aggreates only logs matching query, if provided', async () => {			
 				// arrange
 				const searchableLogs = logService['cache'].value.find((entry) => entry.userId === userContext.userId)?.logs ?? [];
 				const queryDTO = new QueryDTO({'activity': ActivityType.MTB});
