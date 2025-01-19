@@ -164,6 +164,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to retrieve the log, wrapped in a DTO
 	 * @param logIdDTO Entity id of the conditioning log to retrieve, wrapped in a DTO
+	 * @param includeDeleted Optional flag to include soft deleted logs in the response
 	 * @returns Detailed log matching the entity id, if found and authorized
 	 * @throws UnauthorizedAccessError if user is not authorized to access log
 	 * @throws NotFoundError if log is not initialized in cache or not found in persistence
@@ -240,11 +241,14 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 	/** New API: Get all conditioning logs for user and mathcing query (if provided)
 	 * @param ctx user context for the request (includes user id and roles)
+	 * @param userIdDTO Entity id of the user for whom to retrieve logs, wrapped in a DTO
 	 * @param queryDTO Optional query to filter logs (else all accessible logs for role are returned)
+	 * @param includeDeleted Optional flag to include soft deleted logs in the response
 	 * @returns Array of conditioning logs (constrained by user context and query)
 	 * @throws UnauthorizedAccessError if user attempts authorized access to logs
 	 * @remark Overview logs are guaranteed to be available
 	 * @remark Full logs are loaded into cache from persistence on demand using conditioningLogDetails(), and may be replaced in cache with overview logs to save memory
+	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
 	 */
 	public async fetchLogs(
 		ctx: UserContext,
@@ -261,6 +265,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 			}
 		}
 		
+		// constrain searchable logs to single user unless user is admin
 		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];		
 		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
 			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
@@ -298,12 +303,13 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @param queryDTO Optional query to select logs to aggregate (else all accessible logs are aggregated)
 	 * @returns Aggregated time series of conditioning logs
 	 * @throws UnauthorizedAccessError if user attempts unauthorized access to logs
+	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
 	 */
 	public async fetchaggretagedLogs(
 		ctx: UserContext,
 		aggregationQueryDTO: AggregationQueryDTO,
-		queryDTO?: QueryDTO
-		, includeDeleted = false
+		queryDTO?: QueryDTO,
+		includeDeleted = false
 	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		await this.isReady(); // initialize service if necessary
 
@@ -325,7 +331,10 @@ export class ConditioningDataService implements OnModuleDestroy {
 			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
 			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
 		}
-		const matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
+		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
+
+		// filter out soft deleted logs, if not included
+		matchingLogs = matchingLogs.filter((log) => includeDeleted || !log.deletedOn );
 
 		// convert searchable logs matching query to time series
 		const timeSeries = this.toConditioningLogSeries(matchingLogs);
