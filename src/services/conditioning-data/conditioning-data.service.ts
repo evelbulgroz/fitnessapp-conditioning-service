@@ -445,10 +445,12 @@ export class ConditioningDataService implements OnModuleDestroy {
 		// rolling back log deletion is harder than rolling back user update, so update user first
 		const user = await firstValueFrom(userResult.value as Observable<User>);
 		const originalUserDTO = user.toJSON();
-		user.removeLog(logIdDTO.value!);
-		const userUpdateResult = await this.userRepo.update(user.toPersistenceDTO()); // todo: call delete with toDTO
-		if (userUpdateResult.isFailure) { // update failed -> throw persistence error
-			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
+		if (!softDelete) { // hard delete -> remove log from user (user entity has no concept of soft delete, so leave as is when soft deleting)
+			user.removeLog(logIdDTO.value!); // remove log
+			const userUpdateResult = await this.userRepo.update(user.toPersistenceDTO());
+			if (userUpdateResult.isFailure) { // update failed -> throw persistence error
+				throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
+			}
 		}
 
 		// (soft) delete log in persistence layer

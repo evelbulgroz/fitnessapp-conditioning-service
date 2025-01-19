@@ -1407,12 +1407,12 @@ describe('ConditioningDataService', () => {
 				expect(logRepoDeleteSpy).toHaveBeenCalledWith(logIdDTO.value, true); // true: soft delete is default
 			});
 
-			it('removes deleted log from user and persists user changes in user repo', async () => {
+			it('removes hard deleted log from user and persists user changes in user repo', async () => {
 				// arrange
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await logService.deleteLog(userContext, randomUserIdDTO, logIdDTO);
+				void await logService.deleteLog(userContext, randomUserIdDTO, logIdDTO, false); // hard delete
 
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
