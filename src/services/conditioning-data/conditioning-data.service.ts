@@ -57,7 +57,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	
 	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
 	
-	protected readonly userLogsSubject = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
+	protected readonly cache = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
 	protected isInitializing = false; // flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
 	protected readonly subscriptions: Subscription[] = []; // array to hold subscriptions to unsubsribe on destroy
 	
@@ -92,7 +92,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	*/	
 	public async isReady(): Promise<boolean> {
 		return new Promise(async (resolve) => {
-			if (this.userLogsSubject.value.length === 0) { // load logs if cache is empty
+			if (this.cache.value.length === 0) { // load logs if cache is empty
 				try {
 					await this.initializeCache();
 				}
@@ -185,8 +185,15 @@ export class ConditioningDataService implements OnModuleDestroy {
 			}
 			
 			// check if log exists in cache
-			const entryWithLog = this.userLogsSubject.value.find((entry) => entry.logs.some((log) => log.entityId === logId));
+			const entryWithLog = this.cache.value.find((entry) => entry.logs.some((log) => log.entityId === logId));
 			if (!entryWithLog) { // log not found in cache, cannot assess authorization -> throw NotFoundError
+				reject(new NotFoundError(`${this.constructor.name}: Conditioning log ${logId} not found or access denied.`));
+				return;
+			}
+
+			// check if log is soft deleted, optionally include deleted logs
+			const log = entryWithLog.logs.find((log) => log.entityId === logId);
+			if (log!.deletedOn && !includeDeleted) { // log is soft deleted and not included -> throw NotFoundError
 				reject(new NotFoundError(`${this.constructor.name}: Conditioning log ${logId} not found or access denied.`));
 				return;
 			}
@@ -219,7 +226,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 				if (detailedLog !== undefined) { // detailed log available					
 					entryWithLog.logs[index] = detailedLog; // replace original log in cache
 					entryWithLog.lastAccessed = new Date(); // update last accessed timestamp
-					this.userLogsSubject.next([...this.userLogsSubject.value]); // update cache with shallow copy to trigger subscribers
+					this.cache.next([...this.cache.value]); // update cache with shallow copy to trigger subscribers
 					resolve(detailedLog);
 					return;
 				}
@@ -259,10 +266,10 @@ export class ConditioningDataService implements OnModuleDestroy {
 			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
 				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
 			}						
-			accessibleLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
+			accessibleLogs = this.cache.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
 		}
 		else { // if the user is an admin, they can access all logs
-			accessibleLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
+			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs);
 		}
 		
 		// filter logs by query, if provided, else use all accessible logs
@@ -302,10 +309,10 @@ export class ConditioningDataService implements OnModuleDestroy {
 			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
 				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
 			}
-			accessibleLogs = this.userLogsSubject.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
+			accessibleLogs = this.cache.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
 		}
 		else { // if the user is an admin, they can access all logs
-			accessibleLogs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
+			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs);
 		}
 
 		// filter logs by query, if provided, else use all accessible logs
@@ -451,7 +458,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		if (!(caller instanceof DomainEventHandler)) {
 			throw new UnauthorizedAccessError('Unauthorized access: only domain event handlers can access user logs cache.');
 		}
-		return [...this.userLogsSubject.value];
+		return [...this.cache.value];
 	}
 
 	/** Update user logs cache for domain event handlers
@@ -465,7 +472,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		if (!(caller instanceof DomainEventHandler)) {
 			throw new UnauthorizedAccessError('Unauthorized access: only domain event handlers can update user logs cache.');
 		}
-		this.userLogsSubject.next(newCache);
+		this.cache.next(newCache);
 	}
 	
 	/** In production: Get aggregated conditioning data with series from all activities */
@@ -473,11 +480,11 @@ export class ConditioningDataService implements OnModuleDestroy {
 		await this.isReady(); // lazy load logs if necessary
 		let logs: ConditioningLog<any, ConditioningLogDTO>[];
 		if (userId !== undefined) {
-			const cacheEntry = this.userLogsSubject.value.find((entry) => entry.userId === userId);
+			const cacheEntry = this.cache.value.find((entry) => entry.userId === userId);
 			logs = cacheEntry?.logs ?? [];
 		}
 		else {
-			logs = this.userLogsSubject.value.flatMap((entry) => entry.logs);
+			logs = this.cache.value.flatMap((entry) => entry.logs);
 		}
 
 		const dataseries = logs
@@ -519,7 +526,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 	/* Initialize user-log cache */
 	protected async initializeCache(): Promise<void> {		
-		const cache = this.userLogsSubject;
+		const cache = this.cache;
 		
 		// initialization already in progress, wait for it to complete
 		if (this.isInitializing) { 
@@ -574,7 +581,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 			const logs = allLogs.filter((log) => user.logs.includes(log.entityId!));
 			return { userId: user.userId!, logs: logs, lastAccessed: now };
 		});
-		this.userLogsSubject.next(userLogs);
+		this.cache.next(userLogs);
 		
 		this.isInitializing = false;
 		this.logger.log(`${this.constructor.name}: Initialization complete: Cached ${allLogs.length} logs for ${users.length} users.`);
