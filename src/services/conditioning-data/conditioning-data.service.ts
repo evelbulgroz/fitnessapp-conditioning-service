@@ -271,7 +271,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		else { // if the user is an admin, they can access all logs
 			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs);
 		}
-		
+
 		// filter logs by query, if provided, else use all accessible logs
 		let query: QueryType | undefined;
 		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
@@ -282,7 +282,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 		// filter out soft deleted logs, if not included
 		matchingLogs = matchingLogs.filter((log) => includeDeleted || !log.deletedOn );
-		
+
 		// sort logs by start date and time, if no sort criteria provided
 		let sortedLogs = matchingLogs;
 		if (!query?.sortCriteria || query.sortCriteria.length === 0) {// default sort is ascending by start date and time

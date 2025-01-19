@@ -735,20 +735,22 @@ describe('ConditioningDataService', () => {
 			});
 
 			it('optionally can include soft deleted logs', async () => {
-				// bug: this test randomly fails -> investigate random logs creation in test data
 				// arrange
 				randomLog['_updatedOn'] = undefined;
 				randomLog.deletedOn = new Date(randomLog.createdOn!.getTime() + 1000);
 				const expectedLogs = logsForRandomUser;
-
+				
 				// act
-				const matches = await logService.fetchLogs(userContext, userIdDTO, queryDTO, true);
+				const matches = await logService.fetchLogs(userContext, userIdDTO, undefined, true);
 				
 				// assert
 				expect(matches).toBeDefined();
 				expect(matches).toBeInstanceOf(Array);
 				expect(matches.length).toBe(logsForRandomUser.length);
 				expect(matches).toEqual(expect.arrayContaining(expectedLogs));
+				const deletedLog  = matches.find(log => log.deletedOn !== undefined);
+				expect(deletedLog).toBeDefined();
+				expect(deletedLog).toEqual(randomLog);
 			});
 
 			it('throws UnauthorizedAccessError if normal user tries to access logs for another user', async () => {
