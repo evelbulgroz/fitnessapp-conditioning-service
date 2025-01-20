@@ -5,9 +5,13 @@ import { UserDTO } from "../dtos/domain/user.dto";
 
 /** A human user of the system, e.g. a coach or an athlete, with logs of conditioning activities
  * @remark Shallow implementation intended only to hold associations between users and logs
+ * @remark User microservice is responsible for managing base user data, e.g. name, email, etc., and should be used as the only source of this information
  * @remark Could have used User as ddd aggregate root for logs, but opted for the flexibility of managing association separately
  * @remark This also allows log and user entities and repos to have more focused responsibilities
  * @remark To make this work, log data service has responsibility for keeping associations in sync
+ * @remark References logs by id only, so cannot annotate them as soft deleted: soft deleted logs 
+ * @remark should be retained in the user's logs array to maintain referential integrity.
+ * @remark Only hard deleted logs should be removed from the user's logs array.
  */
 export class User extends Entity<User, UserDTO> {
 	//----------------------------- PROPERTIES ------------------------------//
