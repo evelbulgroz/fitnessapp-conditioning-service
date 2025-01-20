@@ -30,7 +30,13 @@ export class User extends Entity<User, UserDTO> {
 		this._logs.push(log); // bypass immutable getter to actually add the log to the private array
 	}
 
-	/** Removes a log from the user */
+	/** Removes a log from the user
+	 * @param log The id of the log to remove
+	 * @returns void
+	 * @remark Does nothing if the log is not found
+	 * @remark Should only be called to remove logs that have been hard deleted:
+	 * @remark Soft deleted logs should be retained in the user's logs array to maintain referential integrity
+	 */
 	public removeLog(log: EntityId): void {
 		this._logs = this._logs.filter(id => id !== log); // bypass immutable getter to actually remove the log from the private array
 	}
