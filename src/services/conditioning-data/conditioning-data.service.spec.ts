@@ -610,7 +610,7 @@ describe('ConditioningDataService', () => {
 					userId: 'testuser2', // id in user microservice, usually a uuid
 					logs: secondHalfOfLogIds,
 				}
-			).value as unknown as User
+			).value as unknown as User,
 		]))));
 	});
 
@@ -1499,7 +1499,7 @@ describe('ConditioningDataService', () => {
 				jest.clearAllMocks();
 			});
 
-			it('undeletes a soft deleted conditioning log and persists it in log repo', async () => {
+			it(`undeletes a user's own soft deleted conditioning log and persists it in log repo`, async () => {
 				// arrange
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
@@ -1545,7 +1545,64 @@ describe('ConditioningDataService', () => {
 				});
 			});
 
-			// NOTE: Add failure scenarios
+			it(`succeeds if admin user tries to undelete other user's log`, async () => {
+				// arrange
+				userContext.roles = ['admin'];
+				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				const otherUserLogs = await logService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
+				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
+
+				// act/assert
+				expect(() => logService.undeleteLog(userContext, otherUserIdDTO, randomOtherUserLogId)).not.toThrow();
+			});
+
+			it(`throws UnauthorizedAccessError if non-admin user tries to undelete other user's log`, async () => {
+				// arrange
+				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				const otherUserLogs = await logService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
+				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
+				
+				// act/assert
+				expect(() => logService.undeleteLog(userContext, otherUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+			});
+
+			it('throws NotFoundError if no log is found in persistence layer matching provided log entity id', async () => {
+				// arrange
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+					return Promise.resolve(Result.fail<void>('test error')) as any;
+				});
+
+				let error: Error | undefined;
+
+				// act/assert
+				try { // cannot get jest to catch the error, so using try/catch
+					await logService.undeleteLog(userContext, randomUserIdDTO, new EntityIdDTO('no-such-log'));
+				}
+				catch (e) {
+					error = e;
+					expect(e).toBeInstanceOf(NotFoundError);
+				}
+				expect(error).toBeDefined();
+				
+				// clean up
+				logRepoFetchByIdSpy?.mockRestore();
+			});
+
+			it('throws PersistenceError if undeleting log in log repo fails', async () => {
+				// arrange
+				logRepoUndeleteSpy.mockRestore();
+				logRepoUndeleteSpy = jest.spyOn(logRepo, 'undelete').mockImplementation(() => {
+					return Promise.resolve(Result.fail<void>('test error'));
+				});
+
+				// act/assert
+				expect(async () => await logService.undeleteLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
+			});
 		});
 	});
 	

@@ -480,8 +480,9 @@ export class ConditioningDataService implements OnModuleDestroy {
 		}
 
 		// check if log exists in persistence layer
-		const logResult = await this.logRepo.fetchById(logIdDTO.value!);
-		if (logResult.isFailure) { // fetch failed -> throw persistence error
+		const logFetchResult = await this.logRepo.fetchById(logIdDTO.value!);
+		console.debug({logFetchResult});
+		if (logFetchResult.isFailure) { // fetch failed -> throw persistence error
 			throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logIdDTO.value} not found.`);
 		}
 
