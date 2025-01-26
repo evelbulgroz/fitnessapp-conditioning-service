@@ -10,13 +10,12 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningDataService, UserLogsCacheEntry} from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
+import { ConditioningLogDeletedEvent } from '../events/conditioning-log-deleted.event';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogUndeletedEvent } from '../events/conditioning-log-undeleted.event';
 import { ConditioningLogUndeletedHandler } from './conditioning-log-undeleted.handler';
 import { User } from '../domain/user.entity';
 import { UserDTO } from '../dtos/domain/user.dto';
-import { after } from 'node:test';
-import { random } from 'lodash-es';
 
 
 describe('LogUndeletedHandler', () => {
@@ -140,6 +139,33 @@ describe('LogUndeletedHandler', () => {
 			const updatedLogs = updatedCache.flatMap((entry: UserLogsCacheEntry) => entry.logs);
 			const updatedLog = updatedLogs.find((log: ConditioningLog<any, ConditioningLogDTO>) => log.entityId === randomLogDTO.entityId);
 			expect(updatedLog?.deletedOn).toBeUndefined();
+		});
+
+		it('logs a warning if the log is not found in the cache', async () => {
+			// arrange
+			getCacheSnapshotSpy.mockReturnValue(testCache); // reset mock to return original cache
+			
+			// act
+			await handler.handle(event);
+
+			// assert
+			expect(getCacheSnapshotSpy).toHaveBeenCalled();
+			expect(updateCacheSpy).not.toHaveBeenCalled();
+			expect(handler['logger'].warn).toHaveBeenCalledTimes(1);
+			expect(handler['logger'].warn).toHaveBeenCalledWith(`Log ${randomLogDTO.entityId} not found in cache.`);			
+		});
+
+		it('throws an error if the event is not a ConditioningLogUndeletedEvent', async () => {
+			// arrange
+			event = new ConditioningLogDeletedEvent({
+				eventId: uuidv4(),
+				eventName: ConditioningLogDeletedEvent.name,
+				occurredOn: (new Date()).toISOString(),
+				payload: randomLogDTO
+			});
+
+			// act & assert
+			await expect(handler.handle(event)).rejects.toThrow('Invalid event: expected ConditioningLogUndeletedEvent.');
 		});
 	});
 });
