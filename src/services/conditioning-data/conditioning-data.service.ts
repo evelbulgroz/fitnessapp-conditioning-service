@@ -306,7 +306,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @throws UnauthorizedAccessError if user attempts unauthorized access to logs
 	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
 	 */
-	public async fetchaggretagedLogs(
+	public async fetchAggretagedLogs(
 		ctx: UserContext,
 		aggregationQueryDTO: AggregationQueryDTO,
 		queryDTO?: QueryDTO,
@@ -481,7 +481,6 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 		// check if log exists in persistence layer
 		const logFetchResult = await this.logRepo.fetchById(logIdDTO.value!);
-		console.debug({logFetchResult});
 		if (logFetchResult.isFailure) { // fetch failed -> throw persistence error
 			throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logIdDTO.value} not found.`);
 		}
