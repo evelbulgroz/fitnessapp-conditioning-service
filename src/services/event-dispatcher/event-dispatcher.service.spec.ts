@@ -107,11 +107,11 @@ describe('EventDispatcher', () => {
 					payload: { entityId: '1' } as ConditioningLogDTO
 				});
 
-				const handleSpy = jest.spyOn(ConditioningLogUpdateHandler.prototype, 'handle');
+				const handleSpy = jest.spyOn(ConditioningLogUpdateHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
 
 				// act
 				// handler method not implemented yet, so expect an error
-				expect(async () => await dispatcher.dispatch(event)).rejects.toThrow();
+				expect(async () => await dispatcher.dispatch(event)).not.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
@@ -171,10 +171,10 @@ describe('EventDispatcher', () => {
 					payload: { entityId: '1' } as UserDTO
 				});
 
-				const handleSpy = jest.spyOn(UserCreatedHandler.prototype, 'handle');
+				const handleSpy = jest.spyOn(UserCreatedHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
 
 				// act
-				expect(async () => await dispatcher.dispatch(event)).rejects.toThrow();
+				expect(async () => await dispatcher.dispatch(event)).not.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
@@ -190,10 +190,10 @@ describe('EventDispatcher', () => {
 					payload: { entityId: '1' } as UserDTO
 				});
 
-				const handleSpy = jest.spyOn(UserUpdatedHandler.prototype, 'handle');
+				const handleSpy = jest.spyOn(UserUpdatedHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
 
 				// act
-				expect(async () => await dispatcher.dispatch(event)).rejects.toThrow();
+				expect(async () => await dispatcher.dispatch(event)).not.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
@@ -209,10 +209,10 @@ describe('EventDispatcher', () => {
 					payload: { entityId: '1' } as UserDTO
 				});
 
-				const handleSpy = jest.spyOn(UserDeletedHandler.prototype, 'handle');
+				const handleSpy = jest.spyOn(UserDeletedHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
 
 				// act
-				expect(async () => await dispatcher.dispatch(event)).rejects.toThrow();
+				expect(async () => await dispatcher.dispatch(event)).not.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
