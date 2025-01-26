@@ -69,6 +69,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 	public constructor(
 		protected readonly aggregator: AggregatorService,
+		@Inject(forwardRef(() => EventDispatcher)) // forwardRef to handle circular dependency
 		protected readonly eventDispatcher: EventDispatcher,
 		protected readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		protected readonly userRepo: UserRepository

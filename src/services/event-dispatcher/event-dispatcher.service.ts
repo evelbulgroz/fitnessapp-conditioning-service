@@ -28,8 +28,8 @@ constructor(
 	private readonly logCreatedHandler: ConditioningLogCreatedHandler,
 	private readonly logUpdatedHandler: ConditioningLogUpdateHandler,
 	private readonly logDeletedHandler: ConditioningLogDeletedHandler,
-	//@Inject(forwardRef(() => ConditioningLogUndeletedHandler)) private readonly logUndeletedHandler: ConditioningLogUndeletedHandler, // forwardRef to avoid circular dependency
-	//private readonly logUndeletedHandler: ConditioningLogUndeletedHandler, // bug: causes tests to fail with dependency error
+	@Inject(forwardRef(() => ConditioningLogUndeletedHandler)) // forwardRef to handle circular dependency
+	private readonly logUndeletedHandler: ConditioningLogUndeletedHandler,
 	private readonly userCreatedHandler: UserCreatedHandler,	
 	private readonly userUpdatedHandler: UserUpdatedHandler,
 	private readonly userDeletedHandler: UserDeletedHandler,

@@ -22,6 +22,8 @@ import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
 import { EventDispatcher } from '../../services/event-dispatcher/event-dispatcher.service';
 import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
 import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-deleted.handler';
+import { ConditioningLogUndeletedEvent } from '../../events/conditioning-log-undeleted.event';
+import { ConditioningLogUndeletedHandler } from '../../handlers/conditioning-log-undeleted.handler';
 import { ConditioningLogUpdatedEvent } from '../../events/conditioning-log-updated.event';
 import { ConditioningLogUpdateHandler } from '../../handlers/conditioning-log-updated.handler';
 import { UserCreatedHandler } from '../../handlers/user-created.handler';
@@ -74,10 +76,10 @@ describe('ConditioningDataService', () => {
 				ConditioningLogCreatedHandler,
 				ConditioningLogDeletedHandler,
 				ConditioningLogUpdateHandler,
+				ConditioningLogUndeletedHandler,
 				UserCreatedHandler,
 				UserDeletedHandler,
 				UserUpdatedHandler,
-				//FileService,
 				ConditioningDataService,
 				{
 					provide: ConditioningLogRepository,
@@ -953,7 +955,7 @@ describe('ConditioningDataService', () => {
 		});
 	});	
 
-	xdescribe('ConditioningLog', () => {
+	describe('ConditioningLog', () => {
 		// TODO: Add error handling tests for all mutating CRUD operations,
 		// especially rollback of changes to persistence in case of failure
 
@@ -973,7 +975,7 @@ describe('ConditioningDataService', () => {
 			logRepoFetchByIdSpy && logRepoFetchByIdSpy.mockRestore();
 		});
 
-		describe('create', () => {
+		xdescribe('create', () => {
 			let existingUserLogIds: EntityId[];
 			let newLog: ConditioningLog<any, ConditioningLogDTO>;
 			let newLogId: string;
@@ -1081,7 +1083,7 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		describe('fetchLog', () => {
+		xdescribe('fetchLog', () => {
 			it('provides details for a conditioning log owned by a user', async () => {
 				// arrange
 				logRepoFetchByIdSpy.mockRestore();
@@ -1303,7 +1305,7 @@ describe('ConditioningDataService', () => {
 			// TODO: Test default sorting of returned logs
 		});
 
-		describe('update', () => {
+		xdescribe('update', () => {
 			let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
 			let updatedLogDTO: ConditioningLogDTO;
 			let logRepoUpdateSpy: any;
@@ -1375,7 +1377,7 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		describe('delete', () => {
+		xdescribe('delete', () => {
 			let logRepoDeleteSpy: any;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
@@ -1509,19 +1511,7 @@ describe('ConditioningDataService', () => {
 				expect(logRepoUndeleteSpy).toHaveBeenCalledWith(logIdDTO.value);
 			});
 
-			it('restores undeleted log in user and persists user changes in user repo', async () => {
-				// arrange
-				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
-
-				// act
-				void await logService.undeleteLog(userContext, randomUserIdDTO, logIdDTO);
-
-				// assert
-				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
-				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toJSON());
-			});
-
-			xit('restores undeleted log in cache following user repo update', async () => {
+			it('restores undeleted log in cache following log repo update', async () => {
 				// arrange
 				const undeletedLogId = randomLog!.entityId!;
 				const undeletedLogIdDTO = new EntityIdDTO(undeletedLogId);
@@ -1537,7 +1527,7 @@ describe('ConditioningDataService', () => {
 					});
 					
 					// act
-					userRepoUpdatesSubject.next(undeleteEvent); // simulate event from userRepo.updates$
+					logRepoUpdatesSubject.next(undeleteEvent); // simulate event from logRepo.updates$
 
 					// assert
 					let callCounter = 0;
@@ -1548,6 +1538,7 @@ describe('ConditioningDataService', () => {
 							const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
 							const undeletedLog = cacheEntry?.logs.find(log => log.entityId === randomLog!.entityId);
 							expect(undeletedLog).toBeDefined();
+							expect(undeletedLog?.deletedOn).toBeUndefined();
 							sub.unsubscribe();
 						}
 					});

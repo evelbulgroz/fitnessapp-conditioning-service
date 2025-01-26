@@ -12,7 +12,8 @@ import { DomainEventHandler } from './domain-event.handler';
 @Injectable()
 export class ConditioningLogUndeletedHandler extends DomainEventHandler<ConditioningLogUndeletedEvent> {
 	constructor(
-		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService, // forwardRef to avoid circular dependency
+		@Inject(forwardRef(() => ConditioningDataService)) // forwardRef to handle circular dependency
+		private readonly logService: ConditioningDataService,
 		private readonly logger: Logger
 	) {
 		super();
