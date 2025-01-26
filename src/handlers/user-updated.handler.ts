@@ -9,12 +9,11 @@ import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { DomainEventHandler } from './domain-event.handler';
-import { User } from '../domain/user.entity';
 import { UserDTO } from '../dtos/domain/user.dto';
 import { UserUpdatedEvent } from '../events/user-updated.event';
 import { UserRepository } from '../repositories/user.repo';
 
-/** User updated event handler
+/** Handler for entity updated event from User repository
  * @remark Handles addition and removal of logs from log service cache entry for user, triggered by update events from user repository
  * @remark Users hold log ids, not logs themselves, so this handler does not handle log content updates
  * @remark Users currently hold no other state that would require cache updates, so this handler only updates logs
@@ -22,7 +21,7 @@ import { UserRepository } from '../repositories/user.repo';
 @Injectable()
 export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 	constructor(
-		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService,
+		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService, // forwardRef to avoid circular dependency
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly logger: Logger,
 		private readonly userRepo: UserRepository,		

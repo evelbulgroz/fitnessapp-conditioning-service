@@ -1,7 +1,7 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../test/test-utils';
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger, ConsoleLogger } from '@evelbulgroz/ddd-base';
 //import { jest } from '@jest/globals';
 
 import { ConditioningDataService } from '../../services/conditioning-data/conditioning-data.service';
@@ -12,6 +12,8 @@ import { ConditioningLogCreatedEvent } from '../../events/conditioning-log-creat
 import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
 import { ConditioningLogDeletedEvent } from '../../events/conditioning-log-deleted.event';
 import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-deleted.handler';
+import { ConditioningLogUndeletedEvent } from '../../events/conditioning-log-undeleted.event';
+import { ConditioningLogUndeletedHandler } from '../../handlers/conditioning-log-undeleted.handler';
 import { ConditioningLogUpdatedEvent } from '../../events/conditioning-log-updated.event';
 import { ConditioningLogUpdateHandler } from '../../handlers/conditioning-log-updated.handler';
 import { UserCreatedEvent } from '../../events/user-created.event';
@@ -31,7 +33,8 @@ describe('EventDispatcher', () => {
 				{
 					provide: ConditioningDataService,
 					useValue: {
-						// add methods as needed
+						getCacheSnapshot: jest.fn(),
+						updateCache: jest.fn(),
 					}
 				},
 				{
@@ -41,15 +44,14 @@ describe('EventDispatcher', () => {
 					}
 				},
 				{
-					provide: ConditioningLogRepository,
-					useValue: {
-						// add methods as needed
-					}
+					provide: Logger,
+					useClass: ConsoleLogger
 				},
 				EventDispatcher,
 				ConditioningLogCreatedHandler,
 				ConditioningLogDeletedHandler,
 				ConditioningLogUpdateHandler,
+				ConditioningLogUndeletedHandler,
 				UserCreatedHandler,
 				UserDeletedHandler,
 				UserUpdatedHandler,
@@ -59,12 +61,11 @@ describe('EventDispatcher', () => {
 						create: jest.fn(),
 						// add other methods as needed
 					}
-				},
-				Logger,
+				}
 			],
 		});
 
-		dispatcher = module.get<EventDispatcher>(EventDispatcher);
+		dispatcher = module.get<EventDispatcher>(EventDispatcher);		
 	});
 
 	afterEach(() => {
@@ -95,7 +96,6 @@ describe('EventDispatcher', () => {
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
 				expect(handleSpy).toHaveBeenCalledWith(event);
-				//expect(result).toBeUndefined();
 			});
 
 			it('dispatches log updated event to log updated handler', async () => {
@@ -116,7 +116,6 @@ describe('EventDispatcher', () => {
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
 				expect(handleSpy).toHaveBeenCalledWith(event);
-				//expect(result).toBeUndefined();
 			});
 
 			it('dispatches log deleted event to log deleted handler', async () => {
@@ -137,7 +136,28 @@ describe('EventDispatcher', () => {
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
 				expect(handleSpy).toHaveBeenCalledWith(event);
-				//expect(result).toBeUndefined();
+			});
+
+			it('dispatches log undeleted event to log undeleted handler', async () => {
+				// arrange
+				const event = new ConditioningLogUndeletedEvent({
+					eventId: '1',
+					eventName: ConditioningLogUndeletedEvent.name,
+					occurredOn: (new Date()).toISOString(),
+					payload: { entityId: '1' } as ConditioningLogDTO
+				});
+
+				const handleSpy = jest.spyOn(ConditioningLogUndeletedHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
+
+				// act
+				expect(async () => await dispatcher.dispatch(event)).not.toThrow();
+
+				// assert
+				expect(handleSpy).toHaveBeenCalledTimes(1);
+				expect(handleSpy).toHaveBeenCalledWith(event);
+
+				// clean up
+				handleSpy?.mockRestore();
 			});
 		});
 
@@ -154,13 +174,11 @@ describe('EventDispatcher', () => {
 				const handleSpy = jest.spyOn(UserCreatedHandler.prototype, 'handle');
 
 				// act
-				// handler method not implemented yet, so expect an error
 				expect(async () => await dispatcher.dispatch(event)).rejects.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
 				expect(handleSpy).toHaveBeenCalledWith(event);
-				//expect(result).toBeUndefined();
 			});
 
 			it('dispatches user updated event to user updated handler', async () => {
@@ -175,13 +193,11 @@ describe('EventDispatcher', () => {
 				const handleSpy = jest.spyOn(UserUpdatedHandler.prototype, 'handle');
 
 				// act
-				// handler method not implemented yet, so expect an error
 				expect(async () => await dispatcher.dispatch(event)).rejects.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
 				expect(handleSpy).toHaveBeenCalledWith(event);
-				//expect(result).toBeUndefined();
 			});
 
 			it('dispatches user deleted event to user deleted handler', async () => {
@@ -196,13 +212,11 @@ describe('EventDispatcher', () => {
 				const handleSpy = jest.spyOn(UserDeletedHandler.prototype, 'handle');
 
 				// act
-				// handler method not implemented yet, so expect an error
 				expect(async () => await dispatcher.dispatch(event)).rejects.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
 				expect(handleSpy).toHaveBeenCalledWith(event);
-				//expect(result).toBeUndefined();
 			});
 		});
 	});

@@ -11,13 +11,13 @@ import { ConditioningLogRepository } from '../repositories/conditioning-log.repo
 import { ConditioningLogUpdatedEvent } from '../events/conditioning-log-updated.event';
 import { DomainEventHandler } from './domain-event.handler';
 
-/** Log updated event handler
- * @remark Handles updating logs in log service cache, triggered by update events from log repository
+/** Handler for entity updated event from ConditioningLog repository
+ * @remark Updates logs in log service cache
  */
 @Injectable()
 export class ConditioningLogUpdateHandler extends DomainEventHandler<ConditioningLogUpdatedEvent> {
 	constructor(
-		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService,
+		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService, // forwardRef to avoid circular dependency
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly logger: Logger
 	) {

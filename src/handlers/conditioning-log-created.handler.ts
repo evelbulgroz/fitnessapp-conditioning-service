@@ -7,7 +7,7 @@ import { ConditioningLogCreatedEvent } from '../events/conditioning-log-created.
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { DomainEventHandler } from './domain-event.handler';
-/** Log updated event handler
+/** Handler for entity created event from ConditioningLog repository
  * @remark Placeholder: logs are added to to log service cache when added to user, so this handler may not be necessary
  */
 @Injectable()

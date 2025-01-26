@@ -37,7 +37,7 @@ function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: 
 type QueryType = Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>;
 
 /** Specifies the properties of a user logs cache entry **/
-interface UserLogsCacheEntry {
+export interface UserLogsCacheEntry {
 	userId: EntityId;
 	logs: ConditioningLog<any, ConditioningLogDTO>[];
 	lastAccessed?: Date;
@@ -490,7 +490,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 			throw new PersistenceError(`${this.constructor.name}: Error undeleting conditioning log ${logIdDTO.value}: ${logUndeleteResult.error}`);
 		}
 
-		// NOTE: cache is updated via subscription to user repo updates, no need to update cache here
+		// NOTE: cache is updated via subscription to log repo updates, no need to update cache here
 
 		// log undeleted successfully -> return undefined
 		return Promise.resolve();

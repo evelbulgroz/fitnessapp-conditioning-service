@@ -20,7 +20,6 @@ import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepository } from '../../repositories/conditioning-log.repo';
 import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
 import { EventDispatcher } from '../../services/event-dispatcher/event-dispatcher.service';
-import { FileService } from '../file-service/file.service';;
 import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
 import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-deleted.handler';
 import { ConditioningLogUpdatedEvent } from '../../events/conditioning-log-updated.event';
@@ -39,8 +38,6 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserRepository } from '../../repositories/user.repo';
-import e from 'express';
-import { time } from 'console';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -91,6 +88,7 @@ describe('ConditioningDataService', () => {
 						fetchById: jest.fn(),
 						update: jest.fn(),
 						updates$: logRepoUpdatesSubject.asObservable(),
+						undelete: jest.fn(),
 					}
 				},
 				{
@@ -109,6 +107,7 @@ describe('ConditioningDataService', () => {
 						fetchById: jest.fn(),
 						update: jest.fn(),
 						updates$: userRepoUpdatesSubject.asObservable(),
+						undelete: jest.fn(),
 					}
 				}
 			],
@@ -1470,6 +1469,85 @@ describe('ConditioningDataService', () => {
 							const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
 							const deletedLog = cacheEntry?.logs.find(log => log.entityId === randomLog!.entityId);
 							expect(deletedLog).toBeUndefined();
+							sub.unsubscribe();
+						}
+					});
+				});
+			});
+
+			// TODO: Add failure scenarios
+		});
+
+		describe('undelete', () => {
+			let logRepoUndeleteSpy: any;
+			let userRepoUpdateSpy: any;
+			beforeEach(() => {
+				logRepoUndeleteSpy = jest.spyOn(logRepo, 'undelete').mockImplementation(() => {
+					return Promise.resolve(Result.ok<void>());
+				});
+
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.ok(randomUser))
+				);
+			});
+
+			afterEach(() => {
+				logRepoUndeleteSpy && logRepoUndeleteSpy.mockRestore();
+				userRepoUpdateSpy && userRepoUpdateSpy.mockRestore();
+				jest.clearAllMocks();
+			});
+
+			it('undeletes a soft deleted conditioning log and persists it in log repo', async () => {
+				// arrange
+				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
+
+				// act
+				void await logService.undeleteLog(userContext, randomUserIdDTO, logIdDTO);
+
+				// assert
+				expect(logRepoUndeleteSpy).toHaveBeenCalledTimes(1);
+				expect(logRepoUndeleteSpy).toHaveBeenCalledWith(logIdDTO.value);
+			});
+
+			it('restores undeleted log in user and persists user changes in user repo', async () => {
+				// arrange
+				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
+
+				// act
+				void await logService.undeleteLog(userContext, randomUserIdDTO, logIdDTO);
+
+				// assert
+				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
+				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toJSON());
+			});
+
+			xit('restores undeleted log in cache following user repo update', async () => {
+				// arrange
+				const undeletedLogId = randomLog!.entityId!;
+				const undeletedLogIdDTO = new EntityIdDTO(undeletedLogId);
+
+				expect(randomUser.logs).toContain(undeletedLogId); // sanity check
+
+				logService.undeleteLog(userContext, randomUserIdDTO, undeletedLogIdDTO).then(() => {
+					const undeleteEvent = new UserUpdatedEvent({
+						eventId: uuidv4(),
+						eventName: 'UserUpdatedEvent',
+						occurredOn: (new Date()).toISOString(),
+						payload: randomUser.toJSON(),
+					});
+					
+					// act
+					userRepoUpdatesSubject.next(undeleteEvent); // simulate event from userRepo.updates$
+
+					// assert
+					let callCounter = 0;
+					const sub = logService['cache'].subscribe(updatedCache => {
+						callCounter++;						
+						if (callCounter > 1) { // wait for event handler to complete
+							expect(randomUser.logs).toContain(undeletedLogId);
+							const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
+							const undeletedLog = cacheEntry?.logs.find(log => log.entityId === randomLog!.entityId);
+							expect(undeletedLog).toBeDefined();
 							sub.unsubscribe();
 						}
 					});

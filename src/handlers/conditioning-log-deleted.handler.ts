@@ -8,7 +8,7 @@ import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { DomainEventHandler } from './domain-event.handler';
 
-/** Log updated event handler
+/** Handler for entity deleted event from ConditioningLog repository
  * @remark Placeholder: logs are removed from log service cache when removed from user, so this handler may not be necessary
  */
 @Injectable()

@@ -14,13 +14,13 @@ import { UserCreatedEvent } from '../events/user-created.event';
 import { UserDTO } from '../dtos/domain/user.dto';
 import { UserRepository } from '../repositories/user.repo';
 
-/** User created event handler
+/** Handler for entity created event from User repository
  * @remark Handles addition and log population of user in log service cache, triggered by creation events from user repository
  */
 @Injectable()
 export class UserCreatedHandler extends DomainEventHandler<UserCreatedEvent> {
 	constructor(
-		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService,
+		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService, // forwardRef to avoid circular dependency
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly userRepo: UserRepository,
 		private readonly logger: Logger

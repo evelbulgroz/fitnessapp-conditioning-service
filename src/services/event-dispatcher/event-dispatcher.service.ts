@@ -5,6 +5,8 @@ import { ConditioningLogCreatedEvent } from '../../events/conditioning-log-creat
 import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
 import { ConditioningLogDeletedEvent } from '../../events/conditioning-log-deleted.event';
 import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-deleted.handler';
+import { ConditioningLogUndeletedEvent } from '../../events/conditioning-log-undeleted.event';
+import { ConditioningLogUndeletedHandler } from '../../handlers/conditioning-log-undeleted.handler';
 import { ConditioningLogUpdatedEvent } from '../../events/conditioning-log-updated.event';
 import { ConditioningLogUpdateHandler } from '../../handlers/conditioning-log-updated.handler';
 import { UserCreatedEvent } from '../../events/user-created.event';
@@ -26,6 +28,7 @@ constructor(
 	private readonly logCreatedHandler: ConditioningLogCreatedHandler,
 	private readonly logUpdatedHandler: ConditioningLogUpdateHandler,
 	private readonly logDeletedHandler: ConditioningLogDeletedHandler,
+	private readonly logUndeletedHandler: ConditioningLogUndeletedHandler, // bug: causes tests to fail with dependency error
 	private readonly userCreatedHandler: UserCreatedHandler,	
 	private readonly userUpdatedHandler: UserUpdatedHandler,
 	private readonly userDeletedHandler: UserDeletedHandler,
@@ -42,6 +45,9 @@ public async dispatch(event: DomainEvent<DomainEventDTO<any>, any>): Promise<voi
 			break;
 		case ConditioningLogDeletedEvent:
 			await this.logDeletedHandler.handle(event);
+			break;
+		case ConditioningLogUndeletedEvent:
+			await this.logUndeletedHandler.handle(event);
 			break;
 		case UserCreatedEvent:
 			await this.userCreatedHandler.handle(event);
