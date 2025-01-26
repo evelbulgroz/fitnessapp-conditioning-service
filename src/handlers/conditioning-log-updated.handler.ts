@@ -25,12 +25,16 @@ export class ConditioningLogUpdateHandler extends DomainEventHandler<Conditionin
 	}
 
 	public async handle(event: ConditioningLogUpdatedEvent): Promise<void> {
-		const logDTO = event.payload;
-		
+		// throw error if event is not valid
+		if (!(event instanceof ConditioningLogUpdatedEvent)) {
+			throw new Error('Invalid event: expected ConditioningLogUpdatedEvent.');
+		}		
+				
 		// fetch log from repo
+		const logDTO = event.payload;
 		const logResult = await this.logRepo.fetchById(logDTO.entityId!);
 		if (logResult.isFailure) {
-			this.logger.error(`LogUpdatedHandler: Error fetching log from repo: ${logResult.error}`);
+			this.logger.warn(`LogUpdatedHandler: Error fetching log from repo: ${logResult.error}`);
 			return;
 		}
 		const log$ = logResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>>;

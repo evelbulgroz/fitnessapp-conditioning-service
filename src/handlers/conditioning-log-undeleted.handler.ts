@@ -28,7 +28,7 @@ export class ConditioningLogUndeletedHandler extends DomainEventHandler<Conditio
 	public async handle(event: ConditioningLogUndeletedEvent): Promise<void> {
 		// throw error if event is not valid
 		if (!(event instanceof ConditioningLogUndeletedEvent)) {
-			throw new Error('Invalid event: expected ConditioningLogUndeletedEvent.');
+			throw new Error(`Invalid event: expected ConditioningLogUndeletedEvent.`);
 		}
 		
 		// get flattend cache (no user info in event, so can't get entry by user id)
