@@ -29,6 +29,7 @@ import { ValidationPipe } from './pipes/validation.pipe';
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests for conditioning data.
  * @remark It delegates the actual processing of data to the appropriate service methods, which are responsible for data access control, business logic and persistence.
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
+ * @todo Add undelete log endpoint
  * @todo Move user CRUD operations to a separate controller, and refactor to use a user service
  */
 @ApiTags('conditioning')
