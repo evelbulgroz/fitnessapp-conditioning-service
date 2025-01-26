@@ -723,9 +723,6 @@ describe('ConditioningDataService', () => {
 	});	
 
 	describe('Public API', () => {
-		// todo: move all tests for public API methods here
-		// TODO: Add error handling tests for all mutating CRUD operations,
-		// especially rollback of changes to persistence in case of failure
 		let aggregationQueryDTO: AggregationQueryDTO;
 		let aggregatorSpy: any;
 		let userIdDTO: EntityIdDTO;
