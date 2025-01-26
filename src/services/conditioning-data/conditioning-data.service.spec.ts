@@ -659,7 +659,7 @@ describe('ConditioningDataService', () => {
 		expect(logService).toBeTruthy();
 	});
 
-	xdescribe('Public API', () => {
+	describe('Public API', () => {
 		// todo: move all tests for public API methods here
 
 		describe('fetchLogs', () => {
@@ -832,7 +832,7 @@ describe('ConditioningDataService', () => {
 		});
 	});
 
-	xdescribe('Initialization', () => {
+	describe('Initialization', () => {
 		it('reports if/when it is initialized (i.e. ready)', async () => {
 			// arrange
 			logService['cache'].next([]); // force re-initialization
@@ -880,7 +880,7 @@ describe('ConditioningDataService', () => {
 		});
 	});
 
-	xdescribe('ConditioningData', () => {
+	describe('ConditioningData', () => {
 		it('can provide a collection of ConditioningDataSeries for all users', async () => {
 			// act
 			const data = await logService.conditioningData();
@@ -975,7 +975,7 @@ describe('ConditioningDataService', () => {
 			logRepoFetchByIdSpy && logRepoFetchByIdSpy.mockRestore();
 		});
 
-		xdescribe('create', () => {
+		describe('create', () => {
 			let existingUserLogIds: EntityId[];
 			let newLog: ConditioningLog<any, ConditioningLogDTO>;
 			let newLogId: string;
@@ -1083,7 +1083,7 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		xdescribe('fetchLog', () => {
+		describe('fetchLog', () => {
 			it('provides details for a conditioning log owned by a user', async () => {
 				// arrange
 				logRepoFetchByIdSpy.mockRestore();
@@ -1305,7 +1305,7 @@ describe('ConditioningDataService', () => {
 			// TODO: Test default sorting of returned logs
 		});
 
-		xdescribe('update', () => {
+		describe('update', () => {
 			let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
 			let updatedLogDTO: ConditioningLogDTO;
 			let logRepoUpdateSpy: any;
@@ -1377,7 +1377,7 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		xdescribe('delete', () => {
+		describe('delete', () => {
 			let logRepoDeleteSpy: any;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
@@ -1544,10 +1544,12 @@ describe('ConditioningDataService', () => {
 					});
 				});
 			});
+
+			// NOTE: Add failure scenarios
 		});
 	});
 	
-	xdescribe('Aggregation', () => {
+	describe('Aggregation', () => {
 		let aggregationQueryDTO: AggregationQueryDTO;
 		let aggregatorSpy: any;
 		let userIdDTO: EntityIdDTO;
@@ -1669,7 +1671,7 @@ describe('ConditioningDataService', () => {
 		});
 	});
 
-	xdescribe('Utilities', () => {
+	describe('Utilities', () => {
 		describe('Conversion to time series', () => {
 			let userIdDTO: EntityIdDTO;
 			beforeEach(() => {
