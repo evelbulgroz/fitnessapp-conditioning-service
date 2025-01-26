@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 
 import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 

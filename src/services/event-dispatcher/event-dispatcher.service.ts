@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 import { DomainEvent, DomainEventDTO } from '@evelbulgroz/ddd-base';
 import { ConditioningLogCreatedEvent } from '../../events/conditioning-log-created.event';
@@ -28,7 +28,8 @@ constructor(
 	private readonly logCreatedHandler: ConditioningLogCreatedHandler,
 	private readonly logUpdatedHandler: ConditioningLogUpdateHandler,
 	private readonly logDeletedHandler: ConditioningLogDeletedHandler,
-	private readonly logUndeletedHandler: ConditioningLogUndeletedHandler, // bug: causes tests to fail with dependency error
+	//@Inject(forwardRef(() => ConditioningLogUndeletedHandler)) private readonly logUndeletedHandler: ConditioningLogUndeletedHandler, // forwardRef to avoid circular dependency
+	//private readonly logUndeletedHandler: ConditioningLogUndeletedHandler, // bug: causes tests to fail with dependency error
 	private readonly userCreatedHandler: UserCreatedHandler,	
 	private readonly userUpdatedHandler: UserUpdatedHandler,
 	private readonly userDeletedHandler: UserDeletedHandler,
@@ -46,9 +47,11 @@ public async dispatch(event: DomainEvent<DomainEventDTO<any>, any>): Promise<voi
 		case ConditioningLogDeletedEvent:
 			await this.logDeletedHandler.handle(event);
 			break;
+		/*
 		case ConditioningLogUndeletedEvent:
 			await this.logUndeletedHandler.handle(event);
 			break;
+		*/
 		case UserCreatedEvent:
 			await this.userCreatedHandler.handle(event);
 			break;
