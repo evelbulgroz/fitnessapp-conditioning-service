@@ -748,20 +748,22 @@ describe('ConditioningDataService', () => {
 		
 		afterEach(() => {
 			aggregatorSpy && aggregatorSpy.mockRestore();
-		});		
-		
-		it('isReady', async () => {
-			// arrange
-			logService['cache'].next([]); // force re-initialization
-			expect(logService['cache']).toBeDefined(); // sanity checks
-			expect(logService['cache'].value.length).toBe(0);
+		});
 
-			// act
-			const isReady = await logService.isReady();
+		describe('isReady', () => {		
+			it('reports if/when it is initialized (i.e. ready)', async () => {
+				// arrange
+				logService['cache'].next([]); // force re-initialization
+				expect(logService['cache']).toBeDefined(); // sanity checks
+				expect(logService['cache'].value.length).toBe(0);
 
-			// assert
-			expect(isReady).toBe(true);
-			expect(logService['cache'].value.length).toBeGreaterThan(0);
+				// act
+				const isReady = await logService.isReady();
+
+				// assert
+				expect(isReady).toBe(true);
+				expect(logService['cache'].value.length).toBeGreaterThan(0);
+			});
 		});
 		
 		describe('conditioningData', () => {

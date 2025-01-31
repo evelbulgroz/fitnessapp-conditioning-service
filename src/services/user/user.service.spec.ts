@@ -129,6 +129,21 @@ describe('UserService', () => {
 	});
 
 	describe('Public API', () => {
+		describe('isReady', () => {		
+			it('reports if/when it is initialized (i.e. ready)', async () => {
+				// arrange
+				userRepoIsReadySpy.mockRestore();
+				userRepoIsReadySpy = jest.spyOn(userRepo, 'isReady').mockReturnValue(Promise.resolve(Result.ok(false)));
+
+				// act
+				const result = await service.isReady();
+
+				// assert
+				expect(result).toBe(false);
+				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
+			});
+		});
+		
 		describe('create()', () => {
 			let newUserIdDTO: EntityIdDTO;
 			let newUser: User;
