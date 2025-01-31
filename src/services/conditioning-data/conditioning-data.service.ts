@@ -50,7 +50,6 @@ export interface UserLogsCacheEntry {
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
  * @remark Local cache is kept in sync with repository data via subscriptions to log and user repo events.
- * @todo Add support for soft deletion and undeletion of logs, and inclusion/exclusion of deleted logs in log retrieval.
  */
 @Injectable()
 export class ConditioningDataService implements OnModuleDestroy {
@@ -151,7 +150,12 @@ export class ConditioningDataService implements OnModuleDestroy {
 		user.addLog(newLog.entityId!);
 		const userUpdateResult = await this.userRepo.update(user.toDTO());
 		if (userUpdateResult.isFailure) { // user update failed -> roll back log creation, then throw persistence error
-			this.deleteOrphanedLog(newLog.entityId!); // deleting orphaned log from log repo, retry if necessary
+			try {
+				this.deleteOrphanedLog(newLog.entityId!); // deleting orphaned log from log repo, retry if necessary
+			}
+			catch (error) {
+				console.error('Error rolling back log creation: ', error);
+			}
 			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
 		}
 
@@ -159,6 +163,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 		// log created successfully -> return entity id
 		return Promise.resolve(newLog.entityId!);
+		
 	}
 	
 	/** New API: Get single, detailed conditioning log by log entity id
@@ -644,14 +649,16 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @param delay Delay in milliseconds between retries
 	 */ 
 	protected async deleteOrphanedLog(logId: EntityId, retries = 5, delay = 500): Promise<void> {
-		const result = await this.logRepo.delete(logId);
-		if (result.isFailure) {
+		console.debug('deleteOrphanedLog', {logId, retries, delay});
+		const deleteResult = await this.logRepo.delete(logId);
+		console.debug('deleteResult', deleteResult);
+		if (deleteResult.isFailure) {
 			if (retries > 0) {
 				await new Promise((resolve) => setTimeout(resolve, delay));
 				await this.deleteOrphanedLog(logId, retries - 1, delay);
 			}
 			else {
-				this.logger.error(`${this.constructor.name}: Error deleting orphaned log ${logId} from log repo: ${result.error}`);
+				this.logger.error(`${this.constructor.name}: Error deleting orphaned log ${logId} from log repo: ${deleteResult.error}`);
 			}
 		}
 	}

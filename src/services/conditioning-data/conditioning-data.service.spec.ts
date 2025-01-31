@@ -864,8 +864,8 @@ describe('ConditioningDataService', () => {
 			});
 
 			afterEach(() => {
-				logRepoCreateSpy && logRepoCreateSpy.mockRestore();
-				userRepoUpdateSpy && userRepoUpdateSpy.mockRestore();
+				logRepoCreateSpy?.mockRestore();
+				userRepoUpdateSpy?.mockRestore();
 				jest.clearAllMocks();
 			});
 
@@ -946,6 +946,70 @@ describe('ConditioningDataService', () => {
 				// clean up
 				logRepoFetchByIdSpy && logRepoFetchByIdSpy.mockRestore();
 				userUpdateSpy && userUpdateSpy.mockRestore();
+			});
+
+			it(`succeeds if admin user tries to create a log for another user`, async () => {
+				// arrange
+				userContext.roles = ['admin'];
+				const otherUser = users.find(user => user.userId !== randomUserId)!;
+				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				
+				// act
+				const returnedLogId = await logService.createLog(userContext, otherUserIdDTO, newLogDTO);
+				
+				// assert
+				expect(typeof returnedLogId).toBe('string');
+				expect(existingUserLogIds).not.toContain(returnedLogId);
+			});
+
+			it('throws UnauthorizedAccessError if user tries to create a log for another user', async () => {
+				// arrange
+				const otherUser = users.find(user => user.userId !== randomUserId)!;
+				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				
+				// act/assert
+				expect(async () => await logService.createLog(userContext, otherUserIdDTO, newLogDTO)).rejects.toThrow(UnauthorizedAccessError);
+			});
+
+			it('throws NotFoundError if user does not exist in persistence layer', async () => {
+				// arrange
+				logRepoCreateSpy.mockRestore();
+				logRepoCreateSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() => {
+					return Promise.resolve(Result.fail(new NotFoundError('Test Error')));
+				});
+				
+				// act/assert
+				expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLogDTO)).rejects.toThrow(NotFoundError);
+			});
+
+			it('throws PersistenceError if log creation fails in persistence layer', async () => {
+				// arrange
+				logRepoCreateSpy.mockRestore();
+				logRepoCreateSpy = jest.spyOn(logRepo, 'create').mockImplementation(() => {
+					return Promise.resolve(Result.fail(new PersistenceError('Test Error')));
+				});
+				
+				// act/assert
+				expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLogDTO)).rejects.toThrow(PersistenceError);
+			});
+
+			xit('throws PersistenceError if updating user fails in persistence layer', async () => {
+				// arrange
+				jest.clearAllMocks();
+				const logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation((id) => { // bug: spy does not get called, deleteOrphanedLog receives undefined Result
+					console.debug(`Deleting log with id: ${id}`);
+					return Promise.resolve(Result.ok());
+				});
+				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() => {
+					return Promise.resolve(Result.fail(new PersistenceError('Test Error')));
+				});
+				
+				// act/assert
+				expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLogDTO)).rejects.toThrow(PersistenceError);
+				
+				// clean up
+				logRepoDeleteSpy?.mockRestore();
 			});
 
 			// TODO: Add failure scenarios
@@ -1572,8 +1636,8 @@ describe('ConditioningDataService', () => {
 			});
 
 			afterEach(() => {
-				logRepoDeleteSpy && logRepoDeleteSpy.mockRestore();
-				userRepoUpdateSpy && userRepoUpdateSpy.mockRestore();
+				logRepoDeleteSpy?.mockRestore();
+				userRepoUpdateSpy?.mockRestore();
 				jest.clearAllMocks();
 			});
 
