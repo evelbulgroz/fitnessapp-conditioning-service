@@ -1955,7 +1955,7 @@ describe('ConditioningDataService', () => {
 	});
 
 	describe('Protected Methods', () => {
-		xdescribe('rollbackLogCreation', () => {
+		describe('rollbackLogCreation', () => {
 			let logRepoDeleteSpy: any;
 			beforeEach(() => {
 				logRepoDeleteSpy?.mockRestore();
