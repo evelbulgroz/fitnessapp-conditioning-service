@@ -645,22 +645,23 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 	/* Purge log from log repo that has been orphaned by failed user update (log creation helper)
 	 * @param logId Entity id of the log to purge from the log repo
+	 * @param softDelete Flag to indicate whether to soft delete the log (default: false since log is orphaned by other CRUD error)
 	 * @param retries Number of retries before giving up
 	 * @param delay Delay in milliseconds between retries
 	 */ 
-	protected async deleteOrphanedLog(logId: EntityId, retries = 5, delay = 500): Promise<void> {
-		console.debug('deleteOrphanedLog', {logId, retries, delay});
-		const deleteResult = await this.logRepo.delete(logId);
-		console.debug('deleteResult', deleteResult);
+	protected async deleteOrphanedLog(logId: EntityId, softDelete = false, retries = 5, delay = 500): Promise<void> {
+		const deleteResult = await this.logRepo.delete(logId, softDelete);
 		if (deleteResult.isFailure) {
 			if (retries > 0) {
 				await new Promise((resolve) => setTimeout(resolve, delay));
-				await this.deleteOrphanedLog(logId, retries - 1, delay);
+				await this.deleteOrphanedLog(logId, softDelete, retries - 1, delay);
 			}
 			else {
 				this.logger.error(`${this.constructor.name}: Error deleting orphaned log ${logId} from log repo: ${deleteResult.error}`);
 			}
 		}
+
+		// NOTE: cache is updated via subscription to log repo updates, no need to update cache here
 	}
 
 	/* Roll back user update by updating user with original data (helper for log deletion)

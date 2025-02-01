@@ -39,6 +39,7 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserRepository } from '../../repositories/user.repo';
+import exp from 'constants';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -847,6 +848,7 @@ describe('ConditioningDataService', () => {
 			let newLogId: string;
 			let newLogDTO: ConditioningLogDTO;
 			let logRepoCreateSpy: any;
+			let logRepoDeleteSpy: any;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
 				existingUserLogIds = logsForRandomUser.map(log => log.entityId!);
@@ -858,6 +860,11 @@ describe('ConditioningDataService', () => {
 					return Promise.resolve(Result.ok<ConditioningLog<any, ConditioningLogDTO>>(newLog!))
 				});
 
+				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation((id) => {
+					console.debug(`Deleting log with id: ${id}`); // bug: spy does not get called, deleteOrphanedLog receives undefined Result
+					return Promise.resolve(Result.ok());
+				});
+
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.ok(randomUser))
 				);
@@ -865,6 +872,7 @@ describe('ConditioningDataService', () => {
 
 			afterEach(() => {
 				logRepoCreateSpy?.mockRestore();
+				logRepoDeleteSpy?.mockRestore();
 				userRepoUpdateSpy?.mockRestore();
 				jest.clearAllMocks();
 			});
@@ -993,26 +1001,32 @@ describe('ConditioningDataService', () => {
 				expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLogDTO)).rejects.toThrow(PersistenceError);
 			});
 
-			xit('throws PersistenceError if updating user fails in persistence layer', async () => {
+			it('throws PersistenceError if updating user fails in persistence layer', async () => {
 				// arrange
-				jest.clearAllMocks();
-				const logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation((id) => { // bug: spy does not get called, deleteOrphanedLog receives undefined Result
-					console.debug(`Deleting log with id: ${id}`);
-					return Promise.resolve(Result.ok());
-				});
 				userRepoUpdateSpy.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() => {
 					return Promise.resolve(Result.fail(new PersistenceError('Test Error')));
 				});
+				let error: Error | undefined;
 				
-				// act/assert
-				expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLogDTO)).rejects.toThrow(PersistenceError);
+				// act
+				// can't get this to work, jest does not catch the error:
+				//expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLogDTO)).rejects.toThrow(PersistenceError);
+				// so going old school:
+				try {
+					await logService.createLog(userContext, randomUserIdDTO, newLogDTO);
+				}
+				catch (e) {
+					error = e;
+					expect(e).toBeInstanceOf(PersistenceError);
+				}
+
+				expect(error).toBeDefined();
+				expect(error).toBeInstanceOf(PersistenceError);
 				
 				// clean up
-				logRepoDeleteSpy?.mockRestore();
+				userRepoUpdateSpy?.mockRestore();
 			});
-
-			// TODO: Add failure scenarios
 		});
 
 		describe('fetchAggretagedLogs', () => {
@@ -1626,6 +1640,7 @@ describe('ConditioningDataService', () => {
 			let logRepoDeleteSpy: any;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
+				logRepoDeleteSpy?.mockRestore();
 				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
 					return Promise.resolve(Result.ok<void>());
 				});
@@ -1852,6 +1867,124 @@ describe('ConditioningDataService', () => {
 	});
 
 	describe('Protected Methods', () => {
+		describe('deleteOrphanedLog', () => {
+			let logRepoDeleteSpy: any;
+			beforeEach(() => {
+				logRepoDeleteSpy?.mockRestore();
+				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
+					return Promise.resolve(Result.ok<void>());
+				});
+			});
+
+			afterEach(() => {
+				logRepoDeleteSpy?.mockRestore();
+				jest.clearAllMocks();
+			});
+
+			it('deletes an orphaned conditioning log and removes it from log repo', async () => {
+				// arrange
+				const orphanedLogId = randomLog!.entityId!;
+				
+				// act
+				void await logService['deleteOrphanedLog'](orphanedLogId);
+				
+
+				// assert
+				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
+				expect(logRepoDeleteSpy).toHaveBeenCalledWith(orphanedLogId, false); // hard delete
+			});
+
+			it('by default hard deletes an orphaned log', async () => {
+				// arrange
+				const orphanedLogId = randomLog!.entityId!;
+				
+				// act
+				void await logService['deleteOrphanedLog'](orphanedLogId);
+
+				// assert
+				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
+				expect(logRepoDeleteSpy).toHaveBeenCalledWith(orphanedLogId, false); // hard delete
+			});
+
+			it('optionally can soft delete an orphaned log', async () => {
+				// arrange
+				const orphanedLogId = randomLog!.entityId!;
+				
+				// act
+				void await logService['deleteOrphanedLog'](orphanedLogId, true); // soft delete
+
+				// assert
+				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
+				expect(logRepoDeleteSpy).toHaveBeenCalledWith(orphanedLogId, true); // soft delete
+			});
+
+			it('by default retries deleting an orphaned log 4 times if initial attempt fails', async () => {
+				// arrange
+				const orphanedLogId = randomLog!.entityId!;
+				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
+					return Promise.resolve(Result.fail<void>('test error'));
+				});
+
+				// act
+				void await logService['deleteOrphanedLog'](orphanedLogId);
+
+				// assert
+				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(6); // initial attempt + 5 retries (default)
+			});
+
+			it('optionally can retry deleting an orphaned log a specified number of times if initial attempt fails', async () => {
+				// arrange
+				const orphanedLogId = randomLog!.entityId!;
+				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
+					return Promise.resolve(Result.fail<void>('test error'));
+				});
+
+				// act
+				void await logService['deleteOrphanedLog'](orphanedLogId, false, 2); // 2 retries
+
+				// assert
+				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(3); // initial attempt + 2 retries
+			});
+
+			it('by default waits 500ms between retries when deleting an orphaned log', async () => {
+				// arrange
+				const orphanedLogId = randomLog!.entityId!;
+				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
+					return Promise.resolve(Result.fail<void>('test error'));
+				});
+
+				const start = Date.now();
+				// act
+				void await logService['deleteOrphanedLog'](orphanedLogId, false, ); // 1 retry
+
+				// assert
+				const end = Date.now();
+				const elapsed = end - start;
+				expect(elapsed).toBeGreaterThanOrEqual(500); // default wait time
+			});
+
+			it('optionally can specify wait time between retries when deleting an orphaned log', async () => {
+				// arrange
+				const orphanedLogId = randomLog!.entityId!;
+				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
+					return Promise.resolve(Result.fail<void>('test error'));
+				});
+
+				const start = Date.now();
+				// act
+				void await logService['deleteOrphanedLog'](orphanedLogId, false, 1, 100); // 1 retry, 100ms wait
+
+				// assert
+				const end = Date.now();
+				const elapsed = end - start;
+				expect(elapsed).toBeGreaterThanOrEqual(100); // specified wait time
+			});
+		});
+
 		describe('toConditioningLogSeries', () => {
 			let userIdDTO: EntityIdDTO;
 			beforeEach(() => {
