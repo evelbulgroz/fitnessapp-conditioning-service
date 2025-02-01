@@ -2085,6 +2085,168 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
+		/*describe('rollBackUserUpdate', () => {
+			let userRepoUpdateSpy: any;
+			beforeEach(() => {
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.ok(randomUser))
+				);
+			});
+
+			afterEach(() => {
+				userRepoUpdateSpy?.mockRestore();
+				jest.clearAllMocks();
+			});
+
+			it('reverts changes to a user following a failed user update', async () => {
+				// arrange
+				const updatedUser = randomUser.toJSON();
+				updatedUser.userName = 'updatedUserName';
+				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
+				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
+				
+				// act
+				void await logService['rollBackUserUpdate'](updatedUserEntity);
+
+				// assert
+				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
+				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toJSON());
+			});
+
+			it('by default retries updating user 4 times if initial attempt fails', async () => {
+				// arrange
+				const updatedUser = randomUser.toJSON();
+				updatedUser.userName = 'updatedUserName';
+				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
+				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
+				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
+				);
+
+				// act
+				void await logService['rollBackUserUpdate'](updatedUserEntity);
+
+				// assert
+				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(5); // initial attempt + 4 retries (default)
+
+				// clean up
+				userRepoUpdateSpy?.mockRestore();
+			});
+
+			it('optionally can retry updating user a specified number of times if initial attempt fails', async () => {
+				// arrange
+				const updatedUser = randomUser.toJSON();
+				updatedUser.userName = 'updatedUserName';
+				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
+				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
+				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
+				);
+
+				// act
+				void await logService['rollBackUserUpdate'](updatedUserEntity, 2); // 2 retries
+
+				// assert
+				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(3); // initial attempt + 2 retries
+
+				// clean up
+				userRepoUpdateSpy?.mockRestore();
+			});
+
+			it('by default waits 500ms between retries when updating user', async () => {
+				// arrange
+				const updatedUser = randomUser.toJSON();
+				updatedUser.userName = 'updatedUserName';
+				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
+				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
+				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
+				);
+
+				const start = Date.now();
+				// act
+				void await logService['rollBackUserUpdate'](updatedUserEntity); // 1 retry
+
+				// assert
+				const end = Date.now();
+				const elapsed = end - start;
+				expect(elapsed).toBeGreaterThanOrEqual(500); // default wait time
+
+				// clean up
+				userRepoUpdateSpy?.mockRestore();
+			});
+
+			it('optionally can specify wait time between retries when updating user', async () => {
+				// arrange
+				const updatedUser = randomUser.toJSON();
+				updatedUser.userName = 'updatedUserName';
+				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
+				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
+				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
+				);
+
+				const start = Date.now();
+				// act
+				void await logService['rollBackUserUpdate'](updatedUserEntity, 1, 100); // 1 retry, 100ms wait
+
+				// assert
+				const end = Date.now();
+				const elapsed = end - start;
+				expect(elapsed).toBeGreaterThanOrEqual(100); // specified wait time
+
+				// clean up
+				userRepoUpdateSpy?.mockRestore();
+			});
+
+			it('by default retries updating user 4 times if initial attempt fails', async () => {
+				// arrange
+				const updatedUser = randomUser.toJSON();
+				updatedUser.userName = 'updatedUserName';
+				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
+				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
+				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
+				);
+
+				// act
+				void await logService['rollBackUserUpdate'](updatedUserEntity);
+
+				// assert
+				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(5); // initial attempt + 4 retries (default)
+
+				// clean up
+				userRepoUpdateSpy?.mockRestore();
+			});
+
+			it('optionally can retry updating user a specified number of times if initial attempt fails', async () => {
+				// arrange
+				const updatedUser = randomUser.toJSON();
+				updatedUser.userName = 'updatedUserName';
+				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
+				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
+				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
+				);
+
+				// act
+				void await logService['rollBackUserUpdate'](updatedUserEntity, 2); // 2 retries
+
+				// assert
+				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(3); // initial attempt + 2 retries
+
+				// clean up
+				userRepoUpdateSpy?.mockRestore();
+			});
+		});
+		*/
+
 		describe('toConditioningLogSeries', () => {
 			let userIdDTO: EntityIdDTO;
 			beforeEach(() => {
