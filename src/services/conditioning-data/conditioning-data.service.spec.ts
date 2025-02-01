@@ -39,7 +39,6 @@ import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserRepository } from '../../repositories/user.repo';
-import exp from 'constants';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -860,10 +859,9 @@ describe('ConditioningDataService', () => {
 					return Promise.resolve(Result.ok<ConditioningLog<any, ConditioningLogDTO>>(newLog!))
 				});
 
-				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation((id) => {
-					console.debug(`Deleting log with id: ${id}`); // bug: spy does not get called, deleteOrphanedLog receives undefined Result
-					return Promise.resolve(Result.ok());
-				});
+				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation((id) => 
+					Promise.resolve(Result.ok())
+				);
 
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.ok(randomUser))
@@ -1002,6 +1000,8 @@ describe('ConditioningDataService', () => {
 			});
 
 			it('throws PersistenceError if updating user fails in persistence layer', async () => {
+				// NOTE: Details of rollback tested in rollbackLogCreation() tests
+				
 				// arrange
 				userRepoUpdateSpy.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() => {
@@ -1867,7 +1867,7 @@ describe('ConditioningDataService', () => {
 	});
 
 	describe('Protected Methods', () => {
-		describe('deleteOrphanedLog', () => {
+		describe('rollbackLogCreation', () => {
 			let logRepoDeleteSpy: any;
 			beforeEach(() => {
 				logRepoDeleteSpy?.mockRestore();
@@ -1886,7 +1886,7 @@ describe('ConditioningDataService', () => {
 				const orphanedLogId = randomLog!.entityId!;
 				
 				// act
-				void await logService['deleteOrphanedLog'](orphanedLogId);
+				void await logService['rollbackLogCreation'](orphanedLogId);
 				
 
 				// assert
@@ -1899,7 +1899,7 @@ describe('ConditioningDataService', () => {
 				const orphanedLogId = randomLog!.entityId!;
 				
 				// act
-				void await logService['deleteOrphanedLog'](orphanedLogId);
+				void await logService['rollbackLogCreation'](orphanedLogId);
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -1911,7 +1911,7 @@ describe('ConditioningDataService', () => {
 				const orphanedLogId = randomLog!.entityId!;
 				
 				// act
-				void await logService['deleteOrphanedLog'](orphanedLogId, true); // soft delete
+				void await logService['rollbackLogCreation'](orphanedLogId, true); // soft delete
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -1927,7 +1927,7 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act
-				void await logService['deleteOrphanedLog'](orphanedLogId);
+				void await logService['rollbackLogCreation'](orphanedLogId);
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(6); // initial attempt + 5 retries (default)
@@ -1942,7 +1942,7 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act
-				void await logService['deleteOrphanedLog'](orphanedLogId, false, 2); // 2 retries
+				void await logService['rollbackLogCreation'](orphanedLogId, false, 2); // 2 retries
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(3); // initial attempt + 2 retries
@@ -1958,7 +1958,7 @@ describe('ConditioningDataService', () => {
 
 				const start = Date.now();
 				// act
-				void await logService['deleteOrphanedLog'](orphanedLogId, false, ); // 1 retry
+				void await logService['rollbackLogCreation'](orphanedLogId, false, ); // 1 retry
 
 				// assert
 				const end = Date.now();
@@ -1976,7 +1976,7 @@ describe('ConditioningDataService', () => {
 
 				const start = Date.now();
 				// act
-				void await logService['deleteOrphanedLog'](orphanedLogId, false, 1, 100); // 1 retry, 100ms wait
+				void await logService['rollbackLogCreation'](orphanedLogId, false, 1, 100); // 1 retry, 100ms wait
 
 				// assert
 				const end = Date.now();

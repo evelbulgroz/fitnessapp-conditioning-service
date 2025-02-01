@@ -151,7 +151,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		const userUpdateResult = await this.userRepo.update(user.toDTO());
 		if (userUpdateResult.isFailure) { // user update failed -> roll back log creation, then throw persistence error
 			try {
-				this.deleteOrphanedLog(newLog.entityId!); // deleting orphaned log from log repo, retry if necessary
+				this.rollbackLogCreation(newLog.entityId!); // deleting orphaned log from log repo, retry if necessary
 			}
 			catch (error) {
 				console.error('Error rolling back log creation: ', error);
@@ -649,12 +649,12 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @param retries Number of retries before giving up
 	 * @param delay Delay in milliseconds between retries
 	 */ 
-	protected async deleteOrphanedLog(logId: EntityId, softDelete = false, retries = 5, delay = 500): Promise<void> {
+	protected async rollbackLogCreation(logId: EntityId, softDelete = false, retries = 5, delay = 500): Promise<void> {
 		const deleteResult = await this.logRepo.delete(logId, softDelete);
 		if (deleteResult.isFailure) {
 			if (retries > 0) {
 				await new Promise((resolve) => setTimeout(resolve, delay));
-				await this.deleteOrphanedLog(logId, softDelete, retries - 1, delay);
+				await this.rollbackLogCreation(logId, softDelete, retries - 1, delay);
 			}
 			else {
 				this.logger.error(`${this.constructor.name}: Error deleting orphaned log ${logId} from log repo: ${deleteResult.error}`);
