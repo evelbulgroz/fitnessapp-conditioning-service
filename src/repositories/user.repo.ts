@@ -76,17 +76,15 @@ export class UserRepository extends Repository<User, UserDTO> {
 		return this.fetchByQuery(query, includeDeleted);
 	}
 
-	// NOTE: Rest of the public API is inherited from the base class,
-	// and is fully sufficient for the User entity.
+	// NOTE: Rest of the public API is inherited from the base class, and is fully sufficient for the User repo.
 
 	
 	//----------------------------- TEMPLATE METHOD IMPLEMENTATIONS -----------------------------//	
 		
-	
 	protected getClassFromDTO(dto: UserDTO): Result<any> {
 			return UserRepository.getClassFromName(dto.className);			
-		}
-		
+	}
+
 	//-------------------------------- PROTECTED METHOD OVERRIDES -------------------------------//
 
 	/** Create user created event
