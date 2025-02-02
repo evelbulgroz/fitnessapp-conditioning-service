@@ -18,6 +18,7 @@ import { UserRepository } from '../../repositories/user.repo';
  * @remark The user microservice holds all business data for the user, name, contact info, etc.
  * @remark The user entity in this microservice serves only to match a user's id in the user microservice to the ids of the logs the user has created here.
  * @remark This microservice acts as slave to the user microservice re. user management.
+ * @remark Clients have no reason to request user retrieval from this microservice, only logs.
  * @remark Therefore, this service only needs to process create, delete and undelete events received from the user microservice.
  * @remark Depends on the User repository for caching and persistence of user entities.
  */
