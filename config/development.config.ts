@@ -19,7 +19,7 @@ export default () => (<ConfigOptions>{
 		conditioning: {
 			repos: {
 				fs: {
-					dataDir: path.join('D:\\development-data\\fitnessapp\\conditioning-service\\fs-conditioning-repo\\data'),
+					dataDir: path.join('D:\\development-data\\fitnessapp\\conditioning-service\\conditioning-repo\\data'),
 					commandQueue: {
 						worker: {
 							throttleTime: 50
@@ -31,7 +31,7 @@ export default () => (<ConfigOptions>{
 		user: {
 			repos: {
 				fs: {
-					dataDir: path.join('D:\\development-data\\fitnessapp\\conditioning-service\\fs-user-repo\\data'),
+					dataDir: path.join('D:\\development-data\\fitnessapp\\conditioning-service\\user-repo\\data'),
 					commandQueue: {
 						worker: {
 							throttleTime: 50
