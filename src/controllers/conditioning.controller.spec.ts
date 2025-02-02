@@ -90,7 +90,7 @@ describe('ConditioningController', () => {
 				{ // Data service
 					provide: ConditioningDataService,
 					useValue: {
-						fetchaggretagedLogs: jest.fn(),
+						fetchAggretagedLogs: jest.fn(),
 						conditioningData: jest.fn(),
 						createLog: jest.fn(),
 						fetchLog: jest.fn(),
@@ -301,7 +301,7 @@ describe('ConditioningController', () => {
 				] as any[];
 				
 				jest.clearAllMocks();
-				aggregationSpy = jest.spyOn(conditioningDataService, 'fetchaggretagedLogs')
+				aggregationSpy = jest.spyOn(conditioningDataService, 'fetchAggretagedLogs')
 					.mockImplementation((ctx: UserContext) => {
 						if (ctx.roles?.includes('admin')) { // simulate an admin user requesting logs
 							return Promise.resolve(adminLogs as any)
@@ -341,7 +341,7 @@ describe('ConditioningController', () => {
 				jest.clearAllMocks();
 			});
 
-			it('gives normal users access to aggregate a collection of all their conditioning logs', async () => {
+			it('gives non-admin users access to aggregate a collection of all their own conditioning logs', async () => {
 				// arrange
 				
 				// act
@@ -358,7 +358,7 @@ describe('ConditioningController', () => {
 				expect(response.data).toEqual(userLogs);
 			});
 
-			it('optionally gives normal users access to aggregate their logs matching a query', async () => {
+			it('optionally gives non-admin users access to aggregate their logs matching a query', async () => {
 				// arrange
 				
 				// act
