@@ -453,4 +453,11 @@ describe('UserService', () => {
 			});
 		});
 	});
+
+	describe('Protected Methods', () => {
+		describe('checkIsValidCaller()', () => {  }); // todo: implement tests
+		describe('checkIsValidId()', () => {  }); // todo: implement tests
+		describe('findUserByMicroserviceId', () => {}); // todo: implement tests
+		describe('getUniqueUser()', () => {}); // todo: implement tests
+	});
 });
