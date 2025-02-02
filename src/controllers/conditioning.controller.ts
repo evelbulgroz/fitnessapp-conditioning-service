@@ -30,7 +30,6 @@ import { ValidationPipe } from './pipes/validation.pipe';
  * @remark It delegates the actual processing of data to the appropriate service methods, which are responsible for data access control, business logic and persistence.
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
  * @todo Add undelete log endpoint
- * @todo Move user CRUD operations to a separate controller, and refactor to use a user service
  */
 @ApiTags('conditioning')
 @ApiExtraModels(QueryDTO)
@@ -46,7 +45,6 @@ export class ConditioningController {
 	constructor(
 		private readonly logger: Logger,
 		private readonly LogService: ConditioningDataService,
-		//private readonly userService: UserService
 	) {}
 
 	//------------------------------ SINGLE-LOG CRUD -----------------------------//
