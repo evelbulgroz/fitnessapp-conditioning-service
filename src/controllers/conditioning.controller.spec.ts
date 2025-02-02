@@ -125,7 +125,7 @@ describe('ConditioningController', () => {
 		await app.listen(0); // enter 0 to let the OS choose a free port
 
 		const port = app.getHttpServer().address().port; // random port, e.g. 60703
-		serverUrl = `http://localhost:${port}`; // prefix not applied during testing, so omit it
+		serverUrl = `http://localhost:${port}/conditioning`; // prefix not applied during testing, so omit it
 	});
 
 	let adminAccessToken: string;
@@ -216,7 +216,7 @@ describe('ConditioningController', () => {
 				jest.clearAllMocks();
 			});
 			
-			it('provides summary of conditioning activities performed by type ', async () => {
+			it('provides summary of conditioning activities performed by type', async () => {
 				// arrange
 				const spy = jest.spyOn(conditioningDataService, 'fetchLogs').mockImplementationOnce(() => [
 					{ activity: 'SWIM' },
