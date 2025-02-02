@@ -1850,7 +1850,83 @@ describe('ConditioningDataService', () => {
 				expect(() => logService.deleteLog(userContext, otherUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
-			// TODO: Add failure scenarios
+			it('throws NotFoundError if no log is found in persistence layer matching provided log entity id', async () => {
+				// arrange
+				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
+					return Promise.resolve(Result.fail<void>('test error')) as any;
+				});
+
+				let error: Error | undefined;
+
+				// act/assert
+				try { // cannot get jest to catch the error, so using try/catch
+					await logService.deleteLog(userContext, randomUserIdDTO, new EntityIdDTO('no-such-log'));
+				}
+				catch (e) {
+					error = e;
+					expect(e).toBeInstanceOf(NotFoundError);
+				}
+				expect(error).toBeDefined();
+				
+				// clean up
+				logRepoFetchByIdSpy?.mockRestore();
+			});
+
+			it('throws PersistenceError if updating user in user repo fails (hard delete)', async () => {
+				// arrange
+				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
+					Promise.resolve(Result.fail('test error'))
+				);
+				let error: Error | undefined;
+
+				// act/assert
+				try { // cannot get jest to catch the error, so using try/catch
+					await logService.deleteLog(userContext, randomUserIdDTO, randomLogIdDTO, false); // user only updated when hard deleting
+				}
+				catch (e) {
+					error = e;
+					expect(e).toBeInstanceOf(PersistenceError);
+				}
+				expect(error).toBeDefined();
+
+				// clean up
+				userRepoUpdateSpy?.mockRestore();
+			});
+
+			it('does not update user if soft deleting log', async () => {
+				// arrange
+				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
+
+				// act
+				void await logService.deleteLog(userContext, randomUserIdDTO, logIdDTO);
+
+				// assert
+				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(0);
+			});
+
+			it('throws PersistenceError if deleting log in log repo fails', async () => {
+				// arrange
+				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
+					return Promise.resolve(Result.fail<void>('test error'));
+				});
+				let error: Error | undefined;
+
+				// act/assert
+				try { // cannot get jest to catch the error, so using try/catch
+					await logService.deleteLog(userContext, randomUserIdDTO, randomLogIdDTO);
+				}
+				catch (e) {
+					error = e;
+					expect(e).toBeInstanceOf(PersistenceError);
+				}
+				expect(error).toBeDefined();
+
+				// clean up
+				logRepoDeleteSpy?.mockRestore();
+			});
 		});
 
 		describe('undeleteLog', () => {
