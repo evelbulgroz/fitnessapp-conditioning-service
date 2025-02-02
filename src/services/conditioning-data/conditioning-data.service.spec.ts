@@ -38,8 +38,8 @@ import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error'
 import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
+import { UserPersistenceDTO } from '../../dtos/domain/user-persistence.dto';
 import { UserRepository } from '../../repositories/user.repo';
-import { log } from 'console';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -1825,6 +1825,31 @@ describe('ConditioningDataService', () => {
 				});
 			});
 
+			it('succeeds if admin user deletes log for another user', async () => {
+				// arrange
+				userContext.roles = ['admin'];
+				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				const otherUserLogs = await logService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
+				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
+
+				// act
+				expect(() => logService.deleteLog(userContext, otherUserIdDTO, randomOtherUserLogId)).not.toThrow();
+			});
+
+			it('throws UnauthorizedAccessError if non-admin user tries to delete log for another user', async () => {
+				// arrange
+				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				const otherUserLogs = await logService.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
+				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
+
+				// act/assert
+				expect(() => logService.deleteLog(userContext, otherUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+			});
+
 			// TODO: Add failure scenarios
 		});
 
@@ -2083,14 +2108,34 @@ describe('ConditioningDataService', () => {
 				// clean up
 				logRepoDeleteSpy?.mockRestore();
 			});
+
+			it('logs error if deleting an orphaned log fails', async () => {
+				// arrange
+				const orphanedLogId = randomLog!.entityId!;
+				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
+					return Promise.resolve(Result.fail<void>('test error'));
+				});
+				const errorSpy = jest.spyOn(logService['logger'], 'error').mockImplementation(() => { }); // do nothing
+
+				// act
+				void await logService['rollbackLogCreation'](orphanedLogId);
+
+				// assert
+				expect(errorSpy).toHaveBeenCalled();
+				expect(errorSpy).toHaveBeenCalledWith(`${logService.constructor.name}: Error rolling back log creation for ${orphanedLogId}: test error`);
+				errorSpy.mockRestore();
+			});
 		});
 
-		/*describe('rollBackUserUpdate', () => {
+		describe('rollBackUserUpdate', () => {
+			let originalPersistenceDTO: UserPersistenceDTO;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.ok(randomUser))
 				);
+				originalPersistenceDTO = randomUser.toPersistenceDTO();
 			});
 
 			afterEach(() => {
@@ -2100,35 +2145,26 @@ describe('ConditioningDataService', () => {
 
 			it('reverts changes to a user following a failed user update', async () => {
 				// arrange
-				const updatedUser = randomUser.toJSON();
-				updatedUser.userName = 'updatedUserName';
-				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
-				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
 				
 				// act
-				void await logService['rollBackUserUpdate'](updatedUserEntity);
+				void await logService['rollBackUserUpdate'](originalPersistenceDTO);
 
 				// assert
-				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
-				expect(userRepoUpdateSpy).toHaveBeenCalledWith(randomUser.toJSON());
+				expect(userRepoUpdateSpy).toHaveBeenCalledWith(originalPersistenceDTO);
 			});
 
 			it('by default retries updating user 4 times if initial attempt fails', async () => {
 				// arrange
-				const updatedUser = randomUser.toJSON();
-				updatedUser.userName = 'updatedUserName';
-				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
-				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
 				userRepoUpdateSpy.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
-					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
+					Promise.resolve(Result.fail('test error'))
 				);
 
 				// act
-				void await logService['rollBackUserUpdate'](updatedUserEntity);
+				void await logService['rollBackUserUpdate'](originalPersistenceDTO);
 
 				// assert
-				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(5); // initial attempt + 4 retries (default)
+				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(6); // initial attempt + 5 retries (default)
 
 				// clean up
 				userRepoUpdateSpy?.mockRestore();
@@ -2136,17 +2172,13 @@ describe('ConditioningDataService', () => {
 
 			it('optionally can retry updating user a specified number of times if initial attempt fails', async () => {
 				// arrange
-				const updatedUser = randomUser.toJSON();
-				updatedUser.userName = 'updatedUserName';
-				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
-				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
 				userRepoUpdateSpy.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
-					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
+					Promise.resolve(Result.fail('test error'))
 				);
 
 				// act
-				void await logService['rollBackUserUpdate'](updatedUserEntity, 2); // 2 retries
+				void await logService['rollBackUserUpdate'](originalPersistenceDTO, 2); // 2 retries
 
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(3); // initial attempt + 2 retries
@@ -2157,18 +2189,14 @@ describe('ConditioningDataService', () => {
 
 			it('by default waits 500ms between retries when updating user', async () => {
 				// arrange
-				const updatedUser = randomUser.toJSON();
-				updatedUser.userName = 'updatedUserName';
-				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
-				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
 				userRepoUpdateSpy.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
-					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
+					Promise.resolve(Result.fail('test error'))
 				);
-
 				const start = Date.now();
+
 				// act
-				void await logService['rollBackUserUpdate'](updatedUserEntity); // 1 retry
+				void await logService['rollBackUserUpdate'](originalPersistenceDTO, 1); // 1 retry
 
 				// assert
 				const end = Date.now();
@@ -2181,18 +2209,14 @@ describe('ConditioningDataService', () => {
 
 			it('optionally can specify wait time between retries when updating user', async () => {
 				// arrange
-				const updatedUser = randomUser.toJSON();
-				updatedUser.userName = 'updatedUserName';
-				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
-				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
 				userRepoUpdateSpy.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
-					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
-				);
-
+					Promise.resolve(Result.fail('test error'))
+				);				
 				const start = Date.now();
+
 				// act
-				void await logService['rollBackUserUpdate'](updatedUserEntity, 1, 100); // 1 retry, 100ms wait
+				void await logService['rollBackUserUpdate'](originalPersistenceDTO, 1, 100); // 1 retry, 100ms wait
 
 				// assert
 				const end = Date.now();
@@ -2203,49 +2227,24 @@ describe('ConditioningDataService', () => {
 				userRepoUpdateSpy?.mockRestore();
 			});
 
-			it('by default retries updating user 4 times if initial attempt fails', async () => {
+			it('logs error if user update fails', async () => {
 				// arrange
-				const updatedUser = randomUser.toJSON();
-				updatedUser.userName = 'updatedUserName';
-				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
-				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
+				const error = new Error('test error');
 				userRepoUpdateSpy.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
-					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
+					Promise.resolve(Result.fail(error))
 				);
+				const errorSpy = jest.spyOn(logService['logger'], 'error').mockImplementation(() => { }); // do nothing
 
 				// act
-				void await logService['rollBackUserUpdate'](updatedUserEntity);
+				void await logService['rollBackUserUpdate'](originalPersistenceDTO);
 
 				// assert
-				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(5); // initial attempt + 4 retries (default)
-
-				// clean up
-				userRepoUpdateSpy?.mockRestore();
-			});
-
-			it('optionally can retry updating user a specified number of times if initial attempt fails', async () => {
-				// arrange
-				const updatedUser = randomUser.toJSON();
-				updatedUser.userName = 'updatedUserName';
-				const updatedUserDTO = UserDTO.create(updatedUser).value as UserDTO;
-				const updatedUserEntity = User.create(updatedUserDTO, undefined, false).value as User<any, UserDTO>;
-				userRepoUpdateSpy.mockRestore();
-				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
-					Promise.resolve(Result.fail<User<any, UserDTO>>('test error'))
-				);
-
-				// act
-				void await logService['rollBackUserUpdate'](updatedUserEntity, 2); // 2 retries
-
-				// assert
-				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(3); // initial attempt + 2 retries
-
-				// clean up
-				userRepoUpdateSpy?.mockRestore();
+				expect(errorSpy).toHaveBeenCalled();
+				expect(errorSpy).toHaveBeenCalledWith(`${logService.constructor.name}: Error rolling back user update for ${originalPersistenceDTO.userId}: Error: ${error.message}`);
+				errorSpy.mockRestore();
 			});
 		});
-		*/
 
 		describe('toConditioningLogSeries', () => {
 			let userIdDTO: EntityIdDTO;

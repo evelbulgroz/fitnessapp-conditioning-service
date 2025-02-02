@@ -22,11 +22,11 @@ import { QueryDTO } from '../../dtos/sanitization/query.dto';
 import { QueryMapper } from './../../mappers/query.mapper';
 import { NotFoundError } from '../../domain/not-found.error';
 import { PersistenceError } from '../../domain/persistence.error';
+import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
 import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
-import { UserDTO } from '../../dtos/domain/user.dto';
+import { UserPersistenceDTO } from '../../dtos/domain/user-persistence.dto';
 import { UserRepository } from '../../repositories/user.repo';
-import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
 
 /** Helper function to default sort logs ascending by start date and time */
 function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: ConditioningLog<any, ConditioningLogDTO>): number {
@@ -440,7 +440,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		// update user in persistence layer:
 		// rolling back log deletion is harder than rolling back user update, so update user first
 		const user = await firstValueFrom(userResult.value as Observable<User>);
-		const originalUserDTO = user.toJSON();
+		const originalUserPersistenceDTO = user.toPersistenceDTO(); // save original user state for potential rollback
 		if (!softDelete) { // hard delete -> remove log from user (user entity has no concept of soft delete, so leave as is when soft deleting)
 			user.removeLog(logIdDTO.value!); // remove log
 			const userUpdateResult = await this.userRepo.update(user.toPersistenceDTO());
@@ -452,7 +452,8 @@ export class ConditioningDataService implements OnModuleDestroy {
 		// (soft) delete log in persistence layer
 		const logDeleteResult = await this.logRepo.delete(logIdDTO.value!, softDelete);
 		if (logDeleteResult.isFailure) { // deletion failed -> roll back user update, then throw persistence error
-			this.rollBackUserUpdate(user, originalUserDTO as any); // retry rolling back user update before continuing
+			this.rollBackUserUpdate(originalUserPersistenceDTO as any); // retry rolling back user update before continuing
+			throw new PersistenceError(`${this.constructor.name}: Error deleting conditioning log ${logIdDTO.value}: ${logDeleteResult.error}`);
 		}
 
 		// NOTE: cache is updated via subscription to user repo updates, no need to update cache here
@@ -657,7 +658,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 				await this.rollbackLogCreation(logId, softDelete, retries - 1, delay);
 			}
 			else {
-				this.logger.error(`${this.constructor.name}: Error deleting orphaned log ${logId} from log repo: ${deleteResult.error}`);
+				this.logger.error(`${this.constructor.name}: Error rolling back log creation for ${logId}: ${deleteResult.error}`);
 			}
 		}
 
@@ -665,20 +666,19 @@ export class ConditioningDataService implements OnModuleDestroy {
 	}
 
 	/* Roll back user update by updating user with original data (helper for log deletion)
-	 * @param user User entity to roll back
-	 * @param originalDTO Original user DTO to roll back to
+	 * @param originalPersistenceDTO Original user DTO to roll back to
 	 * @param retries Number of retries before giving up
 	 * @param delay Delay in milliseconds between retries
 	 */
-	protected async rollBackUserUpdate(user: User, originalDTO: UserDTO, retries = 5, delay = 500): Promise<void> {
-		const result = await this.userRepo.update(originalDTO);
+	protected async rollBackUserUpdate(originalPersistenceDTO: UserPersistenceDTO, retries = 5, delay = 500): Promise<void> {
+		const result = await this.userRepo.update(originalPersistenceDTO);
 		if (result.isFailure) {
 			if (retries > 0) {
 				await new Promise((resolve) => setTimeout(resolve, delay));
-				await this.rollBackUserUpdate(user, originalDTO, retries - 1, delay);
+				await this.rollBackUserUpdate(originalPersistenceDTO, retries - 1, delay);
 			}
 			else {
-				this.logger.error(`${this.constructor.name}: Error rolling back user update for ${user.userId}: ${result.error}`);
+				this.logger.error(`${this.constructor.name}: Error rolling back user update for ${originalPersistenceDTO.userId}: ${result.error}`);
 			}
 		}
 	}

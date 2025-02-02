@@ -1,7 +1,8 @@
-import { Entity, EntityId, EntityMetadataDTO } from "@evelbulgroz/ddd-base";
+import { Entity, EntityDTO, EntityId, EntityMetadataDTO, EntityPersistenceDTO } from "@evelbulgroz/ddd-base";
 import { IsArray, IsDefined, IsInstanceOfOneOf, IsInstanceOfOneOfAll, IsNotEmpty } from '@evelbulgroz/sanitizer-decorator';
 
 import { UserDTO } from "../dtos/domain/user.dto";
+import { UserPersistenceDTO } from "../dtos/domain/user-persistence.dto";
 
 /** A human user of the system, e.g. a coach or an athlete, with logs of conditioning activities
  * @remark Shallow implementation intended only to hold associations between users and logs
@@ -82,6 +83,10 @@ export class User extends Entity<User, UserDTO> {
 			userId: this.userId,
 			logs: [...this.logs] // shallow copy
 		};
+	}
+
+	public toPersistenceDTO(): UserPersistenceDTO {
+		return super.toPersistenceDTO() as UserPersistenceDTO;
 	}
 
 	//----------------------------- PROPERTIES -----------------------------//
