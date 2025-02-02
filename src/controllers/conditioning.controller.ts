@@ -34,7 +34,7 @@ import { ValidationPipe } from './pipes/validation.pipe';
  */
 @ApiTags('conditioning')
 @ApiExtraModels(QueryDTO)
-@Controller() // set prefix in config
+@Controller('conditioning') // version prefix set in config
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control

@@ -11,7 +11,7 @@ export default () => (<ConfigOptions>{
 	environment: 'production',
 	app: {
 		baseURL: new URL('http://localhost:3060/'),
-		globalprefix: `api/v${majorVersion}/conditioning`,
+		globalprefix: `api/v${majorVersion}`,
 		serviceid: uuidv4(),
 		servicename: 'fitnessapp-conditioning-service',
 		version: majorVersion
