@@ -245,7 +245,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		});
 	}
 
-	/** New API: Get all conditioning logs for user and mathcing query (if provided)
+	/** New API: Get all conditioning logs for user and matching query (if provided)
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to retrieve logs, wrapped in a DTO
 	 * @param queryDTO Optional query to filter logs (else all accessible logs for role are returned)
