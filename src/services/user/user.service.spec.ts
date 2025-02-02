@@ -144,7 +144,7 @@ describe('UserService', () => {
 			});
 		});
 		
-		describe('create()', () => {
+		describe('createUser', () => {
 			let newUserIdDTO: EntityIdDTO;
 			let newUser: User;
 			beforeEach(() => {
@@ -161,7 +161,7 @@ describe('UserService', () => {
 				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
 				
 				// act
-				const result = await service.create(userContext, newUserIdDTO);
+				const result = await service.createUser(userContext, newUserIdDTO);
 
 				// assert
 				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
@@ -173,7 +173,7 @@ describe('UserService', () => {
 				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
 
 				// act
-				const result = await service.create(userContext, newUserIdDTO);
+				const result = await service.createUser(userContext, newUserIdDTO);
 
 				// assert
 				expect(userRepoCreateSpy).toHaveBeenCalledTimes(1);
@@ -193,7 +193,7 @@ describe('UserService', () => {
 				});
 
 				// act
-				const result = service.create(invalidContext, newUserIdDTO);
+				const result = service.createUser(invalidContext, newUserIdDTO);
 
 				// assert
 				await expect(result).rejects.toThrow('User invalid not authorized to access UserService.createUser');
@@ -209,7 +209,7 @@ describe('UserService', () => {
 				});
 
 				// act
-				const result = service.create(invalidContext, newUserIdDTO);
+				const result = service.createUser(invalidContext, newUserIdDTO);
 
 				// assert
 				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserService.createUser');
@@ -220,7 +220,7 @@ describe('UserService', () => {
 				randomUserId['_value'] = null as unknown as string;
 				
 				// act
-				const result = service.create(userContext, randomUserId);
+				const result = service.createUser(userContext, randomUserId);
 
 				// assert
 				await expect(result).rejects.toThrow("UserService.createUser requires a valid user id, got: null");
@@ -232,19 +232,19 @@ describe('UserService', () => {
 				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([newUser]))));
 
 				// act
-				const result = service.create(userContext, newUserIdDTO);
+				const result = service.createUser(userContext, newUserIdDTO);
 
 				// assert
 				await expect(result).rejects.toThrow(/already exists/);
 			});
 		});
 		
-		describe('delete()', () => {
+		describe('deleteUser', () => {
 			it('initializes the service', async () => {
 				// arrange
 				
 				// act
-				const result = await service.delete(userContext, randomUserId);
+				const result = await service.deleteUser(userContext, randomUserId);
 
 				// assert
 				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
@@ -254,7 +254,7 @@ describe('UserService', () => {
 				// arrange
 				
 				// act
-				const result = await service.delete(userContext, randomUserId);
+				const result = await service.deleteUser(userContext, randomUserId);
 
 				// assert
 				expect(result).toBeUndefined();
@@ -266,7 +266,7 @@ describe('UserService', () => {
 				expect(randomUser.deletedOn).not.toBeDefined(); // sanity check
 				
 				// act
-				const result = await service.delete(userContext, randomUserId);
+				const result = await service.deleteUser(userContext, randomUserId);
 
 				// assert
 				expect(userRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -280,7 +280,7 @@ describe('UserService', () => {
 				randomUser.deletedOn = originalDeletedOn;
 				
 				// act
-				const result = await service.delete(userContext, randomUserId, true);
+				const result = await service.deleteUser(userContext, randomUserId, true);
 
 				// assert
 				expect(userRepoDeleteSpy).not.toHaveBeenCalled();
@@ -293,7 +293,7 @@ describe('UserService', () => {
 				const originalEntityId = randomUser.entityId;		
 				
 				// act
-				const result = await service.delete(userContext, randomUserId, false);
+				const result = await service.deleteUser(userContext, randomUserId, false);
 
 				// assert
 				expect(userRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -312,7 +312,7 @@ describe('UserService', () => {
 				});
 
 				// act
-				const result = service.delete(invalidContext, randomUserId);
+				const result = service.deleteUser(invalidContext, randomUserId);
 
 				// assert
 				await expect(result).rejects.toThrow('User invalid not authorized to access UserService.delete');
@@ -328,7 +328,7 @@ describe('UserService', () => {
 				});
 
 				// act
-				const result = service.delete(invalidContext, randomUserId);
+				const result = service.deleteUser(invalidContext, randomUserId);
 
 				// assert
 				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserService.delete');
@@ -339,7 +339,7 @@ describe('UserService', () => {
 				randomUserId['_value'] = null as unknown as string;
 				
 				// act
-				const result = service.delete(userContext, randomUserId);
+				const result = service.deleteUser(userContext, randomUserId);
 
 				// assert
 				await expect(result).rejects.toThrow("UserService.delete requires a valid user id, got: null");
@@ -351,19 +351,19 @@ describe('UserService', () => {
 				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
 
 				// act
-				const result = service.delete(userContext, randomUserId);
+				const result = service.deleteUser(userContext, randomUserId);
 
 				// assert
 				await expect(result).rejects.toThrow(/does not exist/);
 			});
 		});	
 		
-		describe('undelete()', () => {
+		describe('undeleteUser', () => {
 			it('initializes the service', async () => {
 				// arrange
 				
 				// act
-				const result = await service.undelete(userContext, randomUserId);
+				const result = await service.undeleteUser(userContext, randomUserId);
 
 				// assert
 				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
@@ -374,7 +374,7 @@ describe('UserService', () => {
 				randomUser.deletedOn = new Date(randomUser.createdOn!.getTime() + 1000);
 				
 				// act
-				const result = await service.undelete(userContext, randomUserId);
+				const result = await service.undeleteUser(userContext, randomUserId);
 
 				// assert
 				expect(userRepoUndeleteSpy).toHaveBeenCalledTimes(1);
@@ -389,7 +389,7 @@ describe('UserService', () => {
 				randomUser.deletedOn = undefined; // sanity check
 				
 				// act
-				const result = await service.undelete(userContext, randomUserId);
+				const result = await service.undeleteUser(userContext, randomUserId);
 
 				// assert
 				expect(userRepoUndeleteSpy).not.toHaveBeenCalled();
@@ -407,7 +407,7 @@ describe('UserService', () => {
 				});
 
 				// act
-				const result = service.undelete(invalidContext, randomUserId);
+				const result = service.undeleteUser(invalidContext, randomUserId);
 
 				// assert
 				await expect(result).rejects.toThrow('User invalid not authorized to access UserService.undelete');
@@ -423,7 +423,7 @@ describe('UserService', () => {
 				});
 
 				// act
-				const result = service.undelete(invalidContext, randomUserId);
+				const result = service.undeleteUser(invalidContext, randomUserId);
 
 				// assert
 				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserService.undelete');
@@ -434,7 +434,7 @@ describe('UserService', () => {
 				randomUserId['_value'] = null as unknown as string;
 				
 				// act
-				const result = service.undelete(userContext, randomUserId);
+				const result = service.undeleteUser(userContext, randomUserId);
 
 				// assert
 				await expect(result).rejects.toThrow("UserService.undelete requires a valid user id, got: null");
@@ -446,7 +446,7 @@ describe('UserService', () => {
 				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
 
 				// act
-				const result = service.undelete(userContext, randomUserId);
+				const result = service.undeleteUser(userContext, randomUserId);
 
 				// assert
 				await expect(result).rejects.toThrow(/does not exist/);

@@ -67,7 +67,7 @@ export class UserService {
 	 * @remark Created user holds both entity unique to this microservice and the user id from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	*/
-	public async create(ctx: UserContext, userIdDTO: EntityIdDTO): Promise<EntityId> {
+	public async createUser(ctx: UserContext, userIdDTO: EntityIdDTO): Promise<EntityId> {
 		// do common checks
 		await this.isReady();
 		this.checkIsValidCaller(ctx, 'createUser');
@@ -99,7 +99,7 @@ export class UserService {
 	 * @remark Intended to be mostly triggered by a user delete event received from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	 */
-	public async delete(ctx: UserContext, userIdDTO: EntityIdDTO, softDelete = true): Promise<void> {
+	public async deleteUser(ctx: UserContext, userIdDTO: EntityIdDTO, softDelete = true): Promise<void> {
 		// do common checks
 		await this.isReady();
 		this.checkIsValidCaller(ctx, 'delete');
@@ -131,7 +131,7 @@ export class UserService {
 	 * @remark Intended to be mostly triggered by a user undelete event received from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	 */
-	public async undelete(ctx: UserContext, userIdDTO: EntityIdDTO): Promise<void> {
+	public async undeleteUser(ctx: UserContext, userIdDTO: EntityIdDTO): Promise<void> {
 		// do common checks
 		await this.isReady();
 		this.checkIsValidCaller(ctx, 'undelete');
