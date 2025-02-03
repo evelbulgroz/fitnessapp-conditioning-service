@@ -31,7 +31,7 @@ describe('UserController', () => {
 	let crypto: CryptoService;
 	let http: HttpService;
 	let jwt: JwtService;
-	let serverUrl: string;
+	let baseUrl: string;
 	let userRepo: UserRepository;
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
@@ -91,7 +91,15 @@ describe('UserController', () => {
 					}
 				}
 			],
-		});
+		});		
+		/*
+		.overrideGuard(JwtAuthGuard)
+		.useValue({ canActivate: jest.fn(() => true) })
+		.overrideGuard(RolesGuard)
+		.useValue({ canActivate: jest.fn(() => true) })
+		.overrideGuard(LoggingGuard)
+		.useValue({ canActivate: jest.fn(() => true) })
+		*/
 		
 		app = module.createNestApplication();
 		controller = module.get<UserController>(UserController);
@@ -106,7 +114,7 @@ describe('UserController', () => {
 		await app.listen(0); // enter 0 to let the OS choose a free port
   
 		const port = app.getHttpServer().address().port; // random port, e.g. 60703
-		serverUrl = `http://localhost:${port}/user`; // prefix not applied during testing, so omit it
+		baseUrl = `http://localhost:${port}/user`; // prefix not applied during testing, so omit it
 	});
   
 	let adminAccessToken: string;
@@ -117,6 +125,7 @@ describe('UserController', () => {
 	let userContext: UserContext;
 	let userPayload: UserJwtPayload;
 	let userRepoSpy: any;
+	let userMicroServiceName: string;
 	beforeEach(async () => {
 		adminProps = {
 			userId: uuid(),
@@ -145,7 +154,10 @@ describe('UserController', () => {
 			userType: 'user',
 			roles: ['user'],
 		});
-  
+
+		// todo: pass this in token so controller can validate it
+		userMicroServiceName = config.get<string>('security.collaborators.user.serviceName')!;
+		
 		userPayload = { 
 			iss: await crypto.hash(config.get<string>('security.authentication.jwt.issuer')!),
 			sub: userContext.userId as string,
@@ -157,9 +169,9 @@ describe('UserController', () => {
 			subType: userContext.userType,
 			roles: ['user'],
 		};
-  
+
 		userAccessToken = await jwt.sign(userPayload);
-  
+
 		headers = { Authorization: `Bearer ${userAccessToken}` };
   
 		userRepoSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() => Promise.resolve(Result.ok(of({entityId: userContext.userId} as any))));
@@ -177,16 +189,92 @@ describe('UserController', () => {
 
 	describe('Endpoints', () => {
 		describe('createUser', () => {
-			it('creates a new user', async () => {
-				// arrange
-				headers = { Authorization: `Bearer ${userAccessToken}` };
-				const userId = uuid();
-				
+			let requestConfig: any;
+			let url: string;
+			let userId: string;
+			beforeEach(() => {
+				requestConfig = { };
+				userId = uuid();
+				url = `${baseUrl}/${userId}`;
+			});
+
+			it('creates a new user and returns an empty success message', async () => {
+				// arrange				
 				// act
-				const response = await lastValueFrom(http.post(`${serverUrl}/${userId}`, {}, { headers }));
+				const response = await lastValueFrom(http.post(url, requestConfig, { headers }));
 
 				// assert
 				expect(response.status).toBe(201);
+				expect(response.data).toBe('');
+			});
+
+			it('throws a BadRequestException if access token is missing', async () => {
+				// arrange
+				headers = {};
+				const response$ = http.post(url, requestConfig, headers);
+
+				// act/assert
+				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+			});
+
+			it('throws if access token is invalid', async () => {
+				// arrange
+				headers = { Authorization: `Bearer invalid` };
+				const response$ = http.post(url, requestConfig, headers);
+
+				// act/assert
+				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+			});
+
+			it('throws if requester is not user microservice', async () => { }); // todo: implement
+
+			it('throws if user information in token payload is invalid', async () => {
+				// arrange
+				userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
+				const userAccessToken = await jwt.sign(adminPayload);
+				headers = { Authorization: `Bearer ${userAccessToken}` };
+				const response$ = http.post(url, requestConfig, { headers } );
+
+				// act/assert
+				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+			});
+
+			it('throws if user id is missing', async () => {
+				// arrange
+				const response$ = http.post(baseUrl, requestConfig, { headers });
+
+				// act/assert
+				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+			});
+
+			it('throws if user id is invalid', async () => {
+				// arrange
+				const response$ = http.post(baseUrl + '/invalid', requestConfig, { headers });
+
+				// act/assert
+				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+			});
+
+			it('throws if data service throws', async () => {
+				// arrange
+				const errorMessage = 'Request failed with status code 400';
+				const userServiceSpy = jest.spyOn(userDataService, 'createUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
+				const response$ = http.post(url, requestConfig, { headers });
+
+				// act/assert
+				 // jest can't catch errors thrown in async functions, so we have to catch it ourselves
+				let error: any;
+				let response: any;
+				try {
+					response = await lastValueFrom(response$);
+				}
+				catch (e) {
+					error = e;					
+				}
+				expect(error.message).toBe(errorMessage);
+
+				// clean up
+				userServiceSpy.mockRestore();
 			});
 		});
 	});

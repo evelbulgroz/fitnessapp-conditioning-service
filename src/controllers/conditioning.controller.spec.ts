@@ -46,7 +46,7 @@ describe('ConditioningController', () => {
 	let crypto: CryptoService;
 	let http: HttpService;
 	let jwt: JwtService;
-	let serverUrl: string;
+	let baseUrl: string;
 	let userRepo: UserRepository;
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
@@ -125,7 +125,7 @@ describe('ConditioningController', () => {
 		await app.listen(0); // enter 0 to let the OS choose a free port
 
 		const port = app.getHttpServer().address().port; // random port, e.g. 60703
-		serverUrl = `http://localhost:${port}/conditioning`; // prefix not applied during testing, so omit it
+		baseUrl = `http://localhost:${port}/conditioning`; // prefix not applied during testing, so omit it
 	});
 
 	let adminAccessToken: string;
@@ -208,7 +208,7 @@ describe('ConditioningController', () => {
 					{ activity: 'MTB' },
 				] as unknown as Promise<ConditioningLog<any, ConditioningLogDTO>[]>);			
 
-				url = `${serverUrl}/activities`;
+				url = `${baseUrl}/activities`;
 			});
 
 			afterEach(() => {
@@ -333,7 +333,7 @@ describe('ConditioningController', () => {
 					pageSize: 10,
 				};
 
-				url = `${serverUrl}/aggregate`;
+				url = `${baseUrl}/aggregate`;
 			});
 
 			afterEach(() => {
@@ -525,7 +525,7 @@ describe('ConditioningController', () => {
 								return Promise.resolve(newLogId); // return the log
 							});
 
-						urlPath = `${serverUrl}/log/`;
+						urlPath = `${baseUrl}/log/`;
 						url = urlPath + userContext.userId;
 					});
 
@@ -650,7 +650,7 @@ describe('ConditioningController', () => {
 								}					
 							});
 
-						urlPath = `${serverUrl}/log`;
+						urlPath = `${baseUrl}/log`;
 						url = `${urlPath}/${userContext.userId}/${logId}`;
 					});
 
@@ -754,7 +754,7 @@ describe('ConditioningController', () => {
 							}
 						);
 
-						urlPath = `${serverUrl}/log/`;
+						urlPath = `${baseUrl}/log/`;
 						url = `${urlPath}${userContext.userId}/${updatedLogId}`;
 					});
 
@@ -872,7 +872,7 @@ describe('ConditioningController', () => {
 							}
 						);
 
-						urlPath = `${serverUrl}/log/`;
+						urlPath = `${baseUrl}/log/`;
 						url = `${urlPath}${userContext.userId}/${deletedLogId}`;
 					});
 
@@ -1023,7 +1023,7 @@ describe('ConditioningController', () => {
 					
 					userIdDTO = new EntityIdDTO(userContext.userId);
 
-					const urlPath = `${serverUrl}/logs`;
+					const urlPath = `${baseUrl}/logs`;
 					url = `${urlPath}/${userContext.userId}`;
 				});
 
@@ -1104,7 +1104,7 @@ describe('ConditioningController', () => {
 
 				it('throws error if user id is not provided', async () => {
 					// arrange
-					const response$ = http.get(`${serverUrl}/logs`, { headers });
+					const response$ = http.get(`${baseUrl}/logs`, { headers });
 
 					// act/assert
 					expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -1112,7 +1112,7 @@ describe('ConditioningController', () => {
 
 				it('throws error if user id is invalid', async () => {
 					// arrange
-					const response$ = http.get(`${serverUrl}/logs/invalid`, { headers });
+					const response$ = http.get(`${baseUrl}/logs/invalid`, { headers });
 
 					// act/assert
 					expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -1164,7 +1164,7 @@ describe('ConditioningController', () => {
 			let url: string;
 			let urlPath: string;
 			beforeEach(() => {
-				url = `${serverUrl}/rules/`;
+				url = `${baseUrl}/rules/`;
 				urlPath = url + 'ConditioningLog';
 			});
 			

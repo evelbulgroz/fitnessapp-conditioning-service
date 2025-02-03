@@ -36,9 +36,9 @@ export class UserController {
 	) { }
 
 	@Post(':userId')
-	@ApiOperation({ summary: 'Create a new user' })
+	@ApiOperation({ summary: 'Create a new user', description: 'This endpoint is responsible for creating a new user in the system. It is intended for use by the user microservice only, to keep this service in sync, and is protected by authentication and role-based access control.' })
 	@ApiParam({ name: 'userId', description: 'The user id in the user microservice' })
-	@ApiResponse({ status: 201, description: 'User created successfully', type: EntityIdDTO })
+	@ApiResponse({ status: 201, description: 'User created successfully. Returns empty string as users should be referenced by their id in the user microservice, not their local id in this service.', type: String })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))		
@@ -47,9 +47,18 @@ export class UserController {
 		@Param('userId') userIdDTO: EntityIdDTO,
 	): Promise<void> {
 		try {
+			// check if user is authorized to create a user
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps); // maps 1:1 with JwtAuthResult
+			
+			// validate that request is from user microservice
+			console.debug('UserContext:', userContext);
+			/*if (!userContext.isMicroservice) {
+				throw new BadRequestException('Unauthorized: requester is not a microservice');
+			}*/
+			
+			
 			void await this.userService.createUser(userContext, userIdDTO); // Implement this method in your service
-			return; // return void, clients does not need to known local entity id of new user
+			// return void, clients do not need to known local entity id of new user
 		} catch (error) {
 			const errorMessage = `Failed to create user: ${error.message}`;
 			this.logger.error(errorMessage);

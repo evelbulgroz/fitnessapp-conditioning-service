@@ -97,5 +97,22 @@ export default () => (<ConfigOptions>{
 				},
 			}
 		},
+		'fitnessapp-user-service': {
+			baseURL: new URL('http://localhost:3000/registry/api/v1'),
+			connect: {
+				maxRetries: 1,
+				retryDelay: 1000 // 1 second
+			},
+			disconnect: {
+				maxRetries: 1,
+				retryDelay: 1000 // 1 second
+			},
+			endpoints: {
+				fetchUser: {
+					path: '/bootstrap',
+					method: 'GET'
+				},
+			}
+		},
 	}
 });
