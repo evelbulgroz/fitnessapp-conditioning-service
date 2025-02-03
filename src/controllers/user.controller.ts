@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Param, Post, Req, UseGuards, UsePipes } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, HttpCode, HttpStatus, Param, Patch, Post, Query, Req, UseGuards, UsePipes } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
@@ -10,6 +10,8 @@ import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
+import { ServiceName } from '../dtos/sanitization/service-name.class';
+import { UnauthorizedAccessError } from '../domain/unauthorized-access.error';
 import { UserService } from '../services/user/user.service';
 import { UserContext, UserContextProps } from '../domain/user-context.model';
 import { ValidationPipe } from './pipes/validation.pipe';
@@ -29,55 +31,129 @@ import { ValidationPipe } from './pipes/validation.pipe';
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 export class UserController {
+	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
+
 	constructor(
 		private readonly config: ConfigService,
 		private readonly logger: Logger,
 		private readonly userService: UserService,		
 	) { }
 
+	//---------------------------------------- PUBLIC API ---------------------------------------//
+
 	@Post(':userId')
-	@ApiOperation({ summary: 'Create a new user', description: 'This endpoint is responsible for creating a new user in the system. It is intended for use by the user microservice only, to keep this service in sync, and is protected by authentication and role-based access control.' })
+	@HttpCode(HttpStatus.CREATED)
+	@ApiOperation({ summary: 'Create a new user', description: 'This endpoint is responsible for creating a new user in this service. It is intended for use by the user microservice only, to keep this service in sync, and is protected by authentication and role-based access control.' })
 	@ApiParam({ name: 'userId', description: 'The user id in the user microservice' })
 	@ApiResponse({ status: 201, description: 'User created successfully. Returns empty string as users should be referenced by their id in the user microservice, not their local id in this service.', type: String })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
-	@Roles('admin', 'user')
+	@Roles('admin')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))		
 	async createUser(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,
 	): Promise<void> {
 		try {
-			// check if user is authorized to create a user
+			// sanitize user context 
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps); // maps 1:1 with JwtAuthResult
 			
 			// validate that request is from user microservice
-			console.debug('UserContext:', userContext);
-			/*if (!userContext.isMicroservice) {
-				throw new BadRequestException('Unauthorized: requester is not a microservice');
-			}*/
+			if(!this.isCallerUserMicroservice(userContext)) {
+				this.logger.error(`Unauthorized: Only user microservice can create users`);
+				throw new UnauthorizedAccessError('Unauthorized: Requester does not have permission to create user');
+			}
+
+			// validate that user role is authorized to create user
+			if(!userContext.roles.includes('admin')) {
+				this.logger.error(`Unauthorized: Only admin users can create users`);
+				throw new UnauthorizedAccessError('Unauthorized: Requester does not have permission to create user');
+			}
 			
-			
-			void await this.userService.createUser(userContext, userIdDTO); // Implement this method in your service
-			// return void, clients do not need to known local entity id of new user
+			// create user			
+			void await this.userService.createUser(userContext, userIdDTO); // Implement this method in your service			
 		} catch (error) {
 			const errorMessage = `Failed to create user: ${error.message}`;
 			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
+		// clients do not need to known local entity id of new user -> return undefined
 	}
 
-	/* Delete a user here when the corresponding user is deleted in the user microservice
-		* throws UnauthorizedException if requester is not user microservice
-		* @todo Implement this method in user service
-		* @remark Should use soft delete to preserve logs until periodic cleanup; this may require changes to Repository base class
-		* @remark Restoration of deleted users beyond a certain time period will rely on backups 
-	*/
-	/*
-	@Delete(':id')
-		async deleteUser(@Param('id') userId: string): Promise<void> {
-		await this.userService.deleteUser(userId);
+	@Delete(':userId/')
+	@HttpCode(HttpStatus.NO_CONTENT)
+	@ApiOperation({ summary: 'Delete a user', description: 'This endpoint is responsible for deleting a user in this service. It is intended for use by the user microservice only, to keep this service in sync, and is protected by authentication and role-based access control.' })
+	@ApiParam({ name: 'userId', description: 'The user id in the user microservice' })
+	@ApiResponse({ status: 204, description: 'User deleted successfully. Returns empty string.', type: String })
+	@ApiResponse({ status: 400, description: 'Invalid data' })
+	@Roles('admin')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	async deleteUser(
+		@Req() req: any,
+		@Param('userId') userIdDTO: EntityIdDTO,
+		@Query('softDelete') softDelete: boolean = true,
+	): Promise<void> {
+		try {
+			// sanitize user context 
+			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps); // maps 1:1 with JwtAuthResult
+			
+			// validate that request is from user microservice
+			if(!this.isCallerUserMicroservice(userContext)) {
+				this.logger.error(`Unauthorized: Only user microservice can delete users`);
+				throw new UnauthorizedAccessError('Unauthorized: Requester does not have permission to delete user');
+			}
+
+			// delete user
+			void await this.userService.deleteUser(userContext, userIdDTO, softDelete);
+		} catch (error) {
+			const errorMessage = `Failed to delete user: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
+		}
+		// return undefined
 	}
-	*/
+
+	@Patch(':userId/undelete')
+	@HttpCode(HttpStatus.NO_CONTENT)
+	@ApiOperation({ summary: 'Restore a user', description: 'This endpoint is responsible for restoring a previously soft deleted user in the system. It is intended for use by the user microservice only and is protected by authentication and role-based access control.' })
+	@ApiParam({ name: 'userId', description: 'The user id in the user microservice' })
+	@ApiResponse({ status: 204, description: 'User restored successfully' })
+	@ApiResponse({ status: 400, description: 'Invalid data' })
+	@Roles('admin')
+	async undeleteUser(
+		@Req() req: any,
+		@Param('userId') userIdDTO: EntityIdDTO,		
+	): Promise<void> {
+		try {
+			// sanitize user context 
+			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps); // maps 1:1 with JwtAuthResult
+
+			// validate that request is from user microservice
+			if(!this.isCallerUserMicroservice(userContext)) {
+				this.logger.error(`Unauthorized: Only user microservice can restore users`);
+				throw new UnauthorizedAccessError('Unauthorized: Requester does not have permission to restore user');
+			}
+
+			// restore user
+			await this.userService.undeleteUser(userContext, userIdDTO);
+		}
+		catch (error) {
+			const errorMessage = `Failed to restore user: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
+		}
+	}
+
+	//------------------------------------- PRITECTED METHODS -----------------------------------//
+
+	/* Determine if the request was made by the user microservice
+	 * @param userContext The user context of the request
+	 * @returns True if the request was made by the user microservice, false otherwise
+	 */
+	protected isCallerUserMicroservice(userContext: UserContext): boolean {
+		const safeRequestingServiceName = new ServiceName(userContext.userName);
+		const expectedServiceName = new ServiceName(this.config.get<string>('security.collaborators.user.serviceName')!);
+		return safeRequestingServiceName.equals(expectedServiceName);
+	}
 }
 
 export default UserController;

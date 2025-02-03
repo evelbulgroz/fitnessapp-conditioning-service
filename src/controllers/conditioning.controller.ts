@@ -42,12 +42,14 @@ import { ValidationPipe } from './pipes/validation.pipe';
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
 export class ConditioningController {
+	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
+	
 	constructor(
 		private readonly logger: Logger,
 		private readonly LogService: ConditioningDataService,
 	) {}
 
-	//------------------------------ SINGLE-LOG CRUD -----------------------------//
+	//-------------------------------- PUBLIC API: SINGLE-LOG CRUD ------------------------------//
 	
 	@Post('log/:userId')
 	@ApiOperation({ summary: 'Create a new conditioning log for a user' })
@@ -64,7 +66,7 @@ export class ConditioningController {
 	): Promise<EntityId> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			return await this.LogService.createLog(userContext, userIdDTO, logDTO); // Implement this method in your service
+			return await this.LogService.createLog(userContext, userIdDTO, logDTO);
 		} catch (error) {
 			const errorMessage = `Failed to create log: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -157,7 +159,8 @@ export class ConditioningController {
 		}
 	}
 
-	//---------------------------- BATCH LOG CRUD ---------------------------//
+
+	//---------------------------------- PUBLIC API: BATCH CRUD ---------------------------------//
 
 	@Get('logs/:userId')
 	@ApiOperation({ summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)' })
@@ -193,7 +196,7 @@ export class ConditioningController {
 		}
 	}
 
-	//--------------------------------- MISC --------------------------------//
+	//------------------------------------------- MISC ------------------------------------------//
 
 	/**
 	 * @todo Throw error if user tries to access another user's data (e.g. by passing a user id in the request)
@@ -297,7 +300,7 @@ export class ConditioningController {
 		}
 	}
 
-	//------------------------------ DEPRECATED -----------------------------//
+	//---------------------------------------- DEPRECATED ---------------------------------------//
 	
 	/** IN PRODUCTION: Get all conditioning logs grouped by activity type and aggregated by duration and date
 	 * @example http://localhost:3060/conditioning/api/v3/conditioning/sessions

@@ -11,6 +11,11 @@ export abstract class SafePrimitive<T extends string | number | boolean> {
 	
 	/** Returns the value of the data */
 	public abstract value: T;
+
+	/** Compares the value of this object to another SafePrimitive object */
+	public equals(other: SafePrimitive<T>): boolean {
+		return this.value === other.value;
+	}
 }
 
 export default SafePrimitive;
