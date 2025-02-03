@@ -11,19 +11,23 @@ import { Logger, Result } from '@evelbulgroz/ddd-base';
 import { BcryptCryptoService } from '../services/crypto/bcrypt-crypto.service';
 import { createTestingModule } from '../test/test-utils';
 import { CryptoService } from '../services/crypto/models/crypto-service.model';
+import { EntityIdDTO } from '../dtos/sanitization/entity-id.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthStrategy } from './strategies/jwt-auth.strategy';
 import { JwtSecretService } from '../services/jwt/jwt-secret.service';
 import { JwtService } from "../services/jwt/models/jwt-service.model";
 import { JsonWebtokenService } from '../services/jwt/json-webtoken.service';
-import { UserContext, UserContextProps } from '../domain/user-context.model';
+import { UserContext } from '../domain/user-context.model';
 import { UserController } from './user.controller';
 import { UserJwtPayload } from '../services/jwt/models/user-jwt-payload.model';
 import { UserRepository } from '../repositories/user.repo';
 import { UserService } from '../services/user/user.service';
 import { ValidationPipe } from './pipes/validation.pipe';
-import EntityIdDTO from '../dtos/sanitization/entity-id.dto';
-import { after } from 'node:test';
+
+// NOTE:
+  // Testing over http to enable decorators and guards without having to do a ton of additional setup/mocking.
+  // This also ensures request/response objects are correctly formatted and that the controller is correctly configured.
+  // Otherwise, this suite tests the controller in isolation from the rest of the application, i.e. as a unit test.
 
 describe('UserController', () => {
   	let app: INestApplication;

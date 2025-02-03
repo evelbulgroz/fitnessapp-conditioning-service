@@ -18,11 +18,12 @@ import { ValidationPipe } from './pipes/validation.pipe';
 
 /** Controller for user-related operations.
  * @remark This controller is responsible for handling user-related operations, such as creating a new user when a user is created in the user microservice.
- * @remark It delegates the actual processing of data to the appropriate service methods, which are responsible for data access control, business logic and persistence.
+ * @remark It delegates the actual processing of data to the appropriate data service methods, which are responsible for business logic and persistence.
  * @remark All endpoints are intended for use by the user microservice only, and are protected by authentication and role-based access control.
- * @remark Only stores the user id locally, which is immutable once set, so there is no need to support updating or retrieving users here.
+ * @remark Only stores the user id locally, which is immutable once set, so there is no need to support updating or retrieving other user data here.
+ * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation. No need to duplicate documentation for TypeDoc, hence fewer comments.
 */ 
-@ApiTags('user')
+@ApiTags('user') // version prefix set in main.ts
 @Controller('user')
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token

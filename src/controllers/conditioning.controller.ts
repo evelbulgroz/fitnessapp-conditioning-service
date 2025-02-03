@@ -22,18 +22,18 @@ import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
 import { TypeParamDTO } from '../dtos/sanitization/type-param.dto';
 import { UserContext, UserContextProps } from '../domain/user-context.model';
-//import { UserService } from '../services/user/user.service';
 import { ValidationPipe } from './pipes/validation.pipe';
 
 /** Controller serving requests for conditioning data
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests for conditioning data.
- * @remark It delegates the actual processing of data to the appropriate service methods, which are responsible for data access control, business logic and persistence.
+ * @remark It delegates the actual processing of data to the appropriate data service methods, which are responsible for business logic and persistence.
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
+ * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation. No need to duplicate documentation for TypeDoc, hence fewer comments. * 
  * @todo Add undelete log endpoint
  */
 @ApiTags('conditioning')
 @ApiExtraModels(QueryDTO)
-@Controller('conditioning') // version prefix set in config
+@Controller('conditioning') // version prefix set in main.ts
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
@@ -43,7 +43,7 @@ import { ValidationPipe } from './pipes/validation.pipe';
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
 export class ConditioningController {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
-	
+
 	constructor(
 		private readonly logger: Logger,
 		private readonly LogService: ConditioningDataService,

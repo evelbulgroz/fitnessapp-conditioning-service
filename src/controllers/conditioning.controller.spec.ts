@@ -34,9 +34,10 @@ import { ValidationPipe } from './pipes/validation.pipe';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
-// NOTE: Testing over Http to enable decorators and guards without having to do a ton of additional setup/mocking.
-// NOTE: Only validating that the correct service methods are called with the correct parameters and return the correct results.
-// NOTE: This in order to limit scope of tests to the controller: the service methods and e2e are tested elsewhere.
+// NOTE:
+  // Testing over http to enable decorators and guards without having to do a ton of additional setup/mocking.
+  // This also ensures request/response objects are correctly formatted and that the controller is correctly configured.
+  // Otherwise, this suite tests the controller in isolation from the rest of the application, i.e. as a unit test.
 
 describe('ConditioningController', () => {
 	let app: INestApplication;
