@@ -21,7 +21,7 @@ import { ValidationPipe } from './pipes/validation.pipe';
  * @remark It delegates the actual processing of data to the appropriate data service methods, which are responsible for business logic and persistence.
  * @remark All endpoints are intended for use by the user microservice only, and are protected by authentication and role-based access control.
  * @remark Only stores the user id locally, which is immutable once set, so there is no need to support updating or retrieving other user data here.
- * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation. No need to duplicate documentation for TypeDoc, hence fewer comments.
+ * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation. No need to duplicate documentation for TypeDoc, hence fewer traditional comments.
 */ 
 @ApiTags('user') // version prefix set in main.ts
 @Controller('user')
