@@ -977,7 +977,7 @@ describe('ConditioningController', () => {
 						jest.clearAllMocks();
 					});
 
-					it('undeletes an existing conditioning log', async () => {
+					it('undeletes a soft deleted conditioning log', async () => {
 						// arrange
 						headers = { Authorization: `Bearer ${userAccessToken}` };
 
