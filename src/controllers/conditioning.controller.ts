@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
 import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, getSchemaPath } from '@nestjs/swagger';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
@@ -154,6 +154,30 @@ export class ConditioningController {
 			void await this.LogService.deleteLog(userContext, userIdDTO, logIdDTO); // Implement this method in your service
 		} catch (error) {
 			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
+		}
+	}
+
+	@Patch('log/:userId/:logId/undelete')
+	@HttpCode(HttpStatus.NO_CONTENT)
+	@ApiOperation({ summary: 'Undelete a conditioning log by ID' })
+	@ApiParam({ name: 'userId', description: 'User ID' })
+	@ApiParam({ name: 'logId', description: 'Log ID' })
+	@ApiResponse({ status: 204, description: 'Log undeleted successfully, no content returned' })
+	@ApiResponse({ status: 404, description: 'Log not found' })
+	@Roles('admin', 'user')
+	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	public async undeleteLog(
+		@Req() req: any,
+		@Param('userId') userIdDTO: EntityIdDTO,		
+		@Param('logId') logIdDTO: EntityIdDTO
+	): Promise<void> {
+		try {
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			void await this.LogService.undeleteLog(userContext, userIdDTO, logIdDTO);
+		} catch (error) {
+			const errorMessage = `Failed to undelete log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}

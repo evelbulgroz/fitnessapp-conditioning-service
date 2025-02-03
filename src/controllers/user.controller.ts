@@ -115,9 +115,9 @@ export class UserController {
 
 	@Patch(':userId/undelete')
 	@HttpCode(HttpStatus.NO_CONTENT)
-	@ApiOperation({ summary: 'Restore a user', description: 'This endpoint is responsible for restoring a previously soft deleted user in the system. It is intended for use by the user microservice only and is protected by authentication and role-based access control.' })
+	@ApiOperation({ summary: 'Undelete a user', description: 'This endpoint is responsible for undeleting (i.e. restoring) a previously soft deleted user in the system. It is intended for use by the user microservice only and is protected by authentication and role-based access control.' })
 	@ApiParam({ name: 'userId', description: 'The user id in the user microservice' })
-	@ApiResponse({ status: 204, description: 'User restored successfully' })
+	@ApiResponse({ status: 204, description: 'User undeleted successfully' })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin')
 	async undeleteUser(

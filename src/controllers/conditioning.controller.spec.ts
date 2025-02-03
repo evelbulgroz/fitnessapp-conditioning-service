@@ -101,6 +101,7 @@ describe('ConditioningController', () => {
 						deleteLog: jest.fn(),
 						getByQuery: jest.fn(),
 						updateLog: jest.fn(),
+						undeleteLog: jest.fn(),						
 					},
 				},
 				{ // User repository
@@ -947,6 +948,100 @@ describe('ConditioningController', () => {
 						logSpy.mockRestore();
 						logSpy = jest.spyOn(conditioningDataService, 'deleteLog').mockImplementation(() => { throw new Error('Test Error'); });
 						const response$ = http.delete(urlPath, { headers });
+
+						// act/assert
+						await expect(lastValueFrom(response$)).rejects.toThrow();
+					});
+				});
+
+				xdescribe('undelete', () => {
+					let logSpy: any;
+					let undeletedLogId: EntityId;
+					let url: string;
+					let urlPath: string;
+					beforeEach(() => {
+						undeletedLogId = uuid();
+						logSpy = jest.spyOn(conditioningDataService, 'undeleteLog')
+							.mockImplementation((ctx: UserContext, entityId: EntityIdDTO) => {
+								void ctx, entityId; // suppress unused variable warning
+								return Promise.resolve(); // return nothing
+							}
+						);
+
+						urlPath = `${baseUrl}/log/`;
+						url = `${urlPath}${userContext.userId}/${undeletedLogId}/undelete`;
+					});
+
+					afterEach(() => {
+						logSpy && logSpy.mockRestore();
+						jest.clearAllMocks();
+					});
+
+					it('undeletes an existing conditioning log', async () => {
+						// arrange
+						headers = { Authorization: `Bearer ${userAccessToken}` };
+
+						// act
+						const response = await lastValueFrom(http.patch(url, { headers }));
+
+						// assert
+						expect(logSpy).toHaveBeenCalledTimes(1);
+						const params = logSpy.mock.calls[0];
+						expect(params[0]).toEqual(userContext);
+						expect(params[1]).toEqual(new EntityIdDTO(userContext.userId));
+						expect(params[2]).toEqual(new EntityIdDTO(undeletedLogId));
+						
+						expect(response?.data).toBe(""); // void response returned as empty string
+					});
+
+					it('throws if access token is missing', async () => {
+						// arrange
+						const response$ = http.patch(url);
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if access token is invalid', async () => {
+						// arrange
+						const invalidHeaders = { Authorization: `Bearer invalid` };
+
+						// act/assert
+						const response$ = http.patch(url, { headers: invalidHeaders });
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if user information in token payload is invalid', async () => {
+						// arrange
+						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
+						const userAccessToken = await jwt.sign(adminPayload);
+						const response$ = http.patch(url, { headers: { Authorization: `Bearer ${userAccessToken}` } });
+						
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if log id is missing', async () => {
+						// arrange
+						const response$ = http.patch(urlPath, { headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if log id is invalid', async () => {
+						// arrange
+						const response$ = http.patch(urlPath + 'invalid', { headers });
+
+						// act/assert
+						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+					});
+
+					it('throws if data service throws', async () => {
+						// arrange
+						logSpy.mockRestore();
+						logSpy = jest.spyOn(conditioningDataService, 'undeleteLog').mockImplementation(() => { throw new Error('Test Error'); });
+						const response$ = http.patch(urlPath, { headers });
 
 						// act/assert
 						await expect(lastValueFrom(response$)).rejects.toThrow();
