@@ -5,6 +5,7 @@ import { ForbiddenException, INestApplication } from '@nestjs/common';
 
 import { jest } from '@jest/globals';
 import { of, lastValueFrom } from 'rxjs';
+import { AxiosResponse } from 'axios';
 import { v4 as uuid } from 'uuid';
 
 import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
@@ -185,7 +186,6 @@ describe('ConditioningController', () => {
 
 		userRepoSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() => Promise.resolve(Result.ok(of({entityId: userContext.userId} as any))));
 	});
-		
 
 	afterEach(() => {
 		app.close();
@@ -954,7 +954,7 @@ describe('ConditioningController', () => {
 					});
 				});
 
-				xdescribe('undelete', () => {
+				describe('undelete', () => {
 					let logSpy: any;
 					let undeletedLogId: EntityId;
 					let url: string;
@@ -973,17 +973,16 @@ describe('ConditioningController', () => {
 					});
 
 					afterEach(() => {
-						logSpy && logSpy.mockRestore();
+						logSpy?.mockRestore();
 						jest.clearAllMocks();
 					});
 
 					it('undeletes a soft deleted conditioning log', async () => {
 						// arrange
-						headers = { Authorization: `Bearer ${userAccessToken}` };
-
+						
 						// act
-						const response = await lastValueFrom(http.patch(url, { headers }));
-
+						const response = await lastValueFrom(http.patch(url, {}, { headers }));
+							
 						// assert
 						expect(logSpy).toHaveBeenCalledTimes(1);
 						const params = logSpy.mock.calls[0];
@@ -1007,7 +1006,7 @@ describe('ConditioningController', () => {
 						const invalidHeaders = { Authorization: `Bearer invalid` };
 
 						// act/assert
-						const response$ = http.patch(url, { headers: invalidHeaders });
+						const response$ = http.patch(url, {}, { headers: invalidHeaders });
 						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 					});
 
@@ -1015,15 +1014,17 @@ describe('ConditioningController', () => {
 						// arrange
 						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
 						const userAccessToken = await jwt.sign(adminPayload);
-						const response$ = http.patch(url, { headers: { Authorization: `Bearer ${userAccessToken}` } });
+						const response$ = http.patch(url, {}, { headers: { Authorization: `Bearer ${userAccessToken}` } });
 						
 						// act/assert
 						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
 					});
 
-					it('throws if log id is missing', async () => {
+					it('throws if one of either log id or user id is missing', async () => {
 						// arrange
-						const response$ = http.patch(urlPath, { headers });
+						 // note: there is no way to know which id is missing if only one is provided,
+						 // so test for both in the same test
+						const response$ = http.patch(`urlPath${uuid()}`, {}, { headers });
 
 						// act/assert
 						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -1031,7 +1032,7 @@ describe('ConditioningController', () => {
 
 					it('throws if log id is invalid', async () => {
 						// arrange
-						const response$ = http.patch(urlPath + 'invalid', { headers });
+						const response$ = http.patch(urlPath + 'invalid', {}, { headers });
 
 						// act/assert
 						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -1041,7 +1042,7 @@ describe('ConditioningController', () => {
 						// arrange
 						logSpy.mockRestore();
 						logSpy = jest.spyOn(conditioningDataService, 'undeleteLog').mockImplementation(() => { throw new Error('Test Error'); });
-						const response$ = http.patch(urlPath, { headers });
+						const response$ = http.patch(urlPath, {}, { headers });
 
 						// act/assert
 						await expect(lastValueFrom(response$)).rejects.toThrow();
