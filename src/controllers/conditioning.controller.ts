@@ -58,7 +58,10 @@ export class ConditioningController {
 		description: 'Creates a new conditioning log for a user, returning the id of the new log. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 	})
 	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
-	@ApiBody({ description: 'type: ConditioningLogDTO'}) // Assuming ConditioningLogDTO can be used for partial updates
+	@ApiBody({ 
+		type: ConditioningLog,
+		description: 'Expects ConditioningLog serialized to DTO '
+	})
 	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
@@ -121,7 +124,10 @@ export class ConditioningController {
 	})
 	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
 	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
-	@ApiBody({ description: 'type: ConditioningLogDTO'}) // Assuming ConditioningLogDTO can be used for partial updates
+	@ApiBody({ 
+		type: ConditioningLog,
+		description: 'Expects ConditioningLog serialized to DTO '
+	})
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@ApiResponse({ status: 404, description: 'Log not found' })

@@ -876,12 +876,12 @@ describe('ConditioningDataService', () => {
 				jest.clearAllMocks();
 			});
 
-			it('creates a new log from a DTO and assigns it a unique id', async () => {
+			it('creates a new log in the system and assigns it a unique id', async () => {
 				// arrange
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
 				
 				// act
-				const returnedLogId = await logService.createLog(userContext, randomUserIdDTO, newLogDTO);
+				const returnedLogId = await logService.createLog(userContext, randomUserIdDTO, newLog);
 				
 				// assert
 				expect(typeof returnedLogId).toBe('string');
@@ -893,11 +893,11 @@ describe('ConditioningDataService', () => {
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
 				
 				// act
-				void await logService.createLog(userContext, randomUserIdDTO, newLogDTO);
+				void await logService.createLog(userContext, randomUserIdDTO, newLog);
 				
 				// assert
 				expect(logRepoCreateSpy).toHaveBeenCalledTimes(1);
-				expect(logRepoCreateSpy).toHaveBeenCalledWith(newLogDTO);
+				expect(logRepoCreateSpy).toHaveBeenCalledWith(newLog);
 			});
 
 			it('adds new log to user and persists user changes in repo', async () => {
@@ -905,7 +905,7 @@ describe('ConditioningDataService', () => {
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
 				
 				// act
-				void await logService.createLog(userContext, randomUserIdDTO, newLogDTO);
+				void await logService.createLog(userContext, randomUserIdDTO, newLog);
 				
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
@@ -939,7 +939,7 @@ describe('ConditioningDataService', () => {
 				
 				
 				// act
-				void await logService.createLog(userContext, randomUserIdDTO, newLogDTO);
+				void await logService.createLog(userContext, randomUserIdDTO, newLog);
 				
 				// assert
 				expect(randomUser.logs).toContain(newLogId); // sanity check
@@ -962,7 +962,7 @@ describe('ConditioningDataService', () => {
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
 				
 				// act
-				const returnedLogId = await logService.createLog(userContext, otherUserIdDTO, newLogDTO);
+				const returnedLogId = await logService.createLog(userContext, otherUserIdDTO, newLog);
 				
 				// assert
 				expect(typeof returnedLogId).toBe('string');
@@ -975,7 +975,7 @@ describe('ConditioningDataService', () => {
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
 				
 				// act/assert
-				expect(async () => await logService.createLog(userContext, otherUserIdDTO, newLogDTO)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => await logService.createLog(userContext, otherUserIdDTO, newLog)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws NotFoundError if user does not exist in persistence layer', async () => {
@@ -986,7 +986,7 @@ describe('ConditioningDataService', () => {
 				});
 				
 				// act/assert
-				expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLogDTO)).rejects.toThrow(NotFoundError);
+				expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLog)).rejects.toThrow(NotFoundError);
 			});
 
 			it('throws PersistenceError if log creation fails in persistence layer', async () => {
@@ -997,7 +997,7 @@ describe('ConditioningDataService', () => {
 				});
 				
 				// act/assert
-				expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLogDTO)).rejects.toThrow(PersistenceError);
+				expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLog)).rejects.toThrow(PersistenceError);
 			});
 
 			it('throws PersistenceError if updating user fails in persistence layer', async () => {
@@ -1015,7 +1015,7 @@ describe('ConditioningDataService', () => {
 				//expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLogDTO)).rejects.toThrow(PersistenceError);
 				// so going old school:
 				try {
-					await logService.createLog(userContext, randomUserIdDTO, newLogDTO);
+					await logService.createLog(userContext, randomUserIdDTO, newLog);
 				}
 				catch (e) {
 					error = e;

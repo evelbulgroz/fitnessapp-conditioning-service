@@ -106,10 +106,10 @@ export class ConditioningDataService implements OnModuleDestroy {
 		});
 	}
 
-	/** New API: Create a new conditioning log for a user
+	/** New API: Create a new conditioning log for a user in the system
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param userIdDTO User id of the user for whom to create the log, wrapped in a DTO
-	 * @param logDTO DTO for conditioning log to create
+	 * @param log DTO for conditioning log to create
 	 * @returns Entity id of the created log
 	 * @throws UnauthorizedAccessError if user is not authorized to create log
 	 * @throws NotFoundError if user does not exist in persistence
@@ -121,7 +121,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	public async createLog(
 		ctx: UserContext,
 		userIdDTO: EntityIdDTO,
-		logDTO: ConditioningLogDTO
+		log: ConditioningLog<any, ConditioningLogDTO>
 	): Promise<EntityId> {
 		// initialize service if necessary
 		await this.isReady();
@@ -140,7 +140,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		}
 
 		// create log in persistence layer
-		const result = await this.logRepo.create(logDTO);
+		const result = await this.logRepo.create(log);
 		if (result.isFailure) { // creation failed -> throw persistence error
 			throw new PersistenceError(`${this.constructor.name}: Error creating conditioning log: ${result.error}`);
 		}
