@@ -191,11 +191,11 @@ export class ConditioningDataService implements OnModuleDestroy {
 		if (!ctx.roles.includes('admin')) { // get logs for single user
 			const entry = this.cache.value.find((entry) => entry.userId === userIdDTO!.value);
 			logs = entry?.logs ?? [];
-			console.debug('Logs for user: ', logs.length);
+			//console.debug('Logs for user: ', logs.length);
 		}
 		else { // get all logs for admin user
 			logs = this.cache.value.flatMap((entry) => entry.logs) ?? [];
-			console.debug('All logs: ', logs.length);
+			//console.debug('All logs: ', logs.length);
 		}
 
 		// count logs for each activity type
