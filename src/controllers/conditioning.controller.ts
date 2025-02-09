@@ -125,7 +125,7 @@ export class ConditioningController {
 	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
 	@ApiBody({ 
 		type: ConditioningLog,
-		description: 'Expects ConditioningLog serialized to DTO (ConditioningLogDTO is not a class, so cannot be specified as type here)'
+		description: 'Expects (partial) ConditioningLog serialized to DTO (ConditioningLogDTO is not a class, so cannot be specified as type here)'
 	})
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
@@ -140,7 +140,7 @@ export class ConditioningController {
 	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const partialLog = this.createLogFromDTO(partialLogDTO as ConditioningLogDTO); // validate the log DTO before passing it to the service
+			const partialLog = this.createLogFromDTO(partialLogDTO); // validate the log DTO before passing it to the service
 			void await this.LogService.updateLog(userContext, userIdDTO, logIdDTO, partialLog);
 			// implicit return
 		} catch (error) {
@@ -247,11 +247,11 @@ export class ConditioningController {
 	//------------------------------------------- MISC ------------------------------------------//
 
 	/**
-	 * @todo Throw error if user tries to access another user's data (e.g. by passing a user id in the request)
+	 * @todo move data processing to service and apply similar access control as in other service methods
 	*/
 	@Get('activities')
 	@ApiOperation({
-		summary: 'Get list of the number of times each conditioning activity has been logged',
+		summary: 'Get list of the number of times each conditioning activity has been logged for a single user, or all users (role = admin)',
 		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:3060/api/v3/conditioning/activities'
 	})
 	@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
@@ -348,12 +348,13 @@ export class ConditioningController {
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
 	/** Create a ConditioningLog from a DTO before passing it to the data service
-	 * @param logDTO The log DTO to create a log from
+	 * @param logDTO The log (partial) DTO to create a log from
 	 * @returns The created ConditioningLog
 	 * @throws BadRequestException if the log DTO is invalid
+	 * @remark This is also safe for partial updates, as long as log creation has no required fields
 	 */
-	protected createLogFromDTO(logDTO: ConditioningLogDTO): ConditioningLog<any, ConditioningLogDTO> {
-		const createResult = ConditioningLog.create(logDTO);
+	protected createLogFromDTO(logDTO: Partial<ConditioningLogDTO>): ConditioningLog<any, ConditioningLogDTO> {
+		const createResult = ConditioningLog.create(logDTO as ConditioningLogDTO);
 		if (createResult.isFailure) {
 			const errorMessage = `Invalid log data: ${createResult.error}`;
 			this.logger.error(errorMessage);

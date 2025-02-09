@@ -167,6 +167,43 @@ export class ConditioningDataService implements OnModuleDestroy {
 		
 	}
 	
+	/** New API: Get list of the number of times each conditioning activity has been logged for a single user, or all users
+	 * @param ctx User context for the request (includes user id and roles)
+	 * @param userIdDTO Entity id of the user for whom to retrieve the activity counts, wrapped in a DTO
+	 * @returns Map of activity type to number of logs for that activity
+	 * @throws UnauthorizedAccessError if user is not authorized to access logs
+	 * @remark Admins can access logs for all users, other users can only access their own logs
+	 */
+	public async fetchActivityCounts(ctx: UserContext, userIdDTO?: EntityIdDTO): Promise<Map<ActivityType, number>> {
+		await this.isReady(); // initialize service if necessary
+
+		// check if user is authorized to access logs
+		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
+			if (userIdDTO?.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${userIdDTO?.value}.`);
+			}
+		}
+
+		// get logs for user, or all logs if user id not provided
+		let logs: ConditioningLog<any, ConditioningLogDTO>[];
+		if (userIdDTO) { // get logs for single user
+			const entry = this.cache.value.find((entry) => entry.userId === userIdDTO.value);
+			logs = entry?.logs ?? [];
+		}
+		else { // get all logs
+			logs = this.cache.value.flatMap((entry) => entry.logs) ?? [];
+		}
+
+		// count logs for each activity type
+		const activityCounts = new Map<ActivityType, number>();
+		logs.forEach((log) => {
+			const count = activityCounts.get(log.activity) ?? 0;
+			activityCounts.set(log.activity, count + 1);
+		});
+
+		return Promise.resolve(activityCounts);
+	} 
+
 	/** New API: Get single, detailed conditioning log by log entity id
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to retrieve the log, wrapped in a DTO
