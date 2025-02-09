@@ -28,8 +28,8 @@ import { ValidationPipe } from './pipes/validation.pipe';
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests for conditioning data.
  * @remark It delegates the actual processing of data to the appropriate data service methods, which are responsible for business logic and persistence.
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
- * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation. No need to duplicate documentation for TypeDoc, hence fewer traditional comments. * 
- * @todo Add undelete log endpoint
+ * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation.
+ * @remark No need to duplicate documentation for TypeDoc, hence fewer traditional comments.
  */
 @ApiTags('conditioning')
 @ApiExtraModels(QueryDTO)
@@ -57,7 +57,7 @@ export class ConditioningController {
 		description: 'Creates a new conditioning log for a user, returning the id of the new log. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 	})
 	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
-	//@ApiBody({ type: ConditioningLogDTO}) // Assuming ConditioningLogDTO can be used for partial updates
+	@ApiBody({ description: 'type: ConditioningLogDTO'}) // Assuming ConditioningLogDTO can be used for partial updates
 	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
@@ -69,6 +69,7 @@ export class ConditioningController {
 	): Promise<EntityId> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			this.validateLogDTO(logDTO); // manually validate the log DTO before passing it to the service (throws if invalid)
 			return await this.LogService.createLog(userContext, userIdDTO, logDTO);
 		} catch (error) {
 			const errorMessage = `Failed to create log: ${error.message}`;
@@ -119,7 +120,7 @@ export class ConditioningController {
 	})
 	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
 	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
-	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
+	@ApiBody({ description: 'type: ConditioningLogDTO'}) // Assuming ConditioningLogDTO can be used for partial updates
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
@@ -133,6 +134,7 @@ export class ConditioningController {
 	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			this.validateLogDTO(partialLogDTO); // manually validate the log DTO before passing it to the service (throws if invalid)
 			void await this.LogService.updateLog(userContext, userIdDTO, logIdDTO, partialLogDTO);
 			// implicit return
 		} catch (error) {
@@ -334,6 +336,24 @@ export class ConditioningController {
 		}
 		catch (error) {
 			throw new BadRequestException(`Request for all sessions failed: ${error.message}`);
+		}
+	}
+
+	//------------------------------------ PROTECTED METHODS ------------------------------------//
+
+	/** Validate a ConditioningLogDTO before passing it to the data service
+	 * @param logDTO The log DTO to validate
+	 * @throws BadRequestException if the log DTO is invalid
+	 * @remarks ConditioningLogDTO inherits from ddd-base the distinction between untrusted DTOs (interfaces) and trusted domain objects (classes),
+	 * @remarks which breaks with the controller notion of DTOs as trusted data objects. This method bridges the gap by validating the DTO before passing it to the service.
+	 * @remarks This as a matter of principple, and at a slight performance cost, as ddd-base Repository methods also validate new data before persisting it.
+	 */
+	protected validateLogDTO(logDTO: Partial<ConditioningLogDTO>): void {
+		const createResult = ConditioningLog.create(logDTO as ConditioningLogDTO);
+		if (createResult.isFailure) {
+			const errorMessage = `Invalid log data: ${createResult.error}`;
+			this.logger.error(errorMessage);
+			throw new BadRequestException(errorMessage);
 		}
 	}
 }
