@@ -30,6 +30,7 @@ import { ValidationPipe } from './pipes/validation.pipe';
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
  * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation.
  * @remark No need to duplicate documentation for TypeDoc, hence fewer traditional comments.
+ * @todo Pass ConditioningLog to create and update service methods instead of DTOs, when service methods are refactored to accept entities
  */
 @ApiTags('conditioning')
 @ApiExtraModels(QueryDTO)
