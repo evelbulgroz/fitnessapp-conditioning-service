@@ -227,7 +227,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 			activityCounts.set(log.activity, count + 1);
 		});
 
-		// convert Map to plain object for serving as JSON
+		// convert Map to plain object for serving as JSON (Map is not serializable by default)
 		const activityCountsObj: Record<string, number> = {};
 			activityCounts.forEach((value, key) => {
 			activityCountsObj[key] = value;
