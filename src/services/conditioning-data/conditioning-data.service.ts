@@ -184,14 +184,18 @@ export class ConditioningDataService implements OnModuleDestroy {
 			}
 		}
 
+		// todo: throw error if user does not exists in persistence layer
+
 		// get logs for user, or all logs if user id not provided
 		let logs: ConditioningLog<any, ConditioningLogDTO>[];
-		if (userIdDTO) { // get logs for single user
-			const entry = this.cache.value.find((entry) => entry.userId === userIdDTO.value);
+		if (!ctx.roles.includes('admin')) { // get logs for single user
+			const entry = this.cache.value.find((entry) => entry.userId === userIdDTO!.value);
 			logs = entry?.logs ?? [];
+			console.debug('Logs for user: ', logs.length);
 		}
-		else { // get all logs
+		else { // get all logs for admin user
 			logs = this.cache.value.flatMap((entry) => entry.logs) ?? [];
+			console.debug('All logs: ', logs.length);
 		}
 
 		// count logs for each activity type
@@ -203,6 +207,65 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 		return Promise.resolve(activityCounts);
 	} 
+
+	/** New API: Get aggregated time series of conditioning logs
+	 * @param ctx User context for the request (includes user id and roles)
+	 * @param aggregationQueryDTO Validated aggregation query DTO speficifying aggregation parameters
+	 * @param queryDTO Optional query to select logs to aggregate (else all accessible logs are aggregated)
+	 * @returns Aggregated time series of conditioning logs
+	 * @throws UnauthorizedAccessError if user attempts unauthorized access to logs
+	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
+	 */
+	public async fetchAggretagedLogs(
+		ctx: UserContext,
+		aggregationQueryDTO: AggregationQueryDTO,
+		queryDTO?: QueryDTO,
+		includeDeleted = false
+	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
+		await this.isReady(); // initialize service if necessary
+
+		// constrain searchable logs to single user if user id is provided
+		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];
+		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
+			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
+			}
+			accessibleLogs = this.cache.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
+		}
+		else { // if the user is an admin, they can access all logs
+			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs);
+		}
+
+		// filter logs by query, if provided, else use all accessible logs
+		let query: QueryType | undefined;
+		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
+			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
+			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+		}
+		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
+
+		// filter out soft deleted logs, if not included
+		matchingLogs = matchingLogs.filter((log) => includeDeleted || !log.deletedOn );
+
+		// convert searchable logs matching query to time series
+		const timeSeries = this.toConditioningLogSeries(matchingLogs);
+
+		// aggregate time series
+		const aggregatedSeries = this.aggregator.aggregate(
+			timeSeries,
+			aggregationQueryDTO,
+			(dataPoint: DataPoint<any>) => { // value extractor for Quantity values
+				const propValue = dataPoint.value[aggregationQueryDTO.aggregatedProperty as keyof ConditioningLog<any, ConditioningLogDTO>];
+				if (propValue instanceof Quantity) {
+					return propValue.to(aggregationQueryDTO.aggregatedValueUnit ?? '').scalar;
+				}
+				else {
+					return propValue
+				}
+			}
+		);
+		return Promise.resolve(aggregatedSeries);		
+	}
 
 	/** New API: Get single, detailed conditioning log by log entity id
 	 * @param ctx user context for the request (includes user id and roles)
@@ -339,65 +402,6 @@ export class ConditioningDataService implements OnModuleDestroy {
 		}
 		
 		return Promise.resolve(sortedLogs);
-	}
-
-	/** New API: Get aggregated time series of conditioning logs
-	 * @param ctx User context for the request (includes user id and roles)
-	 * @param aggregationQueryDTO Validated aggregation query DTO speficifying aggregation parameters
-	 * @param queryDTO Optional query to select logs to aggregate (else all accessible logs are aggregated)
-	 * @returns Aggregated time series of conditioning logs
-	 * @throws UnauthorizedAccessError if user attempts unauthorized access to logs
-	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
-	 */
-	public async fetchAggretagedLogs(
-		ctx: UserContext,
-		aggregationQueryDTO: AggregationQueryDTO,
-		queryDTO?: QueryDTO,
-		includeDeleted = false
-	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
-		await this.isReady(); // initialize service if necessary
-
-		// constrain searchable logs to single user if user id is provided
-		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];
-		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
-			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
-			}
-			accessibleLogs = this.cache.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
-		}
-		else { // if the user is an admin, they can access all logs
-			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs);
-		}
-
-		// filter logs by query, if provided, else use all accessible logs
-		let query: QueryType | undefined;
-		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
-			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
-			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
-		}
-		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
-
-		// filter out soft deleted logs, if not included
-		matchingLogs = matchingLogs.filter((log) => includeDeleted || !log.deletedOn );
-
-		// convert searchable logs matching query to time series
-		const timeSeries = this.toConditioningLogSeries(matchingLogs);
-
-		// aggregate time series
-		const aggregatedSeries = this.aggregator.aggregate(
-			timeSeries,
-			aggregationQueryDTO,
-			(dataPoint: DataPoint<any>) => { // value extractor for Quantity values
-				const propValue = dataPoint.value[aggregationQueryDTO.aggregatedProperty as keyof ConditioningLog<any, ConditioningLogDTO>];
-				if (propValue instanceof Quantity) {
-					return propValue.to(aggregationQueryDTO.aggregatedValueUnit ?? '').scalar;
-				}
-				else {
-					return propValue
-				}
-			}
-		);
-		return Promise.resolve(aggregatedSeries);		
 	}
 
 	/** New API: Update an existing conditioning log for a user

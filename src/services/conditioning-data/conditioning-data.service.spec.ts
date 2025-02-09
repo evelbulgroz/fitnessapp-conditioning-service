@@ -65,7 +65,7 @@ describe('ConditioningDataService', () => {
 				// ConfigModule is imported automatically by createTestingModule
 			],
 			providers: [
-				{
+				{ // AggregatorService
 					provide: AggregatorService,
 					useValue: {
 						aggregate: jest.fn()
@@ -81,7 +81,7 @@ describe('ConditioningDataService', () => {
 				UserDeletedHandler,
 				UserUpdatedHandler,
 				ConditioningDataService,
-				{
+				{ // ConditioningLogRepository
 					provide: ConditioningLogRepository,
 					useValue: {
 						create: jest.fn(),
@@ -93,16 +93,16 @@ describe('ConditioningDataService', () => {
 						undelete: jest.fn(),
 					}
 				},
-				{
+				{ // Logger
 					provide: Logger,
 					useClass: ConsoleLogger
 				},
 				QueryMapper,
-				{
+				{ // REPOSITORY_THROTTLETIME
 					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
 					useValue: 100						// figure out how to get this from config
 				},
-				{
+				{ // UserRepository
 					provide: UserRepository,
 					useValue: {
 						fetchAll: jest.fn(),
@@ -586,8 +586,9 @@ describe('ConditioningDataService', () => {
 		logRepoFetchAllSpy = jest.spyOn(logRepo, 'fetchAll')
 			.mockImplementation(() => {
 				return Promise.resolve(
-					Result.ok(of(testDTOs
-						.map(dto => ConditioningLog.create(dto, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>)))
+					Result.ok(
+						of(testDTOs.map(dto => ConditioningLog.create(dto, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>))
+					)
 				);
 			});
 
@@ -615,6 +616,7 @@ describe('ConditioningDataService', () => {
 	});
 
 	// set up random test data, initialize service
+	let adminContext: UserContext;
 	let randomLog: ConditioningLog<any, ConditioningLogDTO>;
 	let randomLogIdDTO: EntityIdDTO;
 	let randomUser: User;
@@ -632,6 +634,13 @@ describe('ConditioningDataService', () => {
 		randomUserId = users[Math.floor(Math.random() * users.length)].userId;
 		randomUserIdDTO = new EntityIdDTO(randomUserId);
 		randomUser = users.find(user => user.userId === randomUserId)!;
+
+		adminContext = new UserContext({
+			userId: randomUser.userId,
+			userName: 'admin', // display name for user, or service name if user is a service account (subName from JWTPayload)
+			userType: 'user',
+			roles: ['admin']
+		});
 
 		userContext = new UserContext({
 			userId: randomUser.userId,
@@ -1028,6 +1037,56 @@ describe('ConditioningDataService', () => {
 				// clean up
 				userRepoUpdateSpy?.mockRestore();
 			});
+		});
+
+		describe('fetchActivityCounts', () => {
+			function getCounts(logs: ConditioningLog<any, ConditioningLogDTO>[]): Map<ActivityType, number> {
+				const activityCounts = new Map<ActivityType, number>();
+				logs.forEach((log) => {
+					const count = activityCounts.get(log.activity) ?? 0;
+					activityCounts.set(log.activity, count + 1);
+				});
+				return activityCounts;
+			}
+
+			it('can provide admins with a count of activities for all users', async () => {
+				// arrange
+				const logs = logService['cache'].value ?? [];
+				const expectedCounts = getCounts(logs.flatMap(entry => entry.logs));
+				
+				// act
+				const activityCounts = await logService.fetchActivityCounts(adminContext, randomUserIdDTO);
+				
+				
+				// assert
+				expect(activityCounts).toBeDefined();
+				expect(activityCounts).toBeInstanceOf(Map);
+				expect(activityCounts.size).toEqual(expectedCounts.size);
+				expect(activityCounts).toEqual(expectedCounts);
+			});
+
+			it('can provide a count of activities for a single user by id', async () => {
+				// act
+				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO);
+				const expectedCounts = getCounts(logsForRandomUser);
+				
+				// assert
+				expect(activityCounts).toBeDefined();
+				expect(activityCounts).toBeInstanceOf(Map);
+				expect(activityCounts.size).toEqual(expectedCounts.size);
+				expect(activityCounts).toEqual(expectedCounts);
+			});
+
+			it('throws UnauthorizedAccessError if user tries to access logs of another user', async () => {
+				// arrange
+				const otherUser = users.find(user => user.userId !== randomUserId)!;
+				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				
+				// act/assert
+				expect(async () => await logService.fetchActivityCounts(userContext, otherUserIdDTO)).rejects.toThrow(UnauthorizedAccessError);
+			});
+
+			// TODO: Add tests for other common error conditions, similar as for other endpoints
 		});
 
 		describe('fetchAggretagedLogs', () => {
