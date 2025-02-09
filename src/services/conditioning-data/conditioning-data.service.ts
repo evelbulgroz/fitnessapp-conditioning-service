@@ -170,12 +170,19 @@ export class ConditioningDataService implements OnModuleDestroy {
 	/** New API: Get list of the number of times each conditioning activity has been logged for a single user, or all users
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to retrieve the activity counts, wrapped in a DTO (optional for admin)
+	 * @param queryDTO Optional query to filter logs (else all accessible logs are counted)
+	 * @param includeDeleted Optional flag to include soft deleted logs in the response
 	 * @returns Record of activity types and the number of times each has been logged
 	 * @throws UnauthorizedAccessError if user is not authorized to access logs
 	 * @remark Admins can access logs for all users, other users can only access their own logs
 	 * @todo Add query to filter logs by activity type, date range, etc.
 	 */
-	public async fetchActivityCounts(ctx: UserContext, userIdDTO?: EntityIdDTO): Promise<Record<string, number>> {
+	public async fetchActivityCounts(
+		ctx: UserContext,
+		userIdDTO?: EntityIdDTO,
+		queryDTO?: QueryDTO,
+		includeDeleted = false
+	): Promise<Record<string, number>> {
 		await this.isReady(); // initialize service if necessary
 
 		// check if user is authorized to access log(s)
@@ -188,29 +195,40 @@ export class ConditioningDataService implements OnModuleDestroy {
 			}
 		}
 
-		// get logs for user, or all logs if user id not provided (access rights already checked)
-		let logs: ConditioningLog<any, ConditioningLogDTO>[]; // logs to count
+		// get accessible log given user id and role
+		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[]; // logs to count
 		if(userIdDTO) {
 			const userResult = await this.userRepo.fetchById(userIdDTO.value!);
 			if (userResult.isFailure) { // fetch failed -> throw not found error
 				throw new NotFoundError(`${this.constructor.name}: User ${userIdDTO.value} not found.`);
 			}
 			else {// user exists -> get logs for single user
-				logs = this.cache.value.find((entry) => entry.userId === userIdDTO.value)?.logs ?? [];
+				accessibleLogs = this.cache.value.find((entry) => entry.userId === userIdDTO.value)?.logs ?? [];
 			}
 		}
 		else { // user id not provided -> get all logs for admin user
-			logs = this.cache.value.flatMap((entry) => entry.logs) ?? [];
+			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs) ?? [];
 		}
 
-		// count activity types in logs (using Map for efficiency with large datasets)
+		// filter logs by query, if provided, else use all accessible logs
+		let query: QueryType | undefined;
+		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
+			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
+			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+		}
+		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
+
+		// filter out soft deleted logs, if not included
+		matchingLogs = matchingLogs.filter((log) => includeDeleted || !log.deletedOn );
+
+		// count activity types in matching logs (using interim Map for efficiency when aggregating large datasets)
 		const activityCounts = new Map<ActivityType, number>();
-		logs.forEach((log) => {
+		accessibleLogs.forEach((log) => {
 			const count = activityCounts.get(log.activity) ?? 0;
 			activityCounts.set(log.activity, count + 1);
 		});
 
-		// convert Map to plain object for serialization
+		// convert Map to plain object for serving as JSON
 		const activityCountsObj: Record<string, number> = {};
 			activityCounts.forEach((value, key) => {
 			activityCountsObj[key] = value;

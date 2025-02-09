@@ -40,6 +40,7 @@ import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserPersistenceDTO } from '../../dtos/domain/user-persistence.dto';
 import { UserRepository } from '../../repositories/user.repo';
+import e from 'express';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -1043,7 +1044,7 @@ describe('ConditioningDataService', () => {
 			// helper function to count activities in logs
 			// for now same algo as in service, so not much of a test of the algo
 			// however, enables basic testing which is fine for now			
-			function getCounts(logs: ConditioningLog<any, ConditioningLogDTO>[]): Record<string, number> {
+			function getActivityCounts(logs: ConditioningLog<any, ConditioningLogDTO>[]): Record<string, number> {
 				const activityCounts: Record<string, number> = {};
 				logs.forEach((log) => {
 					const activity = log.activity;
@@ -1054,7 +1055,7 @@ describe('ConditioningDataService', () => {
 
 			it('provides user a count of their own activities', async () => {
 				// arrange
-				const expectedCounts = getCounts(logsForRandomUser);
+				const expectedCounts = getActivityCounts(logsForRandomUser);
 				
 				// act
 				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO);
@@ -1069,7 +1070,7 @@ describe('ConditioningDataService', () => {
 				const otherUser = users.find(user => user.userId !== randomUserId)!;
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
 				const logs = logService['cache'].value.find(entry => entry.userId === otherUser.userId)?.logs ?? [];
-				const expectedCounts = getCounts(logs);
+				const expectedCounts = getActivityCounts(logs);
 				
 				// act
 				const activityCounts = await logService.fetchActivityCounts(adminContext, otherUserIdDTO);
@@ -1082,10 +1083,56 @@ describe('ConditioningDataService', () => {
 			it('provides admins with a count of activities for all users', async () => {
 				// arrange
 				const logs = logService['cache'].value ?? [];
-				const expectedCounts = getCounts(logs.flatMap(entry => entry.logs));
+				const expectedCounts = getActivityCounts(logs.flatMap(entry => entry.logs));
 				
 				// act
 				const activityCounts = await logService.fetchActivityCounts(adminContext);				
+				
+				// assert
+				expect(activityCounts).toBeDefined();
+				expect(activityCounts).toEqual(expectedCounts);
+			});
+
+			it('optionally filters logs by provided query', async () => {
+				// arrange
+				const queryDTO = new QueryDTO({'activity': ActivityType.MTB});
+				const query = queryMapper.toDomain(queryDTO);
+				const matchingLogs = query.execute(logsForRandomUser);
+				const expectedCounts = getActivityCounts(matchingLogs);
+				
+				// act
+				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO, queryDTO);
+				
+				// assert
+				expect(activityCounts).toBeDefined();
+				expect(activityCounts).toEqual(expectedCounts);
+				expect(Object.keys(activityCounts)).toEqual([ActivityType.MTB]);
+			});
+
+			xit('by default excludes soft deleted logs', async () => {
+				// arrange
+				const deletedLog = logsForRandomUser[0];
+				deletedLog['_updatedOn'] = undefined;
+				deletedLog.deletedOn = new Date(deletedLog.createdOn!.getTime() + 1000);
+				const expectedCounts = getActivityCounts(logsForRandomUser.filter(log => log.deletedOn === undefined));
+				
+				// act
+				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO);
+				
+				// assert
+				expect(activityCounts).toBeDefined();
+				expect(activityCounts).toEqual(expectedCounts);
+			});
+
+			it('optionally can include soft deleted logs', async () => {
+				// arrange
+				const deletedLog = logsForRandomUser[0];
+				deletedLog['_updatedOn'] = undefined;
+				deletedLog.deletedOn = new Date(deletedLog.createdOn!.getTime() + 1000);
+				const expectedCounts = getActivityCounts(logsForRandomUser);
+				
+				// act
+				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO, undefined, true);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
