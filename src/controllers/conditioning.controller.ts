@@ -56,7 +56,7 @@ export class ConditioningController {
 		summary: 'Create a new conditioning log for a user',
 		description: 'Creates a new conditioning log for a user, returning the id of the new log. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 	})
-	@ApiParam({ name: 'userId', description: 'User ID' })
+	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
 	//@ApiBody({ type: ConditioningLogDTO}) // Assuming ConditioningLogDTO can be used for partial updates
 	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
@@ -82,8 +82,8 @@ export class ConditioningController {
 		summary: 'Get detailed conditioning log by ID',
 		description: 'Returns a single conditioning log by ID, if found. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 	})
-	@ApiParam({ name: 'userId', description: 'User ID' })
-	@ApiParam({ name: 'logId', description: 'Log ID' })
+	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
+	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
 	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log ID, if found' })
 	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
 	@ApiResponse({ status: 400, description: 'Request for log details failed' })
@@ -117,8 +117,8 @@ export class ConditioningController {
 		summary: 'Update a conditioning log by user ID and log ID',
 		description: 'Updates a conditioning log by user ID and log ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 	})
-	@ApiParam({ name: 'userId', description: 'User ID' })
-	@ApiParam({ name: 'logId', description: 'Log ID' })
+	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
+	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
 	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
@@ -148,8 +148,8 @@ export class ConditioningController {
 		description: 'Deletes a conditioning log by ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 
 	})
-	@ApiParam({ name: 'userId', description: 'User ID' })
-	@ApiParam({ name: 'logId', description: 'Log ID' })
+	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
+	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
 	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
@@ -175,8 +175,8 @@ export class ConditioningController {
 		summary: 'Undelete a conditioning log by ID',
 		description: 'Undeletes a conditioning log by ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef/undelete'
 	})
-	@ApiParam({ name: 'userId', description: 'User ID' })
-	@ApiParam({ name: 'logId', description: 'Log ID' })
+	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
+	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
 	@ApiResponse({ status: 204, description: 'Log undeleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
@@ -204,7 +204,7 @@ export class ConditioningController {
 		summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)',
 		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example: http://localhost:3060/api/v3/conditioning/logs/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 	})
-	@ApiParam({ name: 'userId', description: 'User ID' })
+	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
 	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
 	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
 	@ApiResponse({ status: 400, description: 'Request for logs failed' })
