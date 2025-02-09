@@ -73,8 +73,9 @@ export class ConditioningController {
 	): Promise<EntityId> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			this.validateLogDTO(logDTO); // manually validate the log DTO before passing it to the service (throws if invalid)
-			return await this.LogService.createLog(userContext, userIdDTO, logDTO);
+			const log = this.createLogFromDTO(logDTO); // validate the log DTO before passing it to the service
+			console.debug('deserialized log:', log);
+			return await this.LogService.createLog(userContext, userIdDTO, log);
 		} catch (error) {
 			const errorMessage = `Failed to create log: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -141,8 +142,8 @@ export class ConditioningController {
 	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			this.validateLogDTO(partialLogDTO); // manually validate the log DTO before passing it to the service (throws if invalid)
-			void await this.LogService.updateLog(userContext, userIdDTO, logIdDTO, partialLogDTO);
+			const partialLog = this.createLogFromDTO(partialLogDTO as ConditioningLogDTO); // validate the log DTO before passing it to the service
+			void await this.LogService.updateLog(userContext, userIdDTO, logIdDTO, partialLog);
 			// implicit return
 		} catch (error) {
 			const errorMessage = `Failed to update log with ID: ${logIdDTO.value}: ${error.message}`;
@@ -348,20 +349,19 @@ export class ConditioningController {
 
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
-	/** Validate a ConditioningLogDTO before passing it to the data service
-	 * @param logDTO The log DTO to validate
+	/** Create a ConditioningLog from a DTO before passing it to the data service
+	 * @param logDTO The log DTO to create a log from
+	 * @returns The created ConditioningLog
 	 * @throws BadRequestException if the log DTO is invalid
-	 * @remarks ConditioningLogDTO inherits from ddd-base the distinction between untrusted DTOs (interfaces) and trusted domain objects (classes),
-	 * @remarks which breaks with the controller notion of DTOs as trusted data objects. This method bridges the gap by validating the DTO before passing it to the service.
-	 * @remarks This as a matter of principple, and at a slight performance cost, as ddd-base Repository methods also validate new data before persisting it.
 	 */
-	protected validateLogDTO(logDTO: Partial<ConditioningLogDTO>): void {
-		const createResult = ConditioningLog.create(logDTO as ConditioningLogDTO);
+	protected createLogFromDTO(logDTO: ConditioningLogDTO): ConditioningLog<any, ConditioningLogDTO> {
+		const createResult = ConditioningLog.create(logDTO);
 		if (createResult.isFailure) {
 			const errorMessage = `Invalid log data: ${createResult.error}`;
 			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
+		return createResult.value as ConditioningLog<any, ConditioningLogDTO>;
 	}
 }
 
