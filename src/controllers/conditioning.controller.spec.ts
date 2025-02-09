@@ -5,7 +5,6 @@ import { ForbiddenException, INestApplication } from '@nestjs/common';
 
 import { jest } from '@jest/globals';
 import { of, lastValueFrom } from 'rxjs';
-import { AxiosResponse } from 'axios';
 import { v4 as uuid } from 'uuid';
 
 import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';

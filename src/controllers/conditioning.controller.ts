@@ -36,8 +36,8 @@ import { ValidationPipe } from './pipes/validation.pipe';
 @Controller('conditioning') // version prefix set in main.ts
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
-	//RolesGuard, // require role-based access control
-	//LoggingGuard // log all requests to the console
+	RolesGuard, // require role-based access control
+	LoggingGuard // log all requests to the console
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
@@ -52,9 +52,12 @@ export class ConditioningController {
 	//-------------------------------- PUBLIC API: SINGLE-LOG CRUD ------------------------------//
 	
 	@Post('log/:userId')
-	@ApiOperation({ summary: 'Create a new conditioning log for a user' })
+	@ApiOperation({
+		summary: 'Create a new conditioning log for a user',
+		description: 'Creates a new conditioning log for a user, returning the id of the new log. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef'
+	})
 	@ApiParam({ name: 'userId', description: 'User ID' })
-	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
+	//@ApiBody({ type: ConditioningLogDTO}) // Assuming ConditioningLogDTO can be used for partial updates
 	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
 	@Roles('admin', 'user')
@@ -74,11 +77,11 @@ export class ConditioningController {
 		}
 	}
 	
-	/**
-	 * @example http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef
-	 */
 	@Get('log/:userId/:logId')
-	@ApiOperation({ summary: 'Get detailed conditioning log by ID' })
+	@ApiOperation({
+		summary: 'Get detailed conditioning log by ID',
+		description: 'Returns a single conditioning log by ID, if found. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef'
+	})
 	@ApiParam({ name: 'userId', description: 'User ID' })
 	@ApiParam({ name: 'logId', description: 'Log ID' })
 	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log ID, if found' })
@@ -110,7 +113,10 @@ export class ConditioningController {
 	}
 	
 	@Patch('log/:userId/:logId')
-	@ApiOperation({ summary: 'Update a conditioning log by user ID and log ID' })
+	@ApiOperation({
+		summary: 'Update a conditioning log by user ID and log ID',
+		description: 'Updates a conditioning log by user ID and log ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef'
+	})
 	@ApiParam({ name: 'userId', description: 'User ID' })
 	@ApiParam({ name: 'logId', description: 'Log ID' })
 	//@ApiBody({ type: ConditioningLogDTO }) // Assuming ConditioningLogDTO can be used for partial updates
@@ -137,7 +143,11 @@ export class ConditioningController {
 	}
 	
 	@Delete('log/:userId/:logId')
-	@ApiOperation({ summary: 'Delete a conditioning log by ID' })
+	@ApiOperation({
+		summary: 'Delete a conditioning log by ID',
+		description: 'Deletes a conditioning log by ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef'
+
+	})
 	@ApiParam({ name: 'userId', description: 'User ID' })
 	@ApiParam({ name: 'logId', description: 'Log ID' })
 	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
@@ -161,7 +171,10 @@ export class ConditioningController {
 
 	@Patch('log/:userId/:logId/undelete')
 	@HttpCode(HttpStatus.NO_CONTENT)
-	@ApiOperation({ summary: 'Undelete a conditioning log by ID' })
+	@ApiOperation({
+		summary: 'Undelete a conditioning log by ID',
+		description: 'Undeletes a conditioning log by ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef/undelete'
+	})
 	@ApiParam({ name: 'userId', description: 'User ID' })
 	@ApiParam({ name: 'logId', description: 'Log ID' })
 	@ApiResponse({ status: 204, description: 'Log undeleted successfully, no content returned' })
@@ -187,7 +200,10 @@ export class ConditioningController {
 	//---------------------------------- PUBLIC API: BATCH CRUD ---------------------------------//
 
 	@Get('logs/:userId')
-	@ApiOperation({ summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)' })
+	@ApiOperation({
+		summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)',
+		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example: http://localhost:3060/api/v3/conditioning/logs/3e020b33-55e0-482f-9c52-7bf45b4276ef'
+	})
 	@ApiParam({ name: 'userId', description: 'User ID' })
 	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
 	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
@@ -226,7 +242,10 @@ export class ConditioningController {
 	 * @todo Throw error if user tries to access another user's data (e.g. by passing a user id in the request)
 	*/
 	@Get('activities')
-	@ApiOperation({ summary: 'Get list of the number of times each conditioning activity has been logged' })
+	@ApiOperation({
+		summary: 'Get list of the number of times each conditioning activity has been logged',
+		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:3060/api/v3/conditioning/activities'
+	})
 	@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
@@ -247,37 +266,11 @@ export class ConditioningController {
 		}
 	}
 
-	/** Aggregate conditioning logs using aggregation parameters.
-	 * @param req Request object containing user context (mapped from JWT token)
-	 * @param aggregationQueryDTO sanitized aggregation parameters
-	 * @param queryDTO unvalidated aggregation parameters
-	 * @returns aggregated data
-	 * @example http.post(http://localhost:3060/api/v3/conditioning/aggregate,
-	{ // aggregation query parameters
-		"aggregatedType": "ConditioningLog",
-		"aggregatedProperty": "duration",
-		"aggregationType": "SUM",
-		"sampleRate": "DAY",
-		"aggregatedValueUnit": "ms"
-	},
-	{
-		params: { // query parameters
-			start: '2021-01-01',
-			end: '2021-12-31',
-			activity: ActivityType.MTB,
-			userId: userContext.userId as unknown as string,
-			sortBy: 'duration',
-			order: 'ASC',
-			page: 1,
-			pageSize: 10,
-		},
-		headers: { // authorization header
-			Authorization: `Bearer access-token`
-		}
-	});
-	 */
 	@Post('aggregate')
-	@ApiOperation({ summary: 'Aggregate conditioning logs using aggregation parameters and optional logs query' })
+	@ApiOperation({
+		summary: 'Aggregate conditioning logs using aggregation parameters and optional logs query',
+		description: 'Aggregates conditioning logs using aggregation parameters and optional logs query. Example: http://localhost:3060/api/v3/conditioning/aggregate'
+	})
 	@ApiBody({ type: AggregationQueryDTO })
 	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
 	@ApiResponse({ status: 200, description: 'Aggregated conditioning data as AggregatedTimeSeries from time-series library' })
@@ -302,11 +295,11 @@ export class ConditioningController {
 		}
 	}
 
-	/**
-	 * @example http://localhost:3060/api/v3/conditioning/rules?type=ConditioningLog
-	*/
 	@Get('rules/:type')
-	@ApiOperation({ summary: 'Get all property rules for a supported type (e.g. for deserialization and validation of domain objects on front end)' })
+	@ApiOperation({
+		summary: 'Get all property rules for a supported type (e.g. for deserialization and validation of domain objects on front end)',
+		description: 'Returns all property rules for a supported type (e.g. for deserialization and validation of domain objects on front end). Example: http://localhost:3060/api/v3/conditioning/rules?type=ConditioningLog'
+	})
 	@ApiParam({ name: 'type', description: 'String name of entity type' })
 	@ApiResponse({ status: 200, description: 'Rules object containing all own and inherited sanitization rules for the specified type (as PropertySanitizationDataDTO from sanitizer-decorator library)' })
 	@ApiResponse({ status: 400, description: 'Invalid entity type' })
