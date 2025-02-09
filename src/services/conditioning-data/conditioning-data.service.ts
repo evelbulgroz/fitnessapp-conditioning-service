@@ -175,7 +175,6 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @returns Record of activity types and the number of times each has been logged
 	 * @throws UnauthorizedAccessError if user is not authorized to access logs
 	 * @remark Admins can access logs for all users, other users can only access their own logs
-	 * @todo Add query to filter logs by activity type, date range, etc.
 	 */
 	public async fetchActivityCounts(
 		ctx: UserContext,
