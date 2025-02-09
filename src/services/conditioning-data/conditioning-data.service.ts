@@ -169,43 +169,54 @@ export class ConditioningDataService implements OnModuleDestroy {
 	
 	/** New API: Get list of the number of times each conditioning activity has been logged for a single user, or all users
 	 * @param ctx User context for the request (includes user id and roles)
-	 * @param userIdDTO Entity id of the user for whom to retrieve the activity counts, wrapped in a DTO
-	 * @returns Map of activity type to number of logs for that activity
+	 * @param userIdDTO Entity id of the user for whom to retrieve the activity counts, wrapped in a DTO (optional for admin)
+	 * @returns Record of activity types and the number of times each has been logged
 	 * @throws UnauthorizedAccessError if user is not authorized to access logs
 	 * @remark Admins can access logs for all users, other users can only access their own logs
+	 * @todo Add query to filter logs by activity type, date range, etc.
 	 */
-	public async fetchActivityCounts(ctx: UserContext, userIdDTO?: EntityIdDTO): Promise<Map<ActivityType, number>> {
+	public async fetchActivityCounts(ctx: UserContext, userIdDTO?: EntityIdDTO): Promise<Record<string, number>> {
 		await this.isReady(); // initialize service if necessary
 
-		// check if user is authorized to access logs
+		// check if user is authorized to access log(s)
 		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
-			if (userIdDTO?.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+			if(!userIdDTO) { // user id not provided -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for all users.`);
+			}
+			else if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
 				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${userIdDTO?.value}.`);
 			}
 		}
 
-		// todo: throw error if user does not exists in persistence layer
-
-		// get logs for user, or all logs if user id not provided
-		let logs: ConditioningLog<any, ConditioningLogDTO>[];
-		if (!ctx.roles.includes('admin')) { // get logs for single user
-			const entry = this.cache.value.find((entry) => entry.userId === userIdDTO!.value);
-			logs = entry?.logs ?? [];
-			//console.debug('Logs for user: ', logs.length);
+		// get logs for user, or all logs if user id not provided (access rights already checked)
+		let logs: ConditioningLog<any, ConditioningLogDTO>[]; // logs to count
+		if(userIdDTO) {
+			const userResult = await this.userRepo.fetchById(userIdDTO.value!);
+			if (userResult.isFailure) { // fetch failed -> throw not found error
+				throw new NotFoundError(`${this.constructor.name}: User ${userIdDTO.value} not found.`);
+			}
+			else {// user exists -> get logs for single user
+				logs = this.cache.value.find((entry) => entry.userId === userIdDTO.value)?.logs ?? [];
+			}
 		}
-		else { // get all logs for admin user
+		else { // user id not provided -> get all logs for admin user
 			logs = this.cache.value.flatMap((entry) => entry.logs) ?? [];
-			//console.debug('All logs: ', logs.length);
 		}
 
-		// count logs for each activity type
+		// count activity types in logs (using Map for efficiency with large datasets)
 		const activityCounts = new Map<ActivityType, number>();
 		logs.forEach((log) => {
 			const count = activityCounts.get(log.activity) ?? 0;
 			activityCounts.set(log.activity, count + 1);
 		});
 
-		return Promise.resolve(activityCounts);
+		// convert Map to plain object for serialization
+		const activityCountsObj: Record<string, number> = {};
+			activityCounts.forEach((value, key) => {
+			activityCountsObj[key] = value;
+		});
+
+		return Promise.resolve(activityCountsObj);
 	} 
 
 	/** New API: Get aggregated time series of conditioning logs

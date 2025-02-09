@@ -1043,44 +1043,56 @@ describe('ConditioningDataService', () => {
 			// helper function to count activities in logs
 			// for now same algo as in service, so not much of a test of the algo
 			// however, enables basic testing which is fine for now			
-			function getCounts(logs: ConditioningLog<any, ConditioningLogDTO>[]): Map<ActivityType, number> {
-				const activityCounts = new Map<ActivityType, number>();
+			function getCounts(logs: ConditioningLog<any, ConditioningLogDTO>[]): Record<string, number> {
+				const activityCounts: Record<string, number> = {};
 				logs.forEach((log) => {
-					const count = activityCounts.get(log.activity) ?? 0;
-					activityCounts.set(log.activity, count + 1);
+					const activity = log.activity;
+					activityCounts[activity] ? activityCounts[activity]++ : activityCounts[activity] = 1;
 				});
 				return activityCounts;
 			}
 
-			it('can provide admins with a count of activities for all users', async () => {
+			it('provides user a count of their own activities', async () => {
+				// arrange
+				const expectedCounts = getCounts(logsForRandomUser);
+				
+				// act
+				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO);
+				
+				// assert
+				expect(activityCounts).toBeDefined();
+				expect(activityCounts).toEqual(expectedCounts);
+			});
+
+			it('provides admins with a count of activities for a different user by id', async () => {
+				// arrange
+				const otherUser = users.find(user => user.userId !== randomUserId)!;
+				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				const logs = logService['cache'].value.find(entry => entry.userId === otherUser.userId)?.logs ?? [];
+				const expectedCounts = getCounts(logs);
+				
+				// act
+				const activityCounts = await logService.fetchActivityCounts(adminContext, otherUserIdDTO);
+				
+				// assert
+				expect(activityCounts).toBeDefined();
+				expect(activityCounts).toEqual(expectedCounts);
+			});
+			
+			it('provides admins with a count of activities for all users', async () => {
 				// arrange
 				const logs = logService['cache'].value ?? [];
 				const expectedCounts = getCounts(logs.flatMap(entry => entry.logs));
 				
 				// act
-				const activityCounts = await logService.fetchActivityCounts(adminContext, randomUserIdDTO);
-				
-				
-				// assert
-				expect(activityCounts).toBeDefined();
-				expect(activityCounts).toBeInstanceOf(Map);
-				expect(activityCounts.size).toEqual(expectedCounts.size);
-				expect(activityCounts).toEqual(expectedCounts);
-			});
-
-			it('can provide a count of activities for a single user by id', async () => {
-				// act
-				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO);
-				const expectedCounts = getCounts(logsForRandomUser);
+				const activityCounts = await logService.fetchActivityCounts(adminContext);				
 				
 				// assert
 				expect(activityCounts).toBeDefined();
-				expect(activityCounts).toBeInstanceOf(Map);
-				expect(activityCounts.size).toEqual(expectedCounts.size);
 				expect(activityCounts).toEqual(expectedCounts);
 			});
-
-			it('throws UnauthorizedAccessError if user tries to access logs of another user', async () => {
+			
+			it('throws UnauthorizedAccessError if non-admin user tries to access activities of another user', async () => {
 				// arrange
 				const otherUser = users.find(user => user.userId !== randomUserId)!;
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
@@ -1089,7 +1101,31 @@ describe('ConditioningDataService', () => {
 				expect(async () => await logService.fetchActivityCounts(userContext, otherUserIdDTO)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
-			// TODO: Add tests for other common error conditions, similar as for other endpoints
+			it('throws UnauthorizedAccessError if non-admin user tries to access activities of all users', async () => {
+				// act/assert
+				expect(async () => await logService.fetchActivityCounts(userContext)).rejects.toThrow(UnauthorizedAccessError);
+			});
+
+			it('throws NotFoundError if user matching provided ID does not exist in persistence layer', async () => {
+				// arrange
+				userRepoFetchByIdSpy.mockRestore();
+				userRepoFetchByIdSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() => {
+					return Promise.resolve(Result.fail(new NotFoundError('Test Error')));
+				});
+				let error: Error | undefined;				
+				
+				// act/assert
+				try {
+					await logService.fetchActivityCounts(userContext, randomUserIdDTO);
+				}
+				catch (e) {
+					error = e;					
+				}
+				expect(error).toBeInstanceOf(NotFoundError);
+
+				// clean up
+				userRepoFetchByIdSpy.mockRestore();
+			});
 		});
 
 		describe('fetchAggretagedLogs', () => {
