@@ -1040,6 +1040,9 @@ describe('ConditioningDataService', () => {
 		});
 
 		describe('fetchActivityCounts', () => {
+			// helper function to count activities in logs
+			// for now same algo as in service, so not much of a test of the algo
+			// however, enables basic testing which is fine for now			
 			function getCounts(logs: ConditioningLog<any, ConditioningLogDTO>[]): Map<ActivityType, number> {
 				const activityCounts = new Map<ActivityType, number>();
 				logs.forEach((log) => {
