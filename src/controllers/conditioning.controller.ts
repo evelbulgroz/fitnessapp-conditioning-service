@@ -30,7 +30,6 @@ import { ValidationPipe } from './pipes/validation.pipe';
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
  * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation.
  * @remark No need to duplicate documentation for TypeDoc, hence fewer traditional comments.
- * @todo Pass ConditioningLog to create and update service methods instead of DTOs, when service methods are refactored to accept entities
  */
 @ApiTags('conditioning')
 @ApiExtraModels(QueryDTO)
@@ -60,7 +59,7 @@ export class ConditioningController {
 	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
 	@ApiBody({ 
 		type: ConditioningLog,
-		description: 'Expects ConditioningLog serialized to DTO '
+		description: 'Expects ConditioningLog serialized to DTO (ConditioningLogDTO is not a class, so cannot be specified as type here)'
 	})
 	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
@@ -126,7 +125,7 @@ export class ConditioningController {
 	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
 	@ApiBody({ 
 		type: ConditioningLog,
-		description: 'Expects ConditioningLog serialized to DTO '
+		description: 'Expects ConditioningLog serialized to DTO (ConditioningLogDTO is not a class, so cannot be specified as type here)'
 	})
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
