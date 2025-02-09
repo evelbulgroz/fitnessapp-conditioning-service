@@ -74,7 +74,6 @@ export class ConditioningController {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const log = this.createLogFromDTO(logDTO); // validate the log DTO before passing it to the service
-			console.debug('deserialized log:', log);
 			return await this.LogService.createLog(userContext, userIdDTO, log);
 		} catch (error) {
 			const errorMessage = `Failed to create log: ${error.message}`;

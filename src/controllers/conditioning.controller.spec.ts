@@ -744,13 +744,14 @@ describe('ConditioningController', () => {
 					let urlPath: string;
 					beforeEach(() => {
 						updatedLogId = uuid();
-						updatedLogDto = {
+						updatedLog = ConditioningLog.create({
 							activity: ActivityType.SWIM,
 							isOverview: true,
 							duration: { value: 3600, unit: 's' },
 							className: 'ConditioningLog'
-						};
-						updatedLog = ConditioningLog.create(updatedLogDto).value as ConditioningLog<any, ConditioningLogDTO>;
+						}).value as ConditioningLog<any, ConditioningLogDTO>;
+						updatedLogDto = updatedLog.toDTO();
+
 						logSpy = jest.spyOn(conditioningDataService, 'updateLog')
 							.mockImplementation((ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO, partialLog: Partial<ConditioningLog<any,ConditioningLogDTO>>) => {
 								void ctx, userIdDTO, logIdDTO, partialLog; // suppress unused variable warning
@@ -772,23 +773,19 @@ describe('ConditioningController', () => {
 						headers = { Authorization: `Bearer ${userAccessToken}` };
 
 						// act
-						try {
-							const response = await lastValueFrom(http.patch(url, updatedLogDto, { headers }));
+						const response = await lastValueFrom(http.patch(url, updatedLogDto, { headers }));
 
-							// assert
-							expect(logSpy).toHaveBeenCalledTimes(1);
-							const params = logSpy.mock.calls[0];
-							expect(params[0]).toEqual(userContext);
-							expect(params[1]).toEqual(new EntityIdDTO(userContext.userId));
-							expect(params[2]).toEqual(new EntityIdDTO(updatedLogId));
-							expect(params[3]).toEqual(updatedLogDto);
-							
-							expect(response?.data).toBeDefined();
-							expect(response?.data).toBe(""); // void response returned as empty string
-						}
-						catch (error) {
-							console.log(error.message);
-						}
+						// assert
+						expect(logSpy).toHaveBeenCalledTimes(1);
+						const params = logSpy.mock.calls[0];
+						expect(params[0]).toEqual(userContext);
+						expect(params[1]).toEqual(new EntityIdDTO(userContext.userId));
+						expect(params[2]).toEqual(new EntityIdDTO(updatedLogId));
+						//expect(params[3]).toEqual(updatedLogDto);
+						expect(params[3].toDTO()).toEqual(updatedLogDto);
+						
+						expect(response?.data).toBeDefined();
+						expect(response?.data).toBe(""); // void response returned as empty string						
 					});
 
 					it('throws if access token is missing', async () => {
