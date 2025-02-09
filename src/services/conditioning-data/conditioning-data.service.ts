@@ -50,7 +50,6 @@ export interface UserLogsCacheEntry {
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
  * @remark Local cache is kept in sync with repository data via subscriptions to log and user repo events.
- * @todo Refactor createLog and updateLog to take ConditioningLog instead of DTO, to enforce principle of only accepting validated data.
  */
 @Injectable()
 export class ConditioningDataService implements OnModuleDestroy {
