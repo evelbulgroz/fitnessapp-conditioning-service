@@ -109,7 +109,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	/** New API: Create a new conditioning log for a user in the system
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param userIdDTO User id of the user for whom to create the log, wrapped in a DTO
-	 * @param log DTO for conditioning log to create
+	 * @param log Conditioning log to create in the system
 	 * @returns Entity id of the created log
 	 * @throws UnauthorizedAccessError if user is not authorized to create log
 	 * @throws NotFoundError if user does not exist in persistence
@@ -366,7 +366,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	/** New API: Update an existing conditioning log for a user
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param logIdDTO Entity id of the conditioning log to update, wrapped in a DTO
-	 * @param logDTO Partial conditioning log DTO with updated properties
+	 * @param log Partial conditioning log with updated properties
 	 * @returns void
 	 * @throws UnauthorizedAccessError if user is not authorized to update log
 	 * @throws NotFoundError if log is not found in persistence while excluding soft deleted logs
@@ -376,7 +376,12 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @remark Log entity id must be set in the DTO, else the update will fail
 	 * @remark Does not support direct update of soft deleted logs, undelete first if necessary
 	 */
-	public async updateLog(ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO,	logDTO: Partial<ConditioningLogDTO>): Promise<void> {
+	public async updateLog(
+		ctx: UserContext,
+		userIdDTO: EntityIdDTO,
+		logIdDTO: EntityIdDTO,
+		log: Partial<ConditioningLog<any, ConditioningLogDTO>>
+	): Promise<void> {
 		await this.isReady(); // initialize service if necessary
 
 		// check if user is authorized to update log
@@ -393,7 +398,8 @@ export class ConditioningDataService implements OnModuleDestroy {
 		}
 
 		// update log in persistence layer
-		logDTO.entityId = logIdDTO.value; // ensure entity id is set in DTO
+		const logDTO = (log as ConditioningLog<any, ConditioningLogDTO>).toPersistenceDTO(); // convert log to DTO for persistence
+		logDTO.entityId = logIdDTO.value; // ensure entity id is set to target log in DTO
 		const logUpdateResult = await this.logRepo.update(logDTO);
 		if (logUpdateResult.isFailure) { // update failed -> throw persistence error
 			throw new PersistenceError(`${this.constructor.name}: Error updating conditioning log ${logIdDTO.value}: ${logUpdateResult.error}`);

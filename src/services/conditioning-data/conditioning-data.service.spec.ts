@@ -1595,21 +1595,19 @@ describe('ConditioningDataService', () => {
 
 			it('updates a conditioning log with new data and persists it in log repo', async () => {
 				// arrange
-				const updatedLogDTO = {...randomLog!.toJSON()};
-				updatedLogDTO.activity = ActivityType.RUN;
-				updatedLogDTO.duration = {unit: 'ms', value: 1}; // 1 ms
-
+				updatedLog.activity = ActivityType.RUN;
+				
 				// act
-				void await logService.updateLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLogDTO);
+				void await logService.updateLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLog);
 
 				// assert
 				expect(logRepoUpdateSpy).toHaveBeenCalledTimes(1);
-				expect(logRepoUpdateSpy).toHaveBeenCalledWith(updatedLogDTO);
+				expect(logRepoUpdateSpy).toHaveBeenCalledWith(updatedLog.toPersistenceDTO());
 			});
 
 			it('replaces log in cache with updated log following log repo update', async () => {
 				// arrange
-				logService.updateLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLogDTO).then(() => {
+				logService.updateLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLog).then(() => {
 					const updateEvent = new ConditioningLogUpdatedEvent({
 						eventId: uuidv4(),
 						eventName: ConditioningLogUpdatedEvent.name,
@@ -1644,11 +1642,11 @@ describe('ConditioningDataService', () => {
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 
 				// act
-				void await logService.updateLog(userContext, otherUserIdDTO, randomOtherUserLogId, updatedLogDTO);
+				void await logService.updateLog(userContext, otherUserIdDTO, randomOtherUserLogId, updatedLog);
 
 				// assert
 				expect(logRepoUpdateSpy).toHaveBeenCalledTimes(1);
-				expect(logRepoUpdateSpy).toHaveBeenCalledWith(updatedLogDTO);
+				expect(logRepoUpdateSpy).toHaveBeenCalledWith({...updatedLog.toPersistenceDTO(), entityId: randomOtherUserLog.entityId });
 			});
 
 			it('throws UnauthorizedAccessError if non-admin user tries to update log for another user', async () => {
@@ -1663,7 +1661,7 @@ describe('ConditioningDataService', () => {
 				// act/assert
 				//expect(async () => await logService.updateLog(userContext, otherUserIdDTO, randomOtherUserLogId, updatedLogDTO)).rejects.toThrow(UnauthorizedAccessError);
 				try {
-					await logService.updateLog(userContext, otherUserIdDTO, randomOtherUserLogId, updatedLogDTO);
+					await logService.updateLog(userContext, otherUserIdDTO, randomOtherUserLogId, updatedLog);
 				}
 				catch (e) {
 					error = e;
@@ -1672,7 +1670,7 @@ describe('ConditioningDataService', () => {
 				expect(error).toBeInstanceOf(UnauthorizedAccessError);
 			});
 
-			it('throws NotFoundError if does not exist in persistence layer', async () => {
+			it('throws NotFoundError if log does not exist in persistence layer', async () => {
 				// arrange
 				logRepoFetchByIdSpy.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => 
@@ -1687,7 +1685,7 @@ describe('ConditioningDataService', () => {
 				// act/assert
 				//expect(async () => await logService.updateLog(userContext, randomUserIdDTO, randomLogIdDTO, updatedLogDTO)).rejects.toThrow(NotFoundError);
 				try {
-					await logService.updateLog(userContext, randomUserIdDTO, randomLogIdDTO, updatedLogDTO);
+					await logService.updateLog(userContext, randomUserIdDTO, randomLogIdDTO, updatedLog);
 				}
 				catch (e) {
 					error = e;					
@@ -1711,7 +1709,7 @@ describe('ConditioningDataService', () => {
 				// act/assert
 				//expect(async () => await logService.updateLog(userContext, randomUserIdDTO, randomLogIdDTO, updatedLogDTO)).rejects.toThrow(PersistenceError);
 				try {
-					await logService.updateLog(userContext, randomUserIdDTO, randomLogIdDTO, updatedLogDTO);
+					await logService.updateLog(userContext, randomUserIdDTO, randomLogIdDTO, updatedLog);
 				}
 				catch (e) {
 					error = e;
