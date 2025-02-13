@@ -2,7 +2,7 @@
 Conditioning training microservice for hobbyist fitness app, with TypeScript and Jest.
 
 ## Design Intent
-* Provide a single source of truth about conditioning data for the app
+Provide a single source of truth about conditioning data for the app.
 
 ## Develop
 There is no development server: run tests to verify functionality after editing source.
@@ -72,15 +72,16 @@ This microservice is nearing first release feature completion for its main respo
 Beyond this responsibility, the overall goal is to develop this project to a state where it can function as a template for similar training data microservices, e.g. strength training etc.
 
 In broad strokes, what remains to be done is rounding out supporting features, consolidating and cleaning up, as follows:
-* Figure out how `User` CRUD should work, and how it should collaborate with user/other microservices - if at all (consider adding a separate `UserController` and `UserDataService` for this purpose)
+* Complete development of `UserDataService` and `UserController`
 * Copy over (de)registration logic to `AppModule` from API Gateway to be able to effectively authenticate and collaborate with other microservices
 * Solve any problems running the dev server
-* Get automated-generated `api-docs` endpoint working and tested
-* Pull generalizable JWT and other auth logic out into separate library/ies
+* Get automated-generated Swagger `api-docs` endpoint working and tested
+* Pull generalizable JWT and other auth logic out into separate libraries
 	* Wait until they have stabilized in operation for a while
 * Clean up code:
 	* Remove any stray unused logic
 	* Apply and comply with stricter compiler settings
 	* Apply linting
+	* Consider re-organising code by domain, rather than by technical focus/function	
 
 *Note: Postpone deployment to production. For now, running in dev is sufficient*
