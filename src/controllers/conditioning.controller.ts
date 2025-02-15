@@ -1,7 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
 import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, getSchemaPath } from '@nestjs/swagger';
 
-import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 
@@ -207,6 +206,7 @@ export class ConditioningController {
 
 	//---------------------------------- PUBLIC API: BATCH CRUD ---------------------------------//
 
+	/** @todo Make userId optional and remove from queryDTO, following example of 'activities' endpoint */
 	@Get('logs/:userId')
 	@ApiOperation({
 		summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)',
@@ -244,9 +244,6 @@ export class ConditioningController {
 
 	//------------------------------------------- MISC ------------------------------------------//
 
-	/**
-	 * @todo move data processing to service and apply similar access control as in other service methods
-	*/
 	@Get('activities')
 	@ApiOperation({
 		summary: 'Get list of the number of times each conditioning activity has been logged for a single user, or all users (role = admin)',
