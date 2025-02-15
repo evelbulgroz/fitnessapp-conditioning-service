@@ -10,7 +10,6 @@ import {
 	Matches,
 	Max,
 	MaxLength,
-	ToLowerCase,
 	ToNumber,
 	ToString,
 	ToUpperCase
