@@ -207,13 +207,13 @@ export class ConditioningController {
 	//---------------------------------- PUBLIC API: BATCH CRUD ---------------------------------//
 
 	/** @todo Make userId optional and remove from queryDTO, following example of 'activities' endpoint */
-	@Get('logs/:userId')
+	@Get('logs')
 	@ApiOperation({
 		summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)',
-		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example: http://localhost:3060/api/v3/conditioning/logs/3e020b33-55e0-482f-9c52-7bf45b4276ef'
+		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example: http://localhost:54791/conditioning/logs?userId=d84222c1-9ac6-4c12-8f94-3b9322e415d9&start=2021-01-01&end=2021-12-31&activity=MTB&sortBy=duration&order=ASC&page=1&pageSize=10'
 	})
-	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
-	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
+	@ApiQuery({ name: 'userId', description: 'User ID (string or number, optional for admins)' })
+	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs.'})
 	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
 	@ApiResponse({ status: 400, description: 'Request for logs failed' })
 	@ApiResponse({ status: 404, description: 'No logs found' })
@@ -221,19 +221,19 @@ export class ConditioningController {
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async fetchLogs(
 		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,
+		@Query('userId') userIdDTO?: EntityIdDTO,
 		@Query() queryDTO?: QueryDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
-			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO; // query always instantiated by framework -> remove if empty
-			const logs = await this.LogService.fetchLogs(userContext, userIdDTO, queryDTO) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
-			if (logs.length === 0) {
-				const errorMessage = 'No logs found';
-				this.logger.error(errorMessage);
-				throw new NotFoundException(errorMessage);
+			
+			if (queryDTO) {// query always instantiated by framework, using all query params -> remove if empty except for userId and includeDeleted
+				queryDTO.userId = undefined;
+				(queryDTO as any).includeDeleted = undefined; // not currently part of queryDTO, remove just in case
+				queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO; 
 			}
-			return logs;
+
+			return await this.LogService.fetchLogs(userContext, userIdDTO ?? undefined, queryDTO);
 		}
 		catch (error) {
 			const errorMessage = `Request for logs failed: ${error.message}`;

@@ -378,9 +378,9 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 	/** New API: Get all conditioning logs for user and matching query (if provided)
 	 * @param ctx user context for the request (includes user id and roles)
-	 * @param userIdDTO Entity id of the user for whom to retrieve logs, wrapped in a DTO
+	 * @param userIdDTO Entity id of the user for whom to retrieve logs, wrapped in a DTO (optional for admin)
 	 * @param queryDTO Optional query to filter logs (else all accessible logs for role are returned)
-	 * @param includeDeleted Optional flag to include soft deleted logs in the response
+	 * @param includeDeleted Optional flag to include soft deleted logs in the response, default is false
 	 * @returns Array of conditioning logs (constrained by user context and query)
 	 * @throws UnauthorizedAccessError if user attempts authorized access to logs
 	 * @remark Overview logs are guaranteed to be available
@@ -389,7 +389,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 */
 	public async fetchLogs(
 		ctx: UserContext,
-		userIdDTO: EntityIdDTO,
+		userIdDTO?: EntityIdDTO,
 		queryDTO?: QueryDTO,
 		includeDeleted = false
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
@@ -398,7 +398,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		// check if provided user id matches context decoded from access token
 		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
 			if (userIdDTO?.value !== ctx.userId) { // user id does not match -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${userIdDTO.value}.`);
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${userIdDTO?.value}.`);
 			}
 		}
 		
