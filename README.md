@@ -72,7 +72,7 @@ This microservice is nearing first release feature completion for its main respo
 Beyond this responsibility, the overall goal is to develop this project to a state where it can function as a template for similar training data microservices, e.g. strength training etc.
 
 In broad strokes, what remains to be done is rounding out supporting features, consolidating and cleaning up, as follows:
-* Complete development of `UserDataService` and `UserController`
+* Update decorators after re-publishing library
 * Copy over (de)registration logic to `AppModule` from API Gateway to be able to effectively authenticate and collaborate with other microservices
 * Solve any problems running the dev server
 * Get automated-generated Swagger `api-docs` endpoint working and tested
