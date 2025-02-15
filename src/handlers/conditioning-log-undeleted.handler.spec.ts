@@ -18,13 +18,14 @@ import { User } from '../domain/user.entity';
 import { UserDTO } from '../dtos/domain/user.dto';
 
 
-describe('LogUndeletedHandler', () => {
+describe('ConditioningLogUndeletedHandler', () => {
 	let handler: ConditioningLogUndeletedHandler;
+	let logger: Logger;
 	let service: ConditioningDataService;
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
 			providers: [
-				{
+				{ // ConditioningDataService
 					provide: ConditioningDataService,
 					useValue: {
 						getCacheSnapshot: jest.fn(),
@@ -33,14 +34,20 @@ describe('LogUndeletedHandler', () => {
 					}
 				},
 				ConditioningLogUndeletedHandler,
-				{
+				{ // Logger
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: {
+						log: jest.fn(),
+						warn: jest.fn(),
+						error: jest.fn(),
+						// add other methods as needed
+					}
 				},				
 			],
 		});
 
 		handler = module.get<ConditioningLogUndeletedHandler>(ConditioningLogUndeletedHandler);
+		logger = module.get<Logger>(Logger);
 		service = module.get<ConditioningDataService>(ConditioningDataService);
 	});
 
@@ -143,7 +150,9 @@ describe('LogUndeletedHandler', () => {
 
 		it('logs a warning if the log is not found in the cache', async () => {
 			// arrange
-			getCacheSnapshotSpy.mockReturnValue(testCache); // reset mock to return original cache
+			getCacheSnapshotSpy.mockRestore(); // reset mock to original implementation
+			getCacheSnapshotSpy.mockReturnValue([]); // return original cache
+			const loggerWarnSpy = jest.spyOn(logger, 'warn');
 			
 			// act
 			await handler.handle(event);
@@ -151,8 +160,8 @@ describe('LogUndeletedHandler', () => {
 			// assert
 			expect(getCacheSnapshotSpy).toHaveBeenCalled();
 			expect(updateCacheSpy).not.toHaveBeenCalled();
-			expect(handler['logger'].warn).toHaveBeenCalledTimes(1);
-			expect(handler['logger'].warn).toHaveBeenCalledWith(`Log ${randomLogDTO.entityId} not found in cache.`);			
+			expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
+			expect(loggerWarnSpy).toHaveBeenCalledWith(`Log ${randomLogDTO.entityId} not found in cache.`);			
 		});
 
 		it('throws an error if the event is not a ConditioningLogUndeletedEvent', async () => {
