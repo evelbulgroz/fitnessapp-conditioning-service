@@ -30,20 +30,20 @@ describe('EventDispatcher', () => {
 	beforeEach(async () => {
 		const module: TestingModule = await createTestingModule({
 			providers: [
-				{
+				{ // ConditioningDataService
 					provide: ConditioningDataService,
 					useValue: {
 						getCacheSnapshot: jest.fn(),
 						updateCache: jest.fn(),
 					}
 				},
-				{
+				{ // ConditioningLogRepository
 					provide: ConditioningLogRepository,
 					useValue: {
 						// add methods as needed
 					}
 				},
-				{
+				{ // Logger
 					provide: Logger,
 					useClass: ConsoleLogger
 				},
@@ -55,7 +55,7 @@ describe('EventDispatcher', () => {
 				UserCreatedHandler,
 				UserDeletedHandler,
 				UserUpdatedHandler,
-				{
+				{ // UserRepository
 					provide: UserRepository,
 					useValue: {
 						create: jest.fn(),

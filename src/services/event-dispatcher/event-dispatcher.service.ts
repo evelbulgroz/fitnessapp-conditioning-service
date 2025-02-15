@@ -47,11 +47,9 @@ public async dispatch(event: DomainEvent<DomainEventDTO<any>, any>): Promise<voi
 		case ConditioningLogDeletedEvent:
 			await this.logDeletedHandler.handle(event);
 			break;
-		/*
 		case ConditioningLogUndeletedEvent:
 			await this.logUndeletedHandler.handle(event);
 			break;
-		*/
 		case UserCreatedEvent:
 			await this.userCreatedHandler.handle(event);
 			break;
