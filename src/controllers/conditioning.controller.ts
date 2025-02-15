@@ -206,14 +206,14 @@ export class ConditioningController {
 
 	//---------------------------------- PUBLIC API: BATCH CRUD ---------------------------------//
 
-	/** @todo Make userId optional and remove from queryDTO, following example of 'activities' endpoint */
 	@Get('logs')
 	@ApiOperation({
 		summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)',
-		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example: http://localhost:54791/conditioning/logs?userId=d84222c1-9ac6-4c12-8f94-3b9322e415d9&start=2021-01-01&end=2021-12-31&activity=MTB&sortBy=duration&order=ASC&page=1&pageSize=10'
+		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example: http://localhost:56383/conditioning/logs?userId=ddc97caa-faea-44aa-a351-79af7c394e29&includeDeleted=false&start=2021-01-01&end=2021-12-31&activity=MTB&sortBy=duration&order=ASC&page=1&pageSize=10'
 	})
 	@ApiQuery({ name: 'userId', description: 'User ID (string or number, optional for admins)' })
-	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs.'})
+	@ApiQuery({ name: 'includeDeleted', description: 'Include soft deleted logs (true or false, optional unless using query, defaults to false)' })	
+	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs. Should not include duplicate userId or includeDeleted, or request will fail'})
 	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
 	@ApiResponse({ status: 400, description: 'Request for logs failed' })
 	@ApiResponse({ status: 404, description: 'No logs found' })
@@ -222,6 +222,7 @@ export class ConditioningController {
 	public async fetchLogs(
 		@Req() req: any,
 		@Query('userId') userIdDTO?: EntityIdDTO,
+		@Query('includeDeleted') includeDeletedDTO?: BooleanParamDTO,
 		@Query() queryDTO?: QueryDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
@@ -233,7 +234,7 @@ export class ConditioningController {
 				queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO; 
 			}
 
-			return await this.LogService.fetchLogs(userContext, userIdDTO ?? undefined, queryDTO);
+			return await this.LogService.fetchLogs(userContext, userIdDTO ?? undefined, queryDTO, includeDeletedDTO?.value);
 		}
 		catch (error) {
 			const errorMessage = `Request for logs failed: ${error.message}`;
@@ -250,7 +251,7 @@ export class ConditioningController {
 		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:60741/conditioning/activities?userId=1593d697-2dfc-4f29-8f4b-8c1f9343ef56&includeDeleted=false&start=2025-01-01T00:00:00Z&end=2025-01-31T23:59:59Z&activity=RUN&sortBy=date&order=ASC&page=1&pageSize=10'
 	})
 	@ApiQuery({ name: 'userId', description: 'User ID (string or number, optional for admins)' })
-	@ApiQuery({ name: 'includeDeleted', description: 'Include deleted logs in the count (true or false, optional unless using query, defaults to false)' })
+	@ApiQuery({ name: 'includeDeleted', description: 'Include soft deleted logs in the count (true or false, optional unless using query, defaults to false)' })
 	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs. Should not include duplicate userId or includeDeleted, or request will fail'})
 	@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
 	@ApiResponse({ status: 400, description: 'Request for activities failed' })

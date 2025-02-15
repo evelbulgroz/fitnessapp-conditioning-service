@@ -1117,7 +1117,8 @@ describe('ConditioningController', () => {
 		
 			describe('multiple logs', () => {
 				describe('fetchLogs', () => {
-					let adminContext: UserContext;;
+					let adminContext: UserContext;
+					let includeDeletedDTO: BooleanParamDTO;
 					let logsSpy: any;
 					let queryDTO: QueryDTO;
 					let queryDTOProps: QueryDTOProps;
@@ -1126,6 +1127,8 @@ describe('ConditioningController', () => {
 					let url: string;
 					beforeEach(() => {
 						adminContext = new UserContext(adminProps);
+
+						includeDeletedDTO = new BooleanParamDTO(false);
 
 						queryDTOProps = {
 							start: '2021-01-01',
@@ -1144,7 +1147,7 @@ describe('ConditioningController', () => {
 						
 						userIdDTO = new EntityIdDTO(userContext.userId);
 
-						url = `${baseUrl}/logs?userId=${userContext.userId}&${queryString}`;
+						url = `${baseUrl}/logs?userId=${userContext.userId}&includeDeleted=false&${queryString}`;
 					});
 
 					afterEach(() => {
@@ -1159,7 +1162,7 @@ describe('ConditioningController', () => {
 						// assert
 						expect(true).toBeTruthy(); // debug
 						expect(logsSpy).toHaveBeenCalledTimes(1);
-						expect(logsSpy).toHaveBeenCalledWith(userContext, userIdDTO, queryDTO);
+						expect(logsSpy).toHaveBeenCalledWith(userContext, userIdDTO, queryDTO, includeDeletedDTO.value);
 					});
 
 					it('optionally gives normal users access to their logs matching a query', async () => {
@@ -1170,7 +1173,7 @@ describe('ConditioningController', () => {
 						
 						// assert
 						expect(logsSpy).toHaveBeenCalledTimes(1);
-						expect(logsSpy).toHaveBeenCalledWith(userContext, userIdDTO, queryDTO);
+						expect(logsSpy).toHaveBeenCalledWith(userContext, userIdDTO, queryDTO, includeDeletedDTO.value);
 					});
 
 					it('gives admin users access to all logs for all users', async () => {
@@ -1182,7 +1185,7 @@ describe('ConditioningController', () => {
 
 						// assert
 						expect(logsSpy).toHaveBeenCalledTimes(1);
-						expect(logsSpy).toHaveBeenCalledWith(adminContext, userIdDTO, queryDTO);
+						expect(logsSpy).toHaveBeenCalledWith(adminContext, userIdDTO, queryDTO, includeDeletedDTO.value);
 					});
 
 					it('optionally gives admin users access to logs matching a query', async () => {
@@ -1194,7 +1197,7 @@ describe('ConditioningController', () => {
 
 						// assert
 						expect(logsSpy).toHaveBeenCalledTimes(1);
-						expect(logsSpy).toHaveBeenCalledWith(adminContext, userIdDTO, queryDTO);
+						expect(logsSpy).toHaveBeenCalledWith(adminContext, userIdDTO, queryDTO, includeDeletedDTO.value);
 					});
 					
 					it('throws error if access token is missing', async () => {
