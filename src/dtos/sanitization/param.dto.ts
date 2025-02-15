@@ -8,7 +8,7 @@
 export abstract class ParamDTO<T> {	
 	protected _value: T | undefined;
 	
-	public constructor(value: T) {
+	public constructor(value?: T) {
 		// assigning to setter to invoke validation
 		// note: for some reason, framework calls constructor twice, at least in tests -> deal with it here
 		if (value instanceof ParamDTO) { // if called with another EntityIdParam, copy its id
@@ -20,7 +20,7 @@ export abstract class ParamDTO<T> {
 	}
 
 	public set value(value: T | undefined) { throw new Error('Implement and validate ParamModel setter in subclass'); }
-	public get value() { throw new Error('Implement ParamModel getter in subclass'); }
+	public get value(): T | undefined { throw new Error('Implement ParamModel getter in subclass'); }
 }
 
 export default ParamDTO;

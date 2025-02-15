@@ -12,6 +12,7 @@ import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
 import { AggregationQueryDTO } from '../dtos/sanitization/aggregation-query.dto';
 import { AggregationQueryDTOProps }	from '../test/models/aggregation-query-dto.props';
+import { BooleanParamDTO } from '../dtos/sanitization/boolean-param.dto';
 import { ConditioningController } from './conditioning.controller';
 import { BcryptCryptoService } from '../services/crypto/bcrypt-crypto.service';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
@@ -91,6 +92,7 @@ describe('ConditioningController', () => {
 				{ // Data service
 					provide: ConditioningDataService,
 					useValue: {
+						fetchActivityCounts: jest.fn(),
 						fetchAggretagedLogs: jest.fn(),
 						conditioningData: jest.fn(),
 						createLog: jest.fn(),
@@ -197,45 +199,30 @@ describe('ConditioningController', () => {
 	});
 
 	describe('Endpoints', () => {
-		describe(`activities`, () => {
-			let logsSpy: any;
+		describe('activities', () => {
 			let url: string;
 			beforeEach(() => {
-				logsSpy = jest.spyOn(conditioningDataService, 'fetchLogs').mockImplementationOnce(() => [
-					{ activity: 'SWIM' },
-					{ activity: 'BIKE' },
-					{ activity: 'RUN' },
-					{ activity: 'MTB' },
-					{ activity: 'MTB' },
-				] as unknown as Promise<ConditioningLog<any, ConditioningLogDTO>[]>);			
-
-				url = `${baseUrl}/activities`;
+				url = `${baseUrl}/activities?userId=${userContext.userId}&includeDeleted=false`;
 			});
 
 			afterEach(() => {
-				logsSpy && logsSpy.mockRestore();
 				jest.clearAllMocks();
 			});
 			
 			it('provides summary of conditioning activities performed by type', async () => {
 				// arrange
-				const spy = jest.spyOn(conditioningDataService, 'fetchLogs').mockImplementationOnce(() => [
-					{ activity: 'SWIM' },
-					{ activity: 'BIKE' },
-					{ activity: 'RUN' },
-					{ activity: 'MTB' },
-					{ activity: 'MTB' },
-				] as unknown as Promise<ConditioningLog<any, ConditioningLogDTO>[]>);
-				
-				const expectedResult = { MTB: 2, RUN: 1, SWIM: 1, BIKE: 1, SKI: 0, OTHER: 0 };
-
+				const spy = jest.spyOn(conditioningDataService, 'fetchActivityCounts');
 				// act
-				const response = await lastValueFrom(http.get(url, { headers }));
+				void await lastValueFrom(http.get(url, { headers }));
 				
 				// assert
+				 // for now, just check that the correct params are passed to the service
 				expect(spy).toHaveBeenCalledTimes(1);
-				expect(response).toBeDefined();
-				expect(response.data).toEqual(expectedResult);
+				const args = spy.mock.calls[0];
+				expect(args[0]).toEqual(userContext);// user context
+				expect(args[1]).toEqual(new EntityIdDTO(userContext.userId)); // user id
+				expect(args[2]).toBeUndefined(); // no query parameters
+				expect(args[3]).toEqual(new BooleanParamDTO(false)); // includeDeleted = false
 
 				// cleanup
 				spy && spy.mockRestore();
@@ -270,12 +257,14 @@ describe('ConditioningController', () => {
 
 			it('throws if data service throws', async () => {
 				// arrange
-				logsSpy.mockRestore();
-				logsSpy = jest.spyOn(conditioningDataService, 'fetchLogs').mockImplementation(() => { throw new Error('Test Error'); });
+				const serviceSpy = jest.spyOn(conditioningDataService, 'fetchActivityCounts').mockImplementation(() => { throw new Error('Test Error'); });
 				const response$ = http.get(url, { headers });
 
 				// act/assert
 				await expect(lastValueFrom(response$)).rejects.toThrow();
+
+				// clean up
+				serviceSpy?.mockRestore();
 			});
 		});
 

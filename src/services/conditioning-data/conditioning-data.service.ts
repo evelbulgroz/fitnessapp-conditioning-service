@@ -10,6 +10,7 @@ import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO } from '../../dtos/sanitization/aggregation-query.dto';
 import { AggregatorService } from '../aggregator/aggregator.service';
+import { BooleanParamDTO } from '../../dtos/sanitization/boolean-param.dto';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
@@ -172,7 +173,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to retrieve the activity counts, wrapped in a DTO (optional for admin)
 	 * @param queryDTO Optional query to filter logs (else all accessible logs are counted)
-	 * @param includeDeleted Optional flag to include soft deleted logs in the response
+	 * @param includeDeletedDTO Optional flag to include soft deleted logs in the response
 	 * @returns Record of activity types and the number of times each has been logged
 	 * @throws UnauthorizedAccessError if user is not authorized to access logs
 	 * @remark Admins can access logs for all users, other users can only access their own logs
@@ -181,7 +182,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		ctx: UserContext,
 		userIdDTO?: EntityIdDTO,
 		queryDTO?: QueryDTO,
-		includeDeleted = false
+		includeDeletedDTO?: BooleanParamDTO
 	): Promise<Record<string, number>> {
 		await this.isReady(); // initialize service if necessary
 
@@ -219,7 +220,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
 
 		// filter out soft deleted logs, unless expressly requested
-		matchingLogs = matchingLogs.filter((log) => includeDeleted || !log.deletedOn );
+		matchingLogs = matchingLogs.filter((log) => !!includeDeletedDTO?.value || !log.deletedOn );
 
 		// count activity types in matching logs (using interim Map for efficiency when aggregating large datasets)
 		const activityCounts = new Map<ActivityType, number>();

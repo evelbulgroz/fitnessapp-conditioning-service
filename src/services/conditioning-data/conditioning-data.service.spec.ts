@@ -14,6 +14,7 @@ import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO } from '../../dtos/sanitization/aggregation-query.dto';
 import { AggregatorService } from '../../services/aggregator/aggregator.service';
+import { BooleanParamDTO } from '../../dtos/sanitization/boolean-param.dto';
 import { ConditioningDataService } from './conditioning-data.service';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
@@ -40,7 +41,6 @@ import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';
 import { UserPersistenceDTO } from '../../dtos/domain/user-persistence.dto';
 import { UserRepository } from '../../repositories/user.repo';
-import e from 'express';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -1133,7 +1133,7 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(logsForRandomUser);
 				
 				// act
-				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO, undefined, true);
+				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO, undefined, new BooleanParamDTO(true));
 				
 				// assert
 				expect(activityCounts).toBeDefined();

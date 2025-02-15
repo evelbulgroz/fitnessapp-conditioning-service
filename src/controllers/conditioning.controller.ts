@@ -6,12 +6,12 @@ import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 
 import { AggregationQueryDTO } from '../dtos/sanitization/aggregation-query.dto';
+import { BooleanParamDTO } from '../dtos/sanitization/boolean-param.dto';
 import { ConditioningData } from '../domain/conditioning-data.model';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { DefaultStatusCodeInterceptor } from './interceptors/status-code.interceptor';
-
 import { EntityIdDTO } from '../dtos/sanitization/entity-id.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
@@ -226,10 +226,8 @@ export class ConditioningController {
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
-			// query is always instantiated by the http framework, even of no parameters are provided in the request:
-			// therefore remove empty queries here, so that the service method can just check for undefined
-			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-			const logs = await this.LogService.fetchLogs(userContext, userIdDTO, queryDTO as any) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
+			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO; // query always instantiated by framework -> remove if empty
+			const logs = await this.LogService.fetchLogs(userContext, userIdDTO, queryDTO) ?? []; // todo: refactor service method to map QueryDTO to Query, then constrain type here
 			if (logs.length === 0) {
 				const errorMessage = 'No logs found';
 				this.logger.error(errorMessage);
@@ -252,21 +250,31 @@ export class ConditioningController {
 	@Get('activities')
 	@ApiOperation({
 		summary: 'Get list of the number of times each conditioning activity has been logged for a single user, or all users (role = admin)',
-		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:3060/api/v3/conditioning/activities'
+		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:3060/api/v3/conditioning/activities?userId=8e5db957-8d47-4c16-8722-fce908e68ac6&includeDeleted=false&extraParam=value'
 	})
+	@ApiQuery({ name: 'userId', description: 'User ID (string or number, optional for admins)' })
+	@ApiQuery({ name: 'includeDeleted', description: 'Include deleted logs in the count (true or false, optional unless using query, defaults to false)' })
+	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
 	@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
+	@ApiResponse({ status: 400, description: 'Request for activities failed' })
+	@ApiResponse({ status: 404, description: 'No activities found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async activities(@Req() req: any): Promise<Record<string, number>> {
+	public async activities(
+		@Req() req: any,
+		@Query('userId') userIdDTO?: EntityIdDTO,
+		@Query('includeDeleted') includeDeletedDTO?: BooleanParamDTO,
+		@Query() queryDTO?: QueryDTO,
+	): Promise<Record<string, number>> {
 		try {
-			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult			
-			const activityCounts: Record<string, number> = {};			
-			const logs = await this.LogService.fetchLogs(userContext, {} as unknown as EntityIdDTO) ?? [];
-			Object.keys(ActivityType).forEach(activity => {
-				const count = logs.filter(log => log.activity === activity).length;
-				activityCounts[activity] = count;
-			});
-			return activityCounts;
+			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult	
+			
+			if (queryDTO) {// query always instantiated by framework, using all query params -> remove if empty except for userId and includeDeleted
+				queryDTO.userId = undefined;
+				(queryDTO as any).includeDeleted = undefined; // not currently part of queryDTO, remove just in case
+				queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO; 
+			}
+			return await this.LogService.fetchActivityCounts(userContext, userIdDTO, queryDTO, includeDeletedDTO);
 		}
 		catch (error) {
 			this.logger.error(`Request for activities failed: ${error.message}`);
