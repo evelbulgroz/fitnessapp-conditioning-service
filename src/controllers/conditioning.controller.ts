@@ -250,11 +250,11 @@ export class ConditioningController {
 	@Get('activities')
 	@ApiOperation({
 		summary: 'Get list of the number of times each conditioning activity has been logged for a single user, or all users (role = admin)',
-		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:3060/api/v3/conditioning/activities?userId=8e5db957-8d47-4c16-8722-fce908e68ac6&includeDeleted=false&extraParam=value'
+		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:60741/conditioning/activities?userId=1593d697-2dfc-4f29-8f4b-8c1f9343ef56&includeDeleted=false&start=2025-01-01T00:00:00Z&end=2025-01-31T23:59:59Z&activity=RUN&sortBy=date&order=ASC&page=1&pageSize=10'
 	})
 	@ApiQuery({ name: 'userId', description: 'User ID (string or number, optional for admins)' })
 	@ApiQuery({ name: 'includeDeleted', description: 'Include deleted logs in the count (true or false, optional unless using query, defaults to false)' })
-	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
+	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs. Should not include duplicate userId or includeDeleted, or request will fail'})
 	@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
 	@ApiResponse({ status: 400, description: 'Request for activities failed' })
 	@ApiResponse({ status: 404, description: 'No activities found' })

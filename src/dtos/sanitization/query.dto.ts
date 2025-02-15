@@ -27,6 +27,7 @@ const MAX_PROPERTY_LENGTH = 100; // Maximum length for a property
 
 /** Represents sanitized query parameters received by an endpoint in a JSON object.
  * @remark Intended for use in endpoint validation pipe to validate query parameters
+ * @todo Reassess need got own date conversion method, in addition to the decorator
 */
 export class QueryDTO extends DataTransferObject {
 	//----------------------------- PROPERTIES -----------------------------//

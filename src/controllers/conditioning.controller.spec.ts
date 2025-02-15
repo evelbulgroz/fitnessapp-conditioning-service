@@ -200,9 +200,22 @@ describe('ConditioningController', () => {
 
 	describe('Endpoints', () => {
 		describe('activities', () => {
+			let expectedQueryDTO: QueryDTO;
 			let url: string;
 			beforeEach(() => {
-				url = `${baseUrl}/activities?userId=${userContext.userId}&includeDeleted=false`;
+				const queryDTOProps: QueryDTOProps = {					
+					start: '2025-01-01T00:00:00Z',
+					end: '2025-01-31T23:59:59Z',
+					activity: ActivityType.RUN,
+					// should not include duplicate userId, or request will fail
+					sortBy: 'date',
+					order: 'ASC',
+					page: 1,
+					pageSize: 10
+				};				
+				expectedQueryDTO = new QueryDTO(queryDTOProps);
+				const queryString = Object.keys(queryDTOProps).map(key => `${key}=${(queryDTOProps as any)[key]}`).join('&');
+				url = `${baseUrl}/activities?userId=${userContext.userId}&includeDeleted=false&${queryString}`;
 			});
 
 			afterEach(() => {
@@ -212,6 +225,7 @@ describe('ConditioningController', () => {
 			it('provides summary of conditioning activities performed by type', async () => {
 				// arrange
 				const spy = jest.spyOn(conditioningDataService, 'fetchActivityCounts');
+				
 				// act
 				void await lastValueFrom(http.get(url, { headers }));
 				
@@ -221,11 +235,45 @@ describe('ConditioningController', () => {
 				const args = spy.mock.calls[0];
 				expect(args[0]).toEqual(userContext);// user context
 				expect(args[1]).toEqual(new EntityIdDTO(userContext.userId)); // user id
-				expect(args[2]).toBeUndefined(); // no query parameters
+				expect(args[2]).toEqual(expectedQueryDTO); // query
 				expect(args[3]).toEqual(new BooleanParamDTO(false)); // includeDeleted = false
 
 				// cleanup
 				spy && spy.mockRestore();
+			});
+
+			// Note: these tests can be enhanced to check the data forwared to the service, as well as the response
+
+			it('can be called without a user id', async () => {
+				// arrange
+				url = `${baseUrl}/activities?includeDeleted=false`; // no user id
+
+				// act/assert
+				await expect(lastValueFrom(http.get(url, { headers }))).resolves.not.toThrow();
+			});
+
+			it('can be called with without includeDeleted', async () => {
+				// arrange
+				url = `${baseUrl}/activities?userId=${userContext.userId}`; // no includeDeleted parameter
+
+				// act/assert
+				await expect(lastValueFrom(http.get(url, { headers }))).resolves.not.toThrow();
+			});
+
+			it('can be called with without a query', async () => {
+				// arrange
+				url = `${baseUrl}/activities?userId=${userContext.userId}&includeDeleted=false`; // no query parameters
+
+				// act/assert
+				await expect(lastValueFrom(http.get(url, { headers }))).resolves.not.toThrow();
+			});
+
+			it('can be called without any query parameters', async () => {
+				// arrange
+				url = `${baseUrl}/activities`; // no query parameters
+
+				// act/assert
+				await expect(lastValueFrom(http.get(url, { headers }))).resolves.not.toThrow();
 			});
 
 			it('throws if access token is missing', async () => {
