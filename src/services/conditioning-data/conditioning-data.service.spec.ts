@@ -1109,12 +1109,13 @@ describe('ConditioningDataService', () => {
 				expect(Object.keys(activityCounts)).toEqual([ActivityType.MTB]);
 			});
 
-			xit('by default excludes soft deleted logs', async () => {
+			it('by default excludes activities from soft deleted logs', async () => {
 				// arrange
 				const deletedLog = logsForRandomUser[0];
 				deletedLog['_updatedOn'] = undefined;
 				deletedLog.deletedOn = new Date(deletedLog.createdOn!.getTime() + 1000);
-				const expectedCounts = getActivityCounts(logsForRandomUser.filter(log => log.deletedOn === undefined));
+				const logs = logsForRandomUser.filter(log => log.deletedOn === undefined);
+				const expectedCounts = getActivityCounts(logs);
 				
 				// act
 				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO);
@@ -1124,7 +1125,7 @@ describe('ConditioningDataService', () => {
 				expect(activityCounts).toEqual(expectedCounts);
 			});
 
-			it('optionally can include soft deleted logs', async () => {
+			it('optionally can include activities from soft deleted logs', async () => {
 				// arrange
 				const deletedLog = logsForRandomUser[0];
 				deletedLog['_updatedOn'] = undefined;

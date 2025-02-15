@@ -168,7 +168,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		
 	}
 	
-	/** New API: Get list of the number of times each conditioning activity has been logged for a single user, or all users
+	/** New API: Get list of the number of times each conditioning activity has been logged for a single user, or all users (admin only)
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to retrieve the activity counts, wrapped in a DTO (optional for admin)
 	 * @param queryDTO Optional query to filter logs (else all accessible logs are counted)
@@ -195,9 +195,9 @@ export class ConditioningDataService implements OnModuleDestroy {
 			}
 		}
 
-		// get accessible log given user id and role
-		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[]; // logs to count
-		if(userIdDTO) {
+		// get accessible logs given user id and role
+		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];
+		if (userIdDTO) { // user id provided -> get logs for single user
 			const userResult = await this.userRepo.fetchById(userIdDTO.value!);
 			if (userResult.isFailure) { // fetch failed -> throw not found error
 				throw new NotFoundError(`${this.constructor.name}: User ${userIdDTO.value} not found.`);
@@ -218,17 +218,17 @@ export class ConditioningDataService implements OnModuleDestroy {
 		}
 		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
 
-		// filter out soft deleted logs, if not included
+		// filter out soft deleted logs, unless expressly requested
 		matchingLogs = matchingLogs.filter((log) => includeDeleted || !log.deletedOn );
 
 		// count activity types in matching logs (using interim Map for efficiency when aggregating large datasets)
 		const activityCounts = new Map<ActivityType, number>();
-		accessibleLogs.forEach((log) => {
+		matchingLogs.forEach((log) => {
 			const count = activityCounts.get(log.activity) ?? 0;
 			activityCounts.set(log.activity, count + 1);
 		});
 
-		// convert Map to plain object for serving as JSON (Map is not serializable by default)
+		// serialize Map to plain object for serving as JSON (Map is not serializable by default)
 		const activityCountsObj: Record<string, number> = {};
 			activityCounts.forEach((value, key) => {
 			activityCountsObj[key] = value;
