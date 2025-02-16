@@ -77,6 +77,7 @@ In broad strokes, what remains to be done is rounding out supporting features, c
 * Get automated-generated Swagger `api-docs` endpoint working and tested
 * Pull generalizable JWT and other auth logic out into separate libraries
 	* Wait until they have stabilized in operation for a while
+* Implement e2e testing (figure out how)
 * Clean up code:
 	* Remove any stray unused logic
 	* Apply and comply with stricter compiler settings
