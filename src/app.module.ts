@@ -8,6 +8,7 @@ import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { UserService } from './services/user/user.service';
 import { UserController } from './controllers/user.controller';
 
+// todo: Copy over (de)registration logic from API Gateway to be able to effectively authenticate and collaborate with other microservices
 @Module({
 	imports: [],
 	controllers: [
