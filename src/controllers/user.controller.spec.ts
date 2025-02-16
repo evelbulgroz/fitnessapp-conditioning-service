@@ -455,7 +455,6 @@ describe('UserController', () => {
 
 			it('undeletes a user and returns an empty success message', async () => {
 				// arrange				
-				console.debug('url:', url);
 				// act
 				const response = await lastValueFrom(http.patch(url, requestConfig, { headers }));
 				
