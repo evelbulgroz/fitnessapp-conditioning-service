@@ -209,7 +209,7 @@ describe('UserController', () => {
 			});
 
 			it('creates a new user and returns an empty success message', async () => {
-				// arrange				
+				// arrange
 				// act
 				const response = await lastValueFrom(http.post(url, requestConfig, { headers }));
 
@@ -306,12 +306,10 @@ describe('UserController', () => {
 		});
 
 		describe('deleteUser', () => {
-			let requestConfig: any;
 			let url: string;
 			let userId: string;
 			let userServiceDeleteSpy: any;
 			beforeEach(() => {
-				requestConfig = { };
 				userId = uuid();
 				url = `${baseUrl}/${userId}`;
 				userServiceDeleteSpy = jest.spyOn(userDataService, 'deleteUser').mockImplementation(() => Promise.resolve());
@@ -457,6 +455,7 @@ describe('UserController', () => {
 
 			it('undeletes a user and returns an empty success message', async () => {
 				// arrange				
+				console.debug('url:', url);
 				// act
 				const response = await lastValueFrom(http.patch(url, requestConfig, { headers }));
 				

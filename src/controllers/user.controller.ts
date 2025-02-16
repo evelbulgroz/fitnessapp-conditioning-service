@@ -44,7 +44,10 @@ export class UserController {
 
 	@Post(':userId')
 	@HttpCode(HttpStatus.CREATED)
-	@ApiOperation({ summary: 'Create a new user', description: 'This endpoint is responsible for creating a new user in this service. It is intended for use by the user microservice only, to keep this service in sync, and is protected by authentication and role-based access control.' })
+	@ApiOperation({
+		summary: 'Create a new user',
+		description: 'This endpoint is responsible for creating a new user in this service. It is intended for use by the user microservice only, to keep this service in sync, and is protected by authentication and role-based access control. Example: (POST) http://localhost:56536/api/v3/user/e9f0491f-1cd6-433d-8a58-fe71d198c049'
+	})
 	@ApiParam({ name: 'userId', description: 'The user id in the user microservice' })
 	@ApiResponse({ status: 201, description: 'User created successfully. Returns empty string as users should be referenced by their id in the user microservice, not their local id in this service.', type: String })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
@@ -82,7 +85,10 @@ export class UserController {
 
 	@Delete(':userId/')
 	@HttpCode(HttpStatus.NO_CONTENT)
-	@ApiOperation({ summary: 'Delete a user', description: 'This endpoint is responsible for deleting a user in this service. It is intended for use by the user microservice only, to keep this service in sync, and is protected by authentication and role-based access control.' })
+	@ApiOperation({
+		summary: 'Delete a user',
+		description: 'This endpoint is responsible for deleting a user in this service. It is intended for use by the user microservice only, to keep this service in sync, and is protected by authentication and role-based access control. Example: (DELETE) http://localhost:56919/api/v3/user/8ae14ed8-c4d3-4e42-b171-2668e752b900'
+	})
 	@ApiParam({ name: 'userId', description: 'The user id in the user microservice' })
 	@ApiResponse({ status: 204, description: 'User deleted successfully. Returns empty string.', type: String })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
@@ -115,7 +121,10 @@ export class UserController {
 
 	@Patch(':userId/undelete')
 	@HttpCode(HttpStatus.NO_CONTENT)
-	@ApiOperation({ summary: 'Undelete a user', description: 'This endpoint is responsible for undeleting (i.e. restoring) a previously soft deleted user in the system. It is intended for use by the user microservice only and is protected by authentication and role-based access control.' })
+	@ApiOperation({
+		summary: 'Undelete a user',
+		description: 'This endpoint is responsible for undeleting (i.e. restoring) a previously soft deleted user in the system. It is intended for use by the user microservice only and is protected by authentication and role-based access control. Example: (PATCH) http://localhost:57049/user/ab7b5cfb-7bc3-42c5-b6a0-82155ec717c0/undelete'
+	 })
 	@ApiParam({ name: 'userId', description: 'The user id in the user microservice' })
 	@ApiResponse({ status: 204, description: 'User undeleted successfully' })
 	@ApiResponse({ status: 400, description: 'Invalid data' })

@@ -209,7 +209,7 @@ export class ConditioningController {
 	@Get('logs')
 	@ApiOperation({
 		summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)',
-		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example: http://localhost:56383/conditioning/logs?userId=ddc97caa-faea-44aa-a351-79af7c394e29&includeDeleted=false&start=2021-01-01&end=2021-12-31&activity=MTB&sortBy=duration&order=ASC&page=1&pageSize=10'
+		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example: http://localhost:56383/api/v3/conditioning/logs?userId=ddc97caa-faea-44aa-a351-79af7c394e29&includeDeleted=false&start=2021-01-01&end=2021-12-31&activity=MTB&sortBy=duration&order=ASC&page=1&pageSize=10'
 	})
 	@ApiQuery({ name: 'userId', description: 'User ID (string or number, optional for admins)' })
 	@ApiQuery({ name: 'includeDeleted', description: 'Include soft deleted logs (true or false, optional unless using query, defaults to false)' })	
@@ -248,7 +248,7 @@ export class ConditioningController {
 	@Get('activities')
 	@ApiOperation({
 		summary: 'Get list of the number of times each conditioning activity has been logged for a single user, or all users (role = admin)',
-		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:60741/conditioning/activities?userId=1593d697-2dfc-4f29-8f4b-8c1f9343ef56&includeDeleted=false&start=2025-01-01T00:00:00Z&end=2025-01-31T23:59:59Z&activity=RUN&sortBy=date&order=ASC&page=1&pageSize=10'
+		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:60741/api/v3/conditioning/activities?userId=1593d697-2dfc-4f29-8f4b-8c1f9343ef56&includeDeleted=false&start=2025-01-01T00:00:00Z&end=2025-01-31T23:59:59Z&activity=RUN&sortBy=date&order=ASC&page=1&pageSize=10'
 	})
 	@ApiQuery({ name: 'userId', description: 'User ID (string or number, optional for admins)' })
 	@ApiQuery({ name: 'includeDeleted', description: 'Include soft deleted logs in the count (true or false, optional unless using query, defaults to false)' })
