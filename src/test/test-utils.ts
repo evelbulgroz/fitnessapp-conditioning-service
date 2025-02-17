@@ -1,4 +1,4 @@
-import { Test, TestingModule, TestingModuleBuilder } from '@nestjs/testing';
+import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import { ModuleMetadata } from '@nestjs/common/interfaces';
 import { ConfigModule } from '@nestjs/config';
 import '../../config/test.config';
