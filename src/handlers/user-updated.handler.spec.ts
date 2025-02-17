@@ -14,7 +14,8 @@ import { UserRepository } from '../repositories/user.repo';
 describe('UserUpdatedHandler', () => {
 	let handler: UserUpdatedHandler;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
+			// ConfigModule is imported automatically by createTestingModule
 			providers: [				
 				{
 					provide: ConditioningDataService,
@@ -39,7 +40,8 @@ describe('UserUpdatedHandler', () => {
 				},
 				UserUpdatedHandler, // bug: enabling this breaks the test if UserUpdatedHandler injects ConditioningDataService
 			],
-		});
+		}))
+		.compile();
 
 		handler = module.get<UserUpdatedHandler>(UserUpdatedHandler);
 	});

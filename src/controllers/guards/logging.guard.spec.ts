@@ -21,7 +21,8 @@ describe('LoggingGuard', () => {
 					},
 				},
 			],
-		}).compile();
+		})
+		.compile();
 		
 		logger = module.get<Logger>(Logger);
 		loggingGuard = module.get<LoggingGuard>(LoggingGuard);		

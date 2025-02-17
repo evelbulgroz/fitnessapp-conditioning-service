@@ -25,7 +25,7 @@ describe('JsonWebtokenService', () => {
 	let secretService: JwtSecretService
 	let service: JwtService;	
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
 			imports: [
 				//ConfigModule is imported automatically by createTestingModule
 			],
@@ -47,7 +47,8 @@ describe('JsonWebtokenService', () => {
 					inject: [JwtSecretService],
 				},
 			],
-		});
+		}))
+		.compile();
 
 		config = module.get<ConfigService>(ConfigService);
 		secretService = module.get<JwtSecretService>(JwtSecretService);

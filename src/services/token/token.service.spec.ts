@@ -27,7 +27,7 @@ describe('TokenService', () => {
 	let httpService: HttpService;
 	let service: TokenService;	
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
 			imports: [
 				//ConfigModule is imported automatically by createTestingModule
 			],
@@ -47,7 +47,9 @@ describe('TokenService', () => {
 				RetryRequesterService,
 				TokenService,
 			],
-		});
+		}))
+		.compile();
+
 		config = module.get<ConfigService>(ConfigService);
 		httpService = module.get<HttpService>(HttpService);
 		service = module.get<TokenService>(TokenService);

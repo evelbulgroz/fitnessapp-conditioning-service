@@ -6,14 +6,15 @@ import { createTestingModule } from '../../test/test-utils';
 describe('BcryptCryptoService', () => {
 	let cryptoService: BcryptCryptoService;	
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
 			imports: [
 				//ConfigModule is imported automatically by createTestingModule
 			],
 			providers: [
 				BcryptCryptoService,
 			],
-		});
+		}))
+		.compile();
 
 		cryptoService = module.get<BcryptCryptoService>(BcryptCryptoService);
 	});

@@ -18,9 +18,9 @@ describe('JwtAuthGuard', () => {
 	let guard: JwtAuthGuard;
 	let strategy: JwtAuthStrategy;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module = await (await createTestingModule({
 			imports: [
-				//ConfigModule is imported automatically by createTestingModule
+				// ConfigModule is imported automatically by createTestingModule
 			],
 			providers: [
 				JwtAuthGuard,
@@ -32,7 +32,7 @@ describe('JwtAuthGuard', () => {
 					},
 				},
 			],
-		});
+		})).compile();
 
 		config = module.get<ConfigService>(ConfigService);
 		guard = module.get<JwtAuthGuard>(JwtAuthGuard);

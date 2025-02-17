@@ -15,7 +15,8 @@ import { UserRepository } from '../repositories/user.repo';
 describe('UserCreatedHandler', () => {
 	let handler: UserCreatedHandler;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
+			// ConfigModule is imported automatically by createTestingModule
 			providers: [
 				{
 					provide: ConditioningDataService,
@@ -43,7 +44,8 @@ describe('UserCreatedHandler', () => {
 					useClass: ConsoleLogger
 				},				
 			],
-		});
+		}))
+		.compile();
 
 		handler = module.get<UserCreatedHandler>(UserCreatedHandler);
 	});

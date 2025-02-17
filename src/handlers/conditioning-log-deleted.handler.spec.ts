@@ -13,7 +13,8 @@ import { ConditioningLogDeletedHandler } from './conditioning-log-deleted.handle
 describe('LogDeletedHandler', () => {
 	let handler: ConditioningLogDeletedHandler;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
+			// ConfigModule is imported automatically by createTestingModule
 			providers: [
 				{
 					provide: ConditioningLogRepository,
@@ -28,7 +29,8 @@ describe('LogDeletedHandler', () => {
 					useClass: ConsoleLogger
 				},				
 			],
-		});
+		}))
+		.compile();
 
 		handler = module.get<ConditioningLogDeletedHandler>(ConditioningLogDeletedHandler);
 	});

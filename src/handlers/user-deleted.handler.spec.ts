@@ -13,7 +13,8 @@ import { UserRepository } from '../repositories/user.repo';
 describe('UserCreatedHandler', () => {
 	let handler: UserDeletedHandler;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
+			// ConfigModule is imported automatically by createTestingModule
 			providers: [
 				{
 					provide: ConditioningLogRepository,
@@ -35,7 +36,8 @@ describe('UserCreatedHandler', () => {
 					useClass: ConsoleLogger
 				},				
 			],
-		});
+		}))
+		.compile();
 
 		handler = module.get<UserDeletedHandler>(UserDeletedHandler);
 	});

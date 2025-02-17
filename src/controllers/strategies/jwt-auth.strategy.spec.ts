@@ -29,9 +29,9 @@ describe('JwtAuthStrategy', () => {
 	let jwtService: JwtService;
 	let userRepo: UserRepository;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await(await createTestingModule({
 			imports: [
-				//ConfigModule is imported automatically by createTestingModule
+				// ConfigModule is imported automatically by createTestingModule
 			],
 			providers: [
 				ConfigService,
@@ -57,7 +57,8 @@ describe('JwtAuthStrategy', () => {
 					}
 				}
 			],
-		});
+		}))
+		.compile();
 
 		config = module.get<ConfigService>(ConfigService);
 		crypto = module.get<CryptoService>(CryptoService);

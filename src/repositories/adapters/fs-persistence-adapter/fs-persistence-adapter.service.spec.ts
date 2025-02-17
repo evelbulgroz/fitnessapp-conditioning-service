@@ -15,12 +15,13 @@ describe('FsPersistenceAdapterService', () => {
 	let service: FsPersistenceAdapterService<ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>>;
 
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
-			//ConfigModule is imported automatically by createTestingModule
+		const module: TestingModule = await (await createTestingModule({
+			// ConfigModule is imported automatically by createTestingModule
 			providers: [
 				FsPersistenceAdapterService,
 			],
-		});
+		}))
+		.compile();
 
 		service = module.get<FsPersistenceAdapterService<ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>>>(FsPersistenceAdapterService);
 	});

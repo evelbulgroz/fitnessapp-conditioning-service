@@ -17,7 +17,7 @@ describe('RetryRequesterService', () => {
 	let httpService: HttpService;
 	let service: RetryRequesterService;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
 			providers: [
 				{
 					provide: HttpService,
@@ -32,7 +32,8 @@ describe('RetryRequesterService', () => {
 				},
 				RetryRequesterService,
 			],
-		});
+		}))
+		.compile();
 
 		service = module.get<RetryRequesterService>(RetryRequesterService);
 		httpService = module.get<HttpService>(HttpService);

@@ -25,7 +25,7 @@ describe('UserService', () => {
 	beforeEach(async () => {
 		userRepoUpdatesSubject = new Subject<any>();				
 
-		app = await createTestingModule({
+		app = await (await createTestingModule({
 			imports: [
 				// ConfigModule is imported automatically by createTestingModule
 			],
@@ -53,7 +53,8 @@ describe('UserService', () => {
 				},
 				UserService
 			],
-		});
+		}))
+		.compile();
 
 		config = app.get<ConfigService>(ConfigService);
 		service = app.get<UserService>(UserService);

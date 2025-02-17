@@ -28,24 +28,25 @@ describe('UserRepo', () => {
 	let adapter: PersistenceAdapter<UserPersistenceDTO>;
 	let repo: UserRepository;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
-		providers: [
-			// ConfigModule is imported automatically by createTestingModule
-			{
-				provide: PersistenceAdapter,
-				useClass: PersistenceAdapterMock,
-			},
-			{
-				provide: Logger,
-				useClass: ConsoleLogger
-			},
-			{
-				provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
-				useValue: 100						// figure out how to get this from config
-			},
-			UserRepository,
-		],
-		});
+		const module: TestingModule = await (await createTestingModule({
+			providers: [
+				// ConfigModule is imported automatically by createTestingModule
+				{
+					provide: PersistenceAdapter,
+					useClass: PersistenceAdapterMock,
+				},
+				{
+					provide: Logger,
+					useClass: ConsoleLogger
+				},
+				{
+					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
+					useValue: 100						// figure out how to get this from config
+				},
+				UserRepository,
+			]
+		}))
+		.compile();
 
 		adapter = module.get<PersistenceAdapter<UserPersistenceDTO>>(PersistenceAdapter);
 		repo = module.get<UserRepository>(UserRepository);

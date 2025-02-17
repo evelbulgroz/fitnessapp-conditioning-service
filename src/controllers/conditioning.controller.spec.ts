@@ -51,7 +51,7 @@ describe('ConditioningController', () => {
 	let baseUrl: string;
 	let userRepo: UserRepository;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
 			// ConfigModule is imported automatically by createTestingModule
 			imports: [
 				HttpModule, // implicitly imports HttpService, adding service to providers array causes error
@@ -114,7 +114,8 @@ describe('ConditioningController', () => {
 					}
 				}
 			],
-		});
+		}))
+		.compile();
 		
 		app = module.createNestApplication();
 		appController = module.get<ConditioningController>(ConditioningController);

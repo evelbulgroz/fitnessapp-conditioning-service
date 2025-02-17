@@ -23,7 +23,7 @@ describe('RegistrationService', () => {
 	let http: HttpService;
 	let service: RegistrationService;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
 			imports: [
 				//ConfigModule is imported automatically by createTestingModule
 			],
@@ -49,7 +49,8 @@ describe('RegistrationService', () => {
 					}
 				}
 			]
-		});
+		}))
+		.compile();
 
 		authService = module.get<AuthService>(AuthService);	
 		config = module.get<ConfigService>(ConfigService);

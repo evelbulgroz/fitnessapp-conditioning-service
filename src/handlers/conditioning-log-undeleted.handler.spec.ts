@@ -23,7 +23,7 @@ describe('ConditioningLogUndeletedHandler', () => {
 	let logger: Logger;
 	let service: ConditioningDataService;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
 			providers: [
 				{ // ConditioningDataService
 					provide: ConditioningDataService,
@@ -44,7 +44,8 @@ describe('ConditioningLogUndeletedHandler', () => {
 					}
 				},				
 			],
-		});
+		}))
+		.compile();
 
 		handler = module.get<ConditioningLogUndeletedHandler>(ConditioningLogUndeletedHandler);
 		logger = module.get<Logger>(Logger);

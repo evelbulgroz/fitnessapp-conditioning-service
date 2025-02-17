@@ -61,7 +61,7 @@ describe('ConditioningDataService', () => {
 		logRepoUpdatesSubject = new Subject<any>();
 		userRepoUpdatesSubject = new Subject<any>();
 		
-		app = await createTestingModule({
+		app = await (await createTestingModule({
 			imports: [
 				// ConfigModule is imported automatically by createTestingModule
 			],
@@ -114,7 +114,9 @@ describe('ConditioningDataService', () => {
 					}
 				}
 			],
-		});
+		}))
+		.compile();
+
 		aggregatorService = app.get<AggregatorService>(AggregatorService);
 		logService = app.get<ConditioningDataService>(ConditioningDataService);
 		logger = app.get<Logger>(Logger);

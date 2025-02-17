@@ -28,7 +28,7 @@ import { UserRepository } from '../../repositories/user.repo';
 describe('EventDispatcher', () => {
 	let dispatcher: EventDispatcher;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
 			providers: [
 				{ // ConditioningDataService
 					provide: ConditioningDataService,
@@ -63,7 +63,8 @@ describe('EventDispatcher', () => {
 					}
 				}
 			],
-		});
+		}))
+		.compile();
 
 		dispatcher = module.get<EventDispatcher>(EventDispatcher);		
 	});

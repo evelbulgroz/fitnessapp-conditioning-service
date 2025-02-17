@@ -13,8 +13,9 @@ import { ConditioningLogUpdateHandler } from './conditioning-log-updated.handler
 describe('LogUpdatedHandler', () => {
 	let handler: ConditioningLogUpdateHandler;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
 			providers: [
+				// ConfigModule is imported automatically by createTestingModule
 				{
 					provide: ConditioningDataService,
 					useValue: {
@@ -34,7 +35,8 @@ describe('LogUpdatedHandler', () => {
 					useClass: ConsoleLogger
 				},				
 			],
-		});
+		}))
+		.compile();
 
 		handler = module.get<ConditioningLogUpdateHandler>(ConditioningLogUpdateHandler);
 	});

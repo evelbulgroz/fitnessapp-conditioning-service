@@ -31,24 +31,25 @@ describe('ConditioningLogRepository', () => {
 	let adapter: PersistenceAdapter<ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>>;
 	let repo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>;
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
-		providers: [
-			// ConfigModule is imported automatically by createTestingModule
-			{
-				provide: PersistenceAdapter,
-				useClass: PersistenceAdapterMock,
-			},
-			{
-				provide: Logger,
-				useClass: ConsoleLogger
-			},
-			{
-				provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
-				useValue: 100						// figure out how to get this from config
-			},
-			ConditioningLogRepository,
-		],
-		});
+		const module: TestingModule = await (await createTestingModule({
+			providers: [
+				// ConfigModule is imported automatically by createTestingModule
+				{
+					provide: PersistenceAdapter,
+					useClass: PersistenceAdapterMock,
+				},
+				{
+					provide: Logger,
+					useClass: ConsoleLogger
+				},
+				{
+					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
+					useValue: 100						// figure out how to get this from config
+				},
+				ConditioningLogRepository,
+			]
+		}))
+		.compile();
 
 		adapter = module.get<PersistenceAdapter<ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>>>(PersistenceAdapter);
 		repo = module.get<ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>>(ConditioningLogRepository);
