@@ -58,7 +58,7 @@ export class ConditioningController {
 	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
 	@ApiBody({ 
 		type: ConditioningLog,
-		description: 'Expects ConditioningLog serialized to DTO (ConditioningLogDTO is not a class, so cannot be specified as type here)'
+		description: 'Expects object that can be deserialized to valid ConditioningLog'
 	})
 	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
@@ -124,7 +124,7 @@ export class ConditioningController {
 	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
 	@ApiBody({ 
 		type: ConditioningLog,
-		description: 'Expects (partial) ConditioningLog serialized to DTO (ConditioningLogDTO is not a class, so cannot be specified as type here)'
+		description: 'Expects object that can be deserialized to (partial) ConditioningLog'
 	})
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
 	@ApiResponse({ status: 400, description: 'Invalid data' })
@@ -294,7 +294,7 @@ export class ConditioningController {
 		@Req() req: any,
 		@Body() aggregationQueryDTO: AggregationQueryDTO,
 		@Query() queryDTO?: QueryDTO
-	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> { // todo: change return type to match service method
+	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
