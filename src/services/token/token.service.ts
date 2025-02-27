@@ -11,7 +11,7 @@ import { BootstrapResponseDTO } from '../../dtos/registration/bootstrap-response
 import { LocateDataDTO } from '../../dtos/registration/locate-data.dto';
 import { ServiceDataDTO } from '../../dtos/registration/service-data.dto';
 import { ServiceLoginDataDTO } from '../../dtos/registration/service-login-data.dto';
-import { ServiceLogoutDataDTO } from '../../dtos/sanitization/service-logout-data.dto';
+import { ServiceLogoutDataDTO } from '../../dtos/registration/service-logout-data.dto';
 import { ServiceTokenRefreshDataDTO } from '../../dtos/sanitization/service-token-refresh-data.dto';
 
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../domain/config-options.model';

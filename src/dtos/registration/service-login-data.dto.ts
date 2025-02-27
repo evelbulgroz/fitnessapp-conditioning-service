@@ -1,7 +1,8 @@
 
 /** Credentials and other data required by the auth microservice for logging in a system user (i.e. this service)
- * @remark For requests only: password and verification token are excluded from responses
  * @remark Used for type safety when composing requests to the auth microservice
+ * @remark For requests only: password and verification token are excluded from responses
+ * @remark Excludes access token which is passed in the request header
  * @remark Must be kept up to date with the API contract of the auth microservice
  */
 export interface ServiceLoginDataDTO {

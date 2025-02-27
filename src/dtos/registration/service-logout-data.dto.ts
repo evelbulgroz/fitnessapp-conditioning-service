@@ -1,6 +1,9 @@
 
-/** Credentials and other data required for logging out a system user (e.g. a microservice)
+/** Credentials and other data required by the auth microservice for logging out a system user (i.e. this service)
+ * @remark Used for type safety when composing requests to the auth microservice
+ * @remark For requests only: refresh token is excluded from responses
  * @remark Excludes access token which is passed in the request header
+ * @remark Must be kept up to date with the API contract of the auth microservice
  */
 export interface ServiceLogoutDataDTO {
 	/** Unique identifier for the microservice as registered in the service registry */
