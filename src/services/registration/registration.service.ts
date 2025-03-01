@@ -41,11 +41,11 @@ export class RegistrationService {
 		const RETRY_DELAY = endpointConfig.connect?.retryDelay ?? registryConfig?.connect?.retryDelay ?? 0;		
 		
 		const url = registryConfig.baseURL.href + endpointConfig.path;
-		const body = new RegistryServiceDataDTO({
+		const body = {
 			serviceId: this.appConfig.serviceid,
 			serviceName: this.appConfig.servicename,
 			location: this.appConfig.baseURL.href
-		});
+		} as RegistryServiceDataDTO;
 		let config: {[key: string]: any};
 
 		// get the access credential from the auth service, then execute the request
@@ -94,11 +94,11 @@ export class RegistrationService {
 		const RETRY_DELAY = endpointConfig.connect?.retryDelay ?? registryConfig?.connect?.retryDelay ?? 0;
 		
 		const url = registryConfig.baseURL.href + registryConfig.endpoints?.register.path;
-		const body = new RegistryServiceDataDTO({
+		const body ={
 			serviceId: this.appConfig.serviceid,
 			serviceName: this.appConfig.servicename,
 			location: this.appConfig.baseURL.href
-		});
+		} as RegistryServiceDataDTO;
 		let config: {[key: string]: any};
 
 		// get the access credential from the auth service, then execute the request
