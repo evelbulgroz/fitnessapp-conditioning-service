@@ -4,9 +4,9 @@ import { InRange, IsDefined, IsString, Matches } from "@evelbulgroz/sanitizer-de
 
 import { ParamDTO } from "./param.dto";
 
-/** Class for a single, sanitized boolean value received by an endpoint in a query parameter.
- * @remark Allows for validation of a boolean value received by an endpoint in a query parameter.
+/** DTO for sanitizing a single JWT string in a response
  * @remark Accepts undefined as a valid value, but not null.
+ * @todo Refactor to inherit from SafePrimitive<string>
  */
 export class SafeJwtDTO extends ParamDTO<string> {
 	// _value is inherited from ParamDTO
