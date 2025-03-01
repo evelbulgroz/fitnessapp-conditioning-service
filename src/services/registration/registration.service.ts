@@ -4,7 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { firstValueFrom, from, switchMap, tap } from "rxjs";
 
 import { Logger } from "@evelbulgroz/ddd-base";
-import { ServiceDataDTO as RegistryServiceDataDTO } from "../../dtos/registration/service-data.dto";
+import { ServiceDataDTO as RegistryServiceDataDTO } from "../../dtos/requests/service-data.dto";
 
 import { AuthService } from "../auth/auth-service.class";
 import { RetryRequesterService } from "../retry-requester/retry-requester.service";
@@ -41,11 +41,11 @@ export class RegistrationService {
 		const RETRY_DELAY = endpointConfig.connect?.retryDelay ?? registryConfig?.connect?.retryDelay ?? 0;		
 		
 		const url = registryConfig.baseURL.href + endpointConfig.path;
-		const body: RegistryServiceDataDTO = {
+		const body = new RegistryServiceDataDTO({
 			serviceId: this.appConfig.serviceid,
 			serviceName: this.appConfig.servicename,
 			location: this.appConfig.baseURL.href
-		};		
+		});
 		let config: {[key: string]: any};
 
 		// get the access credential from the auth service, then execute the request
@@ -94,11 +94,11 @@ export class RegistrationService {
 		const RETRY_DELAY = endpointConfig.connect?.retryDelay ?? registryConfig?.connect?.retryDelay ?? 0;
 		
 		const url = registryConfig.baseURL.href + registryConfig.endpoints?.register.path;
-		const body: RegistryServiceDataDTO = {
+		const body = new RegistryServiceDataDTO({
 			serviceId: this.appConfig.serviceid,
 			serviceName: this.appConfig.servicename,
 			location: this.appConfig.baseURL.href
-		};
+		});
 		let config: {[key: string]: any};
 
 		// get the access credential from the auth service, then execute the request

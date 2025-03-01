@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AggregationQuery } from '@evelbulgroz/time-series';
 
-import { AggregationQueryDTO } from '../dtos/sanitization/aggregation-query.dto';
+import { AggregationQueryDTO } from '../dtos/responses/aggregation-query.dto';
 import { Mapper } from './mapper.model';
 
 @Injectable()

@@ -6,7 +6,7 @@ import { firstValueFrom, Observable, Subscription, take } from 'rxjs';
 import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 
-import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
+import { EntityIdDTO } from '../../dtos/responses/entity-id.dto';
 import { PersistenceError } from '../../domain/persistence.error';
 import { UnauthorizedAccessError } from '../../domain/unauthorized-access.error';
 import { User } from '../../domain/user.entity';

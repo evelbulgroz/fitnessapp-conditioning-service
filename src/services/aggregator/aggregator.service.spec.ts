@@ -5,7 +5,7 @@ import { AggregationType, SampleRate, TimeSeriesAggregator } from '@evelbulgroz/
 
 import { AggregationQueryMapper } from '../../mappers/aggregation-query.mapper';
 import { AggregatorService } from "./aggregator.service";
-import { AggregationQueryDTO } from "../../dtos/sanitization/aggregation-query.dto";
+import { AggregationQueryDTO } from "../../dtos/responses/aggregation-query.dto";
 
 // NOTE: Just a quick test to check that the service can be created/injected and used:
 // TimeSeriesAggregator is fully tested in @evelbulgroz/time-series, so no need to test it here.

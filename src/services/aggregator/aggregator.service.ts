@@ -8,7 +8,7 @@ import {
 	TimeSeries
 } from '@evelbulgroz/time-series';
 
-import { AggregationQueryDTO } from '../../dtos/sanitization/aggregation-query.dto';
+import { AggregationQueryDTO } from '../../dtos/responses/aggregation-query.dto';
 import { AggregationQueryMapper } from '../../mappers/aggregation-query.mapper';
 
 /** Aggregates time series data by sample rate and aggregation type

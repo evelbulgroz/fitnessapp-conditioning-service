@@ -4,13 +4,13 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { Logger } from '@evelbulgroz/ddd-base';
 
-import { EntityIdDTO } from '../dtos/sanitization/entity-id.dto';
+import { EntityIdDTO } from '../dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
-import { ServiceName } from '../dtos/sanitization/service-name.class';
+import { ServiceName } from '../dtos/responses/service-name.class';
 import { UnauthorizedAccessError } from '../domain/unauthorized-access.error';
 import { UserService } from '../services/user/user.service';
 import { UserContext, UserContextProps } from '../domain/user-context.model';

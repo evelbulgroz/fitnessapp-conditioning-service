@@ -11,7 +11,7 @@ import { Logger, Result } from '@evelbulgroz/ddd-base';
 import { BcryptCryptoService } from '../services/crypto/bcrypt-crypto.service';
 import { createTestingModule } from '../test/test-utils';
 import { CryptoService } from '../services/crypto/models/crypto-service.model';
-import { EntityIdDTO } from '../dtos/sanitization/entity-id.dto';
+import { EntityIdDTO } from '../dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthStrategy } from './strategies/jwt-auth.strategy';
 import { JwtSecretService } from '../services/jwt/jwt-secret.service';

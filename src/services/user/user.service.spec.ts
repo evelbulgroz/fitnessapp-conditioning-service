@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ConsoleLogger, Logger, Result } from '@evelbulgroz/ddd-base';
 
 import { createTestingModule } from '../../test/test-utils';
-import { EntityIdDTO } from '../../dtos/sanitization/entity-id.dto';
+import { EntityIdDTO } from '../../dtos/responses/entity-id.dto';
 import { User } from '../../domain/user.entity';
 import { UserContext } from '../../domain/user-context.model';
 import { UserDTO } from '../../dtos/domain/user.dto';

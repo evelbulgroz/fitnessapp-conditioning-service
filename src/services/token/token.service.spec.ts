@@ -9,11 +9,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
-import { BootstrapResponseDTO } from '../../dtos/registration/bootstrap-response.dto';
-import { ServiceDataDTO, ServiceDataDTOProps } from '../../dtos/registration/service-data.dto';
-import { ServiceLoginDataDTO } from '../../dtos/registration/service-login-data.dto';
-import { ServiceLogoutDataDTO } from '../../dtos/registration/service-logout-data.dto';
-import { ServiceTokenRefreshDataDTO } from '../../dtos/sanitization/service-token-refresh-data.dto';
+import { BootstrapResponseDTO } from '../../dtos/requests/bootstrap-response.dto';
+import { ServiceDataDTO, ServiceDataDTOProps } from '../../dtos/requests/service-data.dto';
+import { ServiceLoginDataDTO } from '../../dtos/requests/service-login-data.dto';
+import { ServiceLogoutDataDTO } from '../../dtos/requests/service-logout-data.dto';
+import { ServiceTokenRefreshDataDTO } from '../../dtos/responses/service-token-refresh-data.dto';
 
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../domain/config-options.model';
 import { createTestingModule } from '../../test/test-utils';

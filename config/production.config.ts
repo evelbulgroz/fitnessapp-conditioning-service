@@ -10,7 +10,7 @@ const majorVersion = parseInt(packageJson.version?.split('.')[0]);
 export default () => (<ConfigOptions>{
 	environment: 'production',
 	app: {
-		baseURL: new URL('http://localhost:3060/'),
+		baseURL: new URL('https://localhost:3060/'),
 		globalprefix: `api/v${majorVersion}`,
 		serviceid: uuidv4(),
 		servicename: 'fitnessapp-conditioning-service',
@@ -45,7 +45,7 @@ export default () => (<ConfigOptions>{
 	security: productionSecurityConfig(),
 	services: {
 		'fitnessapp-authentication-service': {
-			baseURL: new URL('http://localhost:3010/auth/api/v1'),
+			baseURL: new URL('https://localhost:3010/auth/api/v1'),
 			connect: {
 				maxRetries: 1,
 				retryDelay: 10 * 1000 // 10 seconds
@@ -70,7 +70,7 @@ export default () => (<ConfigOptions>{
 			}
 		},
 		'fitnessapp-registry-service': {
-			baseURL: new URL('http://localhost:3000/registry/api/v1'),
+			baseURL: new URL('https://localhost:3000/registry/api/v1'),
 			connect: {
 				maxRetries: 6,
 				retryDelay: 10 * 1000 // 10 seconds

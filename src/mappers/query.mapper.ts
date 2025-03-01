@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Mapper } from './mapper.model';
 import { Query, SearchFilterOperation, SortOperation } from '@evelbulgroz/query-fns';
-import { QueryDTO } from '../dtos/sanitization/query.dto';
+import { QueryDTO } from '../dtos/responses/query.dto';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 

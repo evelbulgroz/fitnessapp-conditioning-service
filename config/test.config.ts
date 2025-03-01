@@ -14,7 +14,7 @@ export default async () => {
 	return (<ConfigOptions>{
 		environment: 'test',
 		app: {
-			baseURL: new URL('http://localhost:3060/'),
+			baseURL: new URL('https://localhost:3060/'),
 			globalprefix: `api/v${majorVersion}`,
 			serviceid: uuidv4(),
 			servicename: 'fitnessapp-conditioning-service',
@@ -49,7 +49,7 @@ export default async () => {
 		security: testSecurityConfig(),
 		services: {
 			'fitnessapp-authentication-service': {
-				baseURL: new URL('http://localhost:3010/auth/api/v1'),
+				baseURL: new URL('https://localhost:3010/auth/api/v1'),
 				connect: {
 					maxRetries: 1,
 					retryDelay: 1 // 1ms
@@ -74,7 +74,7 @@ export default async () => {
 				}
 			},
 			'fitnessapp-registry-service': {
-				baseURL: new URL('http://localhost:3000/registry/api/v1'),
+				baseURL: new URL('https://localhost:3000/registry/api/v1'),
 				connect: {
 					maxRetries: 6,
 					retryDelay: 1 // 1 ms
@@ -103,7 +103,7 @@ export default async () => {
 				}
 			},
 			conditioningservice : {
-				baseURL: new URL('http://localhost:3020/conditionings'),			
+				baseURL: new URL('https://localhost:3020/conditionings'),			
 			},
 		}
 	});

@@ -4,22 +4,22 @@ import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, 
 import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 
-import { AggregationQueryDTO } from '../dtos/sanitization/aggregation-query.dto';
-import { BooleanParamDTO } from '../dtos/sanitization/boolean-param.dto';
+import { AggregationQueryDTO } from '../dtos/responses/aggregation-query.dto';
+import { BooleanParamDTO } from '../dtos/responses/boolean-param.dto';
 import { ConditioningData } from '../domain/conditioning-data.model';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
 import { DefaultStatusCodeInterceptor } from './interceptors/status-code.interceptor';
-import { EntityIdDTO } from '../dtos/sanitization/entity-id.dto';
+import { EntityIdDTO } from '../dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
 import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
-import { QueryDTO } from '../dtos/sanitization/query.dto';
+import { QueryDTO } from '../dtos/responses/query.dto';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
-import { TypeParamDTO } from '../dtos/sanitization/type-param.dto';
+import { TypeParamDTO } from '../dtos/responses/type-param.dto';
 import { UserContext, UserContextProps } from '../domain/user-context.model';
 import { ValidationPipe } from './pipes/validation.pipe';
 
