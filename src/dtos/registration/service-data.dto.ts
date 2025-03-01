@@ -1,4 +1,5 @@
-/** Specifies the information required to register a service with the registry
+/** Specifies the information required to register a this service with the registry microservice
+ * @remark Used for type safety when composing requests to the registry microservice
  * @remark Tokens are not part of the DTO, and should not be stored in the registry
  */
 export interface ServiceDataDTO {
