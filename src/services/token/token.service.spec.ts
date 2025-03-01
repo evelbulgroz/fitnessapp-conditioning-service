@@ -266,7 +266,7 @@ describe('TokenService', () => {
 				// assert
 				expect(httpPostSpy).toHaveBeenCalledTimes(3);
 				expect(httpPostSpy).toHaveBeenCalledWith(logoutUrl, logoutData, logoutHeaders);
-				expect(result).toBe('Service logged out successfully');
+				expect(result).toBe('TokenService.logout Service logged out successfully');
 			});
 
 			it('clears access and refresh tokens after logging out', async () => {

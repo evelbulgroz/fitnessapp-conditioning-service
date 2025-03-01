@@ -122,6 +122,7 @@ export class TokenService extends AuthService {
 	 * @remark Clients should use getAuthData() instead of login() to get the access token
 	 */
 	public async login(): Promise<{accessToken: string, refreshToken: string}> {
+		this.logger.log(`${this.constructor.name}.login Logging in to the auth service...`);
 		void await this.getAuthData();
 		return { accessToken: this._accessToken!, refreshToken: this._refreshToken! };
 	}
@@ -131,7 +132,7 @@ export class TokenService extends AuthService {
 	 * @remark Will clear the tokens and pass them to the auth service for invalidation
 	 */
 	public async logout(): Promise<string> {
-		this.logger.log('Logging out from the auth service...');//, `${this.constructor.name}.logout`);
+		this.logger.log(`${this.constructor.name}.logout Logging out from the auth service...`);
 				
 		// get auth service endpoint from registry microservice
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
@@ -180,8 +181,9 @@ export class TokenService extends AuthService {
 
 		// validate the response
 		if (!logoutResponse || logoutResponse.status !== 200) {
-			this.logger.error('Logout failed');//, `${this.constructor.name}.logout`);
-			throw new Error('Logout failed');
+			const errorMsg = `${this.constructor.name}.logout Logout request failed`;
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
 		}
 		
 		// clear the tokens
@@ -189,10 +191,10 @@ export class TokenService extends AuthService {
 		this._refreshToken = undefined;
 
 		// log the response
-		this.logger.log('Logout from auth service successful');//, `${this.constructor.name}.logout`);
+		this.logger.log(`${this.constructor.name}.logout Logout from auth service successful`);
 
 		// return the response
-			return 'Service logged out successfully';
+		return `${this.constructor.name}.logout Service logged out successfully`;
 	}
 
 	/*----------------------------------- PRIVATE METHODS ----------------------------------------*/
@@ -227,7 +229,7 @@ export class TokenService extends AuthService {
 
 		// execute the request
 		const method = RequestMethod[bootstrapConfig?.method?.toUpperCase()] as unknown as RequestMethod;
-			const response$ =  this.requester.execute(url, method, body, options, MAX_RETRIES, RETRY_DELAY);
+		const response$ =  this.requester.execute(url, method, body, options, MAX_RETRIES, RETRY_DELAY);
 		const response = await firstValueFrom(response$);
 		
 		// validate the response
@@ -237,6 +239,7 @@ export class TokenService extends AuthService {
 			throw new Error(errorMsg);
 		}
 
+		// sanitize the response
 		let bootstrapData: BootstrapResponseDTO;
 		try {
 			bootstrapData = new BootstrapResponseDTO(response.data);
