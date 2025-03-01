@@ -4,7 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { firstValueFrom, from, switchMap, tap } from "rxjs";
 
 import { Logger } from "@evelbulgroz/ddd-base";
-import { ServiceDataDTO as RegistryServiceDataDTO } from "../../dtos/requests/service-data.dto";
+import { ServiceDataDTO as RegistryServiceDataDTO } from "../../dtos/responses/service-data.dto";
 
 import { AuthService } from "../auth/auth-service.class";
 import { RetryRequesterService } from "../retry-requester/retry-requester.service";

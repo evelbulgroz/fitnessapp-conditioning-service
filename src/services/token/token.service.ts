@@ -7,12 +7,12 @@ import jwt from 'jsonwebtoken';
 
 import { Logger } from '@evelbulgroz/ddd-base';
 
-import { BootstrapResponseDTO } from '../../dtos/requests/bootstrap-response.dto';
+import { BootstrapResponseDTO } from '../../dtos/responses/bootstrap-response.dto';
 import { LocateDataDTO } from '../../dtos/requests/locate-data.dto';
-import { ServiceDataDTO } from '../../dtos/requests/service-data.dto';
+import { ServiceDataDTO } from '../../dtos/responses/service-data.dto';
 import { ServiceLoginDataDTO } from '../../dtos/requests/service-login-data.dto';
 import { ServiceLogoutDataDTO } from '../../dtos/requests/service-logout-data.dto';
-import { ServiceTokenRefreshDataDTO } from '../../dtos/responses/service-token-refresh-data.dto';
+import { ServiceTokenRefreshDataDTO } from '../../dtos/requests/service-token-refresh-data.dto';
 
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../domain/config-options.model';
 import { AuthService } from "../auth/auth-service.class";

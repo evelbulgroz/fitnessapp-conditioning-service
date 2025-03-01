@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import { of } from 'rxjs';
 
 import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
-import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/requests/service-data.dto';
+import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/service-data.dto';
 
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../domain/config-options.model';
 import { AuthService } from '../auth/auth-service.class';
