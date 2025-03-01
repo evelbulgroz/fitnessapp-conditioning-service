@@ -366,12 +366,19 @@ export class TokenService extends AuthService {
 			throw new Error('Refresh response not received');
 		}
 
-		const accessToken = response.data?.accessToken;
-		if (!accessToken) {
-			this.logger.error('Access token not received');//, `${this.constructor.name}.refresh`);
-			throw new Error('Access token not received');
+		// sanitize the token
+		let accessToken: string;
+		try {
+			const accessTokenDTO = new SafeJwtDTO(response.data?.accessToken);
+			accessToken = accessTokenDTO.value as string;
+		}
+		catch (error) {
+			const errorMsg = `${this.constructor.name}.refresh Refresh response invalid: ${error.message}`;
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
 		}
 		
+		// validate the token
 		const jwtConfig = this.config.get(`security.authentication.jwt`) ?? {};
 		if (!jwt.verify(accessToken, jwtConfig.accessToken.secret)) {
 			this.logger.error('Access token verification failed');//, `${this.constructor.name}.refresh`);
