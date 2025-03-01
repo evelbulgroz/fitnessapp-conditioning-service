@@ -329,7 +329,7 @@ export class TokenService extends AuthService {
 	 * @throws Error if the refresh token request fails, or if the response is invalid
 	 */
 	private async refresh(): Promise<string> {
-		this.logger.log('Refreshing access token...');//, `${this.constructor.name}.refresh`);
+		this.logger.log(`${this.constructor.name}.refresh Refreshing access token...`);
 		
 		// set up data for request
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
@@ -357,13 +357,15 @@ export class TokenService extends AuthService {
 
 		// validate the response
 		if (!response || response.status !== 200) {
-			this.logger.error('Access token refresh failed');//, `${this.constructor.name}.refresh`);
-			throw new Error('Access token refresh failed');
+			const errorMsg = `${this.constructor.name}.refresh Refresh request failed`;
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
 		}
 
 		if (!response.data) {
-			this.logger.error('Refresh response not received, or empty');//, `${this.constructor.name}.refresh`);
-			throw new Error('Refresh response not received');
+			const errorMsg = `${this.constructor.name}.refresh Refresh response empty`;
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
 		}
 
 		// sanitize the token
@@ -381,12 +383,13 @@ export class TokenService extends AuthService {
 		// validate the token
 		const jwtConfig = this.config.get(`security.authentication.jwt`) ?? {};
 		if (!jwt.verify(accessToken, jwtConfig.accessToken.secret)) {
-			this.logger.error('Access token verification failed');//, `${this.constructor.name}.refresh`);
-			throw new Error('Access token verification failed');
+			const errorMsg = `${this.constructor.name}.refresh Access token verification failed`;
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
 		}
 
 		// log the response
-		this.logger.log('Access token refresh successful, new access token received and verified', );
+		this.logger.log( `${this.constructor.name}.refresh Access token refresh successful, new access token received and verified`);
 
 		// return the new access token
 		return accessToken;
