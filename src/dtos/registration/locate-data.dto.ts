@@ -1,4 +1,4 @@
-/** Specifies the information required to submit a this service instance's location request with the registry microservice
+/** Specifies the information required to submit this service instance's location in a request to the registry microservice
  * @remark Used for type safety when composing requests to the registry microservice
  * @remark Tokens are not part of the DTO, and should not be stored in the registry
  */

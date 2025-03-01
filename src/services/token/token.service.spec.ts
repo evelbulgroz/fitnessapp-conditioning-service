@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 import { BootstrapResponseDTO } from '../../dtos/registration/bootstrap-response.dto';
-import { ServiceDataDTO } from '../../dtos/registration/service-data.dto';
+import { ServiceDataDTO, ServiceDataDTOProps } from '../../dtos/registration/service-data.dto';
 import { ServiceLoginDataDTO } from '../../dtos/registration/service-login-data.dto';
 import { ServiceLogoutDataDTO } from '../../dtos/registration/service-logout-data.dto';
 import { ServiceTokenRefreshDataDTO } from '../../dtos/sanitization/service-token-refresh-data.dto';
@@ -57,7 +57,7 @@ describe('TokenService', () => {
 
 	let accessToken: string;
 	let accessToken2: string;
-	let authServiceData: ServiceDataDTO;
+	let authServiceDataProps: ServiceDataDTOProps;
 	let bootstrapData: BootstrapResponseDTO;
 	let httpGetSpy: any;
 	let httpPostSpy: any;
@@ -71,18 +71,18 @@ describe('TokenService', () => {
 		accessToken = jwt.sign({ serviceName }, jwtConfig.accessToken.secret, { expiresIn: '1h' });
 		accessToken2 = jwt.sign({ serviceName }, jwtConfig.accessToken.secret, { expiresIn: '1h' });
 		refreshToken = jwt.sign({ serviceName }, jwtConfig.refreshToken.secret, { expiresIn: '7d' });
-		verificationToken = 'test-verification-token';
+		verificationToken = 'test.verification.token';
 
-		authServiceData = {
-			location: 'http://localhost:3010/auth/api/v1',
+		authServiceDataProps = {
+			location: 'https://localhost:3010/auth/api/v1',
 			serviceId: uuidv4(),
 			serviceName: 'fitnessapp-authentication-service',
 		};
 	
-		bootstrapData = {
+		bootstrapData = new BootstrapResponseDTO({
 			verificationToken,
-			authServiceData
-		};		
+			authServiceData: authServiceDataProps
+		});		
 		
 		httpGetSpy = jest.spyOn(httpService, 'get')
 			.mockImplementation((url: string, config: any) => {
@@ -101,7 +101,7 @@ describe('TokenService', () => {
 				if (url.includes('registry')) {
 					if (url.includes('locate')) {
 						const serviceName = body?.targetServiceName;
-						return of({ data: authServiceData, status: 200 }) as any;
+						return of({ data: authServiceDataProps, status: 200 }) as any;
 					}					
 					else if (url.includes('register')) {
 						return of({ data: true, status: 200 }) as any;
@@ -149,7 +149,7 @@ describe('TokenService', () => {
 				loginUrl = bootstrapData.authServiceData?.location + loginConfig.path;				
 			});
 			
-			it('can get auth data (i.e. JWT access token)', async () => {
+			it('can get auth data as JWT access token', async () => {
 				// arrange
 				
 				//act

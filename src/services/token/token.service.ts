@@ -152,7 +152,7 @@ export class TokenService extends AuthService {
 		};
 		const locateMethod = RequestMethod[locateConfig?.method?.toUpperCase()] as unknown as RequestMethod;	
 		const locateResponse$ = this.requester.execute(locateUrl, locateMethod, locateBody, locateOptions, MAX_LOCATE_RETRIES, LOCATE_RETRY_DELAY);
-		const authServiceData = (await firstValueFrom(locateResponse$)).data as ServiceDataDTO;
+		const authServiceData = new ServiceDataDTO((await firstValueFrom(locateResponse$)).data); // validate the response
 		
 		// set up logout request		
 		const authServiceConfig = this.config.get('services.fitnessapp-authentication-service') ?? {} as ServiceConfig;
