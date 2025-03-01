@@ -17,6 +17,7 @@ import { ServiceTokenRefreshDataDTO } from '../../dtos/sanitization/service-toke
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../domain/config-options.model';
 import { AuthService } from "../auth/auth-service.class";
 import { RetryRequesterService } from "../retry-requester/retry-requester.service";
+import { SafeJwtDTO } from "../../dtos/sanitization/safe-jwt.dto";
 
 /** Manages and provides access to the current JWT token needed for making authenticated requests to other microservices.
  * @remark Also provides methods for logging in and out of the authentication microservice at server startup and shutdown
@@ -256,9 +257,13 @@ export class TokenService extends AuthService {
 	/* Log in to the auth service to get an access token
 	 * @param bootstrapData - the response data from the bootstrap
 	 * @returns Observable containing the login response, or an error message
+	 * @throws Error if the login request fails, or if the response is invalid
+	 * @remark Will throw an error if the response does not contain an access token or refresh token
+	 * @remark Will throw an error if the response contains tokens that are invalid or incomplete
+	 * @remark Will throw an error if the response contains auth service data that is invalid or incomplete
 	 */
 	private async authenticate(bootstrapData: BootstrapResponseDTO): Promise<{accessToken: string, refreshToken: string}> {
-		this.logger.log('Logging in to the auth service...');//, `${this.constructor.name}.authenticate`);
+		this.logger.log(`${this.constructor.name}.authenticate Logging in to the auth service...`);
 		
 		// set up data for request
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
@@ -289,15 +294,25 @@ export class TokenService extends AuthService {
 		
 		// validate the response
 		if (!response || response.status !== 200) {
-			this.logger.error('Auth service login failed');//, `${this.constructor.name}.authenticate`);
-			throw new Error('Auth service login failed');
+			const errorMsg = `${this.constructor.name}.authenticate Login request failed`;
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
 		}
 
-		const [accessToken, refreshToken] = [response.data?.accessToken, response.data?.refreshToken];
-		if (!accessToken || !refreshToken) {
-			this.logger.error('Access token or refresh token not received');//, `${this.constructor.name}.authenticate`);
-			throw new Error('Access token or refresh token not received');
+		// sanitize the tokens
+		let accessToken: string, refreshToken: string;
+		try {
+			const [accessTokenDTO, refreshTokenDTO] = [new SafeJwtDTO(response.data?.accessToken), new SafeJwtDTO(response.data?.refreshToken)];
+			accessToken = accessTokenDTO.value as string;
+			refreshToken = refreshTokenDTO.value as string;
 		}
+		catch (error) {
+			const errorMsg = `${this.constructor.name}.authenticate Login response invalid: ${error.message}`;
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
+		}
+
+		// validate the tokens
 		const jwtConfig = this.config.get(`security.authentication.jwt`) ?? {};
 		jwt.verify(accessToken, jwtConfig.accessToken.secret); // throws an error if the token is invalid
 		jwt.verify(refreshToken, jwtConfig.refreshToken.secret);
