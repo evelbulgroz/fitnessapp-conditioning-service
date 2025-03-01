@@ -197,10 +197,13 @@ export class TokenService extends AuthService {
 	/*----------------------------------- PRIVATE METHODS ----------------------------------------*/
 
 	/* Bootstrap registration by getting a verification token from the microservice registry
-	 * @returns Observable containing the bootstrap response, or an error message
+	 * @returns Promise containing the bootstrap response, or an error message
+	 * @throws Error if the bootstrap token request fails, or if the response is invalid
+	 * @remark Will throw an error if the response does not contain a verification token
+	 * @remark Will throw an error if the response contains auth service data that is invalid or incomplete
 	 */
 	private async bootstrap(): Promise<BootstrapResponseDTO> {
-		this.logger.log('Acquiring bootstrap token from microservice registry...');//, `${this.constructor.name}.bootstrap`);		
+		this.logger.log(`${this.constructor.name}.bootstrap Acquiring bootstrap token from microservice registry...`);
 		
 		// set up data for request
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
@@ -228,26 +231,26 @@ export class TokenService extends AuthService {
 		
 		// validate the response
 		if (!response || response.status !== 200) {
-			this.logger.error('Bootstrap token request failed');//, `${this.constructor.name}.bootstrap`);
-			throw new Error('Bootstrap token request failed');
+			const errorMsg = `${this.constructor.name}.bootstrap Bootstrap token request failed`;
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
 		}
 
-		if (!response.data?.verificationToken) {
-			this.logger.error('Bootstrap token not received');//, `${this.constructor.name}.bootstrap`);
-			throw new Error('Bootstrap token not received');
+		let bootstrapData: BootstrapResponseDTO;
+		try {
+			bootstrapData = new BootstrapResponseDTO(response.data);
 		}
-	
-		const authServiceData = response.data?.authServiceData;
-		if(!authServiceData || !authServiceData.location || !authServiceData.serviceId || !authServiceData.serviceName) {
-			this.logger.error('Auth service data not received or incomplete');//, `${this.constructor.name}.bootstrap`);
-			throw new Error('Auth service data not received or incomplete');
+		catch (error) {
+			const errorMsg = `${this.constructor.name}.bootstrap Bootstrap token response invalid: ${error.message}`
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
 		}
 
 		// log the response
-		this.logger.log('Bootstrap token acquired from microservice registry');//, `${this.constructor.name}.bootstrap`);
+		this.logger.log(`${this.constructor.name}.bootstrap Bootstrap token acquired from microservice registry`);
 
 		// return the response data
-		return response.data;
+		return bootstrapData;
 	}
 
 	/* Log in to the auth service to get an access token
@@ -271,7 +274,7 @@ export class TokenService extends AuthService {
 			password,
 			serviceId: appConfig.serviceid,
 			serviceName: appConfig.servicename,
-			verificationToken: bootstrapData?.verificationToken
+			verificationToken: bootstrapData.verificationToken
 		};		
 		const options = {
 			headers: {

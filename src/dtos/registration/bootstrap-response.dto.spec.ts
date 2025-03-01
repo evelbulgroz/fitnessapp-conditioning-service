@@ -31,10 +31,14 @@ describe('BootstrapResponseDTO', () => {
 				expect(dto.authServiceData).toEqual(serviceDataDTO);
 			});
 
-			it('allows undefined authServiceData', () => {
-				validProps.authServiceData = undefined;
-				const dto = new BootstrapResponseDTO(validProps);
-				expect(dto.authServiceData).toBeUndefined();
+			it('throws error if authServiceData is undefined', () => {
+				const invalidProps = {...validProps, authServiceData: undefined as any};
+				expect(() => new BootstrapResponseDTO(invalidProps)).toThrow();
+			});
+
+			it('throws error if authServiceData is invalid', () => {
+				const invalidProps = {...validProps, authServiceData: {location: 'invalid.location', serviceId: 'invalid.serviceId', serviceName: 'invalid.serviceName'}};
+				expect(() => new BootstrapResponseDTO(invalidProps)).toThrow();
 			});
 		});
 
@@ -43,23 +47,23 @@ describe('BootstrapResponseDTO', () => {
 				expect(dto.verificationToken).toBe(validProps.verificationToken);
 			});
 
-			it('throws an error if verificationToken is not provided', async () => {
+			it('throws error if verificationToken is not provided', async () => {
 				const invalidProps = {...validProps, verificationToken: undefined as any};
 				expect(() => new BootstrapResponseDTO(invalidProps)).toThrow();
 			});
 
-			it('throws an error if verificationToken is less than 20 characters', async () => {
+			it('throws error if verificationToken is less than 20 characters', async () => {
 				validProps.verificationToken = 'short.token';
 				const invalidProps = {...validProps, verificationToken: 'short.token'};
 				expect(() => new BootstrapResponseDTO(invalidProps)).toThrow();
 			});
 
-			it('throws an error if verificationToken is more than 1024 characters', async () => {
+			it('throws error if verificationToken is more than 1024 characters', async () => {
 				const invalidProps = {...validProps, verificationToken: 'a'.repeat(1025)};
 				expect(() => new BootstrapResponseDTO(invalidProps)).toThrow();
 			});
 
-			it('throws an error if verificationToken does not match JWT pattern', async () => {
+			it('throws error if verificationToken does not match JWT pattern', async () => {
 				const invalidProps = {...validProps, verificationToken: 'invalid.token-format'};
 				expect(() => new BootstrapResponseDTO(invalidProps)).toThrow();
 			});
