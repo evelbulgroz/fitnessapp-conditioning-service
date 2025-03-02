@@ -3,7 +3,7 @@ import { SafePrimitive } from "./safe-primitive.class";
 
 
 /** DTO for sanitizing a string parameter representing a domain type */
-export class TypeParamDTO extends SafePrimitive<string> {
+export class DomainTypeDTO extends SafePrimitive<string> {
 	// _value is inherited from base class
 	
 	public constructor(value: string) {
@@ -19,4 +19,4 @@ export class TypeParamDTO extends SafePrimitive<string> {
 	public get value(): string { return this._value; }
 }
 
-export default TypeParamDTO;
+export default DomainTypeDTO;

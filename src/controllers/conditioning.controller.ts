@@ -19,7 +19,7 @@ import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
 import { QueryDTO } from '../dtos/responses/query.dto';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
-import { TypeParamDTO } from '../dtos/responses/type-param.dto';
+import { DomainTypeDTO } from '../dtos/responses/domain-type.dto';
 import { UserContext, UserContextProps } from '../domain/user-context.model';
 import { ValidationPipe } from './pipes/validation.pipe';
 
@@ -319,7 +319,7 @@ export class ConditioningController {
 	@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async fetchValidationRules(@Param('type') type: TypeParamDTO): Promise<{	[key: string]: PropertySanitizationDataDTO[] }> {
+	public async fetchValidationRules(@Param('type') type: DomainTypeDTO): Promise<{	[key: string]: PropertySanitizationDataDTO[] }> {
 		switch (type.value) {
 			case 'ConditioningLog':
 				const rules = ConditioningLog.getSanitizationRules();
