@@ -14,7 +14,7 @@ import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO } from '../../dtos/responses/aggregation-query.dto';
 import { AggregatorService } from '../../services/aggregator/aggregator.service';
-import { BooleanParamDTO } from '../../dtos/responses/boolean-param.dto';
+import { BooleanDTO } from '../../dtos/responses/boolean.dto';
 import { ConditioningDataService } from './conditioning-data.service';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
@@ -1135,7 +1135,7 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(logsForRandomUser);
 				
 				// act
-				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO, undefined, new BooleanParamDTO(true));
+				const activityCounts = await logService.fetchActivityCounts(userContext, randomUserIdDTO, undefined, new BooleanDTO(true));
 				
 				// assert
 				expect(activityCounts).toBeDefined();

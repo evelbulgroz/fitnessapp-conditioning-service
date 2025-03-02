@@ -12,7 +12,7 @@ import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
 import { AggregationQueryDTO } from '../dtos/responses/aggregation-query.dto';
 import { AggregationQueryDTOProps }	from '../test/models/aggregation-query-dto.props';
-import { BooleanParamDTO } from '../dtos/responses/boolean-param.dto';
+import { BooleanDTO } from '../dtos/responses/boolean.dto';
 import { ConditioningController } from './conditioning.controller';
 import { BcryptCryptoService } from '../services/crypto/bcrypt-crypto.service';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
@@ -236,7 +236,7 @@ describe('ConditioningController', () => {
 				expect(args[0]).toEqual(userContext);// user context
 				expect(args[1]).toEqual(new EntityIdDTO(userContext.userId)); // user id
 				expect(args[2]).toEqual(expectedQueryDTO); // query
-				expect(args[3]).toEqual(new BooleanParamDTO(false)); // includeDeleted
+				expect(args[3]).toEqual(new BooleanDTO(false)); // includeDeleted
 
 				// clean up
 				spy?.mockRestore();
@@ -256,7 +256,7 @@ describe('ConditioningController', () => {
 				expect(args[0]).toEqual(userContext);// user context
 				expect(args[1]).toBeUndefined(); // user id
 				expect(args[2]).toBeUndefined(); // query
-				expect(args[3]).toEqual(new BooleanParamDTO(false)); // includeDeleted
+				expect(args[3]).toEqual(new BooleanDTO(false)); // includeDeleted
 
 				// clean up
 				spy?.mockRestore();
@@ -292,7 +292,7 @@ describe('ConditioningController', () => {
 				expect(args[0]).toEqual(userContext);// user context
 				expect(args[1]).toEqual(new EntityIdDTO(userContext.userId)); // user id
 				expect(args[2]).toBeUndefined(); // query
-				expect(args[3]).toEqual(new BooleanParamDTO(false)); // includeDeleted
+				expect(args[3]).toEqual(new BooleanDTO(false)); // includeDeleted
 
 				// clean up
 				spy?.mockRestore();
@@ -1119,7 +1119,7 @@ describe('ConditioningController', () => {
 			describe('multiple logs', () => {
 				describe('fetchLogs', () => {
 					let adminContext: UserContext;
-					let includeDeletedDTO: BooleanParamDTO;
+					let includeDeletedDTO: BooleanDTO;
 					let logsSpy: any;
 					let queryDTO: QueryDTO;
 					let queryDTOProps: QueryDTOProps;
@@ -1129,7 +1129,7 @@ describe('ConditioningController', () => {
 					beforeEach(() => {
 						adminContext = new UserContext(adminProps);
 
-						includeDeletedDTO = new BooleanParamDTO(false);
+						includeDeletedDTO = new BooleanDTO(false);
 
 						queryDTOProps = {
 							start: '2021-01-01',
