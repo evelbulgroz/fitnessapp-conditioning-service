@@ -1,0 +1,87 @@
+|-- src
+    |-- conditioning
+        |-- controllers
+            |-- conditioning.controller.ts
+			|-- conditioning.controller.spec.ts			
+        |-- domain
+            |-- conditioning-log.entity.ts
+			|-- conditioning-log.entity.spec.ts
+        |-- dtos
+            |-- conditioning-log.dto.ts
+			|-- conditioning-log.dto.spec.ts
+        |-- services
+			|-- aggregator
+				|-- conditioning-aggregator.service.ts
+				|-- conditioning-aggregator.service.spec.ts
+			|-- conditioning
+				|-- conditioning-data.service.ts
+				|-- conditioning-data.service.spec.ts
+        |-- repositories
+            |-- conditioning-log.repository.ts
+			|-- conditioning-log.repository.spec.ts
+    |-- user
+        |-- controllers
+            |-- user.controller.ts
+			|-- user.controller.spec.ts
+        |-- domain
+            |-- user.entity.ts
+			|-- user.entity.spec.ts
+        |-- dtos
+            |-- user.dto.ts
+			|-- user.dto.spec.ts
+        |-- services
+            |-- user.service.ts
+			|-- user.service.spec.ts
+        |-- repositories
+            |-- user.repository.ts
+			|-- user.repository.spec.ts
+    |-- infrastructure
+        |-- config
+            |-- development.config.ts
+            |-- production.config.ts
+            |-- test.config.ts
+        |-- security-config
+            |-- development.security.config.ts
+            |-- production.security.config.ts
+			|-- test.security.config.ts
+        |-- middleware
+            |-- logging.middleware.ts
+        |-- guards
+            |-- jwt-auth.guard.ts
+            |-- roles.guard.ts
+        |-- interceptors
+            |-- default-status-code.interceptor.ts
+        |-- pipes
+            |-- validation.pipe.ts
+    |-- shared
+        |-- authentication
+			|-- auth
+				|-- ...
+			|-- crypto
+				|-- ...
+			| jwt
+				|-- ...
+			| registration
+				|-- ...
+			|-- token
+				|-- ...
+		|-- utils
+			|-- services
+				|-- even-dispatcher
+					|-- ...
+				|-- retry-requester
+					|-- ...
+    |-- main.ts
+    |-- app.module.ts
+|-- .eslintrc.js
+|-- .gitignore
+|-- .npmrc
+|-- .prettierrc
+|-- nest-cli.json
+|-- package.json
+|-- README.md
+|-- tsconfig.build.json
+|-- tsconfig.config.json
+|-- tsconfig.json
+|-- tsconfig.types.json
+|-- typedoc.json
