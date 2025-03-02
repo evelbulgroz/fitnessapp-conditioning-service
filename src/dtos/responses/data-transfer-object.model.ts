@@ -1,4 +1,4 @@
-/** Abstract base class providing default functionality for data transfer objects (DTOs) used in controller methods.
+/** Abstract base class forholding sanitized complex values
  * @remark Intended to be extended by classes that define the data structure(s) for a controller method.
  */
 export abstract class DataTransferObject {	
