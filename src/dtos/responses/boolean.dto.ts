@@ -2,7 +2,7 @@ import { IsBoolean, MaxLength, ToBoolean } from "@evelbulgroz/sanitizer-decorato
 import { SafePrimitive } from "./safe-primitive.class";
 
 /** DTO for sanitizing a single boolean value in a response */
-export class BooleanParamDTO extends SafePrimitive<boolean> {
+export class BooleanDTO extends SafePrimitive<boolean> {
 	// _value is inherited from base class
 	
 	public constructor(value: boolean) {		
@@ -17,4 +17,4 @@ export class BooleanParamDTO extends SafePrimitive<boolean> {
 	public get value(): boolean { return this._value; }
 }
 
-export default BooleanParamDTO;
+export default BooleanDTO;

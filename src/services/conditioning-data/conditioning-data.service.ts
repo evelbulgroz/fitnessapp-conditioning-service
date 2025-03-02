@@ -10,7 +10,7 @@ import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO } from '../../dtos/responses/aggregation-query.dto';
 import { AggregatorService } from '../aggregator/aggregator.service';
-import { BooleanParamDTO } from '../../dtos/responses/boolean-param.dto';
+import { BooleanDTO } from '../../dtos/responses/boolean.dto';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
@@ -182,7 +182,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		ctx: UserContext,
 		userIdDTO?: EntityIdDTO,
 		queryDTO?: QueryDTO,
-		includeDeletedDTO?: BooleanParamDTO
+		includeDeletedDTO?: BooleanDTO
 	): Promise<Record<string, number>> {
 		await this.isReady(); // initialize service if necessary
 

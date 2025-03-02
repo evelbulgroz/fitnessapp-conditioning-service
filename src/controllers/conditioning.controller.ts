@@ -5,7 +5,7 @@ import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId, Logger } from '@evelbulgroz/ddd-base';
 
 import { AggregationQueryDTO } from '../dtos/responses/aggregation-query.dto';
-import { BooleanParamDTO } from '../dtos/responses/boolean-param.dto';
+import { BooleanDTO } from '../dtos/responses/boolean.dto';
 import { ConditioningData } from '../domain/conditioning-data.model';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
@@ -222,7 +222,7 @@ export class ConditioningController {
 	public async fetchLogs(
 		@Req() req: any,
 		@Query('userId') userIdDTO?: EntityIdDTO,
-		@Query('includeDeleted') includeDeletedDTO?: BooleanParamDTO,
+		@Query('includeDeleted') includeDeletedDTO?: BooleanDTO,
 		@Query() queryDTO?: QueryDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
@@ -261,7 +261,7 @@ export class ConditioningController {
 	public async activities(
 		@Req() req: any,
 		@Query('userId') userIdDTO?: EntityIdDTO,
-		@Query('includeDeleted') includeDeletedDTO?: BooleanParamDTO,
+		@Query('includeDeleted') includeDeletedDTO?: BooleanDTO,
 		@Query() queryDTO?: QueryDTO,
 	): Promise<Record<string, number>> {
 		try {
