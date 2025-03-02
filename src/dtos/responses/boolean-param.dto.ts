@@ -4,6 +4,7 @@ import { ParamDTO } from "./param.dto";
 /** Class for a single, sanitized boolean value received by an endpoint in a query parameter.
  * @remark Allows for validation of a boolean value received by an endpoint in a query parameter.
  * @remark Accepts undefined as a valid value, but not null.
+ * @todo Refactor to derive from SafePrimitive instead of ParamDTO
  */
 export class BooleanParamDTO extends ParamDTO<boolean> {
 	// _value is inherited from ParamDTO

@@ -4,6 +4,7 @@
  * @remark Standardizes access to the value of a sanitized parameter in the value property.
  * @remark Implements workaround for the issue of the framework calling the constructor twice.
  * @remark Should be overridden in subclasses to provide validation for specific params.
+ * @todo Retire in favour of deriving subclasses from SafePrimitive
  */
 export abstract class ParamDTO<T> {	
 	protected _value: T | undefined;

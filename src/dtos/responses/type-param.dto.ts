@@ -1,7 +1,9 @@
-import { IsNotEmpty,IsString ,Matches,MaxLength } from "@evelbulgroz/sanitizer-decorator";
+import { IsNotEmpty, IsString, Matches, MaxLength } from "@evelbulgroz/sanitizer-decorator";
 import ParamDTO from './param.dto';
 
-/** Validation model for a string parameter representing a domain type */
+/** Validation model for a string parameter representing a domain type
+ * @todo Refactor to derive from SafePrimitive instead of ParamDTO
+ */
 export class TypeParamDTO extends ParamDTO<string> {
 	// _value is inherited from ParamModel
 	

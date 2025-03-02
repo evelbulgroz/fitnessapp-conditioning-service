@@ -4,6 +4,7 @@ import { ParamDTO } from './param.dto';
 
 /** Represents sanitized Entity id received by an endpoint in a query parameter.
  * @remark Intended for use in endpoint validation pipe to validate query parameters
+ * @todo Refactor to derive from SafePrimitive instead of ParamDTO
 */
 export class EntityIdDTO extends ParamDTO<EntityId> {
 	// _value is inherited from ParamDTO
