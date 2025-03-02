@@ -1,22 +1,22 @@
 import { IsNotEmpty, IsString, Matches, MaxLength } from "@evelbulgroz/sanitizer-decorator";
-import ParamDTO from './param.dto';
+import { SafePrimitive } from "./safe-primitive.class";
 
-/** Validation model for a string parameter representing a domain type
- * @todo Refactor to derive from SafePrimitive instead of ParamDTO
- */
-export class TypeParamDTO extends ParamDTO<string> {
-	// _value is inherited from ParamModel
+
+/** DTO for sanitizing a string parameter representing a domain type */
+export class TypeParamDTO extends SafePrimitive<string> {
+	// _value is inherited from base class
 	
 	public constructor(value: string) {
-		super(value);
+		super();
+		this.value = value;
 	}
 
 	@IsString({ allowNull: false, allowUndefined: false, message: 'type must be a string' })
 	@IsNotEmpty({ message: 'type must not be empty' })
 	@MaxLength(40, { message: 'type must have maximum 40 characters' })
 	@Matches(/^(ConditioningLog)$/, { message: 'type must be one of (case-sensitive): ConditioningLog' })
-	public set value(value: string | undefined) { this._value = value; }
-	public get value() { return this._value; }
+	public set value(value: string) { this._value = value; }
+	public get value(): string { return this._value; }
 }
 
 export default TypeParamDTO;

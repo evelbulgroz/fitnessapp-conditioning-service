@@ -6,7 +6,7 @@ describe('BooleanParamDto', () => {
 	});
 
 	it('can be created with undefined', () => {
-		expect(new BooleanParamDTO(undefined)).toBeDefined();
+		expect(new BooleanParamDTO(undefined as any)).toBeDefined();
 	});
 
 	it('can be created with false', () => {

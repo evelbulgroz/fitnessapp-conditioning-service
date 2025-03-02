@@ -6,7 +6,7 @@ import { SafePrimitive } from './safe-primitive.class';
 
 /** DTO for sanitizing a single JWT string in a response */
 export class JwtDTO extends SafePrimitive<string> {
-	// _value is inherited from SafePrimitive
+	// _value is inherited from base class
 	
 	public constructor(value: string) {		
 		super();

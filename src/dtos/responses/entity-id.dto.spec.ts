@@ -3,7 +3,7 @@ import { EntityId } from '@evelbulgroz/ddd-base';
 import { EntityIdDTO } from './entity-id.dto';
 
 describe('EntityIdDTO', () => {
-	it('should create an instance with a valid ID that is a string', () => {
+	it('creates an instance with a valid ID that is a string', () => {
 		const validId: EntityId = '507f1f77bcf86cd799439011';
 		const dto = new EntityIdDTO(validId);
 		expect(dto).toBeInstanceOf(EntityIdDTO);
@@ -11,7 +11,7 @@ describe('EntityIdDTO', () => {
 		expect(typeof dto.value).toBe('string');
 	});
 
-	it('should create an instance with a valid ID that is a number', () => {
+	it('creates an instance with a valid ID that is a number', () => {
 		const validId: EntityId = 507;
 		const dto = new EntityIdDTO(validId);
 		expect(dto).toBeInstanceOf(EntityIdDTO);
