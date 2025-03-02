@@ -1,20 +1,20 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 import { DomainEvent, DomainEventDTO } from '@evelbulgroz/ddd-base';
-import { ConditioningLogCreatedEvent } from '../../events/conditioning-log-created.event';
-import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
-import { ConditioningLogDeletedEvent } from '../../events/conditioning-log-deleted.event';
-import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-deleted.handler';
-import { ConditioningLogUndeletedEvent } from '../../events/conditioning-log-undeleted.event';
-import { ConditioningLogUndeletedHandler } from '../../handlers/conditioning-log-undeleted.handler';
-import { ConditioningLogUpdatedEvent } from '../../events/conditioning-log-updated.event';
-import { ConditioningLogUpdateHandler } from '../../handlers/conditioning-log-updated.handler';
+import { ConditioningLogCreatedEvent } from '../../conditioning/events/conditioning-log-created.event';
+import { ConditioningLogCreatedHandler } from '../../conditioning/handlers/conditioning-log-created.handler';
+import { ConditioningLogDeletedEvent } from '../../conditioning/events/conditioning-log-deleted.event';
+import { ConditioningLogDeletedHandler } from '../../conditioning/handlers/conditioning-log-deleted.handler';
+import { ConditioningLogUndeletedEvent } from '../../conditioning/events/conditioning-log-undeleted.event';
+import { ConditioningLogUndeletedHandler } from '../../conditioning/handlers/conditioning-log-undeleted.handler';
+import { ConditioningLogUpdatedEvent } from '../../conditioning/events/conditioning-log-updated.event';
+import { ConditioningLogUpdateHandler } from '../../conditioning/handlers/conditioning-log-updated.handler';
 import { UserCreatedEvent } from '../../events/user-created.event';
-import { UserCreatedHandler } from '../../handlers/user-created.handler';
+import { UserCreatedHandler } from '../../user/handlers/user-created.handler';
 import { UserDeletedEvent } from '../../events/user-deleted.event';
-import { UserDeletedHandler } from '../../handlers/user-deleted.handler';
+import { UserDeletedHandler } from '../../user/handlers/user-deleted.handler';
 import { UserUpdatedEvent } from '../../events/user-updated.event';
-import { UserUpdatedHandler } from '../../handlers/user-updated.handler';;
+import { UserUpdatedHandler } from '../../user/handlers/user-updated.handler';;
 
 
 /** Domain event dispatcher service

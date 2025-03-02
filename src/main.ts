@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from '@evelbulgroz/ddd-base';
 
-import { AppConfig } from 'src/domain/config-options.model';
+import { AppConfig } from 'src/shared/domain/config-options.model';
 import { AppModule } from './app.module';
 
 async function bootstrap() {

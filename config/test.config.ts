@@ -1,7 +1,7 @@
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ConfigOptions } from "../src/domain/config-options.model";
+import { ConfigOptions } from "../src/shared/domain/config-options.model";
 import testSecurityConfig from "../security-config/test.security.config";
 
 export default async () => {

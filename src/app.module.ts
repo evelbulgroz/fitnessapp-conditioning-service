@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 
-import { AggregationQueryMapper } from './mappers/aggregation-query.mapper';
-import { ConditioningController } from './controllers/conditioning.controller';
-import { QueryMapper } from './mappers/query.mapper';
-import { FsPersistenceAdapterService } from './repositories/adapters/fs-persistence-adapter/fs-persistence-adapter.service';
+import { AggregationQueryMapper } from './conditioning/mappers/aggregation-query.mapper';
+import { ConditioningController } from './conditioning/controllers/conditioning.controller';
+import { QueryMapper } from './conditioning/mappers/query.mapper';
+import { FsPersistenceAdapterService } from './shared/repositories/adapters/fs-persistence-adapter/fs-persistence-adapter.service';
 import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
-import { UserService } from './services/user/user.service';
-import { UserController } from './controllers/user.controller';
+import { UserService } from './user/services/user.service';
+import { UserController } from './user/controllers/user.controller';
 
 // todo: Copy over (de)registration logic from API Gateway to be able to effectively authenticate and collaborate with other microservices
 @Module({
