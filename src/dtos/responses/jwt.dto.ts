@@ -18,7 +18,6 @@ export class JwtDTO extends SafePrimitive<string> {
 	@InRange({min: 20, max: 1024}, { inclusive: true, message: 'Token must be between 20 and 1024 characters' })
 	@Matches(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/, { message: 'Token must include 3 base64-encoded parts separated by periods' })
 	public set value(value: string) {
-		console.debug('JwtDTO.value', value);
 		try {
 			jwt.decode(value);
 		}

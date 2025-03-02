@@ -1,6 +1,5 @@
-/** Base helper class for sanitizing and validating primitives submitted in request from a client to the registry service
- * @remarks The intent it to ensure that data passed on from the controller to the service is always valid and safe to use
- * @remarks Doing preemptive validation and sanitization ensures data can always be trusted
+/** Base class for sanitizing primitive values
+ * @remarks This class is abstract and should be extended by a sanitizing class that defines the value property
  */
 export abstract class SafePrimitive<T extends string | number | boolean | undefined> {
 	protected _value: T;
