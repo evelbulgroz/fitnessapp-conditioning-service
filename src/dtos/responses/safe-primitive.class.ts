@@ -1,4 +1,4 @@
-/** Base class for sanitizing primitive values
+/** Base class for holding sanitized primitive values
  * @remarks This class is abstract and should be extended by a sanitizing class that defines the value property
  */
 export abstract class SafePrimitive<T extends string | number | boolean | undefined> {

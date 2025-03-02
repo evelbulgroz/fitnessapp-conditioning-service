@@ -1,4 +1,5 @@
 import { IsDefined, IsString, Matches, InRange, IsLike } from "@evelbulgroz/sanitizer-decorator";
+import { DataTransferObject } from "./data-transfer-object.model";
 import { ServiceDataDTO, ServiceDataDTOProps } from "./service-data.dto";
 
 export interface BootstrapResponseDTOProps {
@@ -6,16 +7,17 @@ export interface BootstrapResponseDTOProps {
 	verificationToken: string;
 }
 
-/** Specifies and validates the information returned from the registry microservice when requesting a verification token at bootstrap
+/** DTO for sanitizing the information returned from the registry microservice when requesting a verification token at bootstrap
  * @remark Used for type safety when composing requests to the registry microservice
  * @remark Tokens are not part of the DTO, and should not be stored in the registry microservice
  * @remark Must be kept up to date with the API contract of the registry microservice
  */
-export class BootstrapResponseDTO {	
+export class BootstrapResponseDTO extends DataTransferObject {	
 	private _authServiceData: ServiceDataDTO;
 	private _verificationToken: string;
 
 	constructor(data: BootstrapResponseDTOProps) {
+		super();
 		this.authServiceData = new ServiceDataDTO(data.authServiceData); // throws if authServiceData is missing or invalid
 		this.verificationToken = data.verificationToken;
 	}

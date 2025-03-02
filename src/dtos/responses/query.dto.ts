@@ -25,9 +25,9 @@ const MAX_PAGE_NUMBER = 100; // Maximum page number
 const MAX_PAGE_SIZE = 100; // Maximum number of items per page
 const MAX_PROPERTY_LENGTH = 100; // Maximum length for a property
 
-/** Represents sanitized query parameters received by an endpoint in a JSON object.
+/** DTO for sanitizing query parameters in a request
  * @remark Intended for use in endpoint validation pipe to validate query parameters
- * @todo Reassess need got own date conversion method, in addition to the decorator
+ * @todo Reassess need for own date conversion method, in addition to the decorator
 */
 export class QueryDTO extends DataTransferObject {
 	//----------------------------- PROPERTIES -----------------------------//

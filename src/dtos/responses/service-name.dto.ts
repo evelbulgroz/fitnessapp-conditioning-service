@@ -2,11 +2,11 @@ import { IsDefined, IsString, InRange } from "@evelbulgroz/sanitizer-decorator";
 import { ToLowerCase, Trim } from "@evelbulgroz/sanitizer-decorator";
 import { SafePrimitive } from "./safe-primitive.class";
 
-/** Helper class to sanitize and validate name of a service
+/** DTO for sanitizing the name of a service
  * @remarks Exists to facilitate validation of the request and convenient data transfer from the controller to the service
  * @remarks Data is not stored in the service, only used for validation when submitted from external requests
  */
-export class ServiceName extends SafePrimitive<string> {
+export class ServiceNameDTO extends SafePrimitive<string> {
 	
 	constructor(serviceName: string) {
 		super();
@@ -28,4 +28,4 @@ export class ServiceName extends SafePrimitive<string> {
 	
 }
 
-export default ServiceName;
+export default ServiceNameDTO;

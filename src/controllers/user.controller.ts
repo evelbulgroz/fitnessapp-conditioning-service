@@ -10,7 +10,7 @@ import { JwtAuthResult } from '../services/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from './guards/logging.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
-import { ServiceName } from '../dtos/responses/service-name.class';
+import { ServiceNameDTO } from '../dtos/responses/service-name.dto';
 import { UnauthorizedAccessError } from '../domain/unauthorized-access.error';
 import { UserService } from '../services/user/user.service';
 import { UserContext, UserContextProps } from '../domain/user-context.model';
@@ -160,8 +160,8 @@ export class UserController {
 	 * @returns True if the request was made by the user microservice, false otherwise
 	 */
 	protected isCallerUserMicroservice(userContext: UserContext): boolean {
-		const safeRequestingServiceName = new ServiceName(userContext.userName);
-		const expectedServiceName = new ServiceName(this.config.get<string>('security.collaborators.user.serviceName')!);
+		const safeRequestingServiceName = new ServiceNameDTO(userContext.userName);
+		const expectedServiceName = new ServiceNameDTO(this.config.get<string>('security.collaborators.user.serviceName')!);
 		return safeRequestingServiceName.equals(expectedServiceName);
 	}
 }

@@ -1,15 +1,15 @@
-import {ServiceName} from './service-name.class';
+import {ServiceNameDTO} from './service-name.dto';
 
-describe('SafeServiceName', () => {
+describe('ServiceNameDTO', () => {
 	it('can be created', () => {
-		expect(new ServiceName('test service')).toBeTruthy();
+		expect(new ServiceNameDTO('test service')).toBeTruthy();
 	});
 
 	describe('sanitize', () => {
-		let data: ServiceName;
+		let data: ServiceNameDTO;
 
 		beforeEach(() => {
-			data = new ServiceName(' test Service ');
+			data = new ServiceNameDTO(' test Service ');
 		});
 
 		it('trims the service name', () => {
@@ -23,23 +23,23 @@ describe('SafeServiceName', () => {
 	
 	describe('validate', () => {
 		it('succeeds if service name is valid', () => {
-			expect(() => new ServiceName('test service')).not.toThrow();
+			expect(() => new ServiceNameDTO('test service')).not.toThrow();
 		});
 
 		it('fails if service name is not defined', () => {
-			expect(() => new ServiceName(undefined as any)).toThrow();
+			expect(() => new ServiceNameDTO(undefined as any)).toThrow();
 		});
 		
 		it('fails if service name is not a string', () => {
-			expect(() => new ServiceName(123 as any)).toThrow();
+			expect(() => new ServiceNameDTO(123 as any)).toThrow();
 		});
 
 		it('fails if service name is shorter than 3 characters', () => {
-			expect(() => new ServiceName('aa')).toThrow();
+			expect(() => new ServiceNameDTO('aa')).toThrow();
 		});
 
 		it('fails if service name is longer than 256 characters', () => {
-			expect(() => new ServiceName('a'.repeat(1025))).toThrow();
+			expect(() => new ServiceNameDTO('a'.repeat(1025))).toThrow();
 		});
 		
 	});	

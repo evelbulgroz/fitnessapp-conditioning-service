@@ -1,4 +1,5 @@
 import { IsDefined, IsString, InRange, Trim, ToLowerCase, Matches } from "@evelbulgroz/sanitizer-decorator";
+import { DataTransferObject } from "./data-transfer-object.model";
 
 export interface ServiceDataDTOProps {
 	location: string;
@@ -6,18 +7,19 @@ export interface ServiceDataDTOProps {
 	serviceName: string;
 }
 
-/** Specifies information about a service registered with the registry microservice
+/** DTO for specifying and sanitizing data about a service registered with the registry microservice
  * @remark Used for type safety when composing requests to the registry microservice
  * @remark Also used to validate responses from the registry microservice
  * @remark Must be kept up to date with the API contract of the registry microservice
  * @remark Tokens are not part of the DTO, and should not be stored in the registry
  */
-export class ServiceDataDTO {
+export class ServiceDataDTO extends DataTransferObject {
 	private _location: string;
 	private _serviceId: string;
 	private _serviceName: string;
 
 	constructor(data: ServiceDataDTOProps) {
+		super();
 		this.location = data.location;
 		this.serviceId = data.serviceId;
 		this.serviceName = data.serviceName;
