@@ -3,16 +3,14 @@ import { Injectable } from "@nestjs/common";
 
 import { Logger } from '@evelbulgroz/ddd-base';
 
-import { AuthStrategy } from "./auth-strategy.model";
-import { CryptoService } from "../../services/crypto/models/crypto-service.model";
-import { JwtAuthResult } from "src/services/jwt/models/jwt-auth-result.model";
-import { JwtPayload } from "../../services/jwt/models/jwt-payload.model";
-import { JwtPayloadType } from "../../services/jwt/models/jwt-payload.type";
-import { JwtService } from "../../services/jwt/models/jwt-service.model";
-import { VerifyOptions as JwtVerifyOptions } from "../../services/jwt/models/jwt-verify-options.model";
-import { User } from "../../user/domain/user.entity";
-import { UserDTO } from "../../user/dtos/user.dto";
-import { UserRepository } from "../../user/repositories/user.repo";
+import { AuthStrategy } from './auth-strategy.model';
+import { CryptoService } from '../../shared/services/authentication/crypto/models/crypto-service.model';
+import { JwtAuthResult } from '../../shared/services/authentication/jwt/models/jwt-auth-result.model';
+import { JwtPayload } from '../../shared/services/authentication/jwt/models/jwt-payload.model';
+import { JwtPayloadType } from '../../shared/services/authentication/jwt/models/jwt-payload.type';
+import { JwtService } from '../../shared/services/authentication/jwt/models/jwt-service.model';
+import { VerifyOptions as JwtVerifyOptions } from '../../shared/services/authentication/jwt/models/jwt-verify-options.model';
+import { UserRepository } from '../../user/repositories/user.repo';
 
 
 /** Authentication strategy for JWT tokens for use with AuthGuard class.

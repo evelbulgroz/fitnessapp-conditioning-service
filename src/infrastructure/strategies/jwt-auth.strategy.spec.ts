@@ -8,17 +8,17 @@ import { v4 as uuid } from 'uuid';
 
 import { ConsoleLogger, Logger, Result } from '@evelbulgroz/ddd-base';
 
-import { BcryptCryptoService } from '../../services/crypto/bcrypt-crypto.service';
+import { BcryptCryptoService } from '../../shared/services/authentication/crypto/bcrypt-crypto.service';
 import { createTestingModule } from '../../test/test-utils';
-import { CryptoService } from '../../services/crypto/models/crypto-service.model';
-import { JwtAuthResult } from '../../services/jwt/models/jwt-auth-result.model';
+import { CryptoService } from '../../shared/services/authentication/crypto/models/crypto-service.model';
+import { JwtAuthResult } from '../../shared/services/authentication/jwt/models/jwt-auth-result.model';
 import { JwtAuthStrategy } from './jwt-auth.strategy';
-import { JwtService } from "../../services/jwt/models/jwt-service.model";
-import { User } from '../../domain/user.entity';
-import { UserDTO } from '../../dtos/domain/user.dto';
-import { UserJwtPayload } from '../../services/jwt/models/user-jwt-payload.model';
-import { UserRepository } from '../../repositories/user.repo';
-import { VerifyOptions as JwtVerifyOptions } from '../../services/jwt/models/jwt-verify-options.model';
+import { JwtService } from '../../shared/services/authentication/jwt/models/jwt-service.model';
+import { User } from '../../user/domain/user.entity';
+import { UserDTO } from '../../user/dtos/user.dto';
+import { UserJwtPayload } from '../../shared/services/authentication/jwt/models/user-jwt-payload.model';
+import { UserRepository } from '../../user/repositories/user.repo';
+import { VerifyOptions as JwtVerifyOptions } from '../../shared/services/authentication/jwt/models/jwt-verify-options.model';
 
 //process.env.NODE_ENV = 'not-test'; // set NODE_ENV to not-test to enable logging
 
