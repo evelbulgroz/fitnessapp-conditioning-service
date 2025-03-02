@@ -17,7 +17,7 @@ import { ServiceTokenRefreshDataDTO } from '../../dtos/requests/service-token-re
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../domain/config-options.model';
 import { AuthService } from "../auth/auth-service.class";
 import { RetryRequesterService } from "../retry-requester/retry-requester.service";
-import { SafeJwtDTO } from "../../dtos/responses/safe-jwt.dto";
+import { JwtDTO } from "../../dtos/responses/jwt.dto";
 
 /** Manages and provides access to the current JWT token needed for making authenticated requests to other microservices.
  * @remark Also provides methods for logging in and out of the authentication microservice at server startup and shutdown
@@ -305,7 +305,7 @@ export class TokenService extends AuthService {
 		// sanitize the tokens
 		let accessToken: string, refreshToken: string;
 		try {
-			const [accessTokenDTO, refreshTokenDTO] = [new SafeJwtDTO(response.data?.accessToken), new SafeJwtDTO(response.data?.refreshToken)];
+			const [accessTokenDTO, refreshTokenDTO] = [new JwtDTO(response.data?.accessToken), new JwtDTO(response.data?.refreshToken)];
 			accessToken = accessTokenDTO.value as string;
 			refreshToken = refreshTokenDTO.value as string;
 		}
@@ -374,7 +374,7 @@ export class TokenService extends AuthService {
 		// sanitize the token
 		let accessToken: string;
 		try {
-			const accessTokenDTO = new SafeJwtDTO(response.data?.accessToken);
+			const accessTokenDTO = new JwtDTO(response.data?.accessToken);
 			accessToken = accessTokenDTO.value as string;
 		}
 		catch (error) {
