@@ -5,10 +5,16 @@ export abstract class SafePrimitive<T extends string | number | boolean | undefi
 	protected _value: T;
 
 	// Note: Constructor must be defined in derived classes: must be concrete, and cannot call abstract setter here
-	// public constructor(value: T) {
-	// 	super();
-	// 	this.value = value;
-	// }
+	/* Template:
+	public constructor(value: T) {
+	 	super();
+		if ((value as unknown) instanceof SafePrimitive) {
+			// work around bug where tests call constructor with SafePrimitive after serialization
+			serviceName = (serviceName as unknown as SafePrimitive<T>).value;
+		}
+		this.value = value;
+	}
+	*/
 
 	/** Sets the value of the data */
 	public abstract set value(value: T);
