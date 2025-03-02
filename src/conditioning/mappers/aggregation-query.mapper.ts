@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { AggregationQuery } from '@evelbulgroz/time-series';
 
 import { AggregationQueryDTO } from '../dtos/aggregation-query.dto';
-import { Mapper } from './mapper.model';
+import { Mapper } from '../../shared/mappers/mapper.model';
 
 @Injectable()
 export class AggregationQueryMapper<T extends AggregationQuery, U extends AggregationQueryDTO> extends Mapper<T,U> {
