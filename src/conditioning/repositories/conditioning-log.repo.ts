@@ -8,8 +8,8 @@ import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 import { ConditioningLog } from "../domain/conditioning-log.entity";
 import { ConditioningLogCreatedEvent } from "../events/conditioning-log-created.event";
 import { ConditioningLogDeletedEvent } from "../events/conditioning-log-deleted.event";
-import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
-import { ConditioningLogPersistenceDTO } from "../dtos/domain/conditioning-log-persistence.dto";
+import { ConditioningLogDTO } from "../dtos/conditioning-log.dto";
+import { ConditioningLogPersistenceDTO } from "../dtos/conditioning-log-persistence.dto";
 import { ConditioningLogUndeletedEvent } from "../events/conditioning-log-undeleted.event";
 import { ConditioningLogUpdatedEvent } from "../events/conditioning-log-updated.event";
 

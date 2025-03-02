@@ -6,10 +6,10 @@ import { firstValueFrom, Observable, take } from 'rxjs';
 import { ConsoleLogger, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 import { DeviceType, ActivityType, SensorType } from '@evelbulgroz/fitnessapp-base';
 
-import { ConditioningLogRepository } from '../../shared/repositories/conditioning-log.repo';
+import { ConditioningLogRepository } from './conditioning-log.repo';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
-import { ConditioningLogPersistenceDTO } from '../dtos/domain/conditioning-log-persistence.dto';
+import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
+import { ConditioningLogPersistenceDTO } from '../dtos/conditioning-log-persistence.dto';
 import { createTestingModule } from '../../test/test-utils';
 
 class PersistenceAdapterMock<T extends ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>> extends PersistenceAdapter<T> {
