@@ -6,7 +6,7 @@ import { Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
+import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { ConditioningLogUpdatedEvent } from '../events/conditioning-log-updated.event';
 import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';

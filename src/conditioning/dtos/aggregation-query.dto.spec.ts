@@ -1,4 +1,4 @@
-import { AggregationQueryDTO } from '../../dtos/responses/aggregation-query.dto';
+import { AggregationQueryDTO } from '../dtos/aggregation-query.dto';
 import { AggregationQueryDTOProps } from '../../test/models/aggregation-query-dto.props';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
 

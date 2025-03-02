@@ -1,5 +1,5 @@
 import { EntityDeletedEventDTO } from "@evelbulgroz/ddd-base";
-import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
+import { ConditioningLogDTO } from "../dtos/conditioning-log.dto";
 
 export interface ConditioningLogCreatedEventDTO extends EntityDeletedEventDTO<ConditioningLogDTO> {
 	// Add custom properties here

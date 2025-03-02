@@ -1,4 +1,4 @@
-import { ConditioningLogDeletedEvent } from '../../events/conditioning-log-deleted.event';
+import { ConditioningLogDeletedEvent } from '../events/conditioning-log-deleted.event';
 import { ConditioningLogDeletedEventDTO } from './conditioning-log-deleted.event.dto';
 
 describe('ConditioningLogDeletedEvent', () => {

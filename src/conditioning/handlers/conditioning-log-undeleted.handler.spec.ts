@@ -11,11 +11,11 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 import { ConditioningDataService, UserLogsCacheEntry} from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDeletedEvent } from '../events/conditioning-log-deleted.event';
-import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
+import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogUndeletedEvent } from '../events/conditioning-log-undeleted.event';
 import { ConditioningLogUndeletedHandler } from './conditioning-log-undeleted.handler';
-import { User } from '../domain/user.entity';
-import { UserDTO } from '../dtos/domain/user.dto';
+import { User } from '../../user/domain/user.entity';
+import { UserDTO } from '../../user/dtos/user.dto';
 
 
 describe('ConditioningLogUndeletedHandler', () => {

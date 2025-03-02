@@ -1,6 +1,6 @@
 import { EntityUpdatedEvent } from "@evelbulgroz/ddd-base";
 
-import { ConditioningLogDTO } from "../dtos/domain/conditioning-log.dto";
+import { ConditioningLogDTO } from "../dtos/conditioning-log.dto";
 import { ConditioningLogUpdatedEventDTO } from "./conditioning-log-updated.event.dto";
 
 /** Conditioning log updated domain event

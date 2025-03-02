@@ -6,9 +6,9 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
-import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
+import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogUpdatedEvent } from '../events/conditioning-log-updated.event';
-import { ConditioningLogUpdateHandler } from '../../shared/handlers/conditioning-log-updated.handler';
+import { ConditioningLogUpdateHandler } from '../handlers/conditioning-log-updated.handler';
 
 describe('LogUpdatedHandler', () => {
 	let handler: ConditioningLogUpdateHandler;

@@ -1,4 +1,4 @@
-import { ConditioningLogCreatedEvent } from '../../events/conditioning-log-created.event';
+import { ConditioningLogCreatedEvent } from '../events/conditioning-log-created.event';
 import { ConditioningLogCreatedEventDTO } from './conditioning-log-created.event.dto';
 
 describe('ConditioningLogCreatedEvent', () => {

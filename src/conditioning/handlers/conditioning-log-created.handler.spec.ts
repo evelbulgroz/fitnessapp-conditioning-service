@@ -5,10 +5,10 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 //import { jest } from '@jest/globals';
 
-import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
+import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { ConditioningLogCreatedEvent } from '../events/conditioning-log-created.event';
-import { ConditioningLogCreatedHandler } from '../../shared/handlers/conditioning-log-created.handler';
+import { ConditioningLogCreatedHandler } from '../handlers/conditioning-log-created.handler';
 
 describe('ConditioningLogCreatedHandler', () => {
 	let handler: ConditioningLogCreatedHandler;

@@ -1,6 +1,6 @@
 import { EntityDeletedEvent } from '@evelbulgroz/ddd-base';
 
-import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
+import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogDeletedEventDTO } from './conditioning-log-deleted.event.dto';
 
 /** Conditioning log deleted domain event

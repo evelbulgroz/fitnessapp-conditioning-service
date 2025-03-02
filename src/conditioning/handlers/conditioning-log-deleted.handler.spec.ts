@@ -6,9 +6,9 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 //import { jest } from '@jest/globals';
 
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
-import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
+import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogDeletedEvent } from '../events/conditioning-log-deleted.event';
-import { ConditioningLogDeletedHandler } from '../../shared/handlers/conditioning-log-deleted.handler';
+import { ConditioningLogDeletedHandler } from '../handlers/conditioning-log-deleted.handler';
 
 describe('LogDeletedHandler', () => {
 	let handler: ConditioningLogDeletedHandler;

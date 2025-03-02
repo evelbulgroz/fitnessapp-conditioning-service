@@ -4,7 +4,7 @@ import { Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogCreatedEvent } from '../events/conditioning-log-created.event';
-import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
+import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
 /** Handler for entity created event from ConditioningLog repository
