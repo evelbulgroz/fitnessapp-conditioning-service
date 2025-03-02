@@ -17,7 +17,7 @@ export class ServiceName extends SafePrimitive<string> {
 	public get value(): string { return this._value; }
 	
 	constructor(serviceName: string) {
-		super(serviceName);
+		super();
 		this.value = serviceName;
 	}
 }
