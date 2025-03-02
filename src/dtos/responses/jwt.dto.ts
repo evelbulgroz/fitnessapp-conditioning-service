@@ -10,6 +10,10 @@ export class JwtDTO extends SafePrimitive<string> {
 	
 	public constructor(value: string) {		
 		super();
+		if ((value as unknown) instanceof SafePrimitive) {
+			// work around bug where tests call constructor with SafePrimitive after serialization
+			value = (value as unknown as SafePrimitive<string>).value;
+		}		
 		this.value = value;
 	}
 

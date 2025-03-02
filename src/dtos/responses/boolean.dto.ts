@@ -1,4 +1,4 @@
-import { IsBoolean, MaxLength, ToBoolean } from "@evelbulgroz/sanitizer-decorator";
+import { IsBoolean, isInstanceOf, MaxLength, ToBoolean } from "@evelbulgroz/sanitizer-decorator";
 import { SafePrimitive } from "./safe-primitive.class";
 
 /** DTO for sanitizing a single boolean value in a response */
@@ -7,6 +7,10 @@ export class BooleanDTO extends SafePrimitive<boolean> {
 	
 	public constructor(value: boolean) {		
 		super();
+		if ((value as unknown) instanceof SafePrimitive) {
+			// work around bug where tests call constructor with SafePrimitive after serialization
+			value = (value as unknown as SafePrimitive<boolean>).value;
+		}
 		this.value = value;
 	}
 

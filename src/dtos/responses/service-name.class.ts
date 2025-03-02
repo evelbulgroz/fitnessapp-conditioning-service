@@ -7,6 +7,16 @@ import { SafePrimitive } from "./safe-primitive.class";
  * @remarks Data is not stored in the service, only used for validation when submitted from external requests
  */
 export class ServiceName extends SafePrimitive<string> {
+	
+	constructor(serviceName: string) {
+		super();
+		if ((serviceName as unknown) instanceof SafePrimitive) {
+			// work around bug where tests call constructor with SafePrimitive after serialization
+			serviceName = (serviceName as unknown as SafePrimitive<string>).value;
+		}
+		this.value = serviceName;
+	}
+	
 	/** Name of the service, typically in (lower case) 'fitnessapp-[service name]-service' format */
 	@IsDefined()
 	@IsString()
@@ -16,10 +26,6 @@ export class ServiceName extends SafePrimitive<string> {
 	public set value(serviceName: string) { this._value = serviceName; }
 	public get value(): string { return this._value; }
 	
-	constructor(serviceName: string) {
-		super();
-		this.value = serviceName;
-	}
 }
 
 export default ServiceName;

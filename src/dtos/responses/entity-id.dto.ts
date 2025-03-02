@@ -9,6 +9,10 @@ export class EntityIdDTO extends SafePrimitive<EntityId> {
 		
 	public constructor(value: EntityId) {
 		super();
+		if ((value as unknown) instanceof SafePrimitive) {
+			// work around bug where tests call constructor with SafePrimitive after serialization
+			value = (value as unknown as SafePrimitive<EntityId>).value;
+		}		
 		this.value = value;
 	}
 	

@@ -8,7 +8,11 @@ export class DomainTypeDTO extends SafePrimitive<string> {
 	
 	public constructor(value: string) {
 		super();
-		this.value = value;
+		if ((value as unknown) instanceof SafePrimitive) {
+			// work around bug where tests call constructor with SafePrimitive after serialization
+			value = (value as unknown as SafePrimitive<string>).value;
+		}		
+		this.value = value;this.value = value;
 	}
 
 	@IsString({ allowNull: false, allowUndefined: false, message: 'type must be a string' })
