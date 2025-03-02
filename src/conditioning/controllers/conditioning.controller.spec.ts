@@ -14,24 +14,24 @@ import { AggregationQueryDTO } from '../dtos/aggregation-query.dto';
 import { AggregationQueryDTOProps }	from '../../test/models/aggregation-query-dto.props';
 import { BooleanDTO } from '../../shared/dtos/responses/boolean.dto';
 import { ConditioningController } from './conditioning.controller';
-import { BcryptCryptoService } from '../../services/crypto/bcrypt-crypto.service';
+import { BcryptCryptoService } from '../../shared/services/authentication/crypto/bcrypt-crypto.service';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from '../../dtos/domain/conditioning-log.dto';
+import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { createTestingModule } from '../../test/test-utils';
-import { CryptoService } from '../../services/crypto/models/crypto-service.model';
+import { CryptoService } from '../../shared/services/authentication/crypto/models/crypto-service.model';
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { JwtAuthStrategy } from './strategies/jwt-auth.strategy';
-import { JwtSecretService } from '../../services/jwt/jwt-secret.service';
-import { JwtService } from '../../services/jwt/models/jwt-service.model';
-import { JsonWebtokenService } from '../../services/jwt/json-webtoken.service';
+import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
+import { JwtAuthStrategy } from '../../infrastructure/strategies/jwt-auth.strategy';
+import { JwtSecretService } from '../../shared/services/authentication/jwt/jwt-secret.service';
+import { JwtService } from '../../shared/services/authentication/jwt/models/jwt-service.model';
+import { JsonWebtokenService } from '../../shared/services/authentication/jwt/json-webtoken.service';
 import { QueryDTO } from '../../shared/dtos/responses/query.dto';
 import { QueryDTOProps } from '../../test/models/query-dto.props';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
-import { UserJwtPayload } from '../../services/jwt/models/user-jwt-payload.model';
+import { UserJwtPayload } from '../../shared/services/authentication/jwt/models/user-jwt-payload.model';
 import { UserRepository } from '../../user/repositories/user.repo';
-import { ValidationPipe } from './pipes/validation.pipe';
+import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
