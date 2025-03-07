@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from "@nestjs/config";
-import * as fs from "node:fs/promises";
 
 import { EntityMetadataDTO, FileSystemPersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 
-import { ConditioningLogDTO } from '../../../dtos/domain/conditioning-log.dto';
-import { ConditioningLogPersistenceDTO } from '../../../dtos/domain/conditioning-log-persistence.dto';
+import { ConditioningLogDTO } from '../../../../conditioning/dtos/conditioning-log.dto';
+import { ConditioningLogPersistenceDTO } from '../../../../conditioning/dtos/conditioning-log-persistence.dto';
 
 /** Injectable wrapper for file system persistence adapter for use with repositories.
  * @typeparam T The type of entity data transfer object (DTO) that the adapter will be working with.

@@ -1,11 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { TestingModule } from '@nestjs/testing';
 
-import { ConsoleLogger, EntityMetadataDTO, FileSystemPersistenceAdapter } from '@evelbulgroz/ddd-base';
+import { EntityMetadataDTO, FileSystemPersistenceAdapter } from '@evelbulgroz/ddd-base';
 
 import { FsPersistenceAdapterService } from './fs-persistence-adapter.service';
-import { ConditioningLogPersistenceDTO } from '../../../dtos/domain/conditioning-log-persistence.dto';
-import { ConditioningLogDTO } from '../../../dtos/domain/conditioning-log.dto';
-import { createTestingModule } from '../../../test/test-utils';
+import { ConditioningLogDTO } from '../../../../conditioning/dtos/conditioning-log.dto';
+import { ConditioningLogPersistenceDTO } from '../../../../conditioning/dtos/conditioning-log-persistence.dto';
+import { createTestingModule } from '../../../../test/test-utils';
 
 //process.env.NODE_ENV = 'untest'; // ConsoleLogger will not log in test environment
 
