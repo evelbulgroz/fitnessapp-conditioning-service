@@ -7,6 +7,8 @@ import { FsPersistenceAdapterService } from './shared/repositories/adapters/fs-p
 import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { UserService } from './user/services/user.service';
 import { UserController } from './user/controllers/user.controller';
+import { JwtService } from './shared/services/authentication/jwt/models/jwt-service.model';
+import { JsonWebtokenService } from './shared/services/authentication/jwt/json-webtoken.service';
 
 // todo: Copy over (de)registration logic from API Gateway to be able to effectively authenticate and collaborate with other microservices
 @Module({
@@ -18,6 +20,10 @@ import { UserController } from './user/controllers/user.controller';
 	providers: [
 		AggregationQueryMapper,
 		QueryMapper,
+		{
+			provide: JwtService,
+			useClass: JsonWebtokenService,
+		},
 		{
 			provide: PersistenceAdapter,
 			useClass: FsPersistenceAdapterService,
