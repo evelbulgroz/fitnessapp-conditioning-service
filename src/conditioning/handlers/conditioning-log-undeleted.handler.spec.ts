@@ -133,7 +133,7 @@ describe('ConditioningLogUndeletedHandler', () => {
 		it('marks log as undeleted in data service cache', async () => {
 			// arrange
 			expect(randomLog.deletedOn).toBeUndefined(); // sanity check
-			randomLog.deletedOn = new Date();
+			randomLog.deletedOn = new Date((randomLog.createdOn?.getTime() ?? 0 )+ 1000); // mark as deleted
 			
 			// act
 			await handler.handle(event);
