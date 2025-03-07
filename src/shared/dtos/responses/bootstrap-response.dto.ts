@@ -1,4 +1,4 @@
-import { IsDefined, IsString, Matches, InRange, IsLike } from "@evelbulgroz/sanitizer-decorator";
+import { IsDefined, IsString, Matches, InRange, } from "@evelbulgroz/sanitizer-decorator";
 import { DataTransferObject } from "./data-transfer-object.model";
 import { ServiceDataDTO, ServiceDataDTOProps } from "./service-data.dto";
 

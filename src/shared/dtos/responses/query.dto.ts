@@ -25,9 +25,22 @@ const MAX_PAGE_NUMBER = 100; // Maximum page number
 const MAX_PAGE_SIZE = 100; // Maximum number of items per page
 const MAX_PROPERTY_LENGTH = 100; // Maximum length for a property
 
+/** Represents the JSON properties of logs query submitted in a request (mostly needed for testing) */
+export interface QueryDTOProps {
+	start?: string;
+	end?: string;
+	activity?: ActivityType;
+	userId?: string;
+	sortBy?: string;
+	order?: 'ASC' | 'DESC';
+	page?: number;
+	pageSize?: number;
+}
+
 /** DTO for sanitizing query parameters in a request
  * @remark Intended for use in endpoint validation pipe to validate query parameters
  * @todo Reassess need for own date conversion method, in addition to the decorator
+ * @todo Consider constraining sort order with enum from query-fns package
 */
 export class QueryDTO extends DataTransferObject {
 	//----------------------------- PROPERTIES -----------------------------//

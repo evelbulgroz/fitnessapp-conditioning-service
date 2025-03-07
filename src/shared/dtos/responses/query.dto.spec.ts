@@ -2,8 +2,7 @@ import { v4 as uuid } from 'uuid';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
-import { QueryDTO } from './query.dto';
-import { QueryDTOProps } from '../../test/models/query-dto.props';
+import { QueryDTO, QueryDTOProps } from './query.dto';
 
 // NOTE: Does not cover every case, but should be acceptable for now
 

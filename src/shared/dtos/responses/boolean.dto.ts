@@ -1,4 +1,4 @@
-import { IsBoolean, isInstanceOf, MaxLength, ToBoolean } from "@evelbulgroz/sanitizer-decorator";
+import { IsBoolean, MaxLength, ToBoolean } from "@evelbulgroz/sanitizer-decorator";
 import { SafePrimitive } from "./safe-primitive.class";
 
 /** DTO for sanitizing a single boolean value in a response */

@@ -1,5 +1,4 @@
 import { UserContext, UserContextProps } from './user-context.model';
-import { EntityId } from '@evelbulgroz/ddd-base';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('UserContext', () => {

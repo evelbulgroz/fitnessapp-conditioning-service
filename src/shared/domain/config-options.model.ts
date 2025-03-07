@@ -1,4 +1,4 @@
-import SecurityConfig from "../../domain/security.config.model";
+import { SecurityConfig } from './security.config.model';
 
 /* Specifies supported options for the ConfigModule */
 export interface ConfigOptions {
