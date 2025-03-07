@@ -3,12 +3,10 @@ import { Injectable } from '@nestjs/common';
 import { Logger } from '@evelbulgroz/ddd-base';
 
 import { ConditioningLog } from '../../conditioning/domain/conditioning-log.entity';
-import { ConditioningLogDTO } from '../dtos/domain/conditioning-log.dto';
+import { ConditioningLogDTO } from '../../conditioning/dtos/conditioning-log.dto';
 import { ConditioningLogRepository } from '../../conditioning/repositories/conditioning-log.repo';
 import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
-import { User } from '../domain/user.entity';
 import { UserDeletedEvent } from '../events/user-deleted.event'
-import { UserDTO } from '../dtos/user.dto';
 import { UserRepository } from '../repositories/user.repo';;
 
 /** Handler for entity deleted event from User repository

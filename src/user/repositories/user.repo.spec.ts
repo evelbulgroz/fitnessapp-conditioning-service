@@ -7,9 +7,9 @@ import { ConsoleLogger, Logger, PersistenceAdapter, Result } from '@evelbulgroz/
 
 import { createTestingModule } from '../../test/test-utils';
 import { User } from '../domain/user.entity';
-import { UserDTO } from '../dtos/domain/user.dto';
-import { UserRepository } from '../../shared/repositories/user.repo';
-import { UserPersistenceDTO } from '../dtos/domain/user-persistence.dto';
+import { UserDTO } from '../dtos/user.dto';
+import { UserRepository } from './user.repo';
+import { UserPersistenceDTO } from '../dtos/user-persistence.dto';
 
 class PersistenceAdapterMock<T extends UserPersistenceDTO> extends PersistenceAdapter<T> {
 	// cannot get generics to work with jest.fn(), so skipping for now

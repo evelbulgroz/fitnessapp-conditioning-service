@@ -8,21 +8,21 @@ import { v4 as uuid } from 'uuid';
 
 import { Logger, Result } from '@evelbulgroz/ddd-base';
 
-import { BcryptCryptoService } from '../../services/crypto/bcrypt-crypto.service';
+import { BcryptCryptoService } from '../../shared/services/authentication/crypto/bcrypt-crypto.service';
 import { createTestingModule } from '../../test/test-utils';
-import { CryptoService } from '../../services/crypto/models/crypto-service.model';
-import { EntityIdDTO } from '../../dtos/responses/entity-id.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { JwtAuthStrategy } from './strategies/jwt-auth.strategy';
-import { JwtSecretService } from '../../services/jwt/jwt-secret.service';
-import { JwtService } from "../../services/jwt/models/jwt-service.model";
-import { JsonWebtokenService } from '../../services/jwt/json-webtoken.service';
+import { CryptoService } from '../../shared/services/authentication/crypto/models/crypto-service.model';
+import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
+import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
+import { JwtAuthStrategy } from '../../infrastructure/strategies/jwt-auth.strategy';
+import { JwtSecretService } from '../../shared/services/authentication/jwt/jwt-secret.service';
+import { JwtService } from '../../shared/services/authentication/jwt/models/jwt-service.model';
+import { JsonWebtokenService } from '../../shared/services/authentication/jwt/json-webtoken.service';
 import { UserContext } from '../../shared/domain/user-context.model';
-import { UserController } from '../../controllers/user.controller';
-import { UserJwtPayload } from '../../services/jwt/models/user-jwt-payload.model';
-import { UserRepository } from '../../repositories/user.repo';
-import { UserService } from '../../services/user/user.service';
-import { ValidationPipe } from './pipes/validation.pipe';
+import { UserController } from '../../user/controllers/user.controller';
+import { UserJwtPayload } from '../../shared/services/authentication/jwt/models/user-jwt-payload.model';
+import { UserRepository } from '../../user/repositories/user.repo';
+import { UserService } from '../../user/services/user.service';
+import { ValidationPipe } from '../../infrastructure//pipes/validation.pipe';
 
 // NOTE:
   // Testing over http to enable decorators and guards without having to do a ton of additional setup/mocking.

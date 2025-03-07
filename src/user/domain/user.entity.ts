@@ -1,4 +1,4 @@
-import { Entity, EntityDTO, EntityId, EntityMetadataDTO, EntityPersistenceDTO } from "@evelbulgroz/ddd-base";
+import { Entity,  EntityId, EntityMetadataDTO, } from "@evelbulgroz/ddd-base";
 import { IsArray, IsDefined, IsInstanceOfOneOf, IsInstanceOfOneOfAll, IsNotEmpty } from '@evelbulgroz/sanitizer-decorator';
 
 import { UserDTO } from "../dtos/user.dto";
