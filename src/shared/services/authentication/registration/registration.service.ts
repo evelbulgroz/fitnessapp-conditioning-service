@@ -1,14 +1,14 @@
-import { Injectable, RequestMethod } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { Injectable, RequestMethod } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
-import { firstValueFrom, from, switchMap, tap } from "rxjs";
+import { firstValueFrom, from, switchMap, tap } from 'rxjs';
 
-import { Logger } from "@evelbulgroz/ddd-base";
-import { ServiceDataDTO as RegistryServiceDataDTO } from "../../shared/dtos/responses/service-data.dto";
+import { Logger } from '@evelbulgroz/ddd-base';
+import { ServiceDataDTO as RegistryServiceDataDTO } from '../../../dtos/responses/service-data.dto';
 
-import { AuthService } from "../auth/auth-service.class";
-import { RetryRequesterService } from "../retry-requester/retry-requester.service";
-import { ServiceConfig, EndPointConfig } from "../../shared/domain/config-options.model";
+import { AuthService } from '../auth/auth-service.class';
+import { RetryRequesterService } from '../../utils/retry-requester/retry-requester.service';
+import { ServiceConfig, EndPointConfig } from '../../../domain/config-options.model';
 
 /** Service for de/registering a running instance of this app with the microservice registry */
 @Injectable()

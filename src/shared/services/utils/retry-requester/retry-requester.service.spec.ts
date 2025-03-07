@@ -8,8 +8,8 @@ import { firstValueFrom, of, throwError } from 'rxjs';
 import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
 
-import { createTestingModule } from '../../test/test-utils';
-import {RetryRequesterService} from './retry-requester.service';
+import { createTestingModule } from '../../../../test/test-utils';
+import { RetryRequesterService } from './retry-requester.service';
 
 // process.env.NODE_ENV = 'not-test'; // set NODE_ENV to 'not-test' to suppress console logs
 

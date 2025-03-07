@@ -1,20 +1,20 @@
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { Test, TestingModule } from '@nestjs/testing';
+import { TestingModule } from '@nestjs/testing';
 
 import { jest } from '@jest/globals';
 import jwt from 'jsonwebtoken';
 import { of } from 'rxjs';
 
 import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
-import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/service-data.dto';
+import { ServiceDataDTO as RegistryServiceDataDTO } from '../../../dtos/responses/service-data.dto';
 
-import { AppConfig, EndPointConfig, ServiceConfig } from '../../domain/config-options.model';
+import { AppConfig, EndPointConfig, ServiceConfig } from '../../../domain/config-options.model';
 import { AuthService } from '../auth/auth-service.class';
-import { createTestingModule } from '../../test/test-utils';
+import { createTestingModule } from '../../../../test/test-utils';
 import { RegistrationService } from '../registration/registration.service';
-import { RetryRequesterService } from '../../services/retry-requester/retry-requester.service';
-import { SecurityConfig } from '../../domain/security.config.model';
+import { RetryRequesterService } from '../../utils/retry-requester/retry-requester.service';
+import { SecurityConfig } from '../../../domain/security.config.model';
 
 describe('RegistrationService', () => {
 	let authServiceSpy: any
