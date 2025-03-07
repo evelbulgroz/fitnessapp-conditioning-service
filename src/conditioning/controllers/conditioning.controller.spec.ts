@@ -26,8 +26,7 @@ import { JwtAuthStrategy } from '../../infrastructure/strategies/jwt-auth.strate
 import { JwtSecretService } from '../../shared/services/authentication/jwt/jwt-secret.service';
 import { JwtService } from '../../shared/services/authentication/jwt/models/jwt-service.model';
 import { JsonWebtokenService } from '../../shared/services/authentication/jwt/json-webtoken.service';
-import { QueryDTO } from '../../shared/dtos/responses/query.dto';
-import { QueryDTOProps } from '../../test/models/query-dto.props';
+import { QueryDTO, QueryDTOProps } from '../../shared/dtos/responses/query.dto';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
 import { UserJwtPayload } from '../../shared/services/authentication/jwt/models/user-jwt-payload.model';
 import { UserRepository } from '../../user/repositories/user.repo';

@@ -7,8 +7,8 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 import { ConditioningDataService } from '../../conditioning/services/conditioning-data/conditioning-data.service';
 import { ConditioningLogRepository } from '../../conditioning/repositories/conditioning-log.repo';
 import { UserUpdatedEvent } from '../events/user-updated.event';
-import { UserUpdatedHandler } from '../../shared/handlers/user-updated.handler';
-import { UserDTO } from '../dtos/domain/user.dto';
+import { UserUpdatedHandler } from '../../user/handlers/user-updated.handler';
+import { UserDTO } from '../dtos/user.dto';
 import { UserRepository } from '../repositories/user.repo';
 
 describe('UserUpdatedHandler', () => {

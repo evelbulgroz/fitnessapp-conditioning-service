@@ -9,9 +9,9 @@ import { Request } from 'express';
 
 import { createTestingModule } from '../../test/test-utils';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { JwtAuthResult } from '../../services/jwt/models/jwt-auth-result.model';
+import { JwtAuthResult } from '../../shared/services/authentication/jwt/models/jwt-auth-result.model';
 import { JwtAuthStrategy } from '../strategies/jwt-auth.strategy';
-import { JwtPayload } from '../../services/jwt/models/jwt-payload.model';
+import { JwtPayload } from '../../shared/services/authentication/jwt/models/jwt-payload.model';
 
 describe('JwtAuthGuard', () => {
 	let config: ConfigService;
