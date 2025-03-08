@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 
 import { v4 as uuidv4 } from 'uuid';
 
-import { EntityId, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
+import { EntityId, EntityMetadataDTO, Logger, Result } from "@evelbulgroz/ddd-base";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
 import { ConditioningLog } from "../domain/conditioning-log.entity";
@@ -12,6 +12,7 @@ import { ConditioningLogDTO } from "../dtos/conditioning-log.dto";
 import { ConditioningLogPersistenceDTO } from "../dtos/conditioning-log-persistence.dto";
 import { ConditioningLogUndeletedEvent } from "../events/conditioning-log-undeleted.event";
 import { ConditioningLogUpdatedEvent } from "../events/conditioning-log-updated.event";
+import { PersistenceAdapterService } from "../../shared/repositories/adapters/persistence-adapter.service";
 
 /** Concrete implementation of an injectable ConditioningLogRepository that uses an adapter to interact with a persistence layer
  * @template T The type of the log, e.g. ConditioningLog
@@ -24,7 +25,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 
 	public constructor(
-		protected readonly adapter: PersistenceAdapter<ConditioningLogPersistenceDTO<U, EntityMetadataDTO>>,
+		protected readonly adapter: PersistenceAdapterService<ConditioningLogPersistenceDTO<U, EntityMetadataDTO>>,
 		protected readonly logger: Logger,
 		@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
 	) {

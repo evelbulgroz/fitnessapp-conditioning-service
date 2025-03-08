@@ -7,7 +7,7 @@ import { Logger, ConsoleLogger } from '@evelbulgroz/ddd-base';
 import { ConditioningDataService } from '../../../../conditioning/services/conditioning-data/conditioning-data.service';
 import { ConditioningLogDTO } from '../../../../conditioning/dtos/conditioning-log.dto';
 import { ConditioningLogRepository } from '../../../../conditioning/repositories/conditioning-log.repo';
-import { EventDispatcher } from '../event-dispatcher/event-dispatcher.service';
+import { EventDispatcherService } from '../event-dispatcher/event-dispatcher.service';
 import { ConditioningLogCreatedEvent } from '../../../../conditioning/events/conditioning-log-created.event';
 import { ConditioningLogCreatedHandler } from '../../../../conditioning/handlers/conditioning-log-created.handler';
 import { ConditioningLogDeletedEvent } from '../../../../conditioning/events/conditioning-log-deleted.event';
@@ -25,8 +25,8 @@ import { UserUpdatedHandler } from '../../../../user/handlers/user-updated.handl
 import { UserDTO } from '../../../../user/dtos/user.dto';
 import { UserRepository } from '../../../../user/repositories/user.repo';
 
-describe('EventDispatcher', () => {
-	let dispatcher: EventDispatcher;
+describe('EventDispatcherService', () => {
+	let dispatcher: EventDispatcherService;
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
 			providers: [
@@ -47,7 +47,7 @@ describe('EventDispatcher', () => {
 					provide: Logger,
 					useClass: ConsoleLogger
 				},
-				EventDispatcher,
+				EventDispatcherService,
 				ConditioningLogCreatedHandler,
 				ConditioningLogDeletedHandler,
 				ConditioningLogUpdateHandler,
@@ -66,7 +66,7 @@ describe('EventDispatcher', () => {
 		}))
 		.compile();
 
-		dispatcher = module.get<EventDispatcher>(EventDispatcher);		
+		dispatcher = module.get<EventDispatcherService>(EventDispatcherService);		
 	});
 
 	afterEach(() => {

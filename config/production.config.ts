@@ -1,7 +1,7 @@
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ConfigOptions } from "../src/domain/config-options.model";
+import { ConfigOptions } from "../src/shared/domain/config-options.model";
 import productionSecurityConfig from "../security-config/production.security.config";
 import * as packageJson from '../package.json';
 

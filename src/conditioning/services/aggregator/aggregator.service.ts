@@ -17,16 +17,19 @@ import { AggregationQueryMapper } from '../../mappers/aggregation-query.mapper';
  */
 @Injectable()
 export class AggregatorService {
-	//----------------------------------------CONSTRUCTOR----------------------------------------------
+	//---------------------------------------- PROPERTIES ---------------------------------------------
 
-	public constructor(
-		protected readonly aggregator: TimeSeriesAggregator,
-		protected readonly mapper: AggregationQueryMapper<AggregationQuery,AggregationQueryDTO>
-	) {
-		// nothing to do here!
+	protected aggregator: TimeSeriesAggregator;
+	protected mapper: AggregationQueryMapper<AggregationQuery, AggregationQueryDTO>;
+
+	//---------------------------------------- CONSTRUCTOR --------------------------------------------
+
+	public constructor() {
+		this.aggregator = new TimeSeriesAggregator();
+		this.mapper = new AggregationQueryMapper();
 	}
 
-	//---------------------------------PUBLIC INSTANCE METHODS ----------------------------------------
+	//--------------------------------- PUBLIC INSTANCE METHODS ---------------------------------------
 	
 	/** Aggregate time series data by sample rate and aggregation type
 	 * @typeparam T Type of object holding the data to aggregate, e.g. TrainingLog, SensorLog, etc. (must be indexable by string)

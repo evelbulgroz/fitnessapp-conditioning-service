@@ -1,7 +1,7 @@
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ConfigOptions } from "../src/domain/config-options.model";
+import { ConfigOptions } from "../src/shared/domain/config-options.model";
 import developmentSecurityConfig from "../security-config/development.security.config";
 import * as packageJson from '../package.json';
 const majorVersion = parseInt(packageJson.version?.split('.')[0]);

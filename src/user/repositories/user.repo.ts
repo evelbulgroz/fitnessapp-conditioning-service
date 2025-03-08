@@ -7,19 +7,20 @@ import {
 	EntityMetadataDTO,
 	EntityPersistenceDTO,
 	Logger,
-	PersistenceAdapter,
 	Repository,
 	Result
 } from "@evelbulgroz/ddd-base";
+import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
 
+import { Observable } from "rxjs";
+import { PersistenceAdapterService } from "src/shared/repositories/adapters/persistence-adapter.service";
 import { User } from "../domain/user.entity";
 import { UserCreatedEvent } from "../events/user-created.event";
 import { UserDTO } from "../dtos/user.dto";
 import { UserUpdatedEvent } from "../events/user-updated.event";
 import { UserDeletedEvent } from "../events/user-deleted.event";
 import { UserUndeletedEvent } from "../events/user-undeleted.event";
-import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
-import { Observable } from "rxjs";
+import UserPersistenceDTO from "../dtos/user-persistence.dto";
 
 /** Concrete implementation of an injectable UserRepository that uses an adapter to interact with a persistence layer
  * @remark This class is a repository for User entities, and is intended to be injected into other classes, e.g. services.
@@ -31,7 +32,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 	
 		public constructor(
-			protected readonly adapter: PersistenceAdapter<EntityPersistenceDTO<UserDTO, EntityMetadataDTO>>,
+			protected readonly adapter: PersistenceAdapterService<UserPersistenceDTO>,
 			protected readonly logger: Logger,
 			@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
 		) {

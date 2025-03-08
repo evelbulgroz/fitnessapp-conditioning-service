@@ -18,7 +18,7 @@ import { ConditioningLogRepository } from '../../repositories/conditioning-log.r
 import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
 import { DomainEventHandler } from '../../../shared/handlers/domain-event.handler';
 import { EntityIdDTO } from '../../../shared/dtos/responses/entity-id.dto';
-import { EventDispatcher } from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
+import { EventDispatcherService } from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
 import { QueryDTO } from '../../../shared/dtos/responses/query.dto';
 import { QueryMapper } from '../../mappers/query.mapper';
 import { NotFoundError } from '../../../shared/domain/not-found.error';
@@ -71,8 +71,8 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 	public constructor(
 		protected readonly aggregator: AggregatorService,
-		@Inject(forwardRef(() => EventDispatcher)) // forwardRef to handle circular dependency
-		protected readonly eventDispatcher: EventDispatcher,
+		@Inject(forwardRef(() => EventDispatcherService)) // forwardRef to handle circular dependency
+		protected readonly eventDispatcher: EventDispatcherService,
 		protected readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		protected readonly userRepo: UserRepository
 	) {

@@ -25,7 +25,7 @@ import { UserUpdatedHandler } from '../../../../user/handlers/user-updated.handl
  * @remark At the moment, the main need is to update data service cache with repo CRUD events, so single dispatcher is sufficient
  */
 @Injectable()
-export class EventDispatcher {
+export class EventDispatcherService {
 constructor(
 	private readonly logCreatedHandler: ConditioningLogCreatedHandler,
 	private readonly logUpdatedHandler: ConditioningLogUpdateHandler,
@@ -69,4 +69,4 @@ public async dispatch(event: DomainEvent<DomainEventDTO<any>, any>): Promise<voi
 	}
 }
 
-export default EventDispatcher;
+export default EventDispatcherService;
