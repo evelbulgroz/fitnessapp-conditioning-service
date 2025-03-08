@@ -8,12 +8,12 @@ import {
 	EntityMetadataDTO,
 	EntityPersistenceDTO,
 	Logger,
+	PersistenceAdapter,
 	Repository,
 	Result
 } from "@evelbulgroz/ddd-base";
 import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
 
-import PersistenceAdapterService from "../../shared/repositories/adapters/persistence-adapter.service";
 import User from "../domain/user.entity";
 import UserCreatedEvent from "../events/user-created.event";
 import UserDTO from "../dtos/user.dto";
@@ -32,7 +32,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 	
 		public constructor(
-			protected readonly adapter: PersistenceAdapterService<UserPersistenceDTO>,
+			protected readonly adapter: PersistenceAdapter<UserPersistenceDTO>,
 			protected readonly logger: Logger,
 			@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
 		) {
