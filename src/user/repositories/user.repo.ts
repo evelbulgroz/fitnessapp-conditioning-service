@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 
+import { Observable } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -12,14 +13,13 @@ import {
 } from "@evelbulgroz/ddd-base";
 import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
 
-import { Observable } from "rxjs";
-import { PersistenceAdapterService } from "src/shared/repositories/adapters/persistence-adapter.service";
-import { User } from "../domain/user.entity";
-import { UserCreatedEvent } from "../events/user-created.event";
-import { UserDTO } from "../dtos/user.dto";
-import { UserUpdatedEvent } from "../events/user-updated.event";
-import { UserDeletedEvent } from "../events/user-deleted.event";
-import { UserUndeletedEvent } from "../events/user-undeleted.event";
+import PersistenceAdapterService from "../../shared/repositories/adapters/persistence-adapter.service";
+import User from "../domain/user.entity";
+import UserCreatedEvent from "../events/user-created.event";
+import UserDTO from "../dtos/user.dto";
+import UserUpdatedEvent from "../events/user-updated.event";
+import UserDeletedEvent from "../events/user-deleted.event";
+import UserUndeletedEvent from "../events/user-undeleted.event";
 import UserPersistenceDTO from "../dtos/user-persistence.dto";
 
 /** Concrete implementation of an injectable UserRepository that uses an adapter to interact with a persistence layer

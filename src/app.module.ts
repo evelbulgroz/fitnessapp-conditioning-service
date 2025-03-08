@@ -13,6 +13,7 @@ import ConditioningLogDeletedHandler from './conditioning/handlers/conditioning-
 import ConditioningLogUndeletedHandler from './conditioning/handlers/conditioning-log-undeleted.handler';
 import ConditioningLogUpdateHandler from './conditioning/handlers/conditioning-log-updated.handler';
 import ConditioningLogRepository  from './conditioning/repositories/conditioning-log.repo';
+import { ConditioningModule } from './conditioning/conditioning.module';
 import CryptoService from './shared/services/authentication/crypto/models/crypto-service.model';
 import EventDispatcherService  from './shared/services/utils/event-dispatcher/event-dispatcher.service';
 import QueryMapper  from './conditioning/mappers/query.mapper';
@@ -24,6 +25,7 @@ import PersistenceAdapterService from './shared/repositories/adapters/persistenc
 import UserService  from './user/services/user.service';
 import UserController  from './user/controllers/user.controller';
 import UserCreatedHandler from './user/handlers/user-created.handler';
+import { UserModule } from './user/user.module';
 import UserUpdatedHandler from './user/handlers/user-updated.handler';
 import UserDeletedHandler from './user/handlers/user-deleted.handler';
 import UserRepository from './user/repositories/user.repo';
@@ -32,6 +34,7 @@ import productionConfig from './../config/production.config';
 import developmentConfig from '../config/development.config';
 
 // todo: Copy over (de)registration logic from API Gateway to be able to effectively authenticate and collaborate with other microservices
+// todo: Pull provisioning logic into respective submodules
 @Module({
 	imports: [
 		HttpModule,
@@ -44,6 +47,8 @@ import developmentConfig from '../config/development.config';
 			}],
 			isGlobal: true,
 		}),
+		ConditioningModule,
+		UserModule,
 	],
 	controllers: [
 		ConditioningController,

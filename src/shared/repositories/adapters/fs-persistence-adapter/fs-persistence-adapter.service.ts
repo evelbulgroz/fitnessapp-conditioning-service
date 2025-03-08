@@ -10,6 +10,7 @@ import { ConditioningLogPersistenceDTO } from '../../../../conditioning/dtos/con
  * @typeparam T The type of entity data transfer object (DTO) that the adapter will be working with.
  * @remark Concrete implementation of the PersistenceAdapter class, providing CRUD methods that interact with a file system.
  * @see PersistenceAdapter for more details on the supported CRUD methods and their expected behavior.
+ * @todo Bifurcate this to provide a separate adapter for each entity type (currently, UserRepo and ConditioningLogRepo share the same adapter, cuasing UserRepo to fail to initialize)
  */
 @Injectable()
 export class FsPersistenceAdapterService<T extends ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>> extends FileSystemPersistenceAdapter<T> {

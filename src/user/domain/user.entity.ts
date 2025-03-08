@@ -119,3 +119,5 @@ export class User extends Entity<User, UserDTO> {
 	public set userId(value: EntityId) { this._userId = value; }
 	public get userId(): EntityId { return this._userId; }	
 }
+
+export default User;
