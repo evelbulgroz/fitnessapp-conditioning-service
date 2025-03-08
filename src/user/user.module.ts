@@ -1,8 +1,9 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 
+import ConditioningModule from 'src/conditioning/conditioning.module';
 import UserController from './controllers/user.controller';
 import UserCreatedHandler from './handlers/user-created.handler';
 import UserDeletedHandler from './handlers/user-deleted.handler';
@@ -15,6 +16,7 @@ import developmentConfig from '../../config/development.config';
 
 @Module({
 	imports: [
+		/*
 		ConfigModule.forRoot({
 			load: [() => {				
 				// conditionally load config based on environment
@@ -24,6 +26,8 @@ import developmentConfig from '../../config/development.config';
 			}],
 			isGlobal: true,
 		}),
+		*/
+		forwardRef(() => ConditioningModule), // Use forwardRef to handle circular dependency
 	],
 	controllers: [UserController],
 	providers: [

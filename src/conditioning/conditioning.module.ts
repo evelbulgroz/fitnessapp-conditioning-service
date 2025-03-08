@@ -13,21 +13,25 @@ import ConditioningLogRepository from './repositories/conditioning-log.repo';
 import ConditioningLogUndeletedHandler from './handlers/conditioning-log-undeleted.handler';
 import ConditioningLogUpdateHandler from './handlers/conditioning-log-updated.handler';
 import QueryMapper from './mappers/query.mapper';
+import UserModule from 'src/user/user.module';
 
 import productionConfig from '../../config/production.config';
 import developmentConfig from '../../config/development.config';
 
 @Module({
 	imports: [
+		/*
 		ConfigModule.forRoot({
-		load: [() => {				
-			// conditionally load config based on environment
-			// note: test config is loaded by test-utils.ts,
-			//	as the app module is not used in unit tests
-			return process.env.NODE_ENV === 'production' ? productionConfig() : developmentConfig();
-		}],
-		isGlobal: true,
+			load: [() => {				
+				// conditionally load config based on environment
+				// note: test config is loaded by test-utils.ts,
+				//	as the app module is not used in unit tests
+				return process.env.NODE_ENV === 'production' ? productionConfig() : developmentConfig();
+			}],
+			isGlobal: true,
 		}),
+		*/
+		UserModule, // import UserModule to access UserRepo in ConditioningDataService
 	],
 	controllers: [
 		ConditioningController
