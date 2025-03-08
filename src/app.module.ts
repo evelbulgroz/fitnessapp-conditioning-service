@@ -52,5 +52,11 @@ import developmentConfig from '../config/development.config';
 			useClass: ConsoleLogger,
 		}
 	],
+	exports: [
+		CryptoService,
+		EventDispatcherService,
+		JwtService,
+		Logger
+	]
 })
 export class AppModule {}

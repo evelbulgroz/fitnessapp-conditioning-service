@@ -24,7 +24,6 @@ import { UserUpdatedHandler } from '../../../../user/handlers/user-updated.handl
  * @remark Inject into services that receive and need to handle domain events
  * @remark At the moment, the main need is to update data service cache with repo CRUD events, so single dispatcher is sufficient
  */
-@Global()
 @Injectable()
 export class EventDispatcherService {
 constructor(
