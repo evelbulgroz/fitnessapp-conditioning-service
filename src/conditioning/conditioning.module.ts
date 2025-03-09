@@ -1,11 +1,10 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 
 import AggregationQueryMapper from './mappers/aggregation-query.mapper';
 import AggregatorService from './services/aggregator/aggregator.service';
-import AuthenticationModule from '../authentication/authentication.module';
 import ConditioningController from './controllers/conditioning.controller';
 import ConditioningLogCreatedHandler from './handlers/conditioning-log-created.handler';
 import ConditioningDataService from './services/conditioning-data/conditioning-data.service';
@@ -14,13 +13,9 @@ import ConditioningLogRepository from './repositories/conditioning-log.repo';
 import ConditioningLogUndeletedHandler from './handlers/conditioning-log-undeleted.handler';
 import ConditioningLogUpdateHandler from './handlers/conditioning-log-updated.handler';
 import QueryMapper from './mappers/query.mapper';
-import UserModule from '../user/user.module';
 
 @Module({
-	imports: [
-		forwardRef(() => AuthenticationModule), // Use forwardRef to handle circular dependency
-		forwardRef(() => UserModule), // Use forwardRef to handle circular dependency
-	],
+	imports: [],
 	controllers: [
 		ConditioningController
 	],

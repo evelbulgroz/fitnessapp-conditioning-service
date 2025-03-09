@@ -46,8 +46,12 @@ import developmentConfig from '../config/development.config';
 		}
 	],
 	exports: [
+		AuthenticationModule,
+		ConditioningModule,
+		ConfigModule,
 		EventDispatcherService,
-		Logger
+		Logger,		
+		UserModule,
 	]
 })
 export class AppModule {}
