@@ -20,7 +20,7 @@ import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepository } from '../../repositories/conditioning-log.repo';
 import { EntityIdDTO } from '../../../shared/dtos/responses/entity-id.dto';
-import { EventDispatcher } from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
+import { EventDispatcherService } from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
 import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
 import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-deleted.handler';
 import { ConditioningLogUndeletedHandler } from '../../handlers/conditioning-log-undeleted.handler';
@@ -72,7 +72,7 @@ describe('ConditioningDataService', () => {
 					}
 				},
 				ConfigService,
-				EventDispatcher,
+				EventDispatcherService,
 				ConditioningLogCreatedHandler,
 				ConditioningLogDeletedHandler,
 				ConditioningLogUpdateHandler,
