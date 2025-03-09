@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import BcryptCryptoService from './crypto/bcrypt-crypto.service';
-import CryptoService from './crypto/models/crypto-service.model';
+import BcryptCryptoService from './services/crypto/bcrypt-crypto.service';
+import CryptoService from './services/crypto/domain/crypto-service.model';
 import JwtAuthStrategy from '../infrastructure/strategies/jwt-auth.strategy';
-import JwtSecretService from './jwt/jwt-secret.service';
-import JwtService from './jwt/models/jwt-service.model';
-import JsonWebtokenService from './jwt/json-webtoken.service';
+import JwtSecretService from './services/jwt/jwt-secret.service';
+import JwtService from './services/jwt/domain/jwt-service.model';
+import JsonWebtokenService from './services/jwt/json-webtoken.service';
 
 @Module({
 	imports: [],

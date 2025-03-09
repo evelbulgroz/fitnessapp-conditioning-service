@@ -7,14 +7,14 @@ import jwt from 'jsonwebtoken';
 import { of } from 'rxjs';
 
 import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
-import { ServiceDataDTO as RegistryServiceDataDTO } from '../../shared/dtos/responses/service-data.dto';
+import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/service-data.dto';
 
-import { AppConfig, EndPointConfig, ServiceConfig } from '../../shared/domain/config-options.model';
-import AuthService from '../auth/auth-service.class';
-import createTestingModule from '../../test/test-utils';
+import { AppConfig, EndPointConfig, ServiceConfig } from '../../../shared/domain/config-options.model';
+import AuthService from '../../domain/auth-service.class';
+import createTestingModule from '../../../test/test-utils';
 import RegistrationService from '../registration/registration.service';
-import RetryRequesterService from '../../shared/services/utils/retry-requester/retry-requester.service';
-import SecurityConfig from '../../shared/domain/security.config.model';
+import RetryRequesterService from '../../../shared/services/utils/retry-requester/retry-requester.service';
+import SecurityConfig from '../../../shared/domain/security.config.model';
 
 describe('RegistrationService', () => {
 	let authServiceSpy: any

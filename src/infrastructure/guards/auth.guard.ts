@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtAuthResult } from '../../authentication/jwt/models/jwt-auth-result.model';
+import { JwtAuthResult } from '../../authentication/services/jwt/domain/jwt-auth-result.model';
 
 /** Abstract class for route guards that require authentication.
  * @remark Mimics the similarly named class from the @nestjs/passport package but avoids the dependency.

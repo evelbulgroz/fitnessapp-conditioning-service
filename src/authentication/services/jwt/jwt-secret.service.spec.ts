@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { JwtSecretService } from './jwt-secret.service';
+import JwtSecretService from './jwt-secret.service';
 
 describe('JwtSecretService', () => {
 	let secret: string;

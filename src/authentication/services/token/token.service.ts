@@ -7,16 +7,16 @@ import jwt from 'jsonwebtoken';
 
 import { Logger } from '@evelbulgroz/ddd-base';
 
-import { AppConfig, EndPointConfig, ServiceConfig } from '../../shared/domain/config-options.model';
-import AuthService from '../auth/auth-service.class';
-import BootstrapResponseDTO from '../dtos/responses/bootstrap-response.dto';
-import JwtDTO from '../dtos/responses/jwt.dto';
-import LocateDataDTO from '../dtos/requests/locate-data.dto';
-import RetryRequesterService from '../../shared/services/utils/retry-requester/retry-requester.service';
-import ServiceDataDTO from '../dtos/responses/service-data.dto';
-import ServiceLoginDataDTO from '../dtos/requests/service-login-data.dto';
-import ServiceLogoutDataDTO from '../dtos/requests/service-logout-data.dto';
-import ServiceTokenRefreshDataDTO from '../dtos/requests/service-token-refresh-data.dto';
+import { AppConfig, EndPointConfig, ServiceConfig } from '../../../shared/domain/config-options.model';
+import AuthService from '../../domain/auth-service.class';
+import BootstrapResponseDTO from '../../dtos/responses/bootstrap-response.dto';
+import JwtDTO from '../../dtos/responses/jwt.dto';
+import LocateDataDTO from '../../dtos/requests/locate-data.dto';
+import RetryRequesterService from '../../../shared/services/utils/retry-requester/retry-requester.service';
+import ServiceDataDTO from '../../dtos/responses/service-data.dto';
+import ServiceLoginDataDTO from '../../dtos/requests/service-login-data.dto';
+import ServiceLogoutDataDTO from '../../dtos/requests/service-logout-data.dto';
+import ServiceTokenRefreshDataDTO from '../../dtos/requests/service-token-refresh-data.dto';
 
 /** Manages and provides access to the current JWT token needed for making authenticated requests to other microservices.
  * @remark Also provides methods for logging in and out of the authentication microservice at server startup and shutdown

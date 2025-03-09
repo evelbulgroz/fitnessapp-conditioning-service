@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import bcrypt from 'bcryptjs';
 
-import { CryptoService } from './models/crypto-service.model';
+import CryptoService from './domain/crypto-service.model';
 
 
 /** Service that provides cryptographic hashing and comparison using the 'bcrypt' library.

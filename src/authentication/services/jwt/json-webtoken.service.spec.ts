@@ -6,15 +6,15 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuid } from 'uuid';
 
-import JwtPayload from './models/jwt-payload.model';
-import createTestingModule from '../../test/test-utils';
+import JwtPayload from './domain/jwt-payload.model';
+import createTestingModule from '../../../test/test-utils';
 import JsonWebtokenService from './json-webtoken.service';
-import Jwt from "./models/jwt.model";
-import JwtService from './models/jwt-service.model';
+import Jwt from "./domain/jwt.model";
+import JwtService from './domain/jwt-service.model';
 import JwtSecretService from './jwt-secret.service';
-import { SignOptions as JwtSignOptions } from "./models/jwt-sign-options.model";
-import UserJwtPayload from "./models/user-jwt-payload.model";
-import { VerifyOptions as JwtVerifyOptions } from "./models/jwt-verify-options.model";
+import { SignOptions as JwtSignOptions } from "./domain/jwt-sign-options.model";
+import UserJwtPayload from "./domain/user-jwt-payload.model";
+import { VerifyOptions as JwtVerifyOptions } from "./domain/jwt-verify-options.model";
 
 function encryptproperty(property: string): string { return bcrypt.hashSync(property, bcrypt.genSaltSync(10)); }
 

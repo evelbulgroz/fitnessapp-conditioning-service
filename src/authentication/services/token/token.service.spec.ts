@@ -9,15 +9,15 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
-import ServiceDataDTOProps from '../../shared/dtos/responses/service-data.dto';
-import BootstrapResponseDTO from '../../shared/dtos/responses/bootstrap-response.dto';
-import ServiceLoginDataDTO from '../../shared/dtos/requests/service-login-data.dto';
-import ServiceLogoutDataDTO from '../../shared/dtos/requests/service-logout-data.dto';
-import ServiceTokenRefreshDataDTO from '../../shared/dtos/requests/service-token-refresh-data.dto';
+import ServiceDataDTOProps from '../../dtos/responses/service-data.dto';
+import BootstrapResponseDTO from '../../dtos/responses/bootstrap-response.dto';
+import ServiceLoginDataDTO from '../../dtos/requests/service-login-data.dto';
+import ServiceLogoutDataDTO from '../../dtos/requests/service-logout-data.dto';
+import ServiceTokenRefreshDataDTO from '../../dtos/requests/service-token-refresh-data.dto';
 
-import { AppConfig, EndPointConfig, ServiceConfig } from '../../shared/domain/config-options.model';
-import createTestingModule from '../../test/test-utils';
-import RetryRequesterService from '../../shared/services/utils/retry-requester/retry-requester.service';
+import { AppConfig, EndPointConfig, ServiceConfig } from '../../../shared/domain/config-options.model';
+import createTestingModule from '../../../test/test-utils';
+import RetryRequesterService from '../../../shared/services/utils/retry-requester/retry-requester.service';
 import TokenService from './token.service';
 
 //process.env.NODE_ENV = 'not-test'; // set NODE_ENV to not-test to enable logging

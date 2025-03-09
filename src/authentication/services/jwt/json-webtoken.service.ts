@@ -1,12 +1,12 @@
 import jwt from 'jsonwebtoken';
 
-import { JwtPayload } from "./models/jwt-payload.model";
-import { DecodeOptions as JwtDecodeOptions } from "./models/jwt-decode-options.model";
-import { JwtPayloadType } from "./models/jwt-payload.type";
-import { JwtSecretService } from "./jwt-secret.service";
-import { JwtService } from "./models/jwt-service.model";
-import { SignOptions as JwtSignOptions } from "./models/jwt-sign-options.model";
-import { VerifyOptions as JwtVerifyOptions } from "./models/jwt-verify-options.model";
+import { DecodeOptions as JwtDecodeOptions } from "./domain/jwt-decode-options.model";
+import JwtPayload from "./domain/jwt-payload.model";
+import JwtPayloadType from "./domain/jwt-payload.type";
+import JwtSecretService from "./jwt-secret.service";
+import JwtService from "./domain/jwt-service.model";
+import { SignOptions as JwtSignOptions } from "./domain/jwt-sign-options.model";
+import { VerifyOptions as JwtVerifyOptions } from "./domain/jwt-verify-options.model";
 
 /** Signs, verifies, and decodes JWT tokens using the 'jsonwebtoken' library.
  * @remark Concrete implementation of the JWT service API using the 'jsonwebtoken' library.
