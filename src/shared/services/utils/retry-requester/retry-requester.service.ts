@@ -44,4 +44,5 @@ export class RetryRequesterService {
 			})
 		);
 	};
-	}
+}
+export default RetryRequesterService;

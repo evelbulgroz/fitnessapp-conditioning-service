@@ -21,3 +21,5 @@ export async function createTestingModule(metadata: ModuleMetadata): Promise<Tes
 
 	return builder;
 }
+
+export default createTestingModule;

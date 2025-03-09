@@ -7,17 +7,17 @@ import jwt from 'jsonwebtoken';
 
 import { Logger } from '@evelbulgroz/ddd-base';
 
-import { BootstrapResponseDTO } from '../../../dtos/responses/bootstrap-response.dto';
-import { LocateDataDTO } from '../../../dtos/requests/locate-data.dto';
-import { ServiceDataDTO } from '../../../dtos/responses/service-data.dto';
-import { ServiceLoginDataDTO } from '../../../dtos/requests/service-login-data.dto';
-import { ServiceLogoutDataDTO } from '../../../dtos/requests/service-logout-data.dto';
-import { ServiceTokenRefreshDataDTO } from '../../../dtos/requests/service-token-refresh-data.dto';
+import { BootstrapResponseDTO } from '../../shared/dtos/responses/bootstrap-response.dto';
+import { LocateDataDTO } from '../../shared/dtos/requests/locate-data.dto';
+import { ServiceDataDTO } from '../../shared/dtos/responses/service-data.dto';
+import { ServiceLoginDataDTO } from '../../shared/dtos/requests/service-login-data.dto';
+import { ServiceLogoutDataDTO } from '../../shared/dtos/requests/service-logout-data.dto';
+import { ServiceTokenRefreshDataDTO } from '../../shared/dtos/requests/service-token-refresh-data.dto';
 
-import { AppConfig, EndPointConfig, ServiceConfig } from '../../../domain/config-options.model';
+import { AppConfig, EndPointConfig, ServiceConfig } from '../../shared/domain/config-options.model';
 import { AuthService } from '../auth/auth-service.class';
-import { RetryRequesterService } from '../../utils/retry-requester/retry-requester.service';
-import { JwtDTO } from '../../../dtos/responses/jwt.dto';
+import { RetryRequesterService } from '../../shared/services/utils/retry-requester/retry-requester.service';
+import { JwtDTO } from '../../shared/dtos/responses/jwt.dto';
 
 /** Manages and provides access to the current JWT token needed for making authenticated requests to other microservices.
  * @remark Also provides methods for logging in and out of the authentication microservice at server startup and shutdown

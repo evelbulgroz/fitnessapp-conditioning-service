@@ -9,16 +9,16 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
 
-import { BootstrapResponseDTO } from '../../../dtos/responses/bootstrap-response.dto';
-import {  ServiceDataDTOProps } from '../../../dtos/responses/service-data.dto';
-import { ServiceLoginDataDTO } from '../../../dtos/requests/service-login-data.dto';
-import { ServiceLogoutDataDTO } from '../../../dtos/requests/service-logout-data.dto';
-import { ServiceTokenRefreshDataDTO } from '../../../dtos/requests/service-token-refresh-data.dto';
+import ServiceDataDTOProps from '../../shared/dtos/responses/service-data.dto';
+import BootstrapResponseDTO from '../../shared/dtos/responses/bootstrap-response.dto';
+import ServiceLoginDataDTO from '../../shared/dtos/requests/service-login-data.dto';
+import ServiceLogoutDataDTO from '../../shared/dtos/requests/service-logout-data.dto';
+import ServiceTokenRefreshDataDTO from '../../shared/dtos/requests/service-token-refresh-data.dto';
 
-import { AppConfig, EndPointConfig, ServiceConfig } from '../../../domain/config-options.model';
-import { createTestingModule } from '../../../../test/test-utils';
-import { RetryRequesterService } from '../../utils/retry-requester/retry-requester.service';
-import { TokenService } from './token.service';
+import { AppConfig, EndPointConfig, ServiceConfig } from '../../shared/domain/config-options.model';
+import createTestingModule from '../../test/test-utils';
+import RetryRequesterService from '../../shared/services/utils/retry-requester/retry-requester.service';
+import TokenService from './token.service';
 
 //process.env.NODE_ENV = 'not-test'; // set NODE_ENV to not-test to enable logging
 
@@ -73,11 +73,11 @@ describe('TokenService', () => {
 		refreshToken = jwt.sign({ serviceName }, jwtConfig.refreshToken.secret, { expiresIn: '7d' });
 		verificationToken = 'test.verification.token';
 
-		authServiceDataProps = {
+		authServiceDataProps = new ServiceDataDTOProps({
 			location: 'https://localhost:3010/auth/api/v1',
 			serviceId: uuidv4(),
 			serviceName: 'fitnessapp-authentication-service',
-		};
+		});
 	
 		bootstrapData = new BootstrapResponseDTO({
 			verificationToken,
