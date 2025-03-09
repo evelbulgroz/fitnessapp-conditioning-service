@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import BcryptCryptoService from './crypto/bcrypt-crypto.service';
@@ -7,9 +7,13 @@ import JwtAuthStrategy from '../infrastructure/strategies/jwt-auth.strategy';
 import JwtSecretService from './jwt/jwt-secret.service';
 import JwtService from './jwt/models/jwt-service.model';
 import JsonWebtokenService from './jwt/json-webtoken.service';
+import UserModule from 'src/user/user.module';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [
+	ConfigModule,
+	forwardRef(() => UserModule), // Use forwardRef to handle circular dependency
+],
   providers: [
     {
       provide: CryptoService,

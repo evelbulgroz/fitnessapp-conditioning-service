@@ -3,7 +3,8 @@ import { forwardRef, Module } from '@nestjs/common';
 
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 
-import ConditioningModule from 'src/conditioning/conditioning.module';
+import AuthenticationModule from '../authentication/authentication.module';
+import ConditioningModule from '../conditioning/conditioning.module';
 import UserController from './controllers/user.controller';
 import UserCreatedHandler from './handlers/user-created.handler';
 import UserDeletedHandler from './handlers/user-deleted.handler';
@@ -13,6 +14,7 @@ import UserUpdatedHandler from './handlers/user-updated.handler';
 
 @Module({
 	imports: [
+		forwardRef(() => AuthenticationModule), // Use forwardRef to handle circular dependency
 		forwardRef(() => ConditioningModule), // Use forwardRef to handle circular dependency
 	],
 	controllers: [UserController],

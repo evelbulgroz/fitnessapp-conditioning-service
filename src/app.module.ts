@@ -8,7 +8,6 @@ import AuthenticationModule from './authentication/authentication.module';
 import ConditioningController  from './conditioning/controllers/conditioning.controller';
 import ConditioningModule from './conditioning/conditioning.module';
 import EventDispatcherService  from './shared/services/utils/event-dispatcher/event-dispatcher.service';
-import JwtAuthStrategy from './infrastructure/strategies/jwt-auth.strategy';
 import UserController  from './user/controllers/user.controller';
 import UserModule from './user/user.module';
 
