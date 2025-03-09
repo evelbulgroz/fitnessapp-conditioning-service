@@ -152,6 +152,7 @@ describe('ConditioningController', () => {
 			iss: await crypto.hash(config.get<string>('security.authentication.jwt.issuer')!),
 			sub: adminProps.userId as string,
 			aud: await crypto.hash(config.get<string>('app.servicename')!),
+			//exp: Math.floor(new Date('2100-01-01').getTime() / 1000), // far in the future (for manual testing)
 			exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour from now
 			iat: Math.floor(Date.now() / 1000),
 			jti: uuid(),
@@ -160,8 +161,10 @@ describe('ConditioningController', () => {
 			roles: ['admin'],
 		};
 
+		//console.debug('adminPayload:', adminPayload);
+
 		adminAccessToken = await jwt.sign(adminPayload);
-		
+
 		userContext = new UserContext({ 
 			userId: uuid(),
 			userName: 'testuser',
