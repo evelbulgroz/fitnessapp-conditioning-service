@@ -1,5 +1,4 @@
-import { AggregationQueryDTO } from '../dtos/aggregation-query.dto';
-import { AggregationQueryDTOProps } from '../../test/models/aggregation-query-dto.props';
+import { AggregationQueryDTO, AggregationQueryDTOProps } from '../dtos/aggregation-query.dto';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
 
 // NOTE: These tests are not exhaustive, but they should verify that the class is working as expected, and that the validation decorators are correctly applied.

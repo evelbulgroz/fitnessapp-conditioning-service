@@ -10,8 +10,7 @@ import { v4 as uuid } from 'uuid';
 import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
-import { AggregationQueryDTO } from '../dtos/aggregation-query.dto';
-import { AggregationQueryDTOProps }	from '../../test/models/aggregation-query-dto.props';
+import { AggregationQueryDTO, AggregationQueryDTOProps } from '../dtos/aggregation-query.dto';
 import { BooleanDTO } from '../../shared/dtos/responses/boolean.dto';
 import { ConditioningController } from './conditioning.controller';
 import { BcryptCryptoService } from '../../authentication/services/crypto/bcrypt-crypto.service';

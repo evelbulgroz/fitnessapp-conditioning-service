@@ -6,6 +6,15 @@ import { DataTransferObject } from "../../shared/dtos/responses/data-transfer-ob
 
 type Constructor<T> = new (...args: any[]) => T;
 
+/** Represents the properties of aggregation query JSON data submitted in a request (mostly used for testing) */
+export interface AggregationQueryDTOProps {
+    aggregatedType: string;
+    aggregatedProperty: string;
+    aggregationType?: string;
+    sampleRate?: string;
+    aggregatedValueUnit?: string;
+}
+
 /** Represents sanitized aggregation query parameters received by an endpoint in a JSON object.
  * @remark Equivalent to the same class from the time-series library but adds sanitization
  * @remark Instances are guaranteed to be valid: constructor and accessors throw error if passed invalid data
