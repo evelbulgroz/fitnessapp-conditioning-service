@@ -1,5 +1,5 @@
 import { IsDefined, IsString, InRange, Trim, ToLowerCase, Matches } from "@evelbulgroz/sanitizer-decorator";
-import { DataTransferObject } from "./data-transfer-object.model";
+import { DataTransferObject } from "../../../shared/dtos/responses/data-transfer-object.model";
 
 export interface ServiceDataDTOProps {
 	location: string;

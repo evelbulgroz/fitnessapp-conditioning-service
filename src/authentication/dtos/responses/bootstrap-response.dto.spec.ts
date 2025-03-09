@@ -1,5 +1,5 @@
 import { BootstrapResponseDTO, BootstrapResponseDTOProps } from './bootstrap-response.dto';
-import { ServiceDataDTO } from './service-data.dto';
+import { ServiceDataDTO } from '../../../shared/dtos/responses/service-data.dto';
 
 describe('BootstrapResponseDTO', () => {
 	let dto: BootstrapResponseDTO;
