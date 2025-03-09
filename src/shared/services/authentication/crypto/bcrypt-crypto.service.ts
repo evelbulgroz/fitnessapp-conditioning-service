@@ -19,3 +19,4 @@ export class BcryptCryptoService implements CryptoService {
 		return await bcrypt.compare(property, hash);
 	}
 }
+export default BcryptCryptoService;
