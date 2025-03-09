@@ -3,7 +3,7 @@ import { Request } from 'express';
 
 import { AuthGuard } from './auth.guard';
 import { JwtAuthStrategy } from '../strategies/jwt-auth.strategy';
-import { JwtPayload } from '../../shared/services/authentication/jwt/models/jwt-payload.model';
+import { JwtPayload } from '../../authentication/jwt/models/jwt-payload.model';
 
 /** Verifies the JWT token in the request header, when used in a route guard.
 * @see AuthGuard

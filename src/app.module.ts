@@ -48,7 +48,6 @@ import developmentConfig from '../config/development.config';
 	],
 	exports: [
 		EventDispatcherService,
-		JwtAuthStrategy,
 		Logger
 	]
 })

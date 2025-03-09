@@ -4,12 +4,12 @@ import { Injectable } from "@nestjs/common";
 import { Logger } from '@evelbulgroz/ddd-base';
 
 import { AuthStrategy } from './auth-strategy.model';
-import { CryptoService } from '../../shared/services/authentication/crypto/models/crypto-service.model';
-import { JwtAuthResult } from '../../shared/services/authentication/jwt/models/jwt-auth-result.model';
-import { JwtPayload } from '../../shared/services/authentication/jwt/models/jwt-payload.model';
-import { JwtPayloadType } from '../../shared/services/authentication/jwt/models/jwt-payload.type';
-import { JwtService } from '../../shared/services/authentication/jwt/models/jwt-service.model';
-import { VerifyOptions as JwtVerifyOptions } from '../../shared/services/authentication/jwt/models/jwt-verify-options.model';
+import { CryptoService } from '../../authentication/crypto/models/crypto-service.model';
+import { JwtAuthResult } from '../../authentication/jwt/models/jwt-auth-result.model';
+import { JwtPayload } from '../../authentication/jwt/models/jwt-payload.model';
+import { JwtPayloadType } from '../../authentication/jwt/models/jwt-payload.type';
+import { JwtService } from '../../authentication/jwt/models/jwt-service.model';
+import { VerifyOptions as JwtVerifyOptions } from '../../authentication/jwt/models/jwt-verify-options.model';
 import { UserRepository } from '../../user/repositories/user.repo';
 
 

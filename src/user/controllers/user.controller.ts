@@ -6,7 +6,7 @@ import { Logger } from '@evelbulgroz/ddd-base';
 
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
-import { JwtAuthResult } from '../../shared/services/authentication/jwt/models/jwt-auth-result.model';
+import { JwtAuthResult } from '../../authentication/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from '../../infrastructure/guards/logging.guard';
 import { RolesGuard } from '../../infrastructure/guards/roles.guard';
 import { Roles } from '../../infrastructure/decorators/roles.decorator';

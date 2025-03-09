@@ -13,7 +13,7 @@ import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { DefaultStatusCodeInterceptor } from '../../infrastructure/interceptors/status-code.interceptor';
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
-import { JwtAuthResult } from '../../shared/services/authentication/jwt/models/jwt-auth-result.model';
+import { JwtAuthResult } from '../../authentication/jwt/models/jwt-auth-result.model';
 import { LoggingGuard } from '../../infrastructure/guards/logging.guard';
 import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
 import { QueryDTO } from '../../shared/dtos/responses/query.dto';

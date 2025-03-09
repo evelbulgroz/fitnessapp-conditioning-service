@@ -8,18 +8,18 @@ import { v4 as uuid } from 'uuid';
 
 import { Logger, Result } from '@evelbulgroz/ddd-base';
 
-import { BcryptCryptoService } from '../../shared/services/authentication/crypto/bcrypt-crypto.service';
+import { BcryptCryptoService } from '../../authentication/crypto/bcrypt-crypto.service';
 import { createTestingModule } from '../../test/test-utils';
-import { CryptoService } from '../../shared/services/authentication/crypto/models/crypto-service.model';
+import { CryptoService } from '../../authentication/crypto/models/crypto-service.model';
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
 import { JwtAuthStrategy } from '../../infrastructure/strategies/jwt-auth.strategy';
-import { JwtSecretService } from '../../shared/services/authentication/jwt/jwt-secret.service';
-import { JwtService } from '../../shared/services/authentication/jwt/models/jwt-service.model';
-import { JsonWebtokenService } from '../../shared/services/authentication/jwt/json-webtoken.service';
+import { JwtSecretService } from '../../authentication/jwt/jwt-secret.service';
+import { JwtService } from '../../authentication/jwt/models/jwt-service.model';
+import { JsonWebtokenService } from '../../authentication/jwt/json-webtoken.service';
 import { UserContext } from '../../shared/domain/user-context.model';
 import { UserController } from '../../user/controllers/user.controller';
-import { UserJwtPayload } from '../../shared/services/authentication/jwt/models/user-jwt-payload.model';
+import { UserJwtPayload } from '../../authentication/jwt/models/user-jwt-payload.model';
 import { UserRepository } from '../../user/repositories/user.repo';
 import { UserService } from '../../user/services/user.service';
 import { ValidationPipe } from '../../infrastructure//pipes/validation.pipe';
