@@ -55,6 +55,7 @@ import developmentConfig from '../config/development.config';
 	exports: [
 		CryptoService,
 		EventDispatcherService,
+		JwtAuthStrategy,
 		JwtService,
 		Logger
 	]

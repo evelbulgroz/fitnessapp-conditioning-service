@@ -1,4 +1,4 @@
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { forwardRef, Module } from '@nestjs/common';
 
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
@@ -11,22 +11,8 @@ import UserRepository from './repositories/user.repo';
 import UserService from './services/user.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
 
-import productionConfig from '../../config/production.config';
-import developmentConfig from '../../config/development.config';
-
 @Module({
 	imports: [
-		/*
-		ConfigModule.forRoot({
-			load: [() => {				
-				// conditionally load config based on environment
-				// note: test config is loaded by test-utils.ts,
-				//  as the app module is not used in unit tests
-				return process.env.NODE_ENV === 'production' ? productionConfig() : developmentConfig();
-			}],
-			isGlobal: true,
-		}),
-		*/
 		forwardRef(() => ConditioningModule), // Use forwardRef to handle circular dependency
 	],
 	controllers: [UserController],
@@ -44,13 +30,18 @@ import developmentConfig from '../../config/development.config';
 			useValue: 100
 		},
 		UserCreatedHandler,
-		UserUpdatedHandler,
 		UserDeletedHandler,
-		UserUpdatedHandler,
 		UserRepository,
 		UserService,
+		UserUpdatedHandler,
 	],
-	exports: [UserService, UserRepository],
+	exports: [
+		UserCreatedHandler,
+		UserDeletedHandler,
+		UserRepository,
+		UserService,
+		UserUpdatedHandler,
+	],
 })
 export class UserModule {}
 export default UserModule;

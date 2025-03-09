@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { forwardRef, Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 
@@ -15,23 +15,9 @@ import ConditioningLogUpdateHandler from './handlers/conditioning-log-updated.ha
 import QueryMapper from './mappers/query.mapper';
 import UserModule from 'src/user/user.module';
 
-import productionConfig from '../../config/production.config';
-import developmentConfig from '../../config/development.config';
-
 @Module({
 	imports: [
-		/*
-		ConfigModule.forRoot({
-			load: [() => {				
-				// conditionally load config based on environment
-				// note: test config is loaded by test-utils.ts,
-				//	as the app module is not used in unit tests
-				return process.env.NODE_ENV === 'production' ? productionConfig() : developmentConfig();
-			}],
-			isGlobal: true,
-		}),
-		*/
-		UserModule, // import UserModule to access UserRepo in ConditioningDataService
+		forwardRef(() => UserModule), // Use forwardRef to handle circular dependency
 	],
 	controllers: [
 		ConditioningController
@@ -41,10 +27,10 @@ import developmentConfig from '../../config/development.config';
 		AggregationQueryMapper,
 		ConditioningDataService,
 		ConditioningLogCreatedHandler,
-		ConditioningLogUpdateHandler,
 		ConditioningLogDeletedHandler,
-		ConditioningLogUndeletedHandler,
 		ConditioningLogRepository,
+		ConditioningLogUndeletedHandler,
+		ConditioningLogUpdateHandler,
 		{
 			provide: PersistenceAdapter,
 			useFactory: (configService: ConfigService) => {
@@ -61,7 +47,11 @@ import developmentConfig from '../../config/development.config';
 	],
 	exports: [
 		ConditioningDataService,
-		ConditioningLogRepository
+		ConditioningLogCreatedHandler,
+		ConditioningLogDeletedHandler,
+		ConditioningLogRepository,
+		ConditioningLogUndeletedHandler,
+		ConditioningLogUpdateHandler,
 	],
 })
 export class ConditioningModule {}
