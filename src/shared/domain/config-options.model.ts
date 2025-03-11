@@ -3,7 +3,11 @@ import { SecurityConfig } from './security.config.model';
 /* Specifies supported options for the ConfigModule */
 export interface ConfigOptions {
 	environment: 'development' | 'test' | 'production';
-	app: AppConfig;	
+	
+	app: AppConfig;
+
+	defaults: DefaultConfig;
+	
 	modules :	{
 		conditioning: {
 			repos: {
@@ -15,7 +19,7 @@ export interface ConfigOptions {
 						/** Worker processing the command queue */
 						worker: {
 							/* Time in ms to wait between processing items (default is 100ms) */
-							throttleTime: number;
+							throttleTime?: number;
 						}
 					}
 				}
@@ -31,7 +35,7 @@ export interface ConfigOptions {
 						/** Worker processing the command queue */
 						worker: {
 							/* Time in ms to wait between processing items (default is 100ms) */
-							throttleTime: number;
+							throttleTime?: number;
 						}
 					}
 				}
@@ -65,6 +69,16 @@ export interface AppConfig {
 	version: string | number;
 }
 
+export interface DefaultConfig {
+	/** Default command queue configuration */
+	commandQueue: {
+		/** Default time in ms to wait between processing items in the command queue (default is 100ms) */
+		throttleTime: number;
+	},
+	/** Default retry configuration for microservice endpoints */
+	retry: RetryConfig;
+}
+
 /** Configuration for a micro service */
 export interface ServiceConfig {
 	/** Unique identifier for the micro service (from service registry) */
@@ -73,22 +87,8 @@ export interface ServiceConfig {
 	/** Base URL for the micro service (including protocol, port, and path) */
 	baseURL: URL;
 
-	/** Configuration for connecting and disconnecting from the micro service
-	 * @todo Replace with retry config in EndPointConfig
-	 */
-	connect?: {
-		/** Max number of connection retries */
-		maxRetries?: number;
-		/** Time in ms to wait between connection retries */
-		retryDelay?: number;
-	}
-	
-	disconnect?: {
-		/** Max number of connection retries */
-		maxRetries?: number;
-		/** Time in ms to wait between connection retries */
-		retryDelay?: number;
-	}
+	/** Retry configuration for connecting and disconnecting from the micro service (if different from general service settings) */
+	retry?: RetryConfig;
 	
 	/** Additional configuration for each micro service endpoint */
 	endpoints?: {[key: string]: EndPointConfig}
@@ -101,22 +101,9 @@ export interface EndPointConfig {
 
 	/** HTTP method for the endpoint */
 	method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-	
-	/** Configuration for connecting and disconnecting from the endpoint (if different from general service settings)
-	 * @todo Replace with shared retry config
-	 */
-	connect?: {
-		/** Max number of connection retries */
-		maxRetries?: number;
-		/** Time in ms to wait between connection retries */
-		retryDelay?: number;
-	}
-	disconnect?: {
-		/** Max number of connection retries */
-		maxRetries?: number;
-		/** Time in ms to wait between connection retries */
-		retryDelay?: number;
-	}
+
+	/** Retry configuration for the endpoint (if different from general service settings) */
+	retry?: RetryConfig;	
 }
 
 /** Retry config for a microservice endpoint */

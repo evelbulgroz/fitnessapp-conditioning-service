@@ -8,7 +8,7 @@ import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/s
 
 import { AuthService } from '../../domain/auth-service.class';
 import { RetryRequesterService } from '../../../shared/services/utils/retry-requester/retry-requester.service';
-import { ServiceConfig, EndPointConfig } from '../../../shared/domain/config-options.model';
+import { ServiceConfig, EndPointConfig, DefaultConfig } from '../../../shared/domain/config-options.model';
 
 /** Service for de/registering a running instance of this app with the microservice registry */
 @Injectable()
@@ -35,10 +35,11 @@ export class RegistrationService {
 		this.logger.log('Deregistering service from the microservice registry...');//, `${this.constructor.name}.deregister`);
 
 		// set up data for request
+		const defaults = this.configService.get<DefaultConfig>('defaults') ?? {} as DefaultConfig;
 		const registryConfig = this.configService.get<ServiceConfig>(`services.${this.registryServiceName}`) ?? {} as ServiceConfig;
 		const endpointConfig = registryConfig?.endpoints?.deregister ?? {} as EndPointConfig;
-		const MAX_RETRIES = endpointConfig.connect?.maxRetries ?? registryConfig?.connect?.maxRetries ?? 0;
-		const RETRY_DELAY = endpointConfig.connect?.retryDelay ?? registryConfig?.connect?.retryDelay ?? 0;		
+		const MAX_RETRIES = endpointConfig.retry?.maxRetries ?? defaults?.retry?.maxRetries ?? 0;
+		const RETRY_DELAY = endpointConfig.retry?.retryDelay ?? defaults?.retry?.retryDelay ?? 0;
 		
 		const url = registryConfig.baseURL.href + endpointConfig.path;
 		const body = {
@@ -88,10 +89,11 @@ export class RegistrationService {
 		this.logger.log('Registering service with the microservice registry...');//, `${this.constructor.name}.register`);
 
 		// set up data for request
+		const defaults = this.configService.get<DefaultConfig>('defaults') ?? {} as DefaultConfig;
 		const registryConfig = this.configService.get<ServiceConfig>(`services.${this.registryServiceName}`) ?? {} as ServiceConfig;
 		const endpointConfig = registryConfig?.endpoints?.register ?? {} as EndPointConfig;
-		const MAX_RETRIES = endpointConfig.connect?.maxRetries ?? registryConfig?.connect?.maxRetries ?? 0;
-		const RETRY_DELAY = endpointConfig.connect?.retryDelay ?? registryConfig?.connect?.retryDelay ?? 0;
+		const MAX_RETRIES = endpointConfig.retry?.maxRetries ?? registryConfig.retry?.maxRetries ?? defaults?.retry?.maxRetries ?? 0;
+		const RETRY_DELAY = endpointConfig.retry?.retryDelay ?? registryConfig.retry?.retryDelay ?? defaults?.retry?.retryDelay ?? 0;
 		
 		const url = registryConfig.baseURL.href + registryConfig.endpoints?.register.path;
 		const body ={

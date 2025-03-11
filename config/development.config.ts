@@ -14,7 +14,16 @@ export default () => (<ConfigOptions>{
 		serviceid: uuidv4(),
 		servicename: 'fitnessapp-conditioning-service',
 		version: majorVersion
-	},	
+	},
+	defaults: {
+		commandQueue: {
+			throttleTime: 50
+		},
+		retry: {
+			maxRetries: 1,
+			retryDelay: 1000 // 1 second
+		}
+	},
 	modules: {
 		conditioning: {
 			repos: {
@@ -42,17 +51,9 @@ export default () => (<ConfigOptions>{
 		},	
 	},
 	security: developmentSecurityConfig(),
-	services: {
+	services: {		
 		'fitnessapp-authentication-service': {
 			baseURL: new URL('https://localhost:3010/auth/api/v1'),
-			connect: {
-				maxRetries: 1,
-				retryDelay: 1000 // 1 second
-			},
-			disconnect: {
-				maxRetries: 1,
-				retryDelay: 1000 // 1 second
-			},
 			endpoints: {
 				serviceRefresh: {
 					path: '/service/refresh',
@@ -70,14 +71,6 @@ export default () => (<ConfigOptions>{
 		},
 		'fitnessapp-registry-service': {
 			baseURL: new URL('https://localhost:3000/registry/api/v1'),
-			connect: {
-				maxRetries: 1,
-				retryDelay: 1000 // 1 second
-			},
-			disconnect: {
-				maxRetries: 1,
-				retryDelay: 1000 // 1 second
-			},
 			endpoints: {
 				bootstrap: {
 					path: '/bootstrap',
@@ -99,14 +92,6 @@ export default () => (<ConfigOptions>{
 		},
 		'fitnessapp-user-service': {
 			baseURL: new URL('https://localhost:3000/registry/api/v1'),
-			connect: {
-				maxRetries: 1,
-				retryDelay: 1000 // 1 second
-			},
-			disconnect: {
-				maxRetries: 1,
-				retryDelay: 1000 // 1 second
-			},
 			endpoints: {
 				fetchUser: {
 					path: '/bootstrap',

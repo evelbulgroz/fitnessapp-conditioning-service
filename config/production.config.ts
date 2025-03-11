@@ -15,6 +15,15 @@ export default () => (<ConfigOptions>{
 		serviceid: uuidv4(),
 		servicename: 'fitnessapp-conditioning-service',
 		version: majorVersion
+	},
+	defaults: {
+		commandQueue: {
+			throttleTime: 50
+		},
+		retry: {
+			maxRetries: 1,
+			retryDelay: 1000 // 1 second
+		}
 	},	
 	modules: {
 		conditioning: {
@@ -46,14 +55,6 @@ export default () => (<ConfigOptions>{
 	services: {
 		'fitnessapp-authentication-service': {
 			baseURL: new URL('https://localhost:3010/auth/api/v1'),
-			connect: {
-				maxRetries: 1,
-				retryDelay: 10 * 1000 // 10 seconds
-			},
-			disconnect: {
-				maxRetries: 6,
-				retryDelay: 10 * 1000 // 10 seconds
-			},
 			endpoints: {
 				serviceRefresh: {
 					path: '/service/refresh',
@@ -71,14 +72,6 @@ export default () => (<ConfigOptions>{
 		},
 		'fitnessapp-registry-service': {
 			baseURL: new URL('https://localhost:3000/registry/api/v1'),
-			connect: {
-				maxRetries: 6,
-				retryDelay: 10 * 1000 // 10 seconds
-			},
-			disconnect: {
-				maxRetries: 6,
-				retryDelay: 10 * 1000 // 10 seconds
-			},
 			endpoints: {
 				bootstrap: {
 					path: '/bootstrap',
