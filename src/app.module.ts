@@ -1,6 +1,8 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { HttpModule } from '@nestjs/axios';
+import { HttpModule, HttpService } from '@nestjs/axios';
 import { Global, Module }  from '@nestjs/common';
+import axiosRetry from 'axios-retry';
+import { AxiosError } from 'axios';
 
 import { ConsoleLogger, Logger }  from '@evelbulgroz/ddd-base';
 
@@ -43,7 +45,33 @@ import developmentConfig from '../config/development.config';
 		{
 			provide: Logger,
 			useClass: ConsoleLogger,
-		}
+		},
+		{ // Set up axios-retry for the HttpModule
+			provide: HttpModule,
+			useFactory: (httpService: HttpService, configService: ConfigService) => {
+			const axiosInstance = httpService.axiosRef;
+
+			axiosRetry(axiosInstance, {
+				retries: (retryCount: number, error: AxiosError) => {
+					void retryCount; // suppress unused variable warning
+					const endpointConfig = getEndpointConfig(error?.config?.url!, configService);
+					return endpointConfig?.retryConfig?.maxRetries ?? 3;
+				},
+				retryDelay: (retryCount: number, error) => {
+					void retryCount; // suppress unused variable warning
+					const endpointConfig = getEndpointConfig(error?.config?.url!, configService);
+					return endpointConfig?.retryConfig?.retryDelay ?? 1000;
+				},
+				retryCondition: (error: AxiosError) => {
+					// Retry on network errors or 5xx status codes
+					return axiosRetry.isNetworkOrIdempotentRequestError(error) || error?.response?.status! >= 500;
+				},
+			});
+	
+			return httpService;
+			},
+			inject: [HttpService, ConfigService],
+		},
 	],
 	exports: [
 		AuthenticationModule,
@@ -55,3 +83,24 @@ import developmentConfig from '../config/development.config';
 	]
 })
 export class AppModule {}
+
+
+/**
+ * Get the endpoint configuration for a given URL when an error occurs during an HTTP request
+ * @param url The URL to check for an endpoint configuration
+ * @param configService The ConfigService instance
+ * @returns The endpoint configuration, or null if not found
+ */
+function getEndpointConfig(url: string, configService: ConfigService) {
+	const services = configService.get('services');
+	for (const serviceName in services) {
+		const service = services[serviceName];
+		for (const endpointName in service.endpoints) {
+			const endpoint = service.endpoints[endpointName];
+			if (url.includes(endpoint.path)) {
+				return endpoint;
+			}
+		}
+	}
+	return null;
+}
