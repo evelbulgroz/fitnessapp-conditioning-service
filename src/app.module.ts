@@ -46,7 +46,7 @@ import developmentConfig from '../config/development.config';
 			provide: Logger,
 			useClass: ConsoleLogger,
 		},
-		{ // Set up axios-retry for the HttpModule
+		{ // Provide HttpModule with retry logic
 			provide: HttpModule,
 			useFactory: (httpService: HttpService, configService: ConfigService) => {
 			const axiosInstance = httpService.axiosRef;
@@ -90,6 +90,7 @@ export class AppModule {}
  * @param url The URL to check for an endpoint configuration
  * @param configService The ConfigService instance
  * @returns The endpoint configuration, or null if not found
+ * @todo Get retry config from endpoint, service or global defaults, return RetryConfig
  */
 function getEndpointConfig(url: string, configService: ConfigService) {
 	const services = configService.get('services');
