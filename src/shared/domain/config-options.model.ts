@@ -73,7 +73,9 @@ export interface ServiceConfig {
 	/** Base URL for the micro service (including protocol, port, and path) */
 	baseURL: URL;
 
-	/** Configuration for connecting and disconnecting from the micro service */
+	/** Configuration for connecting and disconnecting from the micro service
+	 * @todo Replace with retry config in EndPointConfig
+	 */
 	connect?: {
 		/** Max number of connection retries */
 		maxRetries?: number;
@@ -100,7 +102,9 @@ export interface EndPointConfig {
 	/** HTTP method for the endpoint */
 	method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
 	
-	/** Configuration for connecting and disconnecting from the endpoint (if different from general service settings) */
+	/** Configuration for connecting and disconnecting from the endpoint (if different from general service settings)
+	 * @todo Replace with shared retry config
+	 */
 	connect?: {
 		/** Max number of connection retries */
 		maxRetries?: number;
@@ -115,6 +119,12 @@ export interface EndPointConfig {
 	}
 }
 
-
+/** Retry config for a microservice endpoint */
+export interface RetryConfig {
+	/** Max number of connection retries */
+	maxRetries?: number;
+	/** Time in ms to wait between connection retries */
+	retryDelay?: number;
+}
 
 export default ConfigOptions;
