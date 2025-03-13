@@ -54,12 +54,12 @@ import developmentConfig from '../config/development.config';
 			axiosRetry(axiosInstance, {
 				retries: (retryCount: number, error: AxiosError) => {
 					void retryCount; // suppress unused variable warning
-					const endpointConfig = getEndpointConfig(error?.config?.url!, configService);
+					const endpointConfig = getRetryConfig(error?.config?.url!, configService);
 					return endpointConfig?.retryConfig?.maxRetries ?? 3;
 				},
 				retryDelay: (retryCount: number, error) => {
 					void retryCount; // suppress unused variable warning
-					const endpointConfig = getEndpointConfig(error?.config?.url!, configService);
+					const endpointConfig = getRetryConfig(error?.config?.url!, configService);
 					return endpointConfig?.retryConfig?.retryDelay ?? 1000;
 				},
 				retryCondition: (error: AxiosError) => {
@@ -92,7 +92,7 @@ export class AppModule {}
  * @returns The endpoint configuration, or null if not found
  * @todo Get retry config from endpoint, service or global defaults, return RetryConfig
  */
-function getEndpointConfig(url: string, configService: ConfigService) {
+function getRetryConfig(url: string, configService: ConfigService) {
 	const services = configService.get('services');
 	for (const serviceName in services) {
 		const service = services[serviceName];
