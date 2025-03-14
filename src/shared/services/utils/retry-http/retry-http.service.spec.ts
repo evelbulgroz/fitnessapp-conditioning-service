@@ -35,8 +35,7 @@ describe('RetryHttpService', () => {
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
 			providers: [
-				// createTestingModule() initializes initializes ConfigModule with test config
-				ConfigService,
+				// createTestingModule() initializes ConfigModule with test config
 				{ // Mock Axios instance token
 					provide: AXIOS_INSTANCE_TOKEN,
 					useValue: mockAxiosInstance,
