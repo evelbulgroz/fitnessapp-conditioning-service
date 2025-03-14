@@ -11,8 +11,8 @@ import createTestingModule from '../../../../test/test-utils';
 import RetryHttpService from './retry-http.service';
 import { EndPointConfig, ServiceConfig } from '../../../domain/config-options.model';
 
-jest.mock('axios');
-jest.mock('axios-retry');
+//jest.mock('axios');
+//jest.mock('axios-retry');
 
 const mockAxiosInstance = {
 	request: jest.fn(),
@@ -36,16 +36,16 @@ describe('RetryHttpService', () => {
 		const module: TestingModule = await (await createTestingModule({
 			providers: [
 				// createTestingModule() initializes ConfigModule with test config
-				{ // Mock Axios instance token
+				{
 					provide: AXIOS_INSTANCE_TOKEN,
 					useValue: mockAxiosInstance,
-				},				
-				{ // Mock HttpService
+				},
+				{
 					provide: HttpService,
 					useFactory: (axiosInstance) => new HttpService(axiosInstance),
 					inject: [AXIOS_INSTANCE_TOKEN],
-				},		
-				{ // Mock Logger
+				},
+				{
 					provide: Logger,
 					useValue: {
 						warn: jest.fn(),
@@ -58,9 +58,8 @@ describe('RetryHttpService', () => {
 		.compile();
 
 		configService = module.get<ConfigService>(ConfigService);
-		console.debug('configService:', configService); // bug: configService is correct here, but mocked in service
 		logger = module.get<Logger>(Logger);
-		service = module.get<RetryHttpService>(RetryHttpService);
+		service = new RetryHttpService(configService, logger); //module.get<RetryHttpService>(RetryHttpService); // bug: module.get injects mock of ConfigService
 		serviceName = 'fitnessapp-registry-service';
 		serviceConfig = configService.get('services')[serviceName];
 		endPointConfig = Object.values(serviceConfig?.endpoints ?? {})[0]; // grab first endpoint
@@ -80,7 +79,7 @@ describe('RetryHttpService', () => {
 
 	it('uses endpoint-specific retry configuration', () => {
 		const retryDelay = service['getRetryConfig'](serviceConfig.baseURL.href + endPointConfig.path);
-		expect(retryDelay).toBe(2000);
+		expect(retryDelay).toEqual({"maxRetries": 1, "retryDelay": 1000});
 	});
 
 	/*xit('should log retry attempts', () => {

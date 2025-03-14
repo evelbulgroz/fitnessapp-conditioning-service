@@ -7,7 +7,7 @@ import { AxiosError } from 'axios';
 
 import { Logger } from '@evelbulgroz/ddd-base';
 
-import { EndPointConfig, ServiceConfig } from '../../../domain/config-options.model';
+import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../../../domain/config-options.model';
 
 /** Service for making HTTP requests with automatic retry logic using axios-retry */
 @Injectable()
@@ -23,12 +23,12 @@ constructor(
 		retries: 3, // Set a default maximum number of retries
 		retryDelay: (retryCount: number, error: AxiosError) => {
 			void retryCount; // suppress unused variable warning
-			const endpointConfig = this.getRetryConfig(error?.config?.url!);
-			return endpointConfig?.retryConfig?.retryDelay ?? 1000; // Use endpoint-specific delay or default to 1000ms
+			const retryConfig = this.getRetryConfig(error?.config?.url!);
+			return retryConfig?.retryDelay ?? 1000; // Use endpoint-specific delay or default to 1000ms
 		},
 		retryCondition: (error: AxiosError) => {
-			const endpointConfig = this.getRetryConfig(error?.config?.url!);
-			const maxRetries = endpointConfig?.retryConfig?.maxRetries ?? 3;
+			const retryConfig = this.getRetryConfig(error?.config?.url!);
+			const maxRetries = retryConfig?.maxRetries ?? 3;
 
 			const currentRetryCount = (error?.config as any)?.['axios-retry']?.retryCount ?? 0;
 
@@ -52,36 +52,57 @@ constructor(
 	});
 }
 
-	private getRetryConfig(url: string) {
-		//console.debug('url', url);
-		const serviceName = this.getServiceNameFromURL(url);
-		//console.debug('serviceName:', serviceName);
-		if (!serviceName) {
-			return undefined;
+	private getRetryConfig(url: string): RetryConfig | undefined {
+		// Look up retry config in reverse hierarchy: endpoint -> service -> default
+		
+		// Check for endpoint-specific retry config
+		const endpointConfig = this.getEndpointConfig(url);
+		if (endpointConfig?.retry) {
+			return endpointConfig.retry;
 		}
-		const services = this.configService.get('services');
-		const serviceConfig = services[serviceName!];
-		//console.debug('serviceConfig:', serviceConfig);			
-		for (const endpointName in serviceConfig.endpoints) {
-			const endpointConfig = serviceConfig.endpoints[endpointName];
-			//console.debug('endpointConfig:', endpointConfig);
+
+		// Check for service-specific retry config
+		const serviceName = this.getServiceNameFromURL(url);
+		if (!serviceName) {	return undefined; }
+		const serviceConfig = this.getServiceConfig(serviceName);
+		if (serviceConfig?.retry) {
+			return serviceConfig.retry;
+		}
+
+		// Use default retry config
+		const defaultConfig = this.configService.get('defaults') as DefaultConfig;
+		if (defaultConfig.retry) {
+			return defaultConfig.retry;
+		}
+
+		// No retry config found
+		this.logger.warn(`No retry configuration found for URL: ${url}`);
+		return undefined;
+
+	}
+
+	private getEndpointConfig(url: string): EndPointConfig | undefined {
+		const serviceName = this.getServiceNameFromURL(url);
+		if (!serviceName) {	return undefined; }		
+		const serviceConfig = this.getServiceConfig(serviceName)
+		for (const endpointName in serviceConfig?.endpoints) {
+			const endpointConfig = serviceConfig?.endpoints[endpointName];
 			if (url.includes(endpointConfig.path)) {
-				console.debug('found endpointConfig:', endpointConfig);
 				return endpointConfig;
 			}
 		}
 		return undefined;
 	}
 
+	private getServiceConfig(serviceName: string): ServiceConfig | undefined {
+		const services = this.configService.get('services');
+		return services[serviceName];
+	}
+
 	private getServiceNameFromURL(url: string): string | undefined {
-		console.debug('url', url);
-		console.debug('configService:', this.configService); // bug: configService is mocked in test
 		const services = this.configService.get('services'); // - resulting in undefined here
-		console.debug('services:', services);
 		for (const serviceName in services) {
-			console.debug('serviceName:', serviceName);
 			const serviceConfig = services[serviceName];
-			console.debug('baseURL:', serviceConfig.baseURL.href);
 			if (url.includes(serviceConfig.baseURL.href)) {
 				return serviceName;
 			}
