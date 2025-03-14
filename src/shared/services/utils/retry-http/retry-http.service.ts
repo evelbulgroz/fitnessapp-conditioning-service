@@ -75,7 +75,8 @@ constructor(
 
 	private getServiceNameFromURL(url: string): string | undefined {
 		console.debug('url', url);
-		const services = this.configService.get('services'); // bug: services is undefined in test
+		console.debug('configService:', this.configService); // bug: configService is mocked in test
+		const services = this.configService.get('services'); // - resulting in undefined here
 		console.debug('services:', services);
 		for (const serviceName in services) {
 			console.debug('serviceName:', serviceName);

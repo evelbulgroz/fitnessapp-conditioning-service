@@ -59,6 +59,7 @@ describe('RetryHttpService', () => {
 		.compile();
 
 		configService = module.get<ConfigService>(ConfigService);
+		console.debug('configService:', configService); // bug: configService is correct here, but mocked in service
 		logger = module.get<Logger>(Logger);
 		service = module.get<RetryHttpService>(RetryHttpService);
 		serviceName = 'fitnessapp-registry-service';
