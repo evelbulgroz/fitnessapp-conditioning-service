@@ -19,6 +19,7 @@ describe('RetryRequesterService', () => {
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
 			providers: [
+				// createTestingModule() initializes initializes ConfigModule with test config
 				{
 					provide: HttpService,
 					useValue: {

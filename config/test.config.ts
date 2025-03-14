@@ -95,7 +95,7 @@ export default async () => {
 					},
 				}
 			},
-			conditioningservice : {
+			'conditioningservice' : {
 				baseURL: new URL('https://localhost:3020/conditionings'),			
 			},
 		}
