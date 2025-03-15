@@ -16,20 +16,21 @@ constructor(
 	private readonly configService: ConfigService,
 	private readonly logger: Logger,
 ) {
-	super(); // todo: pass in axios instance token
+	super();
 	const axiosInstance = this.axiosRef;
 
 	axiosRetry(axiosInstance, {
-		retries: 3, // Set a default maximum number of retries
+		retries: 3, // set a default maximum number of retries (must be hard-coded, overridden by config in retryCondition)
 		retryDelay: (retryCount: number, error: AxiosError) => {
 			void retryCount; // suppress unused variable warning
+			//console.debug('error', error);
 			const retryConfig = this.getRetryConfig(error?.config?.url!);
+			//console.debug('retryConfig', retryConfig);
 			return retryConfig?.retryDelay ?? 1000; // Use endpoint-specific delay or default to 1000ms
 		},
 		retryCondition: (error: AxiosError) => {
 			const retryConfig = this.getRetryConfig(error?.config?.url!);
 			const maxRetries = retryConfig?.maxRetries ?? 3;
-
 			const currentRetryCount = (error?.config as any)?.['axios-retry']?.retryCount ?? 0;
 
 			// Log details about the retry condition
@@ -40,8 +41,8 @@ constructor(
 			this.logger.error(`Error Message: ${error.message}`);
 
 			if (currentRetryCount >= maxRetries) {
-			this.logger.warn('RetryCondition: Max retries reached. No further retries will be attempted.');
-			return false; // Stop retrying if maxRetries is reached
+				this.logger.warn('RetryCondition: Max retries reached. No further retries will be attempted.');
+				return false; // stop retrying if maxRetries is reached
 			}
 
 			const isRetryable = axiosRetry.isNetworkOrIdempotentRequestError(error) || error?.response?.status! >= 500;
@@ -52,9 +53,12 @@ constructor(
 	});
 }
 
+	/** Get the retry configuration for a given URL
+	 * @param url The URL of the request
+	 * @returns The retry configuration for the URL
+	 * @remark Looks up retry config in reverse hierarchal order: endpoint -> service -> app default
+	 */
 	private getRetryConfig(url: string): RetryConfig | undefined {
-		// Look up retry config in reverse hierarchy: endpoint -> service -> default
-		
 		// Check for endpoint-specific retry config
 		const endpointConfig = this.getEndpointConfig(url);
 		if (endpointConfig?.retry) {
@@ -81,7 +85,8 @@ constructor(
 
 	}
 
-	private getEndpointConfig(url: string): EndPointConfig | undefined {
+	// Get the endpoint configuration for a given URL (helper for getRetryConfig)
+	protected getEndpointConfig(url: string): EndPointConfig | undefined {
 		const serviceName = this.getServiceNameFromURL(url);
 		if (!serviceName) {	return undefined; }		
 		const serviceConfig = this.getServiceConfig(serviceName)
@@ -94,13 +99,15 @@ constructor(
 		return undefined;
 	}
 
-	private getServiceConfig(serviceName: string): ServiceConfig | undefined {
+	// Get the service configuration for a given service name (helper for getRetryConfig)
+	protected getServiceConfig(serviceName: string): ServiceConfig | undefined {
 		const services = this.configService.get('services');
 		return services[serviceName];
 	}
 
-	private getServiceNameFromURL(url: string): string | undefined {
-		const services = this.configService.get('services'); // - resulting in undefined here
+	// Get the service name by comparing a given URL to the base URL of each service (helper for getRetryConfig)
+	protected getServiceNameFromURL(url: string): string | undefined {
+		const services = this.configService.get('services');
 		for (const serviceName in services) {
 			const serviceConfig = services[serviceName];
 			if (url.includes(serviceConfig.baseURL.href)) {
