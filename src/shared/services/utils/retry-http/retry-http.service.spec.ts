@@ -9,7 +9,7 @@ import { Logger } from '@evelbulgroz/ddd-base';
 
 import createTestingModule from '../../../../test/test-utils';
 import RetryHttpService from './retry-http.service';
-import { EndPointConfig, ServiceConfig } from '../../../domain/config-options.model';
+import { AppConfig, ConfigOptions, EndPointConfig, RetryConfig, ServiceConfig } from '../../../domain/config-options.model';
 
 //jest.mock('axios');
 //jest.mock('axios-retry');
@@ -26,12 +26,8 @@ const AXIOS_INSTANCE_TOKEN = 'AXIOS_INSTANCE_TOKEN';
 
 describe('RetryHttpService', () => {
 	let configService: ConfigService;
-	let endPointConfig: EndPointConfig;
 	let logger: Logger;
 	let service: RetryHttpService;
-	let serviceConfig: ServiceConfig;
-	let serviceName: string;
-	
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
 			providers: [
@@ -59,10 +55,34 @@ describe('RetryHttpService', () => {
 
 		configService = module.get<ConfigService>(ConfigService);
 		logger = module.get<Logger>(Logger);
-		service = new RetryHttpService(configService, logger); //module.get<RetryHttpService>(RetryHttpService); // bug: module.get injects mock of ConfigService
-		serviceName = 'fitnessapp-registry-service';
-		serviceConfig = configService.get('services')[serviceName];
-		endPointConfig = Object.values(serviceConfig?.endpoints ?? {})[0]; // grab first endpoint
+		service = new RetryHttpService(configService, logger); //module.get<RetryHttpService>(RetryHttpService); // bug: module.get injects mock of ConfigService, can't figure out why
+	});
+
+	let endpointName: string;
+	let endPointConfig: EndPointConfig;
+	let serviceConfig: ServiceConfig;	
+	let serviceName: string;
+	let testConfig: ConfigOptions;
+	let testUrl: string;
+	beforeEach(() => {
+		testConfig = {
+			environment: 'test',
+			app: {...configService.get('app')} as AppConfig,
+			defaults: {
+				commandQueue: { throttleTime: 50 },
+				retry: { maxRetries: 1, retryDelay: 1000 },
+			},
+			modules: {} as any,
+			security: {} as any,
+			services: {...configService.get('services')},
+		};
+
+		serviceName = Object.keys(testConfig.services)[0]; // grab first service name
+		serviceConfig = testConfig.services[serviceName];
+		endpointName = Object.keys(serviceConfig?.endpoints ?? {})[0]; // grab first endpoint name
+		endPointConfig = {serviceConfig?.endpoints ?? {}}[endpointName];
+		testUrl = serviceConfig?.baseURL?.href + endPointConfig?.path
+		console.debug('testConfig:', testConfig);
 	});
 
 	afterEach(() => {
@@ -78,8 +98,27 @@ describe('RetryHttpService', () => {
 	});
 
 	it('uses endpoint-specific retry configuration', () => {
-		const retryDelay = service['getRetryConfig'](serviceConfig.baseURL.href + endPointConfig.path);
+		// arrange
+		const url = serviceConfig.baseURL.href + endPointConfig.path;
+		const configSpy = jest.spyOn(configService, 'get').mockImplementation((key: string) => {
+			if (key === 'defaults') {
+				return {...testConfig.defaults};
+			}
+			if (key === 'services') {
+				return {...testConfig.services};
+			}
+			return undefined;
+		});
+
+		// act
+		const retryDelay = service['getRetryConfig'](url);
+
+		// assert
+		expect(configSpy).toHaveBeenCalledWith('services');
 		expect(retryDelay).toEqual({"maxRetries": 1, "retryDelay": 1000});
+
+		// cleanup
+		configSpy.mockRestore();
 	});
 
 	/*xit('should log retry attempts', () => {
