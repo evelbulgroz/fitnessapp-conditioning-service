@@ -5,7 +5,10 @@ import { Observable, tap, catchError, of, delay, mergeMap } from "rxjs";
 
 import { Logger } from "@evelbulgroz/ddd-base";
 
-/** Utility service to retry requests */
+/** DEPRECATED: Utility service to retry requests
+ * @deprecated Use RetryHttpService instead, when ready
+ * @remark This service is deprecated and will be removed in a future release
+ */
 @Injectable()
 export class RetryRequesterService {
 	constructor(
