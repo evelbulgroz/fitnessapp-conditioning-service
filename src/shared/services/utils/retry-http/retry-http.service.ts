@@ -19,7 +19,7 @@ export class RetryHttpService extends HttpService {
 		super();
 		this.configureAxios();
 		console.debug('injected config service.get', configService.get);
-		console.debug('Is ConfigService.get mocked:', jest.isMockFunction(ConfigService.prototype.get));
+		console.debug('Is ConfigService.get mocked in service:', jest.isMockFunction(ConfigService.prototype.get));
 	}
 
 	/* Configure axios-retry for the HttpService instance */

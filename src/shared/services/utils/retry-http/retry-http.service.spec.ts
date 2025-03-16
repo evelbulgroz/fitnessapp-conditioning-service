@@ -113,7 +113,7 @@ describe('RetryHttpService', () => {
 		service = module.get<RetryHttpService>(RetryHttpService);
 		configService = module.get<ConfigService>(ConfigService);
 		console.debug('ConfigService in test:', configService); // bug: ConfigService instance here, but service receives a mock
-		console.debug('Is ConfigService.get mocked:', jest.isMockFunction(ConfigService.prototype.get));
+		console.debug('Is ConfigService.get mocked in test:', jest.isMockFunction(ConfigService.prototype.get));
 		logger = module.get<Logger>(Logger);
 		
 		// spy on ConfigService.get to return the test config
