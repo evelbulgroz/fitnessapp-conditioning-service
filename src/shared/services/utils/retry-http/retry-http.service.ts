@@ -9,7 +9,10 @@ import { Logger } from '@evelbulgroz/ddd-base';
 
 import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../../../domain/config-options.model';
 
-/** Service for making HTTP requests with automatic retry logic using axios-retry */
+/** Service for making HTTP requests with automatic retry logic using axios-retry
+ * @remark May/not work as intended: unable to get unit tests to pass due to configService being injected as a mock
+ * @todo Gradually comment out features here and in tests to identify cause of config being injected as a mock
+ */
 @Injectable()
 export class RetryHttpService extends HttpService {
 	constructor(
