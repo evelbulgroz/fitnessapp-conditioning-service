@@ -12,53 +12,61 @@ import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../..
 /** Service for making HTTP requests with automatic retry logic using axios-retry */
 @Injectable()
 export class RetryHttpService extends HttpService {
-constructor(
-	private readonly configService: ConfigService,
-	private readonly logger: Logger,
-) {
-	super();
-	const axiosInstance = this.axiosRef;
+	constructor(
+		private readonly configService: ConfigService,
+		private readonly logger: Logger,
+	) {
+		super();
+		this.configureAxios();
+		console.debug('injected config service', this.configService);		
+	}
 
-	axiosRetry(axiosInstance, {
-		retries: 3, // set a default maximum number of retries (must be hard-coded, overridden by config in retryCondition)
-		retryDelay: (retryCount: number, error: AxiosError) => {
-			void retryCount; // suppress unused variable warning
-			//console.debug('error', error);
-			const retryConfig = this.getRetryConfig(error?.config?.url!);
-			//console.debug('retryConfig', retryConfig);
-			return retryConfig?.retryDelay ?? 1000; // Use endpoint-specific delay or default to 1000ms
-		},
-		retryCondition: (error: AxiosError) => {
-			const retryConfig = this.getRetryConfig(error?.config?.url!);
-			const maxRetries = retryConfig?.maxRetries ?? 3;
-			const currentRetryCount = (error?.config as any)?.['axios-retry']?.retryCount ?? 0;
+	/* Configure axios-retry for the HttpService instance */
+	protected configureAxios() {
+		const axiosInstance = this.axiosRef;
+		axiosRetry(axiosInstance, {
+			retries: 3, // set a default maximum number of retries (must be hard-coded, overridden by config in retryCondition)
+			retryDelay: (retryCount: number, error: AxiosError) => {
+				void retryCount; // suppress unused variable warning
+				console.debug('retryDelay error', error);
+				const retryConfig = this.getRetryConfig(error?.config?.url!);
+				console.debug('retryConfig', retryConfig);
+				return retryConfig?.retryDelay ?? 1000; // Use endpoint-specific delay or default to 1000ms
+			},
+			retryCondition: (error: AxiosError) => {
+				console.debug('retryCondition error', error);
+				const retryConfig = this.getRetryConfig(error?.config?.url!);
+				console.debug('retryConfig', retryConfig);
+				const maxRetries = retryConfig?.maxRetries ?? 3;
+				const currentRetryCount = (error?.config as any)?.['axios-retry']?.retryCount ?? 0;
 
-			// Log details about the retry condition
-			this.logger.warn(`RetryCondition triggered for URL: ${error?.config?.url}`);
-			this.logger.warn(`HTTP Status Code: ${error?.response?.status}`);
-			this.logger.warn(`Current Retry Count: ${currentRetryCount}`);
-			this.logger.warn(`Max Retries Allowed: ${maxRetries}`);
-			this.logger.error(`Error Message: ${error.message}`);
+				// Log details about the retry condition
+				this.logger.warn(`RetryCondition triggered for URL: ${error?.config?.url}`);
+				this.logger.warn(`HTTP Status Code: ${error?.response?.status}`);
+				this.logger.warn(`Current Retry Count: ${currentRetryCount}`);
+				this.logger.warn(`Max Retries Allowed: ${maxRetries}`);
+				this.logger.error(`Error Message: ${error.message}`);
 
-			if (currentRetryCount >= maxRetries) {
-				this.logger.warn('RetryCondition: Max retries reached. No further retries will be attempted.');
-				return false; // stop retrying if maxRetries is reached
-			}
+				if (currentRetryCount >= maxRetries) {
+					this.logger.warn('RetryCondition: Max retries reached. No further retries will be attempted.');
+					return false; // stop retrying if maxRetries is reached
+				}
 
-			const isRetryable = axiosRetry.isNetworkOrIdempotentRequestError(error) || error?.response?.status! >= 500;
-			this.logger.warn(`Retry Reason: ${isRetryable ? 'Network error or 5xx status code' : 'Other'}`);
+				const isRetryable = axiosRetry.isNetworkOrIdempotentRequestError(error) || error?.response?.status! >= 500;
+				this.logger.warn(`Retry Reason: ${isRetryable ? 'Network error or 5xx status code' : 'Other'}`);
 
-			return isRetryable;
-		},
-	});
-}
+				return isRetryable;
+			},
+		});
+	}
 
-	/** Get the retry configuration for a given URL
+	/* Get the retry configuration for a given URL
 	 * @param url The URL of the request
 	 * @returns The retry configuration for the URL
 	 * @remark Looks up retry config in reverse hierarchal order: endpoint -> service -> app default
 	 */
-	private getRetryConfig(url: string): RetryConfig | undefined {
+	protected getRetryConfig(url: string): RetryConfig | undefined {
+		console.debug('getRetryConfig url', url);
 		// Check for endpoint-specific retry config
 		const endpointConfig = this.getEndpointConfig(url);
 		if (endpointConfig?.retry) {
@@ -108,6 +116,7 @@ constructor(
 	// Get the service name by comparing a given URL to the base URL of each service (helper for getRetryConfig)
 	protected getServiceNameFromURL(url: string): string | undefined {
 		const services = this.configService.get('services');
+		console.debug('getServiceNameFromURL services', services);
 		for (const serviceName in services) {
 			const serviceConfig = services[serviceName];
 			if (url.includes(serviceConfig.baseURL.href)) {
