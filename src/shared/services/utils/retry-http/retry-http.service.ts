@@ -18,7 +18,8 @@ export class RetryHttpService extends HttpService {
 	) {
 		super();
 		this.configureAxios();
-		console.debug('injected config service', this.configService);		
+		console.debug('injected config service.get', configService.get);
+		console.debug('Is ConfigService.get mocked:', jest.isMockFunction(ConfigService.prototype.get));
 	}
 
 	/* Configure axios-retry for the HttpService instance */
@@ -34,7 +35,6 @@ export class RetryHttpService extends HttpService {
 				return retryConfig?.retryDelay ?? 1000; // Use endpoint-specific delay or default to 1000ms
 			},
 			retryCondition: (error: AxiosError) => {
-				console.debug('retryCondition error', error);
 				const retryConfig = this.getRetryConfig(error?.config?.url!);
 				console.debug('retryConfig', retryConfig);
 				const maxRetries = retryConfig?.maxRetries ?? 3;

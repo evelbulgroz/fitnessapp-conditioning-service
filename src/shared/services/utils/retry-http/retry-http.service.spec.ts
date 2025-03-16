@@ -1,3 +1,5 @@
+//jest.unmock('@nestjs/config'); // Replace with the actual path to ConfigService
+//jest.disableAutomock(); // Disable automocking for the ConfigService class
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 
@@ -23,7 +25,7 @@ jest.mock('axios-retry', () => {
 	});
 
 	return mockAxiosRetry;
-  });
+});
 
 const mockAxiosInstance = {
 	request: jest.fn(),
@@ -68,39 +70,68 @@ describe('RetryHttpService', () => {
 		testUrl = serviceConfig?.baseURL?.href + endPointConfig?.path;
 	});
 
-	afterEach(() => {
-		jest.clearAllMocks();
-	});
-	
 	let configService: ConfigService;
+	let configGetSpy: jest.SpyInstance;
 	let logger: Logger;
 	let service: RetryHttpService;
 	beforeEach(async () => {
-	const module: TestingModule = await Test.createTestingModule({
-		providers: [
-			{
-				provide: AXIOS_INSTANCE_TOKEN,
-				useValue: mockAxiosInstance,
-			},
-			ConfigService,
-			{
-				provide: Logger,
-				useValue: {
-					warn: jest.fn(),
-					error: jest.fn(),
+		const module: TestingModule = await Test.createTestingModule({
+			providers: [
+				{
+					provide: AXIOS_INSTANCE_TOKEN,
+					useValue: mockAxiosInstance,
 				},
-			},
-			RetryHttpService,
-		],
-		}).compile();
+				ConfigService,
+				{
+					provide: Logger,
+					useValue: {
+						warn: jest.fn(),
+						error: jest.fn(),
+					},
+				},
+				RetryHttpService,
+				/*{
+					provide: ConfigService,
+					useValue: {
+						get: (key: string) => {
+							console.debug('ConfigService.get called with key:', key);
+							if (key === 'defaults') {
+								return testConfig.defaults;
+							}
+							if (key === 'services') {
+								return testConfig.services;
+							}
+							return undefined;
+						},
+					},
+				},*/
+				
+			],
+		})
+		.compile();
 
+		service = module.get<RetryHttpService>(RetryHttpService);
 		configService = module.get<ConfigService>(ConfigService);
-		console.debug('ConfigService in test:', configService);
+		console.debug('ConfigService in test:', configService); // bug: ConfigService instance here, but service receives a mock
+		console.debug('Is ConfigService.get mocked:', jest.isMockFunction(ConfigService.prototype.get));
 		logger = module.get<Logger>(Logger);
-		service = module.get<RetryHttpService>(RetryHttpService);		
+		
+		// spy on ConfigService.get to return the test config
+		configGetSpy = jest.spyOn(configService, 'get').mockImplementation((key: string) => { // bug: never called, service uses a mock instead
+			console.debug('ConfigService.get called with key:', key);
+			if (key === 'defaults') {
+				return testConfig.defaults;
+			}
+			if (key === 'services') {
+				return testConfig.services;
+			}
+			return undefined;
+			
+		});
 	});
 
 	afterEach(() => {
+		configGetSpy && configGetSpy.mockRestore();
 		jest.clearAllMocks();
 	});
 
