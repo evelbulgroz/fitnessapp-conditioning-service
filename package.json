@@ -88,6 +88,6 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
-	"automock": false
-	}
+    "automock": false
+  }
 }
