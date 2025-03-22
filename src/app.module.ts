@@ -17,7 +17,7 @@ import productionConfig from './../config/production.config';
 import developmentConfig from '../config/development.config';
 import { RetryHttpService } from './shared/services/utils/retry-http/retry-http.service';
 
-class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger despite name conflit with ddd-base Logger
+//class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger despite name conflit with ddd-base Logger
 
 
 // todo: Copy over (de)registration logic from API Gateway to be able to effectively authenticate and collaborate with other microservices
