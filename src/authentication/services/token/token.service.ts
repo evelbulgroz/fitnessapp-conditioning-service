@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, RequestMethod } from '@nestjs/common';
 
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
 import jwt from 'jsonwebtoken';
 
 import { Logger } from '@evelbulgroz/ddd-base';
@@ -12,7 +12,6 @@ import AuthService from '../../domain/auth-service.class';
 import BootstrapResponseDTO from '../../dtos/responses/bootstrap-response.dto';
 import JwtDTO from '../../dtos/responses/jwt.dto';
 import LocateDataDTO from '../../dtos/requests/locate-data.dto';
-import RetryRequesterService from '../../../shared/services/utils/retry-requester/retry-requester.service';
 import ServiceDataDTO from '../../dtos/responses/service-data.dto';
 import ServiceLoginDataDTO from '../../dtos/requests/service-login-data.dto';
 import ServiceLogoutDataDTO from '../../dtos/requests/service-logout-data.dto';
@@ -35,7 +34,6 @@ export class TokenService extends AuthService {
 		private readonly config: ConfigService,
 		private readonly httpService: HttpService,
 		private readonly logger: Logger,
-		private readonly requester: RetryRequesterService
 	) {
 		super();
 		void this.httpService; // suppress compiler warning about unused variable (hidden by 'self' in executeRequest)
@@ -137,9 +135,6 @@ export class TokenService extends AuthService {
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
 		const registryConfig = this.config.get('services.fitnessapp-registry-service') ?? {} as ServiceConfig;		
 		const locateConfig = registryConfig?.endpoints?.locate ?? {} as EndPointConfig;
-		const MAX_LOCATE_RETRIES = locateConfig.connect?.maxRetries ?? registryConfig?.connect?.maxRetries ?? 0;
-		const LOCATE_RETRY_DELAY = locateConfig.connect?.retryDelay ?? registryConfig?.connect?.retryDelay ?? 0;
-		
 		let locateUrl = registryConfig?.baseURL.href + locateConfig.path;
 		let locateBody = <LocateDataDTO>{
 			requestingServiceId: appConfig.serviceid,
@@ -152,15 +147,12 @@ export class TokenService extends AuthService {
 			}
 		};
 		const locateMethod = RequestMethod[locateConfig?.method?.toUpperCase()] as unknown as RequestMethod;	
-		const locateResponse$ = this.requester.execute(locateUrl, locateMethod, locateBody, locateOptions, MAX_LOCATE_RETRIES, LOCATE_RETRY_DELAY);
+		const locateResponse$ = this.executeRequest(locateUrl, locateMethod, locateBody, locateOptions);
 		const authServiceData = new ServiceDataDTO((await firstValueFrom(locateResponse$)).data); // validate the response
 		
 		// set up logout request		
 		const authServiceConfig = this.config.get('services.fitnessapp-authentication-service') ?? {} as ServiceConfig;
 		const logoutConfig = authServiceConfig?.endpoints?.serviceLogout ?? {} as EndPointConfig;		
-		const MAX_LOGOUT_RETRIES = logoutConfig.connect?.maxRetries ?? authServiceConfig?.connect?.maxRetries ?? 0;
-		const LOGOUT_RETRY_DELAY = logoutConfig.connect?.retryDelay ?? authServiceConfig?.connect?.retryDelay ?? 0;
-
 		const logoutUrl = authServiceData.location + logoutConfig.path;
 		const logoutBody = <ServiceLogoutDataDTO>{
 			serviceId: appConfig.serviceid,
@@ -175,7 +167,7 @@ export class TokenService extends AuthService {
 
 		// execute logout request
 		const logOutMethod = RequestMethod[logoutConfig?.method?.toUpperCase()] as unknown as RequestMethod;
-		const logoutResponse$ = this.requester.execute(logoutUrl, logOutMethod, logoutBody, logoutOptions, MAX_LOGOUT_RETRIES, LOGOUT_RETRY_DELAY);
+		const logoutResponse$ = this.executeRequest(logoutUrl, logOutMethod, logoutBody, logoutOptions);
 		const logoutResponse = await firstValueFrom(logoutResponse$);
 
 		// validate the response
@@ -196,7 +188,7 @@ export class TokenService extends AuthService {
 		return `${this.constructor.name}.logout Service logged out successfully`;
 	}
 
-	/*----------------------------------- PRIVATE METHODS ----------------------------------------*/
+	//----------------------------------- PROTECTED METHODS ---------------------------------------
 
 	/* Bootstrap registration by getting a verification token from the microservice registry
 	 * @returns Promise containing the bootstrap response, or an error message
@@ -204,20 +196,14 @@ export class TokenService extends AuthService {
 	 * @remark Will throw an error if the response does not contain a verification token
 	 * @remark Will throw an error if the response contains auth service data that is invalid or incomplete
 	 */
-	private async bootstrap(): Promise<BootstrapResponseDTO> {
+	protected async bootstrap(): Promise<BootstrapResponseDTO> {
 		this.logger.log(`${this.constructor.name}.bootstrap Acquiring bootstrap token from microservice registry...`);
 		
 		// set up data for request
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
-		const registryConfig = this.config.get('services.fitnessapp-registry-service') ?? {} as ServiceConfig;
-		
-		const bootstrapConfig = registryConfig?.endpoints?.bootstrap ?? {} as EndPointConfig;
-		
-		const MAX_RETRIES = 0; bootstrapConfig.connect?.maxRetries ?? registryConfig?.connect?.maxRetries ?? 0;
-		const RETRY_DELAY = bootstrapConfig.connect?.retryDelay ?? registryConfig?.connect?.retryDelay ?? 0;
-		
-		const sharedSecret = this.config.get('security.verification.bootstrap.secret') ?? '';
-		
+		const registryConfig = this.config.get('services.fitnessapp-registry-service') ?? {} as ServiceConfig;		
+		const bootstrapConfig = registryConfig?.endpoints?.bootstrap ?? {} as EndPointConfig;		
+		const sharedSecret = this.config.get('security.verification.bootstrap.secret') ?? '';		
 		const url = registryConfig?.baseURL.href + bootstrapConfig.path + '/' + appConfig.servicename;
 		const body = null;
 		const options = {
@@ -228,7 +214,7 @@ export class TokenService extends AuthService {
 
 		// execute the request
 		const method = RequestMethod[bootstrapConfig?.method?.toUpperCase()] as unknown as RequestMethod;
-		const response$ =  this.requester.execute(url, method, body, options, MAX_RETRIES, RETRY_DELAY);
+		const response$ =  this.executeRequest(url, method, body, options);
 		const response = await firstValueFrom(response$);
 		
 		// validate the response
@@ -264,7 +250,7 @@ export class TokenService extends AuthService {
 	 * @remark Will throw an error if the response contains tokens that are invalid or incomplete
 	 * @remark Will throw an error if the response contains auth service data that is invalid or incomplete
 	 */
-	private async authenticate(bootstrapData: BootstrapResponseDTO): Promise<{accessToken: string, refreshToken: string}> {
+	protected async authenticate(bootstrapData: BootstrapResponseDTO): Promise<{accessToken: string, refreshToken: string}> {
 		this.logger.log(`${this.constructor.name}.authenticate Logging in to the auth service...`);
 		
 		// set up data for request
@@ -273,9 +259,6 @@ export class TokenService extends AuthService {
 		const loginConfig = authServiceConfig?.endpoints?.serviceLogin ?? {} as EndPointConfig;		
 		const securityConfig = this.config.get('security') ?? {};
 		const password = securityConfig.authentication?.app?.password;
-		const MAX_RETRIES = loginConfig.connect?.maxRetries ?? authServiceConfig?.connect?.maxRetries ?? 0;
-		const RETRY_DELAY = loginConfig.connect?.retryDelay ?? authServiceConfig?.connect?.retryDelay ?? 0;
-		
 		const url = bootstrapData.authServiceData?.location + loginConfig.path;		
 		const body = <ServiceLoginDataDTO>{
 			password,
@@ -291,7 +274,7 @@ export class TokenService extends AuthService {
 		
 		// execute the request
 		const method = RequestMethod[loginConfig?.method?.toUpperCase()] as unknown as RequestMethod;
-		const response$ = this.requester.execute(url, method, body, options, MAX_RETRIES, RETRY_DELAY);
+		const response$ = this.executeRequest(url, method, body, options);
 		const response = await firstValueFrom(response$);
 		
 		// validate the response
@@ -326,20 +309,30 @@ export class TokenService extends AuthService {
 		return { accessToken, refreshToken };
 	}
 
+	/* Execute a request mapping RequestMethod to HttpService methods 
+		* @param url The URL to request
+		* @param method The request method
+		* @param body The request body
+		* @param config The request configuration
+		* @returns An observable with the request result
+		* @remark If injected with RetryHttpService, this method will automatically retry the request if it fails, using settings from config files
+		*/
+	protected executeRequest(url: string, method: RequestMethod, body: any, config: any): Observable<any> {
+		const methodString = RequestMethod[method].toLowerCase(); // get method as string from RequestMethod enum; convert to lowercase to match HttpService method names
+		return methodString === 'get' ? this.httpService.get(url, config) : (this.httpService as any)[methodString](url, body, config);
+	}
+
 	/** Refresh access token using refresh token
 	 * @returns Promise containing the refresh response, or an error message
 	 * @throws Error if the refresh token request fails, or if the response is invalid
 	 */
-	private async refresh(): Promise<string> {
+	protected async refresh(): Promise<string> {
 		this.logger.log(`${this.constructor.name}.refresh Refreshing access token...`);
 		
 		// set up data for request
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
 		const authServiceConfig = this.config.get('services.fitnessapp-authentication-service') ?? {} as ServiceConfig;
-		const refreshConfig = authServiceConfig?.endpoints?.serviceRefresh ?? {} as EndPointConfig;		
-		const MAX_RETRIES = refreshConfig.connect?.maxRetries ?? authServiceConfig?.connect?.maxRetries ?? 0;
-		const RETRY_DELAY = refreshConfig.connect?.retryDelay ?? authServiceConfig?.connect?.retryDelay ?? 0;
-		
+		const refreshConfig = authServiceConfig?.endpoints?.serviceRefresh ?? {} as EndPointConfig;				
 		const url = authServiceConfig.baseURL.href + refreshConfig.path;		
 		const body = <ServiceTokenRefreshDataDTO>{
 			serviceId: appConfig.serviceid,
@@ -354,7 +347,7 @@ export class TokenService extends AuthService {
 		
 		// execute the request
 		const method = RequestMethod[refreshConfig?.method?.toUpperCase()] as unknown as RequestMethod;
-		const response$ = this.requester.execute(url, method, body, options, MAX_RETRIES, RETRY_DELAY);
+		const response$ = this.executeRequest(url, method, body, options);
 		const response = await firstValueFrom(response$);
 
 		// validate the response

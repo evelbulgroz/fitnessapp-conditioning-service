@@ -17,7 +17,6 @@ import ServiceTokenRefreshDataDTO from '../../dtos/requests/service-token-refres
 
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../../shared/domain/config-options.model';
 import createTestingModule from '../../../test/test-utils';
-import RetryRequesterService from '../../../shared/services/utils/retry-requester/retry-requester.service';
 import TokenService from './token.service';
 
 //process.env.NODE_ENV = 'not-test'; // set NODE_ENV to not-test to enable logging
@@ -44,7 +43,6 @@ describe('TokenService', () => {
 					provide: Logger,
 					useClass: ConsoleLogger
 				},
-				RetryRequesterService,
 				TokenService,
 			],
 		}))
