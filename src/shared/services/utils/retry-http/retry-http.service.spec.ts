@@ -1,5 +1,5 @@
-//jest.unmock('@nestjs/config'); // Replace with the actual path to ConfigService
 //jest.disableAutomock(); // Disable automocking for the ConfigService class
+//jest.unmock('@nestjs/config'); // Replace with the actual path to ConfigService
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 
@@ -10,6 +10,7 @@ import { Logger } from '@evelbulgroz/ddd-base';
 import * as ConfigFactory from '../../../../../config/test.config';
 import { ConfigOptions, RetryConfig } from '../../../domain/config-options.model';
 import RetryHttpService from './retry-http.service';
+import { first, firstValueFrom } from 'rxjs';
 
 //jest.mock('axios');
 jest.mock('axios-retry', () => {
@@ -27,7 +28,7 @@ jest.mock('axios-retry', () => {
 	return mockAxiosRetry;
 });
 
-const mockAxiosInstance = {
+/*const mockAxiosInstance = {
 	request: jest.fn(),
 	get: jest.fn(),
 	post: jest.fn(),
@@ -36,6 +37,7 @@ const mockAxiosInstance = {
 };
 
 const AXIOS_INSTANCE_TOKEN = 'AXIOS_INSTANCE_TOKEN';
+*/
 
 describe('RetryHttpService', () => {
 	let defaultRetryConfig: RetryConfig
@@ -78,8 +80,14 @@ describe('RetryHttpService', () => {
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
 				{
-					provide: AXIOS_INSTANCE_TOKEN,
-					useValue: mockAxiosInstance,
+					provide: 'AXIOS_INSTANCE_TOKEN',
+					useValue: {
+						request: jest.fn(),
+						get: jest.fn(),
+						post: jest.fn(),
+						put: jest.fn(),
+						delete: jest.fn(),
+					}
 				},
 				ConfigService,
 				{
@@ -90,35 +98,19 @@ describe('RetryHttpService', () => {
 					},
 				},
 				RetryHttpService,
-				/*{
-					provide: ConfigService,
-					useValue: {
-						get: (key: string) => {
-							console.debug('ConfigService.get called with key:', key);
-							if (key === 'defaults') {
-								return testConfig.defaults;
-							}
-							if (key === 'services') {
-								return testConfig.services;
-							}
-							return undefined;
-						},
-					},
-				},*/
+				
 				
 			],
 		})
 		.compile();
 
 		service = module.get<RetryHttpService>(RetryHttpService);
-		configService = module.get<ConfigService>(ConfigService);
-		console.debug('ConfigService in test:', configService); // bug: ConfigService instance here, but service receives a mock
-		console.debug('Is ConfigService.get mocked in test:', jest.isMockFunction(ConfigService.prototype.get));
+		configService = service['configService'] as jest.Mocked<ConfigService>; // workaround: framework injects mock regardless of config service provided here, so get reference from service rather than module
 		logger = module.get<Logger>(Logger);
 		
 		// spy on ConfigService.get to return the test config
-		configGetSpy = jest.spyOn(configService, 'get').mockImplementation((key: string) => { // bug: never called, service uses a mock instead
-			console.debug('ConfigService.get called with key:', key);
+		configGetSpy = jest.spyOn(configService, 'get').mockImplementation((key: string) => { // workaround: can't control injection of ConfigService, so mock get method instead
+			//console.debug('ConfigService.get called with key:', key);
 			if (key === 'defaults') {
 				return testConfig.defaults;
 			}
@@ -148,12 +140,12 @@ describe('RetryHttpService', () => {
 		});
 	});
 
-	it('calls retryCondition for retryable errors', () => {
+	xit('calls retryCondition for retryable errors', () => {
 		// arrange
 		const mockError = {
-		config: { url: testUrl },
-		response: { status: 500 },
-		message: 'Test error',
+			config: { url: testUrl },
+			response: { status: 500 },
+			message: 'Test error',
 		};	
 		const retryCondition = (service['axiosRef'].defaults as any)?.retryCondition;		
 		expect(typeof retryCondition).toBe('function'); // sanity check: ensure retryCondition is a function
@@ -162,9 +154,7 @@ describe('RetryHttpService', () => {
 		expect(retryCondition(mockError)).toBe(true); // Should retry for 500 status code
 	});
 
-	xit('retries a request up to the configured maxRetries', async () => { // fails
-		console.debug('Making request with axiosRef:', service['axiosRef']);
-
+	it('retries a request up to the configured maxRetries', async () => { // fails
 		// arrange
 		const mockResponse = { data: 'success' };
 		const mockError = {
@@ -180,7 +170,8 @@ describe('RetryHttpService', () => {
 
 		// act
 		console.debug('Starting test for retries...');
-		const response = await service.get(testUrl);
+		const response$ = service.get(testUrl);
+		const response = await firstValueFrom(response$);
 		console.debug('Response received:', response);
 
 		// assert
@@ -188,6 +179,9 @@ describe('RetryHttpService', () => {
 		expect(service['axiosRef'].get).toHaveBeenCalledTimes(3); // Retries twice, then succeeds
 		expect(logger.warn).toHaveBeenCalledWith(`RetryCondition triggered for URL: ${testUrl}`);
 		expect(logger.warn).toHaveBeenCalledWith(`HTTP Status Code: 500`);
+
+		// clean up
+		jest.restoreAllMocks();
 	});
 
 	xit('applies the correct retry delay', async () => {

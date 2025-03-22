@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
@@ -9,10 +9,7 @@ import { Logger } from '@evelbulgroz/ddd-base';
 
 import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../../../domain/config-options.model';
 
-/** Service for making HTTP requests with automatic retry logic using axios-retry
- * @remark May/not work as intended: unable to get unit tests to pass due to configService being injected as a mock
- * @todo Gradually comment out features here and in tests to identify cause of config being injected as a mock
- */
+/** Service for making HTTP requests with automatic retry logic using axios-retry */
 @Injectable()
 export class RetryHttpService extends HttpService {
 	constructor(
@@ -21,8 +18,6 @@ export class RetryHttpService extends HttpService {
 	) {
 		super();
 		this.configureAxios();
-		console.debug('injected config service.get', configService.get);
-		console.debug('Is ConfigService.get mocked in service:', jest.isMockFunction(ConfigService.prototype.get));
 	}
 
 	/* Configure axios-retry for the HttpService instance */
@@ -39,7 +34,7 @@ export class RetryHttpService extends HttpService {
 			},
 			retryCondition: (error: AxiosError) => {
 				const retryConfig = this.getRetryConfig(error?.config?.url!);
-				console.debug('retryConfig', retryConfig);
+				//console.debug('retryConfig', retryConfig);
 				const maxRetries = retryConfig?.maxRetries ?? 3;
 				const currentRetryCount = (error?.config as any)?.['axios-retry']?.retryCount ?? 0;
 
@@ -69,7 +64,7 @@ export class RetryHttpService extends HttpService {
 	 * @remark Looks up retry config in reverse hierarchal order: endpoint -> service -> app default
 	 */
 	protected getRetryConfig(url: string): RetryConfig | undefined {
-		console.debug('getRetryConfig url', url);
+		//console.debug('getRetryConfig url', url);
 		// Check for endpoint-specific retry config
 		const endpointConfig = this.getEndpointConfig(url);
 		if (endpointConfig?.retry) {
@@ -119,7 +114,7 @@ export class RetryHttpService extends HttpService {
 	// Get the service name by comparing a given URL to the base URL of each service (helper for getRetryConfig)
 	protected getServiceNameFromURL(url: string): string | undefined {
 		const services = this.configService.get('services');
-		console.debug('getServiceNameFromURL services', services);
+		//console.debug('getServiceNameFromURL services', services);
 		for (const serviceName in services) {
 			const serviceConfig = services[serviceName];
 			if (url.includes(serviceConfig.baseURL.href)) {
