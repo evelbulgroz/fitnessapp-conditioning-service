@@ -20,7 +20,7 @@ import { RetryHttpService } from './shared/services/utils/retry-http/retry-http.
 //class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger despite name conflit with ddd-base Logger
 
 
-// todo: Copy over (de)registration logic from API Gateway to be able to effectively authenticate and collaborate with other microservices
+// todo: Implement (de)registration logic copied over from API Gateway
 @Global()
 @Module({
 	imports: [
@@ -67,4 +67,76 @@ import { RetryHttpService } from './shared/services/utils/retry-http/retry-http.
 		UserModule,
 	]
 })
-export class AppModule {}
+export class AppModule {
+	/*private readonly appConfig: any;
+	
+	constructor(
+		private readonly configService: ConfigService,
+		private readonly logger: Logger,
+		private readonly registrationService: RegistrationService,
+		private readonly authService: AuthService
+	) {
+		this.appConfig = this.configService.get<any>('app') ?? {};
+	}
+	*/
+
+	/** Initialize the server by logging in to the auth service and registering with the microservice registry
+	 * @returns Promise that resolves to void when the server initialization is complete
+	 * @throws Error if initialization fails
+	 */
+	/*
+	public async onModuleInit() {
+		this.logger.log('Initializing server...');//, `${this.constructor.name}.onModuleInit`);
+
+		// Log in to the auth microservice (internally gets and store access token)
+		try {
+			void await this.authService.getAuthData();
+		}
+		catch (error) {
+			this.logger.error(`Failed to  get access token from auth service: ${error.message}`);//, `${this.constructor.name}.onModuleInit`);
+			throw new Error(`Failed to get access token from auth service: ${error.message}`);
+		}
+		
+		// Register with the microservice registry (internally gets access token from auth service)
+		try {
+			void await this.registrationService.register();
+		}
+		catch (error) {
+			this.logger.error(`Failed to register with microservice registry: ${error.message}`);//, `${this.constructor.name}.onModuleInit`);
+			throw new Error(`Failed to register with microservice registry: ${error.message}`);
+		}
+		
+		this.logger.log(`Server initialized with instance id ${this.appConfig.serviceid}`);//, `${this.constructor.name}.onModuleInit`);
+	}
+	*/
+
+	/** Shut down the server by deregistering from the microservice registry and logging out from the auth service
+	 * @returns Promise that resolves to void when the server has been shut down
+	 * @throws Error if deregistration or logout fails
+	 */
+	/*
+	public async onModuleDestroy() {
+		this.logger.log('Destroying server...');//, `${this.constructor.name}.onModuleDestroy`);		
+		
+		// Deregister from the microservice registry
+		try {
+			void await this.registrationService.deregister();
+		}
+		catch (error) {
+			this.logger.log(`Failed to deregister from microservice registry: ${error.message}`);//, `${this.constructor.name}.onModuleDestroy`);
+			throw new Error(`Failed to deregister from microservice registry: ${error.message}`);
+		}
+
+		// Log out from the auth microservice
+		try {
+			void await this.authService.logout();
+		}
+		catch (error) {
+			this.logger.log(`Failed to log out from auth service: ${error.message}`);//, `${this.constructor.name}.onModuleDestroy`);
+			throw new Error(`Failed to log out from auth service: ${error.message}`);
+		}
+
+		this.logger.log('Server destroyed');//, `${this.constructor.name}.onModuleDestroy`);
+	}
+	*/
+}
