@@ -13,7 +13,6 @@ import { AppConfig, EndPointConfig, ServiceConfig } from '../../../shared/domain
 import AuthService from '../../domain/auth-service.class';
 import createTestingModule from '../../../test/test-utils';
 import RegistrationService from '../registration/registration.service';
-import RetryRequesterService from '../../../shared/services/utils/retry-requester/retry-requester.service';
 import SecurityConfig from '../../../shared/domain/security.config.model';
 
 describe('RegistrationService', () => {
@@ -40,7 +39,6 @@ describe('RegistrationService', () => {
 					useClass: ConsoleLogger
 				},
 				RegistrationService,
-				RetryRequesterService,
 				{
 					provide: HttpService,
 					useValue: {

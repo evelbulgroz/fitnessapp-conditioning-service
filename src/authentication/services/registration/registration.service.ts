@@ -1,13 +1,13 @@
-import { Injectable, RequestMethod } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
+import { Injectable, RequestMethod } from '@nestjs/common';
 
-import { firstValueFrom, from, switchMap, tap } from 'rxjs';
+import { firstValueFrom, from, Observable, switchMap, tap } from 'rxjs';
 
 import { Logger } from '@evelbulgroz/ddd-base';
 import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/service-data.dto';
 
 import { AuthService } from '../../domain/auth-service.class';
-import { RetryRequesterService } from '../../../shared/services/utils/retry-requester/retry-requester.service';
 import { ServiceConfig, EndPointConfig, DefaultConfig } from '../../../shared/domain/config-options.model';
 
 /** Service for de/registering a running instance of this app with the microservice registry */
@@ -20,7 +20,7 @@ export class RegistrationService {
 		private readonly authService: AuthService,
 		private readonly configService: ConfigService,
 		private readonly logger: Logger,
-		private readonly requester: RetryRequesterService,
+		private readonly http: HttpService,
 	) {
 		this.appConfig = this.configService.get<any>('app') ?? {};
 	}
@@ -35,11 +35,8 @@ export class RegistrationService {
 		this.logger.log('Deregistering service from the microservice registry...');//, `${this.constructor.name}.deregister`);
 
 		// set up data for request
-		const defaults = this.configService.get<DefaultConfig>('defaults') ?? {} as DefaultConfig;
 		const registryConfig = this.configService.get<ServiceConfig>(`services.${this.registryServiceName}`) ?? {} as ServiceConfig;
 		const endpointConfig = registryConfig?.endpoints?.deregister ?? {} as EndPointConfig;
-		const MAX_RETRIES = endpointConfig.retry?.maxRetries ?? defaults?.retry?.maxRetries ?? 0;
-		const RETRY_DELAY = endpointConfig.retry?.retryDelay ?? defaults?.retry?.retryDelay ?? 0;
 		
 		const url = registryConfig.baseURL.href + endpointConfig.path;
 		const body = {
@@ -57,7 +54,7 @@ export class RegistrationService {
 						authorization: `Bearer ${authData}` // access token
 					}
 				};
-				return this.requester.execute(url, RequestMethod[endpointConfig.method!], body, config, MAX_RETRIES, RETRY_DELAY) // execute the request
+				return this.executeRequest(url, RequestMethod[endpointConfig.method!], body, config) // execute the request
 					.pipe(
 						tap((response) => {
 							this.logger.log(`Service deregistration successful: ${response}`);//, `${this.constructor.name}.deregister`);
@@ -89,11 +86,8 @@ export class RegistrationService {
 		this.logger.log('Registering service with the microservice registry...');//, `${this.constructor.name}.register`);
 
 		// set up data for request
-		const defaults = this.configService.get<DefaultConfig>('defaults') ?? {} as DefaultConfig;
 		const registryConfig = this.configService.get<ServiceConfig>(`services.${this.registryServiceName}`) ?? {} as ServiceConfig;
 		const endpointConfig = registryConfig?.endpoints?.register ?? {} as EndPointConfig;
-		const MAX_RETRIES = endpointConfig.retry?.maxRetries ?? registryConfig.retry?.maxRetries ?? defaults?.retry?.maxRetries ?? 0;
-		const RETRY_DELAY = endpointConfig.retry?.retryDelay ?? registryConfig.retry?.retryDelay ?? defaults?.retry?.retryDelay ?? 0;
 		
 		const url = registryConfig.baseURL.href + registryConfig.endpoints?.register.path;
 		const body ={
@@ -111,7 +105,7 @@ export class RegistrationService {
 						authorization: `Bearer ${authData}` // access token
 					}
 				};
-				return this.requester.execute(url, RequestMethod[endpointConfig.method!], body, config, MAX_RETRIES, RETRY_DELAY) // execute the request
+				return this.executeRequest(url, RequestMethod[endpointConfig.method!], body, config) // execute the request
 					.pipe(
 						tap((response) => {
 							this.logger.log(`Service registration successful: ${response.status}`);//, `${this.constructor.name}.register`);
@@ -133,5 +127,19 @@ export class RegistrationService {
 		// return true if successful
 		return true;
 	}
+
+	/* Execute a request mapping RequestMethod to HttpService methods 
+	 * @param url The URL to request
+	 * @param method The request method
+	 * @param body The request body
+	 * @param config The request configuration
+	 * @returns An observable with the request result
+	 * @remark If injected with RetryHttpService, this method will automatically retry the request if it fails, using settings from config files
+	 */
+	protected executeRequest(url: string, method: RequestMethod, body: any, config: any): Observable<any> {
+		const methodString = RequestMethod[method].toLowerCase(); // get method as string from RequestMethod enum; convert to lowercase to match HttpService method names
+		return methodString === 'get' ? this.http.get(url, config) : (this.http as any)[methodString](url, body, config);
+	}
+		
 }
 export default RegistrationService;
