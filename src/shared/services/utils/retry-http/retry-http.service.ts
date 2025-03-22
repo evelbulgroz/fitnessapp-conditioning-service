@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
@@ -22,23 +22,16 @@ export class RetryHttpService extends HttpService {
 
 	/* Configure axios-retry for the HttpService instance */
 	protected configureAxios() {
-		console.debug('configureAxios');
 		const axiosInstance = this.axiosRef;
 		axiosRetry(axiosInstance, {
-			retries: 3, // set a default maximum number of retries (must be hard-coded, overridden by config in retryCondition)
-			retryDelay: (retryCount: number, error: AxiosError) => {
-				void retryCount; // suppress unused variable warning
-				console.debug('retryDelay error', error);
-				const retryConfig = this.getRetryConfig(error?.config?.url!);
-				console.debug('retryConfig', retryConfig);
-				return retryConfig?.retryDelay ?? 1000; // Use endpoint-specific delay or default to 1000ms
-			},
+			retries: 25, // set a default maximum number of retries (must be hard-coded, overridden by config in retryCondition)
 			retryCondition: (error: AxiosError) => {
+				//console.debug('Retry condition called with error:', error.toString());
 				const retryConfig = this.getRetryConfig(error?.config?.url!);
-				console.debug('retryCondition called with error', error);
+				//console.debug('retryConfig', retryConfig);				
 				const maxRetries = retryConfig?.maxRetries ?? 3;
 				const currentRetryCount = (error?.config as any)?.['axios-retry']?.retryCount ?? 0;
-
+				
 				// Log details about the retry condition
 				this.logger.warn(`RetryCondition triggered for URL: ${error?.config?.url}`);
 				this.logger.warn(`HTTP Status Code: ${error?.response?.status}`);
@@ -47,6 +40,7 @@ export class RetryHttpService extends HttpService {
 				this.logger.error(`Error Message: ${error.message}`);
 
 				if (currentRetryCount >= maxRetries) {
+					console.debug('Max retries reached. No further retries will be attempted.');
 					this.logger.warn('RetryCondition: Max retries reached. No further retries will be attempted.');
 					return false; // stop retrying if maxRetries is reached
 				}
@@ -56,7 +50,14 @@ export class RetryHttpService extends HttpService {
 
 				return isRetryable;
 			},
-		});
+			retryDelay: (retryCount: number, error: AxiosError) => {
+				console.debug('Retry delay called with retryCount:', retryCount, 'error:', error.toString());
+				void retryCount; // suppress unused variable warning
+				const retryConfig = this.getRetryConfig(error?.config?.url!);
+				//console.debug('retryConfig', retryConfig);
+				return retryConfig?.retryDelay ?? 1000; // Use endpoint-specific delay or default to 1000ms
+			},			
+		});		
 	}
 
 	/* Get the retry configuration for a given URL

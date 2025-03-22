@@ -1,5 +1,4 @@
-//jest.disableAutomock(); // Disable automocking for the ConfigService class
-//jest.unmock('@nestjs/config'); // Replace with the actual path to ConfigService
+//jest.disableAutomock(); // Disable automocking
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 
@@ -10,23 +9,9 @@ import { Logger } from '@evelbulgroz/ddd-base';
 import * as ConfigFactory from '../../../../../config/test.config';
 import { ConfigOptions, RetryConfig } from '../../../domain/config-options.model';
 import RetryHttpService from './retry-http.service';
-import { first, firstValueFrom, lastValueFrom, take } from 'rxjs';
+import { firstValueFrom, take } from 'rxjs';
 
-//jest.mock('axios');
-jest.mock('axios-retry', () => {
-	// mock the axios-retry module, making sure axiosRetry is set up correctly in the service constructor
-	const mockAxiosRetry = jest.fn((axiosInstance, options) => {
-		axiosInstance.defaults.retryCondition = options.retryCondition;
-		axiosInstance.defaults.retryDelay = options.retryDelay;
-	});
-
-	// add the isNetworkOrIdempotentRequestError function to the mock
-	(mockAxiosRetry as any).isNetworkOrIdempotentRequestError = jest.fn((error) => {
-		return error.message === 'Network Error';
-	});
-
-	return mockAxiosRetry;
-});
+//process.env.NODE_ENV = 'not-test'; // enable logging for tests (default is logger is disabled in test environment)
 
 describe('RetryHttpService', () => {
 	let defaultRetryConfig: RetryConfig
@@ -87,16 +72,11 @@ describe('RetryHttpService', () => {
 					},
 				},
 				RetryHttpService,
-				
-				
 			],
 		})
 		.compile();
 
 		service = module.get<RetryHttpService>(RetryHttpService);
-		//console.debug('axiosRef instance in RetryHttpService:', service['axiosRef']);
-		//console.debug('axiosRef defaults:', service['axiosRef'].defaults);
-
 		configService = service['configService'] as jest.Mocked<ConfigService>; // workaround: framework injects mock regardless of config service provided here, so get reference from service rather than module
 		logger = module.get<Logger>(Logger);
 		
@@ -148,44 +128,26 @@ describe('RetryHttpService', () => {
 
 	it('retries a request up to the configured maxRetries', async () => { // fails
 		// arrange
-		const mockResponse = { data: 'success' };
-		const mockError = {
-			config: { url: testUrl },
-			response: { status: 500 },
-			message: 'Test error',
-		};
+		const expectedRetries = service['getRetryConfig'](testUrl)?.maxRetries;
+		console.debug('Expected retries:', expectedRetries);
+		const requestLog: string[] = [];
+		service['axiosRef'].interceptors.request.use((config) => {
+			requestLog.push(config.url || 'unknown');
+			return config;
+		});
 		
-		const axiosGetSpy = jest.spyOn(service['axiosRef'], 'get')
-			.mockImplementationOnce(() => { console.debug('First attempt fails'); return Promise.reject(mockError)}) // First request fails
-			.mockImplementationOnce(() => { console.debug('Second attempt fails'); return Promise.reject(mockError)}) // Second request fails
-			.mockImplementationOnce(() => { console.debug('Third attempt succeeds'); return Promise.resolve(mockResponse)}); // Third request succeeds
-
-
-		/*jest.spyOn(service['axiosRef'], 'get')
-			.mockRejectedValueOnce(mockError) // first request fails
-			.mockRejectedValueOnce(mockError) // second request fails
-			.mockResolvedValueOnce(mockResponse); // third request succeeds
-		*/
-
 		try {
 			// act
-			console.debug('Starting test for retries...');
-			const response$ = service.get(testUrl).pipe(take(1)); // Use pipe() and take(1) to complete after one successful response
-			const response = await response$.toPromise(); // Convert the observable to a promise
-			console.debug('Response received:', response);
-		
-			// assert
-			expect(response?.data).toBe('success');
-			expect(axiosGetSpy).toHaveBeenCalledTimes(3); // Retries twice, then succeeds
-			expect(logger.warn).toHaveBeenCalledWith(`RetryCondition triggered for URL: ${testUrl}`);
-			expect(logger.warn).toHaveBeenCalledWith(`HTTP Status Code: 500`);
+			const response$ = service.get(testUrl).pipe(take(1));
+			void await firstValueFrom(response$);
 		}
 		catch (error) {
-			console.error('Error:', error);
+			// assert
+			expect(requestLog).toHaveLength(expectedRetries! + 1); // retryCondition exits when retryCount >= maxRetries, so expect maxRetries + 1 requests
+			expect(logger.warn).toHaveBeenCalledTimes(20);
 		}
 		finally {
 			// clean up
-			axiosGetSpy.mockRestore();
 			jest.restoreAllMocks();
 		}
 	});
