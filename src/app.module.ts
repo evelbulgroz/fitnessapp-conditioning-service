@@ -1,8 +1,7 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { Global, Module, Logger as NestLogger }  from '@nestjs/common';
-import axiosRetry from 'axios-retry';
-import { AxiosError } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 
 import { ConsoleLogger, Logger }  from '@evelbulgroz/ddd-base';
 
@@ -56,6 +55,14 @@ import { RetryHttpService } from './shared/services/utils/retry-http/retry-http.
 		{ // Provide RetryHttpService in place of HttpModule
 		  provide: HttpService,
 		  useClass: RetryHttpService,
+		},
+		{ // AXIOS_INSTANCE_TOKEN
+			// Provide AxiosInstance for use in RetryHttpService			
+			provide: 'AXIOS_INSTANCE_TOKEN',
+			useFactory: () => {
+				const axiosInstance: AxiosInstance = axios.create();	  
+				return axiosInstance;
+			},
 		},
 	],
 	exports: [
