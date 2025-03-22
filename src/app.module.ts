@@ -19,7 +19,7 @@ import { RetryHttpService } from './shared/services/utils/retry-http/retry-http.
 //class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger despite name conflit with ddd-base Logger
 
 
-// todo: Implement (de)registration logic copied over from API Gateway
+// todo: Implement (de)registration logic copied over from API Gateway (see below, skip in test environment)
 @Global()
 @Module({
 	imports: [
