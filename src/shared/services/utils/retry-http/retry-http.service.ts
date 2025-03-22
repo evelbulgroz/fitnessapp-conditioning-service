@@ -11,7 +11,7 @@ import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../..
 
 /** HttpService wrapper for making HTTP requests with automatic retry logic using axios-retry
  * @remark Uses the ConfigService to get retry configuration for each request
- * @remark Retry configuration is looked up in bottom-up order: endpoint -> service -> app default
+ * @remark Retry configuration is looked up in reverse hierarchical order: endpoint -> service -> app default
  */
 @Injectable()
 export class RetryHttpService extends HttpService {
@@ -51,13 +51,11 @@ export class RetryHttpService extends HttpService {
 				return isRetryable;
 			},
 			retryDelay: (retryCount: number, error: AxiosError) => {
-				console.debug('Retry delay called with retryCount:', retryCount, 'error:', error.toString());
 				void retryCount; // suppress unused variable warning
 				const retryConfig = this.getRetryConfig(error?.config?.url!);
-				console.debug('retryDelay retryConfig', retryConfig);
 				return retryConfig?.retryDelay ?? 1000; // Use endpoint-specific delay or default to 1000ms
 			},			
-		});		
+		});	
 	}
 
 	/* Get the retry configuration for a given URL
