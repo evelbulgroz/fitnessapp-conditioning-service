@@ -9,7 +9,10 @@ import { Logger } from '@evelbulgroz/ddd-base';
 
 import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../../../domain/config-options.model';
 
-/** Service for making HTTP requests with automatic retry logic using axios-retry */
+/** HttpService wrapper for making HTTP requests with automatic retry logic using axios-retry
+ * @remark Uses the ConfigService to get retry configuration for each request
+ * @remark Retry configuration is looked up in bottom-up order: endpoint -> service -> app default
+ */
 @Injectable()
 export class RetryHttpService extends HttpService {
 	constructor(
@@ -24,11 +27,9 @@ export class RetryHttpService extends HttpService {
 	protected configureAxios() {
 		const axiosInstance = this.axiosRef;
 		axiosRetry(axiosInstance, {
-			retries: 25, // set a default maximum number of retries (must be hard-coded, overridden by config in retryCondition)
+			retries: 3, // set a default maximum number of retries (must be hard-coded, overridden by config in retryCondition)
 			retryCondition: (error: AxiosError) => {
-				//console.debug('Retry condition called with error:', error.toString());
 				const retryConfig = this.getRetryConfig(error?.config?.url!);
-				//console.debug('retryConfig', retryConfig);				
 				const maxRetries = retryConfig?.maxRetries ?? 3;
 				const currentRetryCount = (error?.config as any)?.['axios-retry']?.retryCount ?? 0;
 				
@@ -40,7 +41,6 @@ export class RetryHttpService extends HttpService {
 				this.logger.error(`Error Message: ${error.message}`);
 
 				if (currentRetryCount >= maxRetries) {
-					console.debug('Max retries reached. No further retries will be attempted.');
 					this.logger.warn('RetryCondition: Max retries reached. No further retries will be attempted.');
 					return false; // stop retrying if maxRetries is reached
 				}
@@ -54,7 +54,7 @@ export class RetryHttpService extends HttpService {
 				console.debug('Retry delay called with retryCount:', retryCount, 'error:', error.toString());
 				void retryCount; // suppress unused variable warning
 				const retryConfig = this.getRetryConfig(error?.config?.url!);
-				//console.debug('retryConfig', retryConfig);
+				console.debug('retryDelay retryConfig', retryConfig);
 				return retryConfig?.retryDelay ?? 1000; // Use endpoint-specific delay or default to 1000ms
 			},			
 		});		
@@ -66,14 +66,13 @@ export class RetryHttpService extends HttpService {
 	 * @remark Looks up retry config in reverse hierarchal order: endpoint -> service -> app default
 	 */
 	protected getRetryConfig(url: string): RetryConfig | undefined {
-		//console.debug('getRetryConfig url', url);
-		// Check for endpoint-specific retry config
+		// check for endpoint-specific retry config
 		const endpointConfig = this.getEndpointConfig(url);
 		if (endpointConfig?.retry) {
 			return endpointConfig.retry;
 		}
 
-		// Check for service-specific retry config
+		// check for service-specific retry config
 		const serviceName = this.getServiceNameFromURL(url);
 		if (!serviceName) {	return undefined; }
 		const serviceConfig = this.getServiceConfig(serviceName);
@@ -81,13 +80,13 @@ export class RetryHttpService extends HttpService {
 			return serviceConfig.retry;
 		}
 
-		// Use default retry config
+		// use default retry config
 		const defaultConfig = this.configService.get('defaults') as DefaultConfig;
 		if (defaultConfig.retry) {
 			return defaultConfig.retry;
 		}
 
-		// No retry config found
+		// no retry config found
 		this.logger.warn(`No retry configuration found for URL: ${url}`);
 		return undefined;
 
