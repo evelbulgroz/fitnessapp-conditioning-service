@@ -15,6 +15,9 @@ import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../..
  */
 @Injectable()
 export class RetryHttpService extends HttpService {
+
+	//------------------------------------- CONSTRUCTOR -----------------------------------------//
+	
 	constructor(
 		private readonly configService: ConfigService,
 		private readonly logger: Logger,
@@ -22,6 +25,8 @@ export class RetryHttpService extends HttpService {
 		super();
 		this.configureAxios();
 	}
+
+	//---------------------------------- PROTECTED METHODS --------------------------------------//
 
 	/* Configure axios-retry for the HttpService instance */
 	protected configureAxios() {

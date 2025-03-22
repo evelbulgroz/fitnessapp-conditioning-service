@@ -28,7 +28,7 @@ export class TokenService extends AuthService {
 	private _loginPromise: Promise<{ accessToken: string, refreshToken: string }> | undefined;
 	private _refreshPromise: Promise<string> | undefined;
 
-	/*----------------------------------- CONSTRUCTOR ----------------------------------------*/
+	//------------------------------------- CONSTRUCTOR -----------------------------------------//
 	
 	public constructor(
 		private readonly config: ConfigService,
@@ -40,7 +40,7 @@ export class TokenService extends AuthService {
 		// intentionally empty: trying to set the token here breaks server startup
 	}
 
-	/*----------------------------------- PUBLIC API ----------------------------------------*/
+	//------------------------------------- PUBLIC API ------------------------------------------//
 
 	/** Get the current auth token, requesting a new one if needed
 	 * @returns Promise containing the access token
@@ -188,59 +188,7 @@ export class TokenService extends AuthService {
 		return `${this.constructor.name}.logout Service logged out successfully`;
 	}
 
-	//----------------------------------- PROTECTED METHODS ---------------------------------------
-
-	/* Bootstrap registration by getting a verification token from the microservice registry
-	 * @returns Promise containing the bootstrap response, or an error message
-	 * @throws Error if the bootstrap token request fails, or if the response is invalid
-	 * @remark Will throw an error if the response does not contain a verification token
-	 * @remark Will throw an error if the response contains auth service data that is invalid or incomplete
-	 */
-	protected async bootstrap(): Promise<BootstrapResponseDTO> {
-		this.logger.log(`${this.constructor.name}.bootstrap Acquiring bootstrap token from microservice registry...`);
-		
-		// set up data for request
-		const appConfig = this.config.get('app') ?? {} as AppConfig;
-		const registryConfig = this.config.get('services.fitnessapp-registry-service') ?? {} as ServiceConfig;		
-		const bootstrapConfig = registryConfig?.endpoints?.bootstrap ?? {} as EndPointConfig;		
-		const sharedSecret = this.config.get('security.verification.bootstrap.secret') ?? '';		
-		const url = registryConfig?.baseURL.href + bootstrapConfig.path + '/' + appConfig.servicename;
-		const body = null;
-		const options = {
-			headers: {
-				authorization: `Bearer ${sharedSecret}`
-			}
-		};
-
-		// execute the request
-		const method = RequestMethod[bootstrapConfig?.method?.toUpperCase()] as unknown as RequestMethod;
-		const response$ =  this.executeRequest(url, method, body, options);
-		const response = await firstValueFrom(response$);
-		
-		// validate the response
-		if (!response || response.status !== 200) {
-			const errorMsg = `${this.constructor.name}.bootstrap Bootstrap token request failed`;
-			this.logger.error(errorMsg);
-			throw new Error(errorMsg);
-		}
-
-		// sanitize the response
-		let bootstrapData: BootstrapResponseDTO;
-		try {
-			bootstrapData = new BootstrapResponseDTO(response.data);
-		}
-		catch (error) {
-			const errorMsg = `${this.constructor.name}.bootstrap Bootstrap token response invalid: ${error.message}`
-			this.logger.error(errorMsg);
-			throw new Error(errorMsg);
-		}
-
-		// log the response
-		this.logger.log(`${this.constructor.name}.bootstrap Bootstrap token acquired from microservice registry`);
-
-		// return the response data
-		return bootstrapData;
-	}
+	//----------------------------------- PROTECTED METHODS -------------------------------------//
 
 	/* Log in to the auth service to get an access token
 	 * @param bootstrapData - the response data from the bootstrap
@@ -307,6 +255,58 @@ export class TokenService extends AuthService {
 
 		// return the tokens
 		return { accessToken, refreshToken };
+	}
+
+	/* Bootstrap registration by getting a verification token from the microservice registry
+	 * @returns Promise containing the bootstrap response, or an error message
+	 * @throws Error if the bootstrap token request fails, or if the response is invalid
+	 * @remark Will throw an error if the response does not contain a verification token
+	 * @remark Will throw an error if the response contains auth service data that is invalid or incomplete
+	 */
+	protected async bootstrap(): Promise<BootstrapResponseDTO> {
+		this.logger.log(`${this.constructor.name}.bootstrap Acquiring bootstrap token from microservice registry...`);
+		
+		// set up data for request
+		const appConfig = this.config.get('app') ?? {} as AppConfig;
+		const registryConfig = this.config.get('services.fitnessapp-registry-service') ?? {} as ServiceConfig;		
+		const bootstrapConfig = registryConfig?.endpoints?.bootstrap ?? {} as EndPointConfig;		
+		const sharedSecret = this.config.get('security.verification.bootstrap.secret') ?? '';		
+		const url = registryConfig?.baseURL.href + bootstrapConfig.path + '/' + appConfig.servicename;
+		const body = null;
+		const options = {
+			headers: {
+				authorization: `Bearer ${sharedSecret}`
+			}
+		};
+
+		// execute the request
+		const method = RequestMethod[bootstrapConfig?.method?.toUpperCase()] as unknown as RequestMethod;
+		const response$ =  this.executeRequest(url, method, body, options);
+		const response = await firstValueFrom(response$);
+		
+		// validate the response
+		if (!response || response.status !== 200) {
+			const errorMsg = `${this.constructor.name}.bootstrap Bootstrap token request failed`;
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
+		}
+
+		// sanitize the response
+		let bootstrapData: BootstrapResponseDTO;
+		try {
+			bootstrapData = new BootstrapResponseDTO(response.data);
+		}
+		catch (error) {
+			const errorMsg = `${this.constructor.name}.bootstrap Bootstrap token response invalid: ${error.message}`
+			this.logger.error(errorMsg);
+			throw new Error(errorMsg);
+		}
+
+		// log the response
+		this.logger.log(`${this.constructor.name}.bootstrap Bootstrap token acquired from microservice registry`);
+
+		// return the response data
+		return bootstrapData;
 	}
 
 	/* Execute a request mapping RequestMethod to HttpService methods 
