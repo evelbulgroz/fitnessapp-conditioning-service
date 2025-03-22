@@ -22,6 +22,7 @@ export class RetryHttpService extends HttpService {
 
 	/* Configure axios-retry for the HttpService instance */
 	protected configureAxios() {
+		console.debug('configureAxios');
 		const axiosInstance = this.axiosRef;
 		axiosRetry(axiosInstance, {
 			retries: 3, // set a default maximum number of retries (must be hard-coded, overridden by config in retryCondition)
@@ -34,7 +35,7 @@ export class RetryHttpService extends HttpService {
 			},
 			retryCondition: (error: AxiosError) => {
 				const retryConfig = this.getRetryConfig(error?.config?.url!);
-				//console.debug('retryConfig', retryConfig);
+				console.debug('retryCondition called with error', error);
 				const maxRetries = retryConfig?.maxRetries ?? 3;
 				const currentRetryCount = (error?.config as any)?.['axios-retry']?.retryCount ?? 0;
 
