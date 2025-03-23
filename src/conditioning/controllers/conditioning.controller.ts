@@ -59,7 +59,11 @@ export class ConditioningController {
 		name: 'userId',
 		description: 'User ID (string or number)',
 		required: true,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+		}
 	})
 	@ApiBody({ 
 		type: ConditioningLog,
@@ -97,13 +101,21 @@ export class ConditioningController {
 		name: 'userId',
 		description: 'User ID (string or number)',
 		required: true,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+		}
 	})
 	@ApiParam({
 		name: 'logId',
 		description: 'Log ID (string or number)',
 		required: true,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+		}
 	})
 	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log ID, if found' })
 	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
@@ -142,13 +154,21 @@ export class ConditioningController {
 		name: 'userId',
 		description: 'User ID (string or number)',
 		required: true,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+		}
 	})
 	@ApiParam({
 		name: 'logId',
 		description: 'Log ID (string or number)',
 		required: true,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+		}
 	})
 	@ApiBody({ 
 		type: ConditioningLog,
@@ -187,13 +207,20 @@ export class ConditioningController {
 		name: 'userId',
 		description: 'User ID (string or number)',
 		required: true,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'}
 	})
 	@ApiParam({
 		name: 'logId',
 		description: 'Log ID (string or number)',
 		required: true,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+		}
 	})
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
@@ -225,13 +252,21 @@ export class ConditioningController {
 		name: 'userId',
 		description: 'User ID (string or number)',
 		required: true,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+		}
 	})
 	@ApiParam({
 		name: 'logId',
 		description: 'Log ID (string or number)',
 		required: true,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+		}
 	})
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@ApiResponse({ status: 204, description: 'Log undeleted successfully, no content returned' })
@@ -265,7 +300,11 @@ export class ConditioningController {
 		name: 'userId',
 		description: 'User ID (string or number, optional for admins)',
 		required: false,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+		}
 	})
 	@ApiQuery({
 		name: 'includeDeleted',
@@ -320,7 +359,11 @@ export class ConditioningController {
 		name: 'userId',
 		description: 'User ID (string or number, optional for admins)',
 		required: false,
-		schema: { type: 'string' }
+		schema: {
+			type: 'string',
+			format: 'uuid',
+			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+		}
 	})
 	@ApiQuery({
 		name: 'includeDeleted',
@@ -405,7 +448,15 @@ export class ConditioningController {
 		summary: 'Get all property rules for a supported type (e.g. for deserialization and validation of domain objects on front end)',
 		description: 'Returns all property rules for a supported type (e.g. for deserialization and validation of domain objects on front end). Example: http://localhost:3060/api/v3/conditioning/rules?type=ConditioningLog'
 	})
-	@ApiParam({ name: 'type', description: 'String name of entity type' })
+	@ApiParam({
+		name: 'type',
+		description: 'String name of entity type',
+		required: true,
+		schema: {
+			type: 'string',
+			example: 'ConditioningLog'
+		}
+	})
 	@ApiResponse({ status: 200, description: 'Rules object containing all own and inherited sanitization rules for the specified type (as PropertySanitizationDataDTO from sanitizer-decorator library)' })
 	@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
