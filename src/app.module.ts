@@ -6,20 +6,22 @@ import axios, { AxiosInstance } from 'axios';
 import { ConsoleLogger, Logger }  from '@evelbulgroz/ddd-base';
 
 import AuthenticationModule from './authentication/authentication.module';
+import AuthService from './authentication/domain/auth-service.class';
 import ConditioningController  from './conditioning/controllers/conditioning.controller';
 import ConditioningModule from './conditioning/conditioning.module';
 import EventDispatcherService  from './shared/services/utils/event-dispatcher/event-dispatcher.service';
+import RegistrationService from './authentication/services/registration/registration.service';
+import RetryHttpService from './shared/services/utils/retry-http/retry-http.service';
 import UserController  from './user/controllers/user.controller';
 import UserModule from './user/user.module';
 
 import productionConfig from './../config/production.config';
 import developmentConfig from '../config/development.config';
-import { RetryHttpService } from './shared/services/utils/retry-http/retry-http.service';
+import TokenService from './authentication/services/token/token.service';
 
-//class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger despite name conflit with ddd-base Logger
+class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger despite name conflit with ddd-base Logger
 
 
-// todo: Implement (de)registration logic copied over from API Gateway (see below, skip in test environment)
 @Global()
 @Module({
 	imports: [
@@ -48,11 +50,18 @@ import { RetryHttpService } from './shared/services/utils/retry-http/retry-http.
 			provide: Logger,
 			useClass: ConsoleLogger,
 		},
-		/*{ // Logger compatible with NestJS
+		{ // Logger compatible with NestJS
 			provide: NestJSLogger,
 			useClass: NestLogger,
-		},*/
-		{ // Provide RetryHttpService in place of HttpModule
+		},
+		RegistrationService,
+		{ // AuthService
+			// Provide the TokenService implementation of the AuthService interface
+			provide: AuthService,
+			useClass: TokenService
+
+		},
+		{ // RetryHttpService
 		  provide: HttpService,
 		  useClass: RetryHttpService,
 		},
@@ -75,7 +84,7 @@ import { RetryHttpService } from './shared/services/utils/retry-http/retry-http.
 	]
 })
 export class AppModule {
-	/*private readonly appConfig: any;
+	private readonly appConfig: any;
 	
 	constructor(
 		private readonly configService: ConfigService,
@@ -84,18 +93,16 @@ export class AppModule {
 		private readonly authService: AuthService
 	) {
 		this.appConfig = this.configService.get<any>('app') ?? {};
-	}
-	*/
+	}	
 
 	/** Initialize the server by logging in to the auth service and registering with the microservice registry
 	 * @returns Promise that resolves to void when the server initialization is complete
 	 * @throws Error if initialization fails
 	 */
-	/*
 	public async onModuleInit() {
 		this.logger.log('Initializing server...');//, `${this.constructor.name}.onModuleInit`);
 
-		// Log in to the auth microservice (internally gets and store access token)
+		// Log in to the auth microservice (internally gets and stores access token)
 		try {
 			void await this.authService.getAuthData();
 		}
@@ -115,13 +122,11 @@ export class AppModule {
 		
 		this.logger.log(`Server initialized with instance id ${this.appConfig.serviceid}`);//, `${this.constructor.name}.onModuleInit`);
 	}
-	*/
 
 	/** Shut down the server by deregistering from the microservice registry and logging out from the auth service
 	 * @returns Promise that resolves to void when the server has been shut down
 	 * @throws Error if deregistration or logout fails
 	 */
-	/*
 	public async onModuleDestroy() {
 		this.logger.log('Destroying server...');//, `${this.constructor.name}.onModuleDestroy`);		
 		
@@ -145,5 +150,6 @@ export class AppModule {
 
 		this.logger.log('Server destroyed');//, `${this.constructor.name}.onModuleDestroy`);
 	}
-	*/
 }
+
+export default AppModule;

@@ -5,11 +5,10 @@ import { ConsoleLogger, Logger } from '@nestjs/common';
 
 import { jest } from '@jest/globals';
 
-import { AppModule } from './app.module';
-import { AuthService } from './services/auth-service.class';
-import { createTestingModule } from './test/test-utils';
-import { RetryRequesterService } from './services/retry-requester.service';
-import { RegistrationService } from './services/registration.service';
+import AppModule from './app.module';
+import AuthService from './authentication/domain/auth-service.class';
+import createTestingModule from './test/test-utils';
+import RegistrationService from './authentication/services/registration/registration.service';
 
 describe('AppModule', () => {
 	let appModule: AppModule;	
@@ -19,7 +18,7 @@ describe('AppModule', () => {
 	let registrationService: RegistrationService;
 
 	beforeEach(async () => {
-		const module: TestingModule = await createTestingModule({
+		const module: TestingModule = await (await createTestingModule({
 			imports: [
 				// ConfigModule is imported automatically by createTestingModule
 				AppModule
@@ -44,9 +43,9 @@ describe('AppModule', () => {
 					},
 				},
 				RegistrationService,
-				RetryRequesterService,
 			],
-		});
+		}))
+		.compile();
 
 		appModule = module.get<AppModule>(AppModule);
 		authService = module.get<AuthService>(AuthService);
