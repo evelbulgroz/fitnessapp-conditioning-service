@@ -29,9 +29,9 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
  * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation.
  * @remark No need to duplicate documentation for TypeDoc, hence fewer traditional comments.
+ * @todo Move ValidationPipe up to controller level after retiring sessions endpoint
  */
 @ApiTags('conditioning')
-@ApiExtraModels(QueryDTO)
 @Controller('conditioning') // version prefix set in main.ts
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
@@ -55,13 +55,21 @@ export class ConditioningController {
 		summary: 'Create a new conditioning log for a user',
 		description: 'Creates a new conditioning log for a user, returning the id of the new log. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 	})
-	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
+	@ApiParam({
+		name: 'userId',
+		description: 'User ID (string or number)',
+		required: true,
+		schema: { type: 'string' }
+	})
 	@ApiBody({ 
 		type: ConditioningLog,
-		description: 'Expects object that can be deserialized to valid ConditioningLog'
+		description: 'Expects object that can be deserialized to valid ConditioningLog',
+		required: true
 	})
-	@ApiResponse({ status: 201, description: 'Log created successfully', type: EntityIdDTO })
-	@ApiResponse({ status: 400, description: 'Invalid data' })
+	@ApiResponse({ status: 200, description: 'Log created successfully', schema: { type: 'string' } })
+	@ApiResponse({ status: 201, description: 'Log created successfully, new log ID returned' })
+	@ApiResponse({ status: 204, description: 'Log created successfully, no content returned' })
+	@ApiResponse({ status: 400, description: 'Invalid data, see log for details' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async createLog(
@@ -85,11 +93,21 @@ export class ConditioningController {
 		summary: 'Get detailed conditioning log by ID',
 		description: 'Returns a single conditioning log by ID, if found. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 	})
-	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
-	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
+	@ApiParam({
+		name: 'userId',
+		description: 'User ID (string or number)',
+		required: true,
+		schema: { type: 'string' }
+	})
+	@ApiParam({
+		name: 'logId',
+		description: 'Log ID (string or number)',
+		required: true,
+		schema: { type: 'string' }
+	})
 	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log ID, if found' })
 	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
-	@ApiResponse({ status: 400, description: 'Request for log details failed' })
+	@ApiResponse({ status: 400, description: 'Request failed, see log for details' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({  whitelist: true, forbidNonWhitelisted: true,transform: true }))
@@ -120,15 +138,25 @@ export class ConditioningController {
 		summary: 'Update a conditioning log by user ID and log ID',
 		description: 'Updates a conditioning log by user ID and log ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 	})
-	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
-	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
+	@ApiParam({
+		name: 'userId',
+		description: 'User ID (string or number)',
+		required: true,
+		schema: { type: 'string' }
+	})
+	@ApiParam({
+		name: 'logId',
+		description: 'Log ID (string or number)',
+		required: true,
+		schema: { type: 'string' }
+	})
 	@ApiBody({ 
 		type: ConditioningLog,
 		description: 'Expects object that can be deserialized to (partial) ConditioningLog'
 	})
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
-	@ApiResponse({ status: 400, description: 'Invalid data' })
-	@ApiResponse({ status: 404, description: 'Log not found' })
+	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
+	@ApiResponse({ status: 400, description: 'Request failed, see log for details' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async updateLog(
@@ -155,8 +183,19 @@ export class ConditioningController {
 		description: 'Deletes a conditioning log by ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef'
 
 	})
-	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
-	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
+	@ApiParam({
+		name: 'userId',
+		description: 'User ID (string or number)',
+		required: true,
+		schema: { type: 'string' }
+	})
+	@ApiParam({
+		name: 'logId',
+		description: 'Log ID (string or number)',
+		required: true,
+		schema: { type: 'string' }
+	})
+	@HttpCode(HttpStatus.NO_CONTENT)
 	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
@@ -182,8 +221,19 @@ export class ConditioningController {
 		summary: 'Undelete a conditioning log by ID',
 		description: 'Undeletes a conditioning log by ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef/undelete'
 	})
-	@ApiParam({ name: 'userId', description: 'User ID (string or number)' })
-	@ApiParam({ name: 'logId', description: 'Log ID (string or number)' })
+	@ApiParam({
+		name: 'userId',
+		description: 'User ID (string or number)',
+		required: true,
+		schema: { type: 'string' }
+	})
+	@ApiParam({
+		name: 'logId',
+		description: 'Log ID (string or number)',
+		required: true,
+		schema: { type: 'string' }
+	})
+	@HttpCode(HttpStatus.NO_CONTENT)
 	@ApiResponse({ status: 204, description: 'Log undeleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
@@ -211,9 +261,25 @@ export class ConditioningController {
 		summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)',
 		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example: http://localhost:56383/api/v3/conditioning/logs?userId=ddc97caa-faea-44aa-a351-79af7c394e29&includeDeleted=false&start=2021-01-01&end=2021-12-31&activity=MTB&sortBy=duration&order=ASC&page=1&pageSize=10'
 	})
-	@ApiQuery({ name: 'userId', description: 'User ID (string or number, optional for admins)' })
-	@ApiQuery({ name: 'includeDeleted', description: 'Include soft deleted logs (true or false, optional unless using query, defaults to false)' })	
-	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs. Should not include duplicate userId or includeDeleted, or request will fail'})
+	@ApiQuery({
+		name: 'userId',
+		description: 'User ID (string or number, optional for admins)',
+		required: false,
+		schema: { type: 'string' }
+	})
+	@ApiQuery({
+		name: 'includeDeleted',
+		description: 'Include soft deleted logs (true or false, optional unless using query, defaults to false)',
+		required: false,
+		type: 'boolean'	
+	})	
+	@ApiQuery({
+		name: 'queryDTO',
+		required: false,
+		type: 'object',
+		schema: { $ref: getSchemaPath(QueryDTO) },
+		description: 'Optional query parameters for filtering logs. Should not include duplicate userId or includeDeleted, or request will fail'
+	})
 	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
 	@ApiResponse({ status: 400, description: 'Request for logs failed' })
 	@ApiResponse({ status: 404, description: 'No logs found' })
@@ -250,9 +316,24 @@ export class ConditioningController {
 		summary: 'Get list of the number of times each conditioning activity has been logged for a single user, or all users (role = admin)',
 		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:60741/api/v3/conditioning/activities?userId=1593d697-2dfc-4f29-8f4b-8c1f9343ef56&includeDeleted=false&start=2025-01-01T00:00:00Z&end=2025-01-31T23:59:59Z&activity=RUN&sortBy=date&order=ASC&page=1&pageSize=10'
 	})
-	@ApiQuery({ name: 'userId', description: 'User ID (string or number, optional for admins)' })
-	@ApiQuery({ name: 'includeDeleted', description: 'Include soft deleted logs in the count (true or false, optional unless using query, defaults to false)' })
-	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs. Should not include duplicate userId or includeDeleted, or request will fail'})
+	@ApiQuery({
+		name: 'userId',
+		description: 'User ID (string or number, optional for admins)',
+		required: false,
+		schema: { type: 'string' }
+	})
+	@ApiQuery({
+		name: 'includeDeleted',
+		description: 'Include soft deleted logs in the count (true or false, optional unless using query, defaults to false)',
+		required: false,
+		type: 'boolean'
+	})
+	@ApiQuery({
+		name: 'queryDTO',
+		description: 'Optional query parameters for filtering logs. Should not include duplicate userId or includeDeleted, or request will fail',
+		required: false,
+		type: 'object', schema: { $ref: getSchemaPath(QueryDTO)},		
+	})
 	@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
 	@ApiResponse({ status: 400, description: 'Request for activities failed' })
 	@ApiResponse({ status: 404, description: 'No activities found' })
@@ -285,9 +366,19 @@ export class ConditioningController {
 		summary: 'Aggregate conditioning logs using aggregation parameters and optional logs query',
 		description: 'Aggregates conditioning logs using aggregation parameters and optional logs query. Example: http://localhost:3060/api/v3/conditioning/aggregate'
 	})
-	@ApiBody({ type: AggregationQueryDTO })
-	@ApiQuery({	name: 'queryDTO', required: false, type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }, description: 'Optional query parameters for filtering logs'})
+	@ApiBody({
+		description: 'Aggregation parameters for conditioning logs',
+		required: true,
+		type: AggregationQueryDTO
+	})
+	@ApiQuery({
+		name: 'queryDTO',
+		description: 'Optional query parameters for filtering logs to aggregate',
+		required: false,
+		type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }
+	})
 	@ApiResponse({ status: 200, description: 'Aggregated conditioning data as AggregatedTimeSeries from time-series library' })
+	@ApiResponse({ status: 400, description: 'Request for aggregation failed' })
   	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist:true, forbidNonWhitelisted: true, transform: true }))
 	public async aggregate(
