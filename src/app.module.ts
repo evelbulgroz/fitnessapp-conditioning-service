@@ -65,6 +65,7 @@ class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger de
 		  provide: HttpService,
 		  useClass: RetryHttpService,
 		},
+		//RetryHttpService,
 		{ // AXIOS_INSTANCE_TOKEN
 			// Provide AxiosInstance for use in RetryHttpService			
 			provide: 'AXIOS_INSTANCE_TOKEN',

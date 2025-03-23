@@ -58,7 +58,7 @@ export default async () => {
 		security: testSecurityConfig(),
 		services: {
 			'fitnessapp-authentication-service': {
-				baseURL: new URL('https://localhost:3010/auth/api/v1'),
+				baseURL: new URL('http://localhost:3010/auth/api/v1'),
 				endpoints: {
 					serviceRefresh: {
 						path: '/service/refresh',
@@ -75,7 +75,7 @@ export default async () => {
 				}
 			},
 			'fitnessapp-registry-service': {
-				baseURL: new URL('https://localhost:3000/registry/api/v1'),
+				baseURL: new URL('http://localhost:3000/registry/api/v1'),
 				endpoints: {
 					bootstrap: {
 						path: '/bootstrap',
@@ -96,7 +96,7 @@ export default async () => {
 				}
 			},
 			'conditioningservice' : {
-				baseURL: new URL('https://localhost:3020/conditionings'),			
+				baseURL: new URL('http://localhost:3020/conditionings'),			
 			},
 		}
 	});

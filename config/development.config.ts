@@ -53,7 +53,7 @@ export default () => (<ConfigOptions>{
 	security: developmentSecurityConfig(),
 	services: {		
 		'fitnessapp-authentication-service': {
-			baseURL: new URL('https://localhost:3010/auth/api/v1'),
+			baseURL: new URL('http://localhost:3010/auth/api/v1'),
 			endpoints: {
 				serviceRefresh: {
 					path: '/service/refresh',
@@ -70,7 +70,7 @@ export default () => (<ConfigOptions>{
 			}
 		},
 		'fitnessapp-registry-service': {
-			baseURL: new URL('https://localhost:3000/registry/api/v1'),
+			baseURL: new URL('http://localhost:3000/registry/api/v1'),
 			endpoints: {
 				bootstrap: {
 					path: '/bootstrap',
@@ -91,7 +91,7 @@ export default () => (<ConfigOptions>{
 			}
 		},
 		'fitnessapp-user-service': {
-			baseURL: new URL('https://localhost:3000/registry/api/v1'),
+			baseURL: new URL('http://localhost:3000/registry/api/v1'),
 			endpoints: {
 				fetchUser: {
 					path: '/bootstrap',
