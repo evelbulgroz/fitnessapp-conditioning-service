@@ -20,16 +20,20 @@ async function bootstrap() {
 	const port = appConfig.baseURL?.port;
 
 	// Publish API documentation
-	/*
+	// wait for package.json to be imported before trying to access it:
+	// importing it directly may cause an error because the file is not yet available
+	const packageJson = (await import('../package.json') as any).default as any;
+	//const majorVersion = parseInt(packageJson.version?.split('.')[0]);
+	//const minorVersion = parseInt(packageJson.version?.split('.')[1]);
+	//const patchVersion = parseInt(packageJson.version?.split('.')[2]);
 	const config = new DocumentBuilder()
 		.setTitle('FitnessApp API')
 		.setDescription('API documentation for FitnessApp')
-		.setVersion('1.0')
+		.setVersion(packageJson.version)
 		.build();
 	const document = SwaggerModule.createDocument(app, config);
 	SwaggerModule.setup('api-docs', app, document); // e.g. http://localhost:3000/api-docs
-	*/
-
+	
 	// Start the application
 	await app.listen(port);
 	logger.log(`Application is running on: ${await app.getUrl()}/${prefix}`);//, 'Bootstrap');

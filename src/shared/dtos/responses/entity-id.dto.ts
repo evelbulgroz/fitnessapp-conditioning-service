@@ -1,5 +1,8 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 import { EntityId } from '@evelbulgroz/ddd-base';
 import { IsDefined, IsInstanceOfOneOf,IsNotEmpty, MaxLength, ToString } from "@evelbulgroz/sanitizer-decorator";
+
 import { SafePrimitive } from './safe-primitive.class';
 
 /** DTO for sanitizing a single entity id value in a response
@@ -16,6 +19,7 @@ export class EntityIdDTO extends SafePrimitive<EntityId> {
 		this.value = value;
 	}
 	
+	@ApiProperty({ description: 'Entity ID value (string or number)' })
 	@IsDefined()
 	@IsInstanceOfOneOf([String, Number], { allowNull: false, allowUndefined: false, message: 'entity id must be a string or a number' })
 	@ToString() // coerce to string to enable validation of max length (if number, strings are passed through)

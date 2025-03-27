@@ -40,6 +40,7 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
+@ApiExtraModels(EntityIdDTO, BooleanDTO, ConditioningLog, QueryDTO, AggregationQueryDTO, DomainTypeDTO) // Add extra models for Swagger
 export class ConditioningController {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
