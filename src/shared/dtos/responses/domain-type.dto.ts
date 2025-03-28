@@ -15,8 +15,8 @@ export class DomainTypeDTO extends SafePrimitive<string> {
 		if ((value as unknown) instanceof SafePrimitive) {
 			// work around bug where tests call constructor with SafePrimitive after serialization
 			value = (value as unknown as SafePrimitive<string>).value;
-		}		
-		this.value = value;this.value = value;
+		}	
+		this.value = value;
 	}
 
 	@ApiProperty({

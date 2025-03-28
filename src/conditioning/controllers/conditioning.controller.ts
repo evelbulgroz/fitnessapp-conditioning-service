@@ -33,12 +33,13 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
  */
 @ApiTags('conditioning')
 @Controller('conditioning') // version prefix set in main.ts
-@UseGuards(
+/*@UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
 	LoggingGuard // log all requests to the console
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
+	*/
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
 export class ConditioningController {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
@@ -482,8 +483,9 @@ export class ConditioningController {
 	@ApiResponse({ status: 200, description: 'Rules object containing all own and inherited sanitization rules for the specified type (as PropertySanitizationDataDTO from sanitizer-decorator library)' })
 	@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
-	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	@UsePipes(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false, transform: true }))
 	public async fetchValidationRules(@Param('type') type: DomainTypeDTO): Promise<{ [key: string]: PropertySanitizationDataDTO[] }> {
+		console.debug(`Fetching validation rules for type: ${type.value}`, Object.keys(type));
 		switch (type.value) {
 			case 'ConditioningLog':
 				const rules = ConditioningLog.getSanitizationRules();
