@@ -67,7 +67,28 @@ export class ConditioningController {
 	})
 	@ApiBody({ 
 		type: ConditioningLog,
-		description: 'Expects object that can be deserialized to valid ConditioningLog',
+		description: 'Expects object that can be deserialized to a valid ConditioningLog. NOTE: Domain entities and DTOs prohibited from using 3rd party decorators, e.g. Swagger. Please refer to examples below instead. Please use the /rules endpoint to get fully detailed properties and validation rules for any supported domain entity.',
+		examples: {
+			'Example 1': {
+				value: {
+					activity: 'RUN',
+					start: '2021-01-01T00:00:00Z',
+					end: '2021-01-01T01:00:00Z',
+					duration: 3600,
+					distance: 10,
+					date: '2021-01-01T00:00:00Z',
+					note: 'Ran 10km in 1 hour',
+					laps: [
+						{ duration: 1800, distance: 5, notes: 'First half' },
+						{ duration: 1800, distance: 5, notes: 'Second half' }
+					],
+					sensorLogs: [
+						{ sensorType: 'HEARTRATE', unit: 'bpm', data: [{ timeStamp: '2021-01-01T00:00:00Z', value: 60 }, { timeStamp: '2021-01-01T00:30:00Z', value: 120 }] },
+						{ sensorType: 'GEOLOCATION', unit: 'm', data: [{ timeStamp: '2021-01-01T00:00:00Z', value: { lat: 0, lon: 0 } }, { timeStamp: '2021-01-01T00:30:00Z', value: { lat: 0, lon: 0 } }] }
+					]
+				}
+			}
+		},
 		required: true
 	})
 	@ApiResponse({ status: 200, description: 'Log created successfully', schema: { type: 'string' } })
@@ -461,7 +482,7 @@ export class ConditioningController {
 	@ApiResponse({ status: 200, description: 'Rules object containing all own and inherited sanitization rules for the specified type (as PropertySanitizationDataDTO from sanitizer-decorator library)' })
 	@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async fetchValidationRules(@Param('type') type: DomainTypeDTO): Promise<{ [key: string]: PropertySanitizationDataDTO[] }> {
 		switch (type.value) {
 			case 'ConditioningLog':
