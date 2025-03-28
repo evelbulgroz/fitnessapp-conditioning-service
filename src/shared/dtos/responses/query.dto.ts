@@ -1,3 +1,5 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 import { ActivityType } from "@evelbulgroz/fitnessapp-base";
 import { EntityId } from "@evelbulgroz/ddd-base";
 import {
@@ -41,6 +43,7 @@ export interface QueryDTOProps {
  * @remark Intended for use in endpoint validation pipe to validate query parameters
  * @todo Reassess need for own date conversion method, in addition to the decorator
  * @todo Consider constraining sort order with enum from query-fns package
+ * * @todo Remove APIProperty decorators if/when @evelbulgroz/sanitizer-decorator adds support for Swagger
 */
 export class QueryDTO extends DataTransferObject {
 	//----------------------------- PROPERTIES -----------------------------//
@@ -95,18 +98,36 @@ export class QueryDTO extends DataTransferObject {
 	//--------------------------- GETTERS/SETTERS ---------------------------//
 	
 	/** Start date for the log */
+	@ApiProperty({
+		type: String,
+		description: 'Start date for the log. Must be an ISO date or undefined. Must not exceed 100 characters. Must be before end, if defined.',
+		example: '2021-01-01T00:00:00.000Z',
+		required: false
+	})
 	@IsDate({ allowNull: false, allowUndefined: false, message: 'start must be a date' })
 	@IsBefore('end', { compareToOtherProperty: true, allowUndefined: true, message: 'start must be before end' })
 	set start(value: Date | undefined) { this._start = value; }
 	get start() { return this._start; }
 
 	/** End date for the log */
+	@ApiProperty({
+		type: String,
+		description: 'End date for the log. Must be an ISO date or undefined. Must not exceed 100 characters. Must be after start, if defined.',
+		example: '2021-01-01T00:00:00.000Z',
+		required: false
+	})
 	@IsDate({ allowNull: false, allowUndefined: false, message: 'end must be a date' })
 	@IsAfter('start', { compareToOtherProperty: true, allowUndefined: true, message: 'end must be after start' })
 	set end(value: Date | undefined) { this._end = value; }
 	get end() { return this._end; }
 
 	/** Activity to filter logs by	*/
+	@ApiProperty({
+		type: String,
+		description: 'Activity to filter logs by. Must be a string or undefined. Must not exceed 100 characters. Must be a valid activity type.',
+		example: 'Running',
+		required: false
+	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'activity must be a string' })
 	@MaxLength(MAX_PROPERTY_LENGTH, { message: `activity must have less than ${MAX_PROPERTY_LENGTH} characters` })
 	@IsValidEnumValue(ActivityType, { message: 'activity must be a valid activity type' })
@@ -114,6 +135,12 @@ export class QueryDTO extends DataTransferObject {
 	get activity() { return this._activity; }
 
 	/** User id (issued by user microservice) to filter logs by */
+	@ApiProperty({
+		type: String,
+		description: 'User ID (issued by user microservice) to filter logs by. Must be a string or number or undefined. Must not exceed 100 characters.',
+		example: '12345678-1234-1234-1234-123456789012',
+		required: false
+	})
 	@IsInstanceOfOneOf([String, Number], { allowNull: false, allowUndefined: true, message: 'userId must be a string or a number' })
 	@ToString({allowUndefined: true}) // coerce to string to enable validation of max length (if number, strings are passed through)
 	@MaxLength(MAX_PROPERTY_LENGTH, {allowUndefined: true, message: `userId must have less than ${MAX_PROPERTY_LENGTH} characters` })
@@ -130,12 +157,24 @@ export class QueryDTO extends DataTransferObject {
 	get userId() { return this._userId; }
 
 	/** Property key to sort logs by */
+	@ApiProperty({
+		type: String,
+		description: 'Property key to sort logs by. Must be a string or undefined. Must not exceed 100 characters.',
+		example: 'timestamp',
+		required: false
+	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'sortBy must be a string' })
 	@MaxLength(MAX_PROPERTY_LENGTH, { message: `sortBy must have less than ${MAX_PROPERTY_LENGTH} characters` })
 	set sortBy(value: string | undefined) { this._sortBy = value; }
 	get sortBy() { return this._sortBy; }
 
 	/** Sort order for logs */
+	@ApiProperty({
+		type: String,
+		description: 'Sort order for logs. Must be "ASC" or "DESC". Must be a string or undefined. Must not exceed 100 characters.',
+		example: 'ASC',
+		required: false
+	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'order must be a string' })
 	@MaxLength(MAX_PROPERTY_LENGTH, { message: `order must have less than ${MAX_PROPERTY_LENGTH} characters` })
 	@ToUpperCase()
@@ -144,12 +183,24 @@ export class QueryDTO extends DataTransferObject {
 	get order() { return this._order; }
 	
 	/** Page number for paginated results */
+	@ApiProperty({
+		type: Number,
+		description: 'Page number for paginated results. Must be a number or undefined. Must be less than 100.',
+		example: 1,
+		required: false
+	})
 	@ToNumber({ allowNull: false, allowUndefined: false, message: 'page must be a number' }) // numbers may be passed as strings, so coerce to number
 	@Max(MAX_PAGE_NUMBER, { message: `page must be less than ${MAX_PAGE_NUMBER}` })
 	set page(value: number | undefined) { this._page = value; }
 	get page() { return this._page; }
 
 	/** Number of results per page */
+	@ApiProperty({
+		type: Number,
+		description: 'Number of results per page. Must be a number or undefined. Must be less than 100.',
+		example: 10,
+		required: false
+	})
 	@ToNumber({ allowNull: false, allowUndefined: false, message: 'pageSize must be a number' }) // numbers may be passed as strings, so coerce to number
 	@Max(MAX_PAGE_SIZE, { message: `pageSize must be less than ${MAX_PAGE_SIZE}` })
 	set pageSize(value: number | undefined) { this._pageSize = value; }

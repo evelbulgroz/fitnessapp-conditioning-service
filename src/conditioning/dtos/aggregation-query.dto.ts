@@ -1,3 +1,5 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 import { AggregationType, SampleRate } from "@evelbulgroz/time-series";
 import { IsNotEmpty, IsString, IsValidEnumValue, Matches, MaxLength } from "@evelbulgroz/sanitizer-decorator";
 
@@ -18,6 +20,7 @@ export interface AggregationQueryDTOProps {
 /** Represents sanitized aggregation query parameters received by an endpoint in a JSON object.
  * @remark Equivalent to the same class from the time-series library but adds sanitization
  * @remark Instances are guaranteed to be valid: constructor and accessors throw error if passed invalid data
+ * @todo Remove APIProperty decorators if/when @evelbulgroz/sanitizer-decorator adds support for Swagger
  */
 export class AggregationQueryDTO extends DataTransferObject {
 	//----------------------------- PROPERTIES -----------------------------
@@ -54,6 +57,12 @@ export class AggregationQueryDTO extends DataTransferObject {
 	//--------------------------- GETTERS/SETTERS ---------------------------//
 	
 	/** Name of the type of data to be aggregated, e.g. 'TrainingLog', 'SensorLog', etc. (for deserialization purposes) */
+	@ApiProperty({
+		type: String,
+		description: 'Name of the type of data to be aggregated',
+		example: 'ConditioningLog',
+		required: true,
+	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'aggregatedType must be a string' })
 	@IsNotEmpty({ message: 'aggregatedType must not be empty' })
 	@MaxLength(100, { message: 'aggregatedType must have less than 100 characters' })
@@ -64,6 +73,12 @@ export class AggregationQueryDTO extends DataTransferObject {
 	get aggregatedType(): string { return this._aggregatedType; }
 	
 	/** The name (key) of the property that is aggregated, e.g. 'duration', 'distance', 'weight', etc. */
+	@ApiProperty({
+		type: String,
+		description: 'The name (key) of the property that is aggregated',
+		example: 'duration',
+		required: true,
+	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'aggregatedProperty must be a string' })
 	@IsNotEmpty({ message: 'aggregatedProperty must not be empty' })
 	@MaxLength(100, { message: 'aggregatedProperty must have less than 100 characters' })
@@ -87,6 +102,12 @@ export class AggregationQueryDTO extends DataTransferObject {
 	get aggregatedProperty(): string { return this._aggregatedProperty; }
 	
 	/** Optional unit of aggregated value, e.g. 'ms', 'kg', etc., if different from that of time series (default is same as time series) */
+	@ApiProperty({
+		type: String,
+		description: 'Optional unit of aggregated value',
+		example: 'ms',
+		required: false,
+	})
 	@IsString({ allowNull: true, allowUndefined: true, message: 'aggregatedValueUnit must be a string' })
 	@MaxLength(100, { message: 'aggregatedValueUnit must have less than 100 characters' })
 	@Matches(/^[a-zA-Z0-9_]+$/, { message: 'aggregatedValueUnit must contain only letters, numbers, and underscores' })
@@ -96,6 +117,12 @@ export class AggregationQueryDTO extends DataTransferObject {
 	get aggregatedValueUnit(): string | undefined { return this._aggregatedValueUnit; }
 	
 	/**The type of aggregation to perform, e.g. 'sum', 'average', 'max', 'min', etc. (default is SUM) */
+	@ApiProperty({
+		type: String,
+		description: 'The type of aggregation to perform',
+		example: 'sum',
+		required: false,
+	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'aggregationType must be a string' })
 	@IsNotEmpty({ message: 'aggregationType must not be empty' })
 	@MaxLength(100, { message: 'aggregationType must have less than 100 characters' })
@@ -106,6 +133,12 @@ export class AggregationQueryDTO extends DataTransferObject {
 	get aggregationType(): AggregationType { return this._aggregationType; }
    
 	/** The period over which the aggregation is performed, e.g. 'day', 'week', 'month', 'year', etc. (default is DAY) */
+	@ApiProperty({
+		type: String,
+		description: 'The period over which the aggregation is performed',
+		example: 'day',
+		required: false,
+	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'sampleRate must be a string' })
 	@IsNotEmpty({ message: 'sampleRate must not be empty' })
 	@MaxLength(100, { message: 'sampleRate must have less than 100 characters' })

@@ -40,7 +40,6 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
-@ApiExtraModels(EntityIdDTO, BooleanDTO, ConditioningLog, QueryDTO, AggregationQueryDTO, DomainTypeDTO) // Add extra models for Swagger
 export class ConditioningController {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
@@ -320,6 +319,7 @@ export class ConditioningController {
 		schema: { $ref: getSchemaPath(QueryDTO) },
 		description: 'Optional query parameters for filtering logs. Should not include duplicate userId or includeDeleted, or request will fail'
 	})
+	@ApiExtraModels(QueryDTO) // Trigger inclusion of QueryDTO in Swagger, getSchemaPath(QueryDTO) is not enough
 	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
 	@ApiResponse({ status: 400, description: 'Request for logs failed' })
 	@ApiResponse({ status: 404, description: 'No logs found' })
@@ -423,7 +423,7 @@ export class ConditioningController {
 	})
 	@ApiResponse({ status: 200, description: 'Aggregated conditioning data as AggregatedTimeSeries from time-series library' })
 	@ApiResponse({ status: 400, description: 'Request for aggregation failed' })
-  	@Roles('admin', 'user')
+	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist:true, forbidNonWhitelisted: true, transform: true }))
 	public async aggregate(
 		@Req() req: any,
@@ -462,7 +462,7 @@ export class ConditioningController {
 	@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
-	public async fetchValidationRules(@Param('type') type: DomainTypeDTO): Promise<{	[key: string]: PropertySanitizationDataDTO[] }> {
+	public async fetchValidationRules(@Param('type') type: DomainTypeDTO): Promise<{ [key: string]: PropertySanitizationDataDTO[] }> {
 		switch (type.value) {
 			case 'ConditioningLog':
 				const rules = ConditioningLog.getSanitizationRules();

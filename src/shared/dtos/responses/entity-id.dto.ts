@@ -6,7 +6,8 @@ import { IsDefined, IsInstanceOfOneOf,IsNotEmpty, MaxLength, ToString } from "@e
 import { SafePrimitive } from './safe-primitive.class';
 
 /** DTO for sanitizing a single entity id value in a response
-*/
+ * @todo Remove APIProperty decorator if/when @evelbulgroz/sanitizer-decorator adds support for Swagger
+ */
 export class EntityIdDTO extends SafePrimitive<EntityId> {
 	// _value is inherited from base class
 		
@@ -19,7 +20,12 @@ export class EntityIdDTO extends SafePrimitive<EntityId> {
 		this.value = value;
 	}
 	
-	@ApiProperty({ description: 'Entity ID value (string or number)' })
+	@ApiProperty({
+		type: String,
+		description: 'Entity ID value (string or number). Must be a valid UUID or a number. Must not exceed 36 characters.',
+		example: '12345678-1234-1234-1234-123456789012',
+		required: true
+	})
 	@IsDefined()
 	@IsInstanceOfOneOf([String, Number], { allowNull: false, allowUndefined: false, message: 'entity id must be a string or a number' })
 	@ToString() // coerce to string to enable validation of max length (if number, strings are passed through)

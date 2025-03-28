@@ -27,8 +27,8 @@ async function bootstrap() {
 	//const minorVersion = parseInt(packageJson.version?.split('.')[1]);
 	//const patchVersion = parseInt(packageJson.version?.split('.')[2]);
 	const config = new DocumentBuilder()
-		.setTitle('FitnessApp API')
-		.setDescription('API documentation for FitnessApp')
+		.setTitle('FitnessApp Conditioning Service API')
+		.setDescription('API documentation for FitnessApp Conditioning Service')
 		.setVersion(packageJson.version)
 		.build();
 	const document = SwaggerModule.createDocument(app, config);
