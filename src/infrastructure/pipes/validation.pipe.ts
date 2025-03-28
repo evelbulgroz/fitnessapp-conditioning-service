@@ -62,6 +62,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	
 		try {
 			const object = new metatype(value);
+			console.debug('transform:', {metadata, metatype, value, object});
 	
 			if (this.options.forbidNonWhitelisted) {
 				this.checkForNonWhitelistedProperties(value, object);
@@ -84,17 +85,20 @@ export class ValidationPipe implements PipeTransform<any> {
 	// Check if the value should be validated
 	private toValidate(metatype: Function): boolean {
 		const types: Function[] = [String, Boolean, Number, Array, Object];
+		console.debug('toValidate:', metatype, !types.includes(metatype));
 		return !types.includes(metatype);
 	}
 	
 	// Check if the value is a primitive type (string, boolean, number)
 	private isPrimitive(value: any): boolean {
+		console.debug('isPrimitive:', typeof value, ['string', 'boolean', 'number'].includes(typeof value));
 		return ['string', 'boolean', 'number'].includes(typeof value);
 	}
 	
 	// Transform the value to the expected primitive type indicated by the metadata
 	private transformPrimitive(value: any, metadata: ArgumentMetadata): any {
 		const { metatype } = metadata;
+		console.debug('transformPrimitive:', metatype, value);
 		if (metatype === Boolean) {
 			return this.toBoolean(value);
 		} else if (metatype === Number) {

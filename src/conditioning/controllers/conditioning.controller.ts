@@ -485,7 +485,7 @@ export class ConditioningController {
 	@Roles('admin', 'user')
 	@UsePipes(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false, transform: true }))
 	public async fetchValidationRules(@Param('type') type: DomainTypeDTO): Promise<{ [key: string]: PropertySanitizationDataDTO[] }> {
-		console.debug(`Fetching validation rules for type: ${type.value}`, Object.keys(type));
+		console.debug(`Fetching validation rules for type: ${type.value}`, type);
 		switch (type.value) {
 			case 'ConditioningLog':
 				const rules = ConditioningLog.getSanitizationRules();
