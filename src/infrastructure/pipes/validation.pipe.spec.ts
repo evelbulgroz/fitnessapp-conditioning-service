@@ -75,6 +75,22 @@ describe('ValidationPipe', () => {
 			const metadata: ArgumentMetadata = { metatype: ValidDTO, type: 'body', data: '' };
 			expect(() => pipe.transform(value, metadata)).toThrow(BadRequestException);
 		});
+
+		it('skips forbidNonWhitelisted if value is a primitive validated by a DTO', () => {
+			pipe = new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true });
+			const value = '12345678-1234-1234-1234-123456789012';
+			const metadata: ArgumentMetadata = { metatype: ValidDTO, type: 'query', data: '' };
+			const result = pipe.transform(value, metadata);
+			expect(result).toBe('12345678-1234-1234-1234-123456789012');
+		});
+		
+		it('skips whitelist if value is a primitive validated by a DTO', () => {
+			pipe = new ValidationPipe({ transform: true, whitelist: true });
+			const value = '12345678-1234-1234-1234-123456789012';
+			const metadata: ArgumentMetadata = { metatype: ValidDTO, type: 'query', data: '' };
+			const result = pipe.transform(value, metadata);
+			expect(result).toBe('12345678-1234-1234-1234-123456789012');
+		});
 	});
 	
 	describe('Primitive type validation and transformation', () => {

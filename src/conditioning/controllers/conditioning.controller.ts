@@ -483,15 +483,13 @@ export class ConditioningController {
 	@ApiResponse({ status: 200, description: 'Rules object containing all own and inherited sanitization rules for the specified type (as PropertySanitizationDataDTO from sanitizer-decorator library)' })
 	@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false, transform: true }))
+	@UsePipes(new ValidationPipe({ transform: true }))
 	public async fetchValidationRules(@Param('type') type: DomainTypeDTO): Promise<{ [key: string]: PropertySanitizationDataDTO[] }> {
-		console.debug(`Fetching validation rules for type: ${type.value}`, type);
 		switch (type.value) {
 			case 'ConditioningLog':
 				const rules = ConditioningLog.getSanitizationRules();
 				return rules;
 			default:
-				// TypeParam should catch this, but just in case
 				this.logger.error(`Invalid entity type: ${type.value}`);
 				throw new BadRequestException(`Invalid entity type: ${type.value}`);
 		}

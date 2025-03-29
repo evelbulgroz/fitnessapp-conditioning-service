@@ -17,6 +17,7 @@ export interface ValidationPipeOptions {
  * @remark Simplified version of the NestJS ValidationPipe that does not use class-validator or class-transformer in compliance with the architecture:
  * @see https://github.com/evelbulgroz/fitnessapp-api-gateway/blob/main/documentation/architecture.md
  * @remark Supports a reduced set of options defined by the ValidationPipeOptions interface
+ * @remark Whitelisting and non-whitelisting are supported, but only for properties that are not primitive types (string, boolean, number, array, object)
  */
 @Injectable()
 export class ValidationPipe implements PipeTransform<any> {
@@ -45,7 +46,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	 * @param metadata The metadata for the input value
 	 * @returns The transformed value
 	 * @throws BadRequestException if the transformation fails
-	 * @remark Primitive params are passed through without transformation, but wrapped in an object literal param name as key
+	 * @remark Primitive params are passed through without transformation, but wrapped in an object literal with param name as key
 	 */
 	public transform(value: any, metadata: ArgumentMetadata) {
 		if (value === undefined || value === null) {
@@ -62,10 +63,14 @@ export class ValidationPipe implements PipeTransform<any> {
 	
 		try {
 			const object = new metatype(value);
-			console.debug('transform:', {metadata, metatype, value, object});
-	
-			if (this.options.forbidNonWhitelisted) {
-				this.checkForNonWhitelistedProperties(value, object);
+			
+			if (this.isPrimitive(value)) { // if the value is a primitive, skip the whitelist checks
+				return object;
+			}
+			
+			
+			if (this.options.forbidNonWhitelisted) { //bug: assumes value is an object, not a primitive type
+				this.checkForNonWhitelistedProperties(value, object); // bug: faild if value is a primitive type
 			}
 			
 			if (this.options.whitelist) {
@@ -82,23 +87,22 @@ export class ValidationPipe implements PipeTransform<any> {
 		}
 	}
 	
-	// Check if the value should be validated
+	// Check if the value should be validated aginst whitelist or not
+	// If the metatype is not a primitive type, we need to validate it
+	// Otherwise, we can skip validation
 	private toValidate(metatype: Function): boolean {
 		const types: Function[] = [String, Boolean, Number, Array, Object];
-		console.debug('toValidate:', metatype, !types.includes(metatype));
 		return !types.includes(metatype);
 	}
 	
 	// Check if the value is a primitive type (string, boolean, number)
 	private isPrimitive(value: any): boolean {
-		console.debug('isPrimitive:', typeof value, ['string', 'boolean', 'number'].includes(typeof value));
 		return ['string', 'boolean', 'number'].includes(typeof value);
 	}
 	
 	// Transform the value to the expected primitive type indicated by the metadata
 	private transformPrimitive(value: any, metadata: ArgumentMetadata): any {
 		const { metatype } = metadata;
-		console.debug('transformPrimitive:', metatype, value);
 		if (metatype === Boolean) {
 			return this.toBoolean(value);
 		} else if (metatype === Number) {
@@ -162,7 +166,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	}
 	
 	// Check if the value has properties that are not present in the validated class
-	private checkForNonWhitelistedProperties(value: any, object: any) {
+	private checkForNonWhitelistedProperties(value: any, object: any) {		
 		for (const key in value) {
 			if (!object.hasOwnProperty(key)) {
 				throw new BadRequestException(`Validation failed (property ${key} is not allowed)`);
