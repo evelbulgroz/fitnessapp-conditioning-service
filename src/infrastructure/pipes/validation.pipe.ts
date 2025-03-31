@@ -21,7 +21,7 @@ export interface ValidationPipeOptions {
  */
 @Injectable()
 export class ValidationPipe implements PipeTransform<any> {
-	private readonly options: ValidationPipeOptions = {
+	protected readonly options: ValidationPipeOptions = {
 		whitelist: false,
 		forbidNonWhitelisted: false,
 		transform: false,
@@ -49,6 +49,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	 * @remark Primitive params are passed through without transformation, but wrapped in an object literal with param name as key
 	 */
 	public transform(value: any, metadata: ArgumentMetadata) {
+		console.debug('ValidationPipe.transform', { value, metadata });
 		if (value === undefined || value === null) {
 			return value;
 		}
@@ -90,18 +91,18 @@ export class ValidationPipe implements PipeTransform<any> {
 	// Check if the value should be validated aginst whitelist or not
 	// If the metatype is not a primitive type, we need to validate it
 	// Otherwise, we can skip validation
-	private toValidate(metatype: Function): boolean {
+	protected toValidate(metatype: Function): boolean {
 		const types: Function[] = [String, Boolean, Number, Array, Object];
 		return !types.includes(metatype);
 	}
 	
 	// Check if the value is a primitive type (string, boolean, number)
-	private isPrimitive(value: any): boolean {
+	protected isPrimitive(value: any): boolean {
 		return ['string', 'boolean', 'number'].includes(typeof value);
 	}
 	
 	// Transform the value to the expected primitive type indicated by the metadata
-	private transformPrimitive(value: any, metadata: ArgumentMetadata): any {
+	protected transformPrimitive(value: any, metadata: ArgumentMetadata): any {
 		const { metatype } = metadata;
 		if (metatype === Boolean) {
 			return this.toBoolean(value);
@@ -118,7 +119,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	}
 	
 	// Convert the value to a boolean
-	private toBoolean(value: any): boolean {
+	protected toBoolean(value: any): boolean {
 		if (value === 'true' || value === true) {
 		return true;
 		} else if (value === 'false' || value === false) {
@@ -128,7 +129,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	}
 	
 	// Convert the value to a number
-	private toNumber(value: any): number {
+	protected toNumber(value: any): number {
 		const number = Number(value);
 		if (isNaN(number)) {
 			throw new BadRequestException('Validation failed (number expected)');
@@ -137,7 +138,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	}
 	
 	// Convert the value to an array
-	private toArray(value: any): any[] {
+	protected toArray(value: any): any[] {
 		try {
 			return JSON.parse(value);
 		}
@@ -147,7 +148,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	}
 	
 	// Convert the value to an object
-	private toObject(value: any): object {
+	protected toObject(value: any): object {
 		try {
 			return JSON.parse(value);
 		}
@@ -157,7 +158,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	}
 	
 	// Strip properties that are not present in the validated class
-	private stripProperties(value: any, object: any) {
+	protected stripProperties(value: any, object: any) {
 		for (const key in value) {
 			if (!object.hasOwnProperty(key)) {
 				delete value[key];
@@ -166,7 +167,7 @@ export class ValidationPipe implements PipeTransform<any> {
 	}
 	
 	// Check if the value has properties that are not present in the validated class
-	private checkForNonWhitelistedProperties(value: any, object: any) {		
+	protected checkForNonWhitelistedProperties(value: any, object: any) {		
 		for (const key in value) {
 			if (!object.hasOwnProperty(key)) {
 				throw new BadRequestException(`Validation failed (property ${key} is not allowed)`);
