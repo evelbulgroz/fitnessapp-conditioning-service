@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from '@evelbulgroz/ddd-base';
 
 import { AppConfig } from 'src/shared/domain/config-options.model';
+import { AppInstance } from 'src/api-docs/app-instance.model';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -15,6 +16,9 @@ async function bootstrap() {
 	const prefix = configService.get('app.globalprefix');
 	app.setGlobalPrefix(prefix);
 
+	// Provide the app instance globally
+	AppInstance.setAppInstance(app);
+
 	// Get the port from the configuration
 	const appConfig = configService.get('app') as AppConfig;
 	const port = appConfig.baseURL?.port;
@@ -22,10 +26,8 @@ async function bootstrap() {
 	// Publish API documentation
 	// wait for package.json to be imported before trying to access it:
 	// importing it directly may cause an error because the file is not yet available
+	/*
 	const packageJson = (await import('../package.json') as any).default as any;
-	//const majorVersion = parseInt(packageJson.version?.split('.')[0]);
-	//const minorVersion = parseInt(packageJson.version?.split('.')[1]);
-	//const patchVersion = parseInt(packageJson.version?.split('.')[2]);
 	const config = new DocumentBuilder()
 		.setTitle('FitnessApp Conditioning Service API')
 		.setDescription('API documentation for FitnessApp Conditioning Service')
@@ -33,6 +35,7 @@ async function bootstrap() {
 		.build();
 	const document = SwaggerModule.createDocument(app, config);
 	SwaggerModule.setup('api-docs', app, document); // e.g. http://localhost:3000/api-docs
+	*/
 	
 	// Start the application
 	await app.listen(port);

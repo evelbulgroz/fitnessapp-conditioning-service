@@ -17,6 +17,7 @@ import UserModule from './user/user.module';
 
 import productionConfig from './../config/production.config';
 import developmentConfig from '../config/development.config';
+import SwaggerController from './api-docs/swagger.controller';
 import TokenService from './authentication/services/token/token.service';
 
 class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger despite name conflit with ddd-base Logger
@@ -41,6 +42,7 @@ class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger de
 	],
 	controllers: [
 		ConditioningController,
+		SwaggerController,
 		UserController
 	],
 	providers: [		

@@ -33,13 +33,13 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
  */
 @ApiTags('conditioning')
 @Controller('conditioning') // version prefix set in main.ts
-/*@UseGuards(
+@UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
 	LoggingGuard // log all requests to the console
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
-	*/
+//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
 export class ConditioningController {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
@@ -117,7 +117,7 @@ export class ConditioningController {
 	@Get('log/:userId/:logId')
 	@ApiOperation({
 		summary: 'Get detailed conditioning log by ID',
-		description: 'Returns a single conditioning log by ID, if found. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef'
+		description: 'Returns a single conditioning log by ID, if found. Example request: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef. See /log POST endpoint for data example(s).'
 	})
 	@ApiParam({
 		name: 'userId',
@@ -144,7 +144,7 @@ export class ConditioningController {
 	@ApiResponse({ status: 400, description: 'Request failed, see log for details' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({  whitelist: true, forbidNonWhitelisted: true,transform: true }))
+	@UsePipes(new ValidationPipe({  transform: true })) // whitelisting not applicable to primitive types
 	public async fetchLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,		
@@ -170,7 +170,7 @@ export class ConditioningController {
 	@Patch('log/:userId/:logId')
 	@ApiOperation({
 		summary: 'Update a conditioning log by user ID and log ID',
-		description: 'Updates a conditioning log by user ID and log ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef'
+		description: 'Updates a conditioning log by user ID and log ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef. See /log POST endpoint for data example(s).'
 	})
 	@ApiParam({
 		name: 'userId',
@@ -248,7 +248,7 @@ export class ConditioningController {
 	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	@UsePipes(new ValidationPipe({ transform: true })) // whitelisting not applicable to primitive types
 	public async deleteLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,		
@@ -294,7 +294,7 @@ export class ConditioningController {
 	@ApiResponse({ status: 204, description: 'Log undeleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	@UsePipes(new ValidationPipe({ transform: true })) // whitelisting not applicable to primitive types
 	public async undeleteLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,		
@@ -316,7 +316,7 @@ export class ConditioningController {
 	@Get('logs')
 	@ApiOperation({
 		summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)',
-		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example: http://localhost:56383/api/v3/conditioning/logs?userId=ddc97caa-faea-44aa-a351-79af7c394e29&includeDeleted=false&start=2021-01-01&end=2021-12-31&activity=MTB&sortBy=duration&order=ASC&page=1&pageSize=10'
+		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example request: http://localhost:56383/api/v3/conditioning/logs?userId=ddc97caa-faea-44aa-a351-79af7c394e29&includeDeleted=false&start=2021-01-01&end=2021-12-31&activity=MTB&sortBy=duration&order=ASC&page=1&pageSize=10. See /log POST endpoint for data example(s).'
 	})
 	@ApiQuery({
 		name: 'userId',
@@ -376,7 +376,7 @@ export class ConditioningController {
 	@Get('activities')
 	@ApiOperation({
 		summary: 'Get list of the number of times each conditioning activity has been logged for a single user, or all users (role = admin)',
-		description: 'Returns an object with activity names as keys and counts as values. Example: http://localhost:60741/api/v3/conditioning/activities?userId=1593d697-2dfc-4f29-8f4b-8c1f9343ef56&includeDeleted=false&start=2025-01-01T00:00:00Z&end=2025-01-31T23:59:59Z&activity=RUN&sortBy=date&order=ASC&page=1&pageSize=10'
+		description: 'Returns an object with activity names as keys and counts as values. Example request: http://localhost:60741/api/v3/conditioning/activities?userId=1593d697-2dfc-4f29-8f4b-8c1f9343ef56&includeDeleted=false&start=2025-01-01T00:00:00Z&end=2025-01-31T23:59:59Z&activity=RUN&sortBy=date&order=ASC&page=1&pageSize=10. Example response: { RUN: 5, SWIM: 3, BIKE: 2 }'
 	})
 	@ApiQuery({
 		name: 'userId',
@@ -483,7 +483,7 @@ export class ConditioningController {
 	@ApiResponse({ status: 200, description: 'Rules object containing all own and inherited sanitization rules for the specified type (as PropertySanitizationDataDTO from sanitizer-decorator library)' })
 	@ApiResponse({ status: 400, description: 'Invalid entity type' })
 	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ transform: true }))
+	@UsePipes(new ValidationPipe({ transform: true })) // whitelisting not applicable to primitive types
 	public async fetchValidationRules(@Param('type') type: DomainTypeDTO): Promise<{ [key: string]: PropertySanitizationDataDTO[] }> {
 		switch (type.value) {
 			case 'ConditioningLog':
