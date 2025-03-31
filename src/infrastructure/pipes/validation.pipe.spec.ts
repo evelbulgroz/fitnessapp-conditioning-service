@@ -6,8 +6,13 @@ class MockedValidationPipe extends ValidationPipe {
 		super(options);
 	}
 
+	// Override the stripProperties to enable testing
+	public stripProperties(value: any, object: any) {
+		return super.stripProperties(value, object);
+	}
+
 	// Override the checkForNonWhitelistedProperties to enable testing
-	checkForNonWhitelistedProperties(value: any, object: any) {
+	public checkForNonWhitelistedProperties(value: any, object: any) {
 		return super.checkForNonWhitelistedProperties(value, object);
 	}
 }
@@ -48,6 +53,10 @@ describe('ValidationPipe', () => {
 		pipe = new MockedValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true });
 	});
 
+	afterEach(() => {
+		jest.clearAllMocks();
+	});
+
 	describe('DTO (i.e. JSON object) validation', () => {
 		it('validates and transforms a valid DTO', () => {
 			const value = { name: 'John', age: 30 };
@@ -59,15 +68,19 @@ describe('ValidationPipe', () => {
 		});
 
 		it('throws an error for an invalid DTO', () => {
+			const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress console.error output
 			const value = { name: 'John', age: 'thirty' };
 			const metadata: ArgumentMetadata = { metatype: ValidDTO, type: 'body', data: '' };
 			expect(() => pipe.transform(value, metadata)).toThrow(BadRequestException);
+			errorSpy.mockRestore(); // restore the original console.error
 		});
 
 		it('throws an error for an invalid DTO class', () => {
+			const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress console.error output
 			const value = { name: 'John', age: 30 };
 			const metadata: ArgumentMetadata = { metatype: InvalidDTO, type: 'body', data: '' };
 			expect(() => pipe.transform(value, metadata)).toThrow(BadRequestException);
+			errorSpy.mockRestore(); // restore the original console.error
 		});
 
 		it('passes null and undefined values without validation', () => {
@@ -76,9 +89,10 @@ describe('ValidationPipe', () => {
 			expect(pipe.transform(undefined, metadata)).toBeUndefined();
 		});
 		
-		xit('strips non-whitelisted properties if whitelist option is enabled', () => {
+		it('strips non-whitelisted properties if whitelist option is enabled', () => {
 			const value = { name: 'John', age: 30, extra: 'extra' };
 			const metadata: ArgumentMetadata = { metatype: ValidDTO, type: 'body', data: '' };
+			pipe = new MockedValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: false });
 			const result = pipe.transform(value, metadata);
 			expect(result).toBeInstanceOf(ValidDTO);
 			expect(result.name).toBe('John');
@@ -86,10 +100,17 @@ describe('ValidationPipe', () => {
 			expect(result).not.toHaveProperty('extra');
 		});
 		
-		xit('throws an error for non-whitelisted properties if forbidNonWhitelisted option is enabled', () => {
+		it('throws an error for non-whitelisted properties if forbidNonWhitelisted option is enabled', () => {
+			// arrange
+			jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress console.error output
 			const value = { name: 'John', age: 30, extra: 'extra' };
 			const metadata: ArgumentMetadata = { metatype: ValidDTO, type: 'body', data: '' };
+
+			// act & assert
 			expect(() => pipe.transform(value, metadata)).toThrow(BadRequestException);
+
+			// cleanup
+			(console.error as jest.Mock).mockRestore();
 		});
 
 		it('skips forbidNonWhitelisted if value is a primitive validated by a DTO', () => {
@@ -110,11 +131,22 @@ describe('ValidationPipe', () => {
 			whitelistSpy && whitelistSpy.mockRestore();
 		});
 
-		xit('skips whitelist if value is a primitive validated by a DTO', () => {
+		it('skips whitelist if value is a primitive validated by a DTO', () => {			
+			// arrange
 			const value = '12345678-1234-1234-1234-123456789012';
-			const metadata: ArgumentMetadata = { metatype: ValidDTO, type: 'query', data: '' };
+			const metadata: ArgumentMetadata = { metatype: PrimitiveDTO, type: 'param', data: 'uuid' };
+			const whitelistSpy = jest.spyOn(pipe, 'stripProperties');
+
+			// act
 			const result = pipe.transform(value, metadata);
-			expect(result).toBe('12345678-1234-1234-1234-123456789012');
+
+			// assert
+			expect(result).toEqual(new PrimitiveDTO(value));
+			expect(result.value).toBe(value);
+			expect(whitelistSpy).not.toHaveBeenCalled();
+
+			// cleanup
+			whitelistSpy && whitelistSpy.mockRestore();
 		});
 	});
 	

@@ -49,7 +49,6 @@ export class ValidationPipe implements PipeTransform<any> {
 	 * @remark Primitive params are passed through without transformation, but wrapped in an object literal with param name as key
 	 */
 	public transform(value: any, metadata: ArgumentMetadata) {
-		console.debug('ValidationPipe.transform', { value, metadata });
 		if (value === undefined || value === null) {
 			return value;
 		}
