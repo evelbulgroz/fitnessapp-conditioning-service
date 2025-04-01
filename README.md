@@ -2,7 +2,18 @@
 Conditioning training microservice for hobbyist fitness app, with TypeScript and Jest.
 
 ## Design Intent
-Provide a single source of truth about conditioning data for the app.
+Provide a single source of truth about conditioning data for the app, for arbitrary number of users.
+
+## API Docs
+With the server running, standard docs are available at `/docs` (HTML UI) and `/docs/json` (OpenAPI JSON).
+
+In addition, detailed properties and sanitization rules for ConditioningLog are available at `/conditioning/rules/ConditioningLog`.
+
+*NOTE: No similar endpoint is provided for this service's internal `User` construct. Direct all `User` data requests to the user microservice.*
+
+Accessing any of the docs requires authentication.
+
+*NOTE: The standard Swagger `/api-docs` endpoint is not provided, as it does not support authentication.*
 
 ## Develop
 There is no development server: run tests to verify functionality after editing source.
