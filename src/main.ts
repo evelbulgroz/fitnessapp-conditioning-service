@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as express from 'express';
 import { Logger } from '@evelbulgroz/ddd-base';
 
 import { AppConfig } from 'src/shared/domain/config-options.model';
@@ -19,20 +19,11 @@ async function bootstrap() {
 	// Provide the app instance globally
 	AppInstance.setAppInstance(app);
 
-	// Publish API documentation
-	// wait for package.json to be imported before trying to access it:
-	// importing it directly may cause an error because the file is not yet available
-	/*
-	const packageJson = (await import('../package.json') as any).default as any;
-	const config = new DocumentBuilder()
-		.setTitle('FitnessApp Conditioning Service API')
-		.setDescription('API documentation for FitnessApp Conditioning Service')
-		.setVersion(packageJson.version)
-		.build();
-	const document = SwaggerModule.createDocument(app, config);
-	SwaggerModule.setup('api-docs', app, document); // e.g. http://localhost:3000/docs
-	*/
-	
+	// Serve Swagger UI static assets so they are available at /docs-assets
+	// when the Swagger UI is served from the SwaggerController
+	const swaggerUiPath = require('swagger-ui-dist').getAbsoluteFSPath();
+	app.use('/docs-assets', express.static(swaggerUiPath));
+
 	// Start the application
 	const appConfig = configService.get('app') as AppConfig;
 	const port = appConfig.baseURL?.port;
