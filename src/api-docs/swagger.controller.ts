@@ -7,7 +7,7 @@ import { Roles } from '../infrastructure/decorators/roles.decorator';
 import { Response } from 'express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
-@Controller('api-docs')
+@Controller('docs')
 //@UseGuards(JwtAuthGuard, RolesGuard) // Protect the Swagger documentation with guards
 export class SwaggerController {
 	@Get()
