@@ -19,10 +19,6 @@ async function bootstrap() {
 	// Provide the app instance globally
 	AppInstance.setAppInstance(app);
 
-	// Get the port from the configuration
-	const appConfig = configService.get('app') as AppConfig;
-	const port = appConfig.baseURL?.port;
-
 	// Publish API documentation
 	// wait for package.json to be imported before trying to access it:
 	// importing it directly may cause an error because the file is not yet available
@@ -34,10 +30,12 @@ async function bootstrap() {
 		.setVersion(packageJson.version)
 		.build();
 	const document = SwaggerModule.createDocument(app, config);
-	SwaggerModule.setup('api-docs', app, document); // e.g. http://localhost:3000/api-docs
+	SwaggerModule.setup('api-docs', app, document); // e.g. http://localhost:3000/docs
 	*/
 	
 	// Start the application
+	const appConfig = configService.get('app') as AppConfig;
+	const port = appConfig.baseURL?.port;
 	await app.listen(port);
 	logger.log(`Application is running on: ${await app.getUrl()}/${prefix}`);//, 'Bootstrap');
 
