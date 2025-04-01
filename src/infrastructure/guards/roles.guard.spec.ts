@@ -21,6 +21,22 @@ describe('RolesGuard', () => {
 		expect(result).toBe(true);
 	});
 
+	it('returns true if roles are empty', () => {
+		const context = createMockExecutionContext();
+		jest.spyOn(reflector, 'get').mockReturnValue([]);
+
+		const result = rolesGuard.canActivate(context);
+		expect(result).toBe(true);
+	});
+
+	it('returns true if roles includes wildcard', () => {
+		const context = createMockExecutionContext();
+		jest.spyOn(reflector, 'get').mockReturnValue(['*']);
+
+		const result = rolesGuard.canActivate(context);
+		expect(result).toBe(true);
+	});
+
 	it('returns true if user has matching roles', () => {
 		const context = createMockExecutionContext({ roles: ['admin'] });
 		jest.spyOn(reflector, 'get').mockReturnValue(['admin']);

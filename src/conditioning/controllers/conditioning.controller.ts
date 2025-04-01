@@ -29,18 +29,18 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
  * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation.
  * @remark No need to duplicate documentation for TypeDoc, hence fewer traditional comments.
- * @todo Move ValidationPipe up to controller level after retiring sessions endpoint
  */
 @ApiTags('conditioning')
 @Controller('conditioning') // version prefix set in main.ts
+@Roles('admin', 'user')
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
 	LoggingGuard // log all requests to the console
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
-//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
+@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })) // whitelisting ignored with primitive types
 export class ConditioningController {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
@@ -96,8 +96,6 @@ export class ConditioningController {
 	@ApiResponse({ status: 201, description: 'Log created successfully, new log ID returned' })
 	@ApiResponse({ status: 204, description: 'Log created successfully, no content returned' })
 	@ApiResponse({ status: 400, description: 'Invalid data, see log for details' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async createLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,
@@ -143,8 +141,6 @@ export class ConditioningController {
 	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
 	@ApiResponse({ status: 400, description: 'Request failed, see log for details' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({  transform: true })) // whitelisting not applicable to primitive types
 	public async fetchLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,		
@@ -199,8 +195,6 @@ export class ConditioningController {
 	@ApiResponse({ status: 200, description: 'Log updated successfully' })
 	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
 	@ApiResponse({ status: 400, description: 'Request failed, see log for details' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async updateLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,
@@ -247,8 +241,6 @@ export class ConditioningController {
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ transform: true })) // whitelisting not applicable to primitive types
 	public async deleteLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,		
@@ -293,8 +285,6 @@ export class ConditioningController {
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@ApiResponse({ status: 204, description: 'Log undeleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ transform: true })) // whitelisting not applicable to primitive types
 	public async undeleteLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,		
@@ -345,8 +335,6 @@ export class ConditioningController {
 	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
 	@ApiResponse({ status: 400, description: 'Request for logs failed' })
 	@ApiResponse({ status: 404, description: 'No logs found' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async fetchLogs(
 		@Req() req: any,
 		@Query('userId') userIdDTO?: EntityIdDTO,
@@ -403,8 +391,6 @@ export class ConditioningController {
 	@ApiResponse({ status: 200, description: 'Object with activity names as keys and counts as values' })
 	@ApiResponse({ status: 400, description: 'Request for activities failed' })
 	@ApiResponse({ status: 404, description: 'No activities found' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	public async activities(
 		@Req() req: any,
 		@Query('userId') userIdDTO?: EntityIdDTO,
@@ -445,8 +431,6 @@ export class ConditioningController {
 	})
 	@ApiResponse({ status: 200, description: 'Aggregated conditioning data as AggregatedTimeSeries from time-series library' })
 	@ApiResponse({ status: 400, description: 'Request for aggregation failed' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ whitelist:true, forbidNonWhitelisted: true, transform: true }))
 	public async aggregate(
 		@Req() req: any,
 		@Body() aggregationQueryDTO: AggregationQueryDTO,
@@ -482,8 +466,6 @@ export class ConditioningController {
 	})
 	@ApiResponse({ status: 200, description: 'Rules object containing all own and inherited sanitization rules for the specified type (as PropertySanitizationDataDTO from sanitizer-decorator library)' })
 	@ApiResponse({ status: 400, description: 'Invalid entity type' })
-	@Roles('admin', 'user')
-	@UsePipes(new ValidationPipe({ transform: true })) // whitelisting not applicable to primitive types
 	public async fetchValidationRules(@Param('type') type: DomainTypeDTO): Promise<{ [key: string]: PropertySanitizationDataDTO[] }> {
 		switch (type.value) {
 			case 'ConditioningLog':
@@ -504,8 +486,9 @@ export class ConditioningController {
 	@Get('sessions')
 	@ApiOperation({ summary: 'Get all conditioning logs grouped by activity type and aggregated by duration and date' })
 	@ApiResponse({ status: 200, description: 'Conditioning data object' })
-	//@Roles('admin', 'user')
-	//@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+	@Roles('*') // Disable role-based access control for this endpoint
+	@UseGuards({ canActivate: () => Promise.resolve(true)}) // Disable guards
+	@UsePipes({ transform: () => undefined})  // Disable pipes
 	public async sessions(): Promise<ConditioningData> {
 		try {
 			return this.LogService.conditioningData();
