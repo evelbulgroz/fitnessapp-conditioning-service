@@ -10,7 +10,7 @@ import { RolesGuard } from '../infrastructure/guards/roles.guard';
 import { Roles } from '../infrastructure/decorators/roles.decorator';
 
 /** Controller for serving Swagger UI and JSON documentation.
- * Used instead to reqquire authentication and authorization for accessing the documentation.
+ * Used to require authentication and authorization for accessing the documentation.
  * The standard Swagger UI provided by NestJS is not used here, as it does not support authentication and authorization.
  * @todo Test this, copying auth setup from ConditioningController.
  */
