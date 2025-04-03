@@ -1307,7 +1307,7 @@ describe('ConditioningController', () => {
 		});		
 
 		describe('sessions', () => {
-			it('provides a collection of conditioning data ("sessions")', async () => {
+			it('provides a collection of conditioning data', async () => {
 				// arrange
 				const spy = jest.spyOn(conditioningDataService, 'conditioningData');
 

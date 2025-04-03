@@ -15,6 +15,7 @@ import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
 import { JwtAuthResult } from '../../authentication/services/jwt/domain/jwt-auth-result.model';
 import { LoggingGuard } from '../../infrastructure/guards/logging.guard';
+import { Public } from '../../infrastructure/decorators/public.decorator';
 import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
 import { QueryDTO } from '../../shared/dtos/responses/query.dto';
 import { Roles } from '../../infrastructure/decorators/roles.decorator';
@@ -486,6 +487,7 @@ export class ConditioningController {
 	@Get('sessions')
 	@ApiOperation({ summary: 'Get all conditioning logs grouped by activity type and aggregated by duration and date' })
 	@ApiResponse({ status: 200, description: 'Conditioning data object' })
+	@Public() // Disable authentication for this endpoint
 	@Roles('*') // Disable role-based access control for this endpoint
 	@UseGuards({ canActivate: () => Promise.resolve(true)}) // Disable guards
 	@UsePipes({ transform: () => undefined})  // Disable pipes
