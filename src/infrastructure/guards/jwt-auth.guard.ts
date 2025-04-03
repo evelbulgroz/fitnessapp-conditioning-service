@@ -1,7 +1,9 @@
 import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 
 import { AuthGuard } from './auth.guard';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { JwtAuthStrategy } from '../strategies/jwt-auth.strategy';
 import { JwtPayload } from '../../authentication/services/jwt/domain/jwt-payload.model';
 
@@ -10,7 +12,7 @@ import { JwtPayload } from '../../authentication/services/jwt/domain/jwt-payload
  */
 @Injectable()
 export class JwtAuthGuard extends AuthGuard {
-	constructor(private readonly strategy: JwtAuthStrategy) {
+	constructor(private readonly strategy: JwtAuthStrategy, private readonly reflector: Reflector) {
 		super();
 	}
 
@@ -20,6 +22,15 @@ export class JwtAuthGuard extends AuthGuard {
 	 * @throws UnauthorizedException if the token is missing or invalid
 	*/
 	async canActivate(context: ExecutionContext): Promise<boolean> {
+		const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+			context.getHandler(),
+			context.getClass(),
+		]);
+		console.debug('isPublic', isPublic);
+		if (isPublic) {
+			return true; // Skip authentication for public routes
+		}
+
 		const request = context.switchToHttp().getRequest();
 		const token = this.extractTokenFromHeader(request);
 

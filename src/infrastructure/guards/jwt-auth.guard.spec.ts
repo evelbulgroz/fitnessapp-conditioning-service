@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { TestingModule } from '@nestjs/testing';
 import { jest } from '@jest/globals';
+import { Reflector } from '@nestjs/core';
 
 import { v4 as uuid } from 'uuid';
 import jwt from 'jsonwebtoken';
@@ -31,6 +31,7 @@ describe('JwtAuthGuard', () => {
 						validate: jest.fn(),
 					},
 				},
+				Reflector,
 			],
 		})).compile();
 
