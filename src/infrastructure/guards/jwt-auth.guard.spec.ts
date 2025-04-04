@@ -13,6 +13,23 @@ import { JwtAuthResult } from '../../authentication/services/jwt/domain/jwt-auth
 import { JwtAuthStrategy } from '../strategies/jwt-auth.strategy';
 import { JwtPayload } from '../../authentication/services/jwt/domain/jwt-payload.model';
 
+function createMockExecutionContext(token: string | null): ExecutionContext {
+	const request = {
+		headers: {
+			authorization: token ? `Bearer ${token}` : null,
+		},
+	} as unknown as Request;
+
+	const handler = jest.fn(); // Mock handler function
+	const controller = jest.fn(); // Mock controller class
+
+	return {
+		switchToHttp: () => ({ getRequest: () => request, }),
+		getHandler: () => handler, // Mock getHandler
+		getClass: () => controller, // Mock getClass
+	} as unknown as ExecutionContext;
+}
+
 describe('JwtAuthGuard', () => {
 	let config: ConfigService;
 	let guard: JwtAuthGuard;
@@ -33,7 +50,8 @@ describe('JwtAuthGuard', () => {
 				},
 				Reflector,
 			],
-		})).compile();
+		}))
+		.compile();
 
 		config = module.get<ConfigService>(ConfigService);
 		guard = module.get<JwtAuthGuard>(JwtAuthGuard);
@@ -78,7 +96,7 @@ describe('JwtAuthGuard', () => {
 	it('returns true if the token is verified and the payload is valid', async () => {
 		// arrange
 		const context = createMockExecutionContext(token);
-		const client = { clientId: payload.sub, clientName: payload.subName, clientType: payload.subType };
+		//const client = { clientId: payload.sub, clientName: payload.subName, clientType: payload.subType };
 
 		strategyValidateSpy.mockResolvedValue(payload);
 		strategyVerifySpy.mockResolvedValue(payload);
@@ -92,6 +110,24 @@ describe('JwtAuthGuard', () => {
 		expect(strategy.validate).toHaveBeenCalledWith(payload);
 	});
 
+	it('returns true if the endpoint is public', async () => {
+		// arrange
+		const context = createMockExecutionContext(token);
+		const reflector = new Reflector();
+		jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true);
+		jest.spyOn(reflector, 'get').mockReturnValue(true);
+		guard = new JwtAuthGuard(strategy, reflector);
+		
+		// act
+		const result = await guard.canActivate(context);
+		
+		// assert
+		expect(result).toEqual(true);
+		expect(strategy.verify).not.toHaveBeenCalled();
+		expect(strategy.validate).not.toHaveBeenCalled();
+		expect(guardHandleRequestSpy).not.toHaveBeenCalled();
+	});
+	
 	it('throws UnauthorizedException if no token is provided', async () => {
 		const context = createMockExecutionContext(null);
 		await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
@@ -128,18 +164,4 @@ describe('JwtAuthGuard', () => {
 		// act/assert
 		await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
 	});
-
-	function createMockExecutionContext(token: string | null): ExecutionContext {
-		const request = {
-			headers: {
-				authorization: token ? `Bearer ${token}` : null,
-			},
-		} as unknown as Request;
-
-		return {
-			switchToHttp: () => ({
-				getRequest: () => request,
-			}),
-		} as ExecutionContext;
-	}
 });
