@@ -13,7 +13,6 @@ import { Roles } from '../infrastructure/decorators/roles.decorator';
 /** Controller for serving Swagger UI and JSON documentation.
  * Used to require authentication and authorization for accessing the documentation.
  * The standard Swagger UI provided by NestJS is not used here, as it does not support authentication and authorization.
- * @todo Test this, copying auth setup from ConditioningController.
  */
 @Controller('docs')
 @UseGuards(
@@ -39,12 +38,12 @@ export class SwaggerController {
 		const document = SwaggerModule.createDocument(app, config);
 
 		// Get the path to the swagger-ui-dist package with the Swagger UI assets (HTML, CSS, JS)
-		const swaggerUiPath = require('swagger-ui-dist').getAbsoluteFSPath();		
+		const swaggerUiPath = require('swagger-ui-dist').getAbsoluteFSPath(); // bug: returns undefined in test environment, but works in dev and prod environments
 
 		// Load the swagger-initializer.js template and modify it to use the spec property instead of the url property
 		const swaggerInitializerPath = resolve(swaggerUiPath, 'swagger-initializer.js');
 		let swaggerInitializer = readFileSync(swaggerInitializerPath, 'utf8');
-		swaggerInitializer = swaggerInitializer.replace(
+		swaggerInitializer = swaggerInitializer?.replace(
 			/url: ".*?"/,
 			`spec: ${JSON.stringify(document)}` //insert the Swagger document directly into the JS code
 		);

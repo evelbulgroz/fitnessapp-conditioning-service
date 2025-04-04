@@ -36,7 +36,7 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 // NOTE:
   // Testing over http to enable decorators and guards without having to do a ton of additional setup/mocking.
   // This also ensures request/response objects are correctly formatted and that the controller is correctly configured.
-  // Otherwise, this suite tests the controller in isolation from the rest of the application, i.e. as a unit test.
+  // This is a bit of a hack, but it works for now. Clean up later when setting up e2e tests.
 
 describe('ConditioningController', () => {
 	let app: INestApplication;

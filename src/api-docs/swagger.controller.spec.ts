@@ -5,7 +5,7 @@ import { Reflector } from '@nestjs/core';
 import { TestingModule } from '@nestjs/testing';
 
 
-import { of } from 'rxjs';
+import { lastValueFrom, of } from 'rxjs';
 import { Response } from 'express';
 import { readFileSync } from 'fs';
 import { v4 as uuid } from 'uuid';
@@ -28,12 +28,34 @@ import ValidationPipe from '../infrastructure/pipes/validation.pipe';
 import UserJwtPayload from '../authentication/services/jwt/domain/user-jwt-payload.model';
 import UserContext, { UserContextProps } from '../shared/domain/user-context.model';
 
-jest.mock('fs');
-jest.mock('path');
-jest.mock('./app-instance.model');
+//process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
+
+// NOTE:
+  // Testing over http to enable decorators and guards without having to do a ton of additional setup/mocking.
+  // This also ensures request/response objects are correctly formatted and that the controller is correctly configured.
+  // This is a bit of a hack, but it works for now. Clean up later when setting up e2e tests.
+
+jest.mock('swagger-ui-dist', () => ({
+	getAbsoluteFSPath: jest.fn(() => '/mock/path/to/swagger-ui-dist'),
+}));
+
+jest.mock('fs', () => ({
+	...jest.requireActual('fs'),
+	// Mock the readFileSync function to return a specific value for testing
+	readFileSync: jest.fn((path: string) => {
+		if (path.includes('swagger-initializer.js')) {
+			return 'window.onload = function() { spec: {} };';
+		}
+		if (path.includes('index.html')) {
+			return '<html>Mock Swagger UI</html>';
+		}
+		return '';
+	}),
+}));
 
 describe('SwaggerController', () => {
 	let app: INestApplication;
+	let appInstanceSpy: any;
 	let baseUrl: string;
 	let config: ConfigService;
 	let controller: SwaggerController;
@@ -84,16 +106,11 @@ describe('SwaggerController', () => {
 					provide: Logger,
 					useClass: ConsoleLogger,
 				},
-				{
+				{ //RolesGuard
 					provide: RolesGuard,
 					useValue: jest.fn(),
 				},
-				{
-					provide: Reflector,
-					useValue: {
-						getAllAndOverride: jest.fn(),
-					},
-				},
+				Reflector, // used by RolesGuard
 				{ // User repository
 					provide: UserRepository,
 					useValue: {
@@ -106,6 +123,7 @@ describe('SwaggerController', () => {
 		.compile();
 		
 		app = module.createNestApplication();
+		appInstanceSpy = jest.spyOn(AppInstance, 'getAppInstance').mockImplementation(() => app); // not otherwise initialized in test
 		config = module.get<ConfigService>(ConfigService);
 		controller = module.get<SwaggerController>(SwaggerController);
 		crypto = module.get<CryptoService>(CryptoService);
@@ -119,7 +137,7 @@ describe('SwaggerController', () => {
 		
 		const port = app?.getHttpServer()?.address()?.port; // random port, e.g. 60703
 		baseUrl = `http://localhost:${port}/docs`; // prefix not applied during testing, so omit it
-		
+
 		mockResponse = {
 			setHeader: jest.fn(),
 			send: jest.fn(),
@@ -162,6 +180,7 @@ describe('SwaggerController', () => {
 
 	afterEach(() => {
 		app.close();
+		appInstanceSpy && appInstanceSpy.mockRestore();
 		userRepoSpy && userRepoSpy.mockRestore();
 		jest.clearAllMocks();
 	});
@@ -170,52 +189,81 @@ describe('SwaggerController', () => {
 		expect(controller).toBeDefined();
 	});
 
-	describe('serveSwaggerUI', () => {
-		it('generates and serves Swagger UI HTML', async () => {
-			// Mock dependencies
-			const mockAppInstance = {
-				getAppInstance: jest.fn().mockReturnValue({}),
-			};
-			(AppInstance.getAppInstance as jest.Mock).mockReturnValue(mockAppInstance);
-
-			const mockSwaggerHtml = '<html>Mock Swagger UI</html>';
-			const mockSwaggerInitializer = 'window.onload = function() { spec: {} };';
-			const mockSwaggerUiPath = '/mock/path/to/swagger-ui-dist';
-
-			jest.spyOn(require('swagger-ui-dist'), 'getAbsoluteFSPath').mockReturnValue(mockSwaggerUiPath);
-			(readFileSync as jest.Mock)
-				.mockImplementationOnce(() => mockSwaggerInitializer) // Mock swagger-initializer.js
-				.mockImplementationOnce(() => mockSwaggerHtml); // Mock index.html
-
-			// Call the method
-			await controller.serveSwaggerUI(mockResponse as Response);
-
-			// Assertions
-			expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/html');
-			expect(mockResponse.send).toHaveBeenCalledWith(expect.stringContaining('<html>Mock Swagger UI</html>'));
+	describe('Endpoints', () => {
+		describe('docs', () => {
+			it('serves Swagger UI HTML', async () => {
+				// arrange
+				const url = `${baseUrl}`;
+				
+				// act
+				const response = await lastValueFrom(http.get(url, { headers }));
+				
+				// assert
+				expect(response.status).toBe(200);
+				expect(response.headers['content-type']).toBe('text/html; charset=utf-8');
+				expect(response.data?.length).toBeGreaterThan(0);
+				expect(response.data).toContain('<html>Mock Swagger UI</html>');
+			});
 		});
-	});
 
-	describe('serveSwaggerJson', () => {
-		it('generates and serves Swagger JSON', async () => {
-			// Mock dependencies
-			const mockAppInstance = {
-				getAppInstance: jest.fn().mockReturnValue({}),
-			};
-			(AppInstance.getAppInstance as jest.Mock).mockReturnValue(mockAppInstance);
-
-			const mockSwaggerDocument = { openapi: '3.0.0', info: { title: 'Mock API', version: '1.0.0' } };
-
-			jest.spyOn(require('@nestjs/swagger'), 'SwaggerModule').mockImplementation(() => ({
-				createDocument: jest.fn().mockReturnValue(mockSwaggerDocument),
-			}));
-
-			// Call the method
-			await controller.serveSwaggerJson(mockResponse as Response);
-
-			// Assertions
-			expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json');
-			expect(mockResponse.send).toHaveBeenCalledWith(mockSwaggerDocument);
+		describe('docs/json', () => {
+			it('generates and serves Swagger JSON', async () => {
+				// arrange
+				const url = `${baseUrl}/json`;
+				const expectedSwaggerJson = {
+					"openapi": "3.0.0",
+					"paths": {
+						"/docs": {
+						"get": {
+							"operationId": "SwaggerController_serveSwaggerUI",
+							"parameters": [],
+							"responses": {
+							"200": {
+								"description": ""
+							}
+							},
+							"tags": [
+							"Swagger"
+							]
+						}
+						},
+						"/docs/json": {
+						"get": {
+							"operationId": "SwaggerController_serveSwaggerJson",
+							"parameters": [],
+							"responses": {
+							"200": {
+								"description": ""
+							}
+							},
+							"tags": [
+							"Swagger"
+							]
+						}
+						}
+					},
+					"info": {
+						"title": "FitnessApp Conditioning Service API",
+						"description": "API documentation for FitnessApp Conditioning Service",
+						"version": "0.0.1",
+						"contact": {}
+					},
+					"tags": [],
+					"servers": [],
+					"components": {
+						"schemas": {}
+					}
+				};
+				
+				// act
+				const response = await lastValueFrom(http.get(url, { headers }));
+				
+				// assert
+				expect(response.status).toBe(200);
+				expect(response.headers['content-type']).toBe('application/json; charset=utf-8');
+				expect(typeof response.data).toBe('object');
+				expect(response.data).toEqual(expectedSwaggerJson);
+			});
 		});
 	});
 });
