@@ -18,3 +18,5 @@ export class AppInstance {
 		return this.app;
 	}
 }
+
+export default AppInstance;

@@ -40,8 +40,8 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 
 describe('ConditioningController', () => {
 	let app: INestApplication;
-	let appController: ConditioningController;
-	let conditioningDataService: ConditioningDataService;
+	let controller: ConditioningController;
+	let service: ConditioningDataService;
 	let config: ConfigService;
 	let crypto: CryptoService;
 	let http: HttpService;
@@ -116,8 +116,8 @@ describe('ConditioningController', () => {
 		.compile();
 		
 		app = module.createNestApplication();
-		appController = module.get<ConditioningController>(ConditioningController);
-		conditioningDataService = module.get<ConditioningDataService>(ConditioningDataService);
+		controller = module.get<ConditioningController>(ConditioningController);
+		service = module.get<ConditioningDataService>(ConditioningDataService);
 		config = module.get<ConfigService>(ConfigService);
 		crypto = module.get<CryptoService>(CryptoService);
 		http = module.get<HttpService>(HttpService);
@@ -127,7 +127,7 @@ describe('ConditioningController', () => {
 		app.useGlobalPipes(new ValidationPipe());
 		await app.listen(0); // enter 0 to let the OS choose a free port
 
-		const port = app.getHttpServer().address().port; // random port, e.g. 60703
+		const port = app?.getHttpServer()?.address()?.port; // random port, e.g. 60703
 		baseUrl = `http://localhost:${port}/conditioning`; // prefix not applied during testing, so omit it
 	});
 
@@ -197,7 +197,7 @@ describe('ConditioningController', () => {
 	});
 
 	it('can be created', () => {
-		expect(appController).toBeDefined();
+		expect(controller).toBeDefined();
 	});
 
 	describe('Endpoints', () => {
@@ -226,7 +226,7 @@ describe('ConditioningController', () => {
 			
 			it('provides summary of conditioning activities performed by type', async () => {
 				// arrange
-				const spy = jest.spyOn(conditioningDataService, 'fetchActivityCounts');
+				const spy = jest.spyOn(service, 'fetchActivityCounts');
 				
 				// act
 				void await lastValueFrom(http.get(url, { headers }));
@@ -247,7 +247,7 @@ describe('ConditioningController', () => {
 
 			it('can be called without a user id', async () => {
 				// arrange
-				const spy = jest.spyOn(conditioningDataService, 'fetchActivityCounts');				
+				const spy = jest.spyOn(service, 'fetchActivityCounts');				
 				url = `${baseUrl}/activities?includeDeleted=false`; // no user id
 
 				// act/assert
@@ -265,7 +265,7 @@ describe('ConditioningController', () => {
 
 			it('can be called with without includeDeleted', async () => {
 				// arrange
-				const spy = jest.spyOn(conditioningDataService, 'fetchActivityCounts');				
+				const spy = jest.spyOn(service, 'fetchActivityCounts');				
 				url = `${baseUrl}/activities?userId=${userContext.userId}`; // no includeDeleted parameter
 
 				// act/assert
@@ -283,7 +283,7 @@ describe('ConditioningController', () => {
 
 			it('can be called with without a query', async () => {
 				// arrange
-				const spy = jest.spyOn(conditioningDataService, 'fetchActivityCounts');				
+				const spy = jest.spyOn(service, 'fetchActivityCounts');				
 				url = `${baseUrl}/activities?userId=${userContext.userId}&includeDeleted=false`; // no query parameters
 
 				// act/assert
@@ -336,7 +336,7 @@ describe('ConditioningController', () => {
 
 			it('throws if data service throws', async () => {
 				// arrange
-				const serviceSpy = jest.spyOn(conditioningDataService, 'fetchActivityCounts').mockImplementation(() => { throw new Error('Test Error'); });
+				const serviceSpy = jest.spyOn(service, 'fetchActivityCounts').mockImplementation(() => { throw new Error('Test Error'); });
 				const response$ = http.get(url, { headers });
 
 				// act/assert
@@ -370,7 +370,7 @@ describe('ConditioningController', () => {
 				] as any[];
 				
 				jest.clearAllMocks();
-				aggregationSpy = jest.spyOn(conditioningDataService, 'fetchAggretagedLogs')
+				aggregationSpy = jest.spyOn(service, 'fetchAggretagedLogs')
 					.mockImplementation((ctx: UserContext) => {
 						if (ctx.roles?.includes('admin')) { // simulate an admin user requesting logs
 							return Promise.resolve(adminLogs as any)
@@ -591,7 +591,7 @@ describe('ConditioningController', () => {
 						}).value as ConditioningLog<any, ConditioningLogDTO>;
 						sourceLogDto = sourceLog.toDTO();
 
-						logSpy = jest.spyOn(conditioningDataService, 'createLog')
+						logSpy = jest.spyOn(service, 'createLog')
 							.mockImplementation((ctx: any, userIdDTO: EntityIdDTO, log: ConditioningLog<any,ConditioningLogDTO>) => {
 								void ctx, userIdDTO, log; // suppress unused variable warning
 								return Promise.resolve(newLogId); // return the log
@@ -687,7 +687,7 @@ describe('ConditioningController', () => {
 					it('throws if data service throws', async () => {
 						// arrange
 						logSpy.mockRestore();
-						logSpy = jest.spyOn(conditioningDataService, 'createLog').mockImplementation(() => { throw new Error('Test Error'); });
+						logSpy = jest.spyOn(service, 'createLog').mockImplementation(() => { throw new Error('Test Error'); });
 						const response$ = http.post(urlPath, sourceLogDto, { headers });
 
 						// act/assert
@@ -704,7 +704,7 @@ describe('ConditioningController', () => {
 					beforeEach(() => {
 						log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
 						logId = uuid();
-						logSpy = jest.spyOn(conditioningDataService, 'fetchLog')
+						logSpy = jest.spyOn(service, 'fetchLog')
 							.mockImplementation((ctx: any, entityId: EntityIdDTO) => {
 								void entityId;
 								if (ctx.roles?.includes('admin')) { // simulate an admin user requesting a log
@@ -795,7 +795,7 @@ describe('ConditioningController', () => {
 					it('throws if data service throws', async () => {
 						// arrange
 						logSpy.mockRestore();
-						logSpy = jest.spyOn(conditioningDataService, 'fetchLog').mockImplementation(() => { throw new Error('Test Error'); });
+						logSpy = jest.spyOn(service, 'fetchLog').mockImplementation(() => { throw new Error('Test Error'); });
 						const response$ = http.get(urlPath, { headers });
 
 						// act/assert
@@ -820,7 +820,7 @@ describe('ConditioningController', () => {
 						}).value as ConditioningLog<any, ConditioningLogDTO>;
 						updatedLogDto = updatedLog.toDTO();
 
-						logSpy = jest.spyOn(conditioningDataService, 'updateLog')
+						logSpy = jest.spyOn(service, 'updateLog')
 							.mockImplementation((ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO, partialLog: Partial<ConditioningLog<any,ConditioningLogDTO>>) => {
 								void ctx, userIdDTO, logIdDTO, partialLog; // suppress unused variable warning
 								return Promise.resolve(); // return the log
@@ -918,7 +918,7 @@ describe('ConditioningController', () => {
 					it('throws if data service throws', async () => {
 						// arrange
 						logSpy.mockRestore();
-						logSpy = jest.spyOn(conditioningDataService, 'updateLog').mockImplementation(() => { throw new Error('Test Error'); });
+						logSpy = jest.spyOn(service, 'updateLog').mockImplementation(() => { throw new Error('Test Error'); });
 						const response$ = http.put(urlPath, updatedLogDto, { headers });
 
 						// act/assert
@@ -934,7 +934,7 @@ describe('ConditioningController', () => {
 					beforeEach(() => {
 						deletedLogId = uuid();
 						//const entityIdDTO = new EntityIdDTO(deletedLogId);
-						logSpy = jest.spyOn(conditioningDataService, 'deleteLog')
+						logSpy = jest.spyOn(service, 'deleteLog')
 							.mockImplementation((ctx: UserContext, entityId: EntityIdDTO) => {
 								void ctx, entityId; // suppress unused variable warning
 								return Promise.resolve(); // return nothing
@@ -1013,7 +1013,7 @@ describe('ConditioningController', () => {
 					it('throws if data service throws', async () => {
 						// arrange
 						logSpy.mockRestore();
-						logSpy = jest.spyOn(conditioningDataService, 'deleteLog').mockImplementation(() => { throw new Error('Test Error'); });
+						logSpy = jest.spyOn(service, 'deleteLog').mockImplementation(() => { throw new Error('Test Error'); });
 						const response$ = http.delete(urlPath, { headers });
 
 						// act/assert
@@ -1028,7 +1028,7 @@ describe('ConditioningController', () => {
 					let urlPath: string;
 					beforeEach(() => {
 						undeletedLogId = uuid();
-						logSpy = jest.spyOn(conditioningDataService, 'undeleteLog')
+						logSpy = jest.spyOn(service, 'undeleteLog')
 							.mockImplementation((ctx: UserContext, entityId: EntityIdDTO) => {
 								void ctx, entityId; // suppress unused variable warning
 								return Promise.resolve(); // return nothing
@@ -1108,7 +1108,7 @@ describe('ConditioningController', () => {
 					it('throws if data service throws', async () => {
 						// arrange
 						logSpy.mockRestore();
-						logSpy = jest.spyOn(conditioningDataService, 'undeleteLog').mockImplementation(() => { throw new Error('Test Error'); });
+						logSpy = jest.spyOn(service, 'undeleteLog').mockImplementation(() => { throw new Error('Test Error'); });
 						const response$ = http.patch(urlPath, {}, { headers });
 
 						// act/assert
@@ -1145,7 +1145,7 @@ describe('ConditioningController', () => {
 						queryDTO = new QueryDTO(queryDTOProps);
 						queryString = `${Object.entries(queryDTOProps).map(([key, value]) => `${key}=${value}`).join('&')}`;
 
-						logsSpy = jest.spyOn(conditioningDataService, 'fetchLogs');
+						logsSpy = jest.spyOn(service, 'fetchLogs');
 						
 						userIdDTO = new EntityIdDTO(userContext.userId);
 
@@ -1309,10 +1309,10 @@ describe('ConditioningController', () => {
 		describe('sessions', () => {
 			it('provides a collection of conditioning data', async () => {
 				// arrange
-				const spy = jest.spyOn(conditioningDataService, 'conditioningData');
+				const spy = jest.spyOn(service, 'conditioningData');
 
 				// act
-				void await appController.sessions();
+				void await controller.sessions();
 				
 				// assert
 				expect(spy).toHaveBeenCalledTimes(1);
