@@ -12,7 +12,7 @@ export class LoggingGuard implements CanActivate {
     const method = request.method;
     const url = request.url;
 
-    this.logger.log(`User ${user?.username || 'unknown'} accessed ${method} ${url}`);
+    this.logger.log(`User ${user?.userName || 'unknown'} (${user?.userId ? user?.userId : ''}) accessed ${method} ${url}`);
     return true;
   }
 }
