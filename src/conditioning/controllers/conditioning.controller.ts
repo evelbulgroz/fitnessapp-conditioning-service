@@ -488,8 +488,8 @@ export class ConditioningController {
 	@ApiOperation({ summary: 'Get all conditioning logs grouped by activity type and aggregated by duration and date' })
 	@ApiResponse({ status: 200, description: 'Conditioning data object' })
 	@Public() // Disable authentication for this endpoint
-	@Roles('*') // Disable role-based access control for this endpoint
-	@UseGuards({ canActivate: () => Promise.resolve(true)}) // Disable guards
+	//@Roles('*') // Disable role-based access control for this endpoint
+	//@UseGuards({ canActivate: () => Promise.resolve(true)}) // Disable guards
 	@UsePipes({ transform: () => undefined})  // Disable pipes
 	public async sessions(): Promise<ConditioningData> {
 		try {
