@@ -11,8 +11,10 @@ import { LoggingGuard } from '../infrastructure/guards/logging.guard';
 import { Roles } from '../infrastructure/decorators/roles.decorator';
 
 /** Controller for serving Swagger UI and JSON documentation.
- * Used to require authentication and authorization for accessing the documentation.
- * The standard Swagger UI provided by NestJS is not used here, as it does not support authentication and authorization.
+ * @remark Used to require authentication and authorization for accessing the documentation.
+ * @remark The standard Swagger UI provided by NestJS is not used here, as it does not support authentication and authorization.
+ * @remark Not documented using Swagger, merely used to serve the Swagger UI and JSON documentation.
+ * @remark Instead, added note to Readme.md about the API documentation and how to access it.
  */
 @Controller('docs')
 @UseGuards(
