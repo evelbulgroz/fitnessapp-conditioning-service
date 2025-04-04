@@ -103,7 +103,7 @@ export class AppModule {
 	 * @throws Error if initialization fails
 	 */
 	public async onModuleInit() {
-		return; // TEMP: disable initialization for now
+		//return; // TEMP: disable initialization for now
 		this.logger.log('Initializing server...');//, `${this.constructor.name}.onModuleInit`);
 
 		// Log in to the auth microservice (internally gets and stores access token)
@@ -132,7 +132,7 @@ export class AppModule {
 	 * @throws Error if deregistration or logout fails
 	 */
 	public async onModuleDestroy() {
-		return; // TEMP: disable destruction
+		//return; // TEMP: disable destruction
 		this.logger.log('Destroying server...');//, `${this.constructor.name}.onModuleDestroy`);		
 		
 		// Deregister from the microservice registry
