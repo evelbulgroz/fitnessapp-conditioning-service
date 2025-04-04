@@ -30,6 +30,7 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
  * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation.
  * @remark No need to duplicate documentation for TypeDoc, hence fewer traditional comments.
+ * @todo Retire unsecured /session endpoint when all clients have migrated to JWT authentication.
  */
 @ApiTags('conditioning')
 @Controller('conditioning') // version prefix set in main.ts
@@ -488,9 +489,7 @@ export class ConditioningController {
 	@ApiOperation({ summary: 'Get all conditioning logs grouped by activity type and aggregated by duration and date' })
 	@ApiResponse({ status: 200, description: 'Conditioning data object' })
 	@Public() // Disable authentication for this endpoint
-	//@Roles('*') // Disable role-based access control for this endpoint
-	//@UseGuards({ canActivate: () => Promise.resolve(true)}) // Disable guards
-	@UsePipes({ transform: () => undefined})  // Disable pipes
+	@UsePipes({ transform: () => undefined})  // Disable validation for this endpoint since it takes no parameters
 	public async sessions(): Promise<ConditioningData> {
 		try {
 			return this.LogService.conditioningData();
