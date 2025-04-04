@@ -101,6 +101,9 @@ export class AppModule {
 	/** Initialize the server by logging in to the auth service and registering with the microservice registry
 	 * @returns Promise that resolves to void when the server initialization is complete
 	 * @throws Error if initialization fails
+	 * @todo Fail with warning, rather than error, if initialization fails, e.g. to support manual testing and graceful degradation
+	 * @todo Add an app controller with a health check endpoint, backed by service, to check if server is initialized and running
+	 * @todo Add "degraded" status to health check endpoint if initialization fails
 	 */
 	public async onModuleInit() {
 		//return; // TEMP: disable initialization for now
