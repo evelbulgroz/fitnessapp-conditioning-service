@@ -27,7 +27,7 @@ export class JwtAuthGuard extends AuthGuard {
 			context.getClass(),
 		]);
 		
-		if (isPublic) { // Skip authentication for public routes
+		if (isPublic) { // skip authentication for public routes
 			return true;
 		}
 
