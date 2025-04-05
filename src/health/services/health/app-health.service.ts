@@ -2,20 +2,8 @@ import { Injectable } from "@nestjs/common";
 
 import { Logger } from "@evelbulgroz/ddd-base";
 
-/** List of possible application health statuses.*/
-export enum AppHealthStatus {
-	OK = 'OK',
-	DEGRADED = 'DEGRADED',
-	UNAVAILABLE = 'UNAVAILABLE',
-	INITIALIZING = 'INITIALIZING',
-	SHUTTING_DOWN = 'SHUTTING_DOWN',
-}
-
-/** Type representing the health status of the application */
-export type AppHealth = {
-	status: AppHealthStatus;
-	reason?: string;
-};
+import AppHealthInfo from "../../domain/app-health-info.model";
+import AppHealthStatus from "../../domain/app-health-status.enum";
 
 /** This service is used to manage the application state and health check status.
  * @remark It is used by the health check controller to determine if the application is healthy and ready to serve requests.
@@ -47,7 +35,7 @@ export class AppHealthService {
 	 * @returns The current status of the service.
 	 * @remark This method is used to get the current status of the service.
 	 */
-	public getState(): AppHealth {
+	public getState(): AppHealthInfo {
 		return { status: this.status, reason: this.reason };
 	}
 
