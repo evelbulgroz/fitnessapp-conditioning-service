@@ -2,6 +2,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { Global, Module, Logger as NestLogger }  from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
+import { AppHealthModule } from './app-health/app-health.module';
 
 import { ConsoleLogger, Logger }  from '@evelbulgroz/ddd-base';
 
@@ -39,6 +40,7 @@ class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger de
 		ConditioningModule,
 		UserModule,
 		AuthenticationModule,
+		AppHealthModule,
 	],
 	controllers: [
 		ConditioningController,
