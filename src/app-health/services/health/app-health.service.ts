@@ -9,6 +9,8 @@ import AppHealthStatus from "../../domain/app-health-status.enum";
  * @remark It keeps the application's current state in memory and provides methods to set and get the state.
  * @remark It is used by the health check controller to determine if the application is lively, and/or healthy, and ready to serve requests.
  * @remark It is also used to manage the application state during initialization and shutdown.
+ * @todo Refactor this to use Terminus, as suggested by ChatGPT, to provide a more robust health check implementation.
+ * @todo Add a status page that shows the health of all services and dependencies
  */
 @Injectable()
 export class AppHealthService {
