@@ -108,7 +108,7 @@ export class AppModule {
 	 * @todo Add "degraded" status to health check endpoint if initialization fails
 	 */
 	public async onModuleInit() {
-		//return; // TEMP: disable initialization for now
+		// return; // TEMP: disable initialization for now
 		this.logger.log('Initializing server...');//, `${this.constructor.name}.onModuleInit`);
 
 		// Log in to the auth microservice (internally gets and stores access token)

@@ -14,3 +14,5 @@ constructor(private readonly statusCode: number) {}
 		);
 	}
 }
+
+export default DefaultStatusCodeInterceptor;

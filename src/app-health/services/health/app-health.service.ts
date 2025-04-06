@@ -6,7 +6,8 @@ import AppHealthInfo from "../../domain/app-health-info.model";
 import AppHealthStatus from "../../domain/app-health-status.enum";
 
 /** This service is used to manage the application state and health check status.
- * @remark It is used by the health check controller to determine if the application is healthy and ready to serve requests.
+ * @remark It keeps the application's current state in memory and provides methods to set and get the state.
+ * @remark It is used by the health check controller to determine if the application is lively, and/or healthy, and ready to serve requests.
  * @remark It is also used to manage the application state during initialization and shutdown.
  */
 @Injectable()

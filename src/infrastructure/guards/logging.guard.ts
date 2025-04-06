@@ -16,3 +16,5 @@ export class LoggingGuard implements CanActivate {
     return true;
   }
 }
+
+export default LoggingGuard;

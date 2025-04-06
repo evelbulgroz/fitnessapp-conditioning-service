@@ -8,3 +8,4 @@ export const IS_PUBLIC_KEY = 'isPublic';
  * @returns {Function} A decorator function that sets the IS_PUBLIC_KEY metadata to true.
  */
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+export default Public;
