@@ -80,19 +80,19 @@ import { Feature } from '@evelbulgroz/fitnessapp-conditioning-service';
 ## TODOs
 This microservice is nearing first release feature completion for its main responsibility of managing and serving `ConditioningLog`s.
 
-Beyond this responsibility, the overall goal is to develop this project to a state where it can function as a template for similar training data microservices, e.g. strength training etc.
+Beyond this responsibility, the overall goal is to develop this project to a state where it can be used as a template for similar fitness data microservices, e.g. strength training etc.
 
-In broad strokes, what remains to be done is rounding out supporting features, consolidating and cleaning up, as follows:
-* Copy over (de)registration logic to `AppModule` from API Gateway to be able to effectively authenticate and collaborate with other microservices
-* Solve any problems running the dev server
-* Get automated-generated Swagger `api-docs` endpoint working and tested
-* Pull generalizable JWT and other auth logic out into separate libraries
-	* Wait until they have stabilized in operation for a while
+In broad strokes, what remains to be done is rounding out supporting features, consolidating and cleaning up, as follows (in approximate priority order):
+* Refactor and round out app health check and shutdown logic using [NestJS Terminus](https://docs.nestjs.com/recipes/terminus)
+* Make (de)registration logic in `AppModule` fail more gracefully if microservice dependencies are unavailable or fail
+	* This will also be useful for enabling manual testing of endpoints using e.g. Postman
 * Implement e2e testing (figure out how)
+	* Especially, figure out best division of labour between e2e tests and current controller unit tests
 * Clean up code:
 	* Remove any stray unused logic
 	* Apply and comply with stricter compiler settings
-	* Apply linting
-	* Consider re-organising code by domain, rather than by technical focus/function	
+	* Apply linting	
+* Consider pulling auth logic out into separate, reusable libraries
+	* Wait until they have stabilized in operation for a while
 
 *Note: Postpone deployment to production. For now, running in dev is sufficient*
