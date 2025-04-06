@@ -12,6 +12,7 @@ import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../..
 /** HttpService wrapper for making HTTP requests with automatic retry logic using axios-retry
  * @remark Uses the ConfigService to get retry configuration for each request
  * @remark Retry configuration is looked up in reverse hierarchical order: endpoint -> service -> app default
+ * @todo Make retry delays escalate exponentially (e.g. 1s, 2s, 4s, 8s) instead of using a fixed delay
  */
 @Injectable()
 export class RetryHttpService extends HttpService {
