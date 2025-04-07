@@ -1,5 +1,5 @@
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Controller, Get, HttpStatus, Res, UseGuards, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Res, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
 import { Response } from 'express';
 
 import AppHealthService from '../services/health/app-health.service';
@@ -10,6 +10,7 @@ import LoggingGuard from '../../infrastructure/guards/logging.guard';
 import RolesGuard from '../../infrastructure/guards/roles.guard';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
 import Public from '../../infrastructure/decorators/public.decorator';
+import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 
 /** Controller for serving health check requests
  * @remark This controller is used to check the health of the micoservice, e.g. by load balancers or monitoring tools.
