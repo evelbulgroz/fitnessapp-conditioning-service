@@ -98,9 +98,9 @@ export class ConsoleLogger extends Logger {
 		const formattedContext = this.formatContext(context); // Context
 		const formattedMessage = this.applyStyle(message, color); // Message
 		const composedMessage = `${appName} ${processId} ${this.applyStyle('-', this.GREEN)} ${timestamp}   ${levelTag} ${formattedContext} ${formattedMessage}`;
-		console.debug(composedMessage); // Log the composed message to console.debug for debugging purposes
+		
 		// return the composed message with ANSI escape codes for colored output (if supported)
-		return composedMessage
+		return composedMessage;
 	}
 
 	/* Format the context of the log message using the default text color.
