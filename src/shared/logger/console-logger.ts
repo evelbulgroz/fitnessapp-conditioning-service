@@ -1,6 +1,7 @@
 import { Logger, LogLevel } from './logger'
 
-/** NestJS style console logger that optionally uses ANSI escape codes for colored output.
+/** Console logger emulating the NestJS logger without introducing a dependency on NestJS.
+ * @remark This logger uses ANSI escape codes for colored output if supported by the terminal.
  * @see Logger base class for details on the logging methods and their intended use.
  */
 export class ConsoleLogger extends Logger {
