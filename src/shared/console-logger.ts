@@ -4,6 +4,8 @@ import { Logger, LogLevel } from './logger'
  * @see Logger base class for details on the logging methods and their intended use.
  */
 export class ConsoleLogger extends Logger {
+	//------------------------------ CONSTANTS ------------------------------//
+
 	private RESET = "\x1b[0m";
 	private BOLD = "\x1b[1m";
 	private DIM = "\x1b[2m";
@@ -16,7 +18,11 @@ export class ConsoleLogger extends Logger {
 	private WHITE = "\x1b[37m";
 	// Add more escape codes as needed, see https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 
+	//------------------------------ PROPERTIES -----------------------------//
+
 	private useColors: boolean;
+
+	//------------------------------ CONSTRUCTOR ----------------------------//
 
 	/** Constructor for the ConsoleLogger class.
 	 * @param context The default context of the logger (optional).
@@ -28,7 +34,7 @@ export class ConsoleLogger extends Logger {
 		this.useColors = useColors;
 	}
 
-	//------------------------------ Public API -----------------------------//
+	//------------------------------ PUBLIC API -----------------------------//
 
 	public log(message: string, context?: string) {
 		if (this.shouldLog('log')) {
@@ -69,17 +75,8 @@ export class ConsoleLogger extends Logger {
 		}
 	}
 
-	//------------------------------ Private API -----------------------------//
+	//---------------------------PROTECTED METHODS --------------------------//
 	
-	/* Check if the log level is enabled for the current message.
-	 * @param level The log level to check.
-	 * @returns true if the log level is enabled, false otherwise.
-	 */
-	protected shouldLog(level: string): boolean {
-		const levels = ['verbose', 'debug', 'log', 'info', 'warn', 'error'];
-		return levels.indexOf(level) >= levels.indexOf(this.logLevel);
-	}
-
 	/* Format the log message with ANSI escape codes for colored output (if suported).
 	 * @param level The log level of the message.
 	 * @param message The message to log.
@@ -101,13 +98,6 @@ export class ConsoleLogger extends Logger {
 	protected formatContext(context?: string): string {
 		const effectiveContext = context || this.context;
 		return effectiveContext ? ` [${effectiveContext}]` : '';
-	}
-
-	/* Get the current timestamp in ISO format.
-	 * @returns The current timestamp as a string.
-	 */
-	protected getTimestamp(): string {
-		return new Date().toISOString();
 	}
 
 	/* Apply ANSI escape codes to the text for colored output (if supported).

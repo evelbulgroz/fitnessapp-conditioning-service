@@ -8,6 +8,8 @@ export type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'verbose';
  * @remark The `logLevel` property determines which messages are logged based on their severity.
  */
 export abstract class Logger {
+	//------------------------------ PROPERTIES -----------------------------//
+
     /* The default context of the logger, used for logging messages.
      * @remark Overridden by any context passed to a specific log method.
      */
@@ -18,6 +20,8 @@ export abstract class Logger {
      * @remark Only messages with a severity level equal to or higher than the `logLevel` will be logged.
      */
     protected logLevel: LogLevel;
+
+	//------------------------------ CONSTRUCTOR ----------------------------//
 	
 	/** Constructor for the Logger class.
      * @param context The default context of the logger (optional).
@@ -34,6 +38,8 @@ export abstract class Logger {
 		this.context = context;
 		this.logLevel = logLevel;
 	}
+
+	//------------------------------ PUBLIC API -----------------------------//
 
 	/** Standard log level. Used for general log messages that do not fall into any other category.
      * @param message The message to log.
@@ -80,6 +86,26 @@ export abstract class Logger {
      * @remark Verbose logs should not be enabled in production environments unless troubleshooting specific issues.
      */
 	abstract verbose(message: string, context?: string): void;
+
+	//---------------------- PROTECTED METHODS (DEFAULTS) ---------------------//
+
+	/* Get the current timestamp in ISO format.
+	 * @returns The current timestamp as a string.
+	 */
+	protected getTimestamp(): string {
+		return new Date().toISOString();
+	}
+
+	/* Check if the log level is enabled for the current message.
+	 * @param level The log level to check.
+	 * @returns true if the log level is enabled, false otherwise.
+	 */
+	protected shouldLog(level: string): boolean {
+		const levels = ['verbose', 'debug', 'log', 'info', 'warn', 'error'];
+		return levels.indexOf(level) >= levels.indexOf(this.logLevel);
+	}
+
+	
 }
 
 export default Logger
