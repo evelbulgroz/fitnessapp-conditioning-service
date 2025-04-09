@@ -6,6 +6,7 @@ export type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'verbose';
  * @remark This class defines the standard logging methods (`log`, `warn`, `error`, `info`, `debug`, `verbose`) and their intended use.
  * @remark Subclasses should implement these methods to provide specific logging functionality, such as console logging, file logging, or remote logging.
  * @remark The `logLevel` property determines which messages are logged based on their severity.
+ * @remark Implemented as an abstract class b/c it is not possible to use interfaces in TypeScript for dependency injection.
  */
 export abstract class Logger {
 	//------------------------------ PROPERTIES -----------------------------//
