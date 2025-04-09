@@ -10,6 +10,12 @@ export type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'verbose';
 export abstract class Logger {
 	//------------------------------ PROPERTIES -----------------------------//
 
+	/* The name of the application, used for logging messages.
+	 * @remark This property is used to identify the app or library level source of the log message.
+	 * @remark This is distinct from the context, which is used to provide component or service level information.
+	 */
+	protected appName: string;
+
     /* The default context of the logger, used for logging messages.
      * @remark Overridden by any context passed to a specific log method.
      */
@@ -26,6 +32,7 @@ export abstract class Logger {
 	/** Constructor for the Logger class.
      * @param context The default context of the logger (optional).
      * @param logLevel The log level of the logger (default is 'debug').
+	 * @param appName The name of the application (default is 'App').
      * @remark The context is used to provide additional information about the source of the log message, e.g. the name of the module or service.
      * @remark The context is overridden by any context passed to a specific log method.
      * @remark The log level can be set to severity levels of 'verbose', 'debug', 'log', 'info', 'warn', or 'error'.
@@ -34,9 +41,15 @@ export abstract class Logger {
      *  @remark Only messages with a severity level equal to or higher than the log level will be logged.
      * @remark The default log level is 'debug', which logs all non-verbose messages.
      */ 
-    constructor(context?: string, logLevel: LogLevel = 'debug') {
-		this.context = context;
+    constructor(
+		logLevel: LogLevel = 'debug',
+		appName: string = 'App',
+		context?: string,
+		
+	) {
+		this.appName = appName;
 		this.logLevel = logLevel;
+		this.context = context;		
 	}
 
 	//------------------------------ PUBLIC API -----------------------------//
@@ -103,9 +116,7 @@ export abstract class Logger {
 	protected shouldLog(level: string): boolean {
 		const levels = ['verbose', 'debug', 'log', 'info', 'warn', 'error'];
 		return levels.indexOf(level) >= levels.indexOf(this.logLevel);
-	}
-
-	
+	}	
 }
 
 export default Logger

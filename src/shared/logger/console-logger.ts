@@ -29,8 +29,13 @@ export class ConsoleLogger extends Logger {
 	 * @param logLevel The log level of the logger (default is 'debug').
 	 * @param useColors Whether to use ANSI escape codes for colored output (default is true if stdout is a TTY).
 	 */
-	constructor(context?: string, logLevel: LogLevel = 'debug', useColors: boolean = process.stdout.isTTY) {
-		super(context, logLevel);
+	constructor(
+		logLevel: LogLevel = 'debug',
+		appName: string = 'App',
+		context?: string,
+		useColors: boolean = process.stdout.isTTY,
+	) {
+		super(logLevel, appName, context);
 		this.useColors = useColors;
 	}
 
@@ -77,18 +82,24 @@ export class ConsoleLogger extends Logger {
 
 	//---------------------------PROTECTED METHODS --------------------------//
 	
-	/* Format the log message with ANSI escape codes for colored output (if suported).
-	 * @param level The log level of the message.
-	 * @param message The message to log.
-	 * @param context The context of the log message (optional).
-	 * @param color The ANSI escape code for the color (default is white).
-	 * @returns The formatted log message.
-	 */
+	/* Format the log message with ANSI escape codes for colored output (if supported).
+   * @param level The log level of the message.
+   * @param message The message to log.
+   * @param context The context of the log message (optional).
+   * @param color The ANSI escape code for the color (default is white).
+   * @returns The formatted log message.
+   */
 	protected formatMessage(level: string, message: string, context?: string, color: string = this.WHITE): string {
-		const timestamp = this.getTimestamp();
-		const formattedContext = this.formatContext(context);
-		const levelTag = this.applyStyle(`[${level}]`, color);
-		return `${levelTag} ${timestamp} ${message}${formattedContext}`;
+		const appName = this.applyStyle(`[${this.appName}]`, this.GREEN); // Application name
+		const processId = this.applyStyle(`${process.pid}`, this.GREEN); // Process ID
+		const timestamp = this.applyStyle(this.getTimestamp(), this.WHITE); // Timestamp
+		const levelTag = this.applyStyle(`${level}`, color); // Log level
+		const formattedContext = this.formatContext(context); // Context
+		const formattedMessage = this.applyStyle(message, color); // Message
+		const composedMessage = `${appName} ${processId} ${this.applyStyle('-', this.GREEN)} ${timestamp}   ${levelTag} ${formattedContext} ${formattedMessage}`;
+		console.debug(composedMessage); // Log the composed message to console.debug for debugging purposes
+		// return the composed message with ANSI escape codes for colored output (if supported)
+		return composedMessage
 	}
 
 	/* Format the context of the log message using the default text color.
@@ -97,7 +108,7 @@ export class ConsoleLogger extends Logger {
 	 */
 	protected formatContext(context?: string): string {
 		const effectiveContext = context || this.context;
-		return effectiveContext ? ` [${effectiveContext}]` : '';
+		return effectiveContext ? this.applyStyle(`[${effectiveContext}]`, this.YELLOW) : '';
 	}
 
 	/* Apply ANSI escape codes to the text for colored output (if supported).
