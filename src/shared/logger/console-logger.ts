@@ -2,7 +2,9 @@ import { Logger, LogLevel } from './logger'
 
 /** Console logger emulating the NestJS logger without introducing a dependency on NestJS.
  * @remark This logger uses ANSI escape codes for colored output if supported by the terminal.
+ * @remark Internally uses the standard JavaScript `console` which should make it integrate well with Docker and similar process managers.
  * @see Logger base class for details on the logging methods and their intended use.
+ * @see LogLevel for details on the log levels and their severity.
  */
 export class ConsoleLogger extends Logger {
 	//------------------------------ CONSTANTS ------------------------------//
