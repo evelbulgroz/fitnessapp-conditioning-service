@@ -83,7 +83,7 @@ export interface DefaultConfig {
 }
 
 export interface LogConfig {
-	/** Name of the application (used in log messages) */
+	/** Name of the application (mostly used for distinguishing logs from custom code from framework/infrastucture logs ) */
 	appName: string;
 	/** Log level for the application (e.g. 'debug', 'info', 'warn', 'error') */
 	level: LogLevel;

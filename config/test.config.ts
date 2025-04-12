@@ -32,7 +32,7 @@ export default async () => {
 			}
 		},
 		log: {
-			appName: 'conditioning-service',
+			appName: 'App',
 			level: 'debug' as LogLevel,
 			useColors: true
 		},

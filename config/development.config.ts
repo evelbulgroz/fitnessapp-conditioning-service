@@ -27,7 +27,7 @@ export default () => (<ConfigOptions>{
 		}
 	},
 	log: {
-		appName: 'conditioning-service',
+		appName: 'App',
 		level: 'verbose' as LogLevel,
 		useColors: true
 	},
