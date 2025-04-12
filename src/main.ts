@@ -50,7 +50,7 @@ async function bootstrap() {
 // Set a default logger for early initialization logs, before ConfigService is available
 async function setDefaultLogger(): Promise<NestLogger> {
 	// Set a default logger for early initialization logs
-	const logger = new NestLogger('debug', 'App', undefined, true);
+	const logger = new NestLogger('debug', 'App', undefined, true, true);
 	const { Logger: DefaultLogger } = await import('@nestjs/common');
 	DefaultLogger.overrideLogger(logger);
 	return logger;
@@ -61,9 +61,10 @@ async function setDefaultLogger(): Promise<NestLogger> {
 async function setCustomLogger(app: any, config: ConfigService): Promise<NestLogger> {
 	const logLevel = config.get<string>('log.level') ?? 'debug';
 	const appName = config.get<string>('log.appName') ?? 'conditioning-service';
+	const addLocalTimestamp = config.get<boolean>('log.addLocalTimestamp') ?? false;
 	const useColors = config.get<boolean>('log.useColors') ?? true;
 
-	const logger = new NestLogger(logLevel as LogLevel, appName, undefined, useColors);
+	const logger = new NestLogger(logLevel as LogLevel, appName, undefined, addLocalTimestamp, useColors);
 	app.useLogger(logger);
 	return logger;
 }

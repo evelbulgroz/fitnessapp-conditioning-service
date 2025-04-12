@@ -34,6 +34,7 @@ export default async () => {
 		log: {
 			appName: 'App',
 			level: 'debug' as LogLevel,
+			addLocalTimestamp: true,
 			useColors: true
 		},
 		modules: {

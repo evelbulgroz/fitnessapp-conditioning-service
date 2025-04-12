@@ -53,8 +53,9 @@ import TokenService from './authentication/services/token/token.service';
 			useFactory(configService: ConfigService) {
 				const logLevel = configService.get<string>('log.level') ?? 'debug';
 				const appName = configService.get<string>('log.appName') ?? 'conditioning-service';
+				const addLocalTimestamp = configService.get<boolean>('log.addLocalTimestamp') ?? false;	
 				const useColors = configService.get<boolean>('log.useColors') ?? true;
-				return new NestLogger(logLevel as LogLevel, appName, undefined, useColors);
+				return new NestLogger(logLevel as LogLevel, appName, undefined, addLocalTimestamp, useColors);
 			},
 			inject: [ConfigService],
 		},

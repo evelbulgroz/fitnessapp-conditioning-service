@@ -6,8 +6,14 @@ import { ConsoleLogger, LogLevel } from '@evelbulgroz/logger';
  */
 @Injectable()
 export class NestLogger extends ConsoleLogger {
-	constructor(logLevel: LogLevel = 'debug', appName: string = 'App', context?: string, useColors: boolean = true) {
-		super(logLevel, appName, context, useColors);
+	constructor(
+		logLevel: LogLevel = 'debug',
+		appName: string = 'App',
+		context?: string,
+		addLocalTimestamp: boolean = true,
+		useColors: boolean = true
+	) {
+		super(logLevel, appName, context, addLocalTimestamp, useColors);
 	}	
 
   // Add any additional NestJS-specific methods or overrides as needed

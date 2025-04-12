@@ -29,6 +29,7 @@ export default () => (<ConfigOptions>{
 	log: {
 		appName: 'App',
 		level: 'verbose' as LogLevel,
+		addLocalTimestamp: true,
 		useColors: true
 	},
 	modules: {

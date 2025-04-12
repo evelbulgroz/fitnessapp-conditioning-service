@@ -85,8 +85,15 @@ export interface DefaultConfig {
 export interface LogConfig {
 	/** Name of the application (mostly used for distinguishing logs from custom code from framework/infrastucture logs ) */
 	appName: string;
+
 	/** Log level for the application (e.g. 'debug', 'info', 'warn', 'error') */
 	level: LogLevel;
+
+	/** Whether to add a local timestamp to the log output, in addition to the UTC timestamp
+	 * Note: This is not the same as the local time zone of the server, but rather the local time of the server where the log is generated
+	 */
+	addLocalTimestamp: boolean;
+	
 	/** Whether to use colors in the log output */
 	useColors: boolean;
 }
