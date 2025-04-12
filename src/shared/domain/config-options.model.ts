@@ -1,3 +1,4 @@
+import { LogLevel } from '@evelbulgroz/logger';
 import { SecurityConfig } from './security.config.model';
 
 /* Specifies supported options for the ConfigModule */
@@ -7,6 +8,8 @@ export interface ConfigOptions {
 	app: AppConfig;
 
 	defaults: DefaultConfig;
+
+	log: LogConfig;
 	
 	modules :	{
 		conditioning: {
@@ -77,6 +80,15 @@ export interface DefaultConfig {
 	},
 	/** Default retry configuration for microservice endpoints */
 	retry: RetryConfig;
+}
+
+export interface LogConfig {
+	/** Name of the application (used in log messages) */
+	appName: string;
+	/** Log level for the application (e.g. 'debug', 'info', 'warn', 'error') */
+	level: LogLevel;
+	/** Whether to use colors in the log output */
+	useColors: boolean;
 }
 
 /** Configuration for a micro service */

@@ -51,7 +51,7 @@ import TokenService from './authentication/services/token/token.service';
 			provide: Logger,
 			useFactory(configService: ConfigService) {
 				const logLevel = configService.get<string>('log.level') ?? 'debug';
-				const appName = configService.get<string>('app.servicename') ?? 'fitnessapp-conditioning-service';
+				const appName = configService.get<string>('log.appName') ?? 'conditioning-service';
 				const useColors = configService.get<boolean>('log.useColors') ?? true;
 				return new ConsoleLogger(logLevel as LogLevel, appName, undefined, useColors);
 			},

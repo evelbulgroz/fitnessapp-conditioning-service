@@ -1,6 +1,8 @@
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
+import { LogLevel }  from '@evelbulgroz/logger';
+
 import { ConfigOptions } from "../src/shared/domain/config-options.model";
 import developmentSecurityConfig from "../security-config/development.security.config";
 import * as packageJson from '../package.json';
@@ -23,6 +25,11 @@ export default () => (<ConfigOptions>{
 			maxRetries: 1,
 			retryDelay: 1000 // 1 second
 		}
+	},
+	log: {
+		appName: 'conditioning-service',
+		level: 'verbose' as LogLevel,
+		useColors: true
 	},
 	modules: {
 		conditioning: {

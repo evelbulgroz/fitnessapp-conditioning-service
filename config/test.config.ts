@@ -1,6 +1,8 @@
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
+import { LogLevel }  from '@evelbulgroz/logger';
+
 import { ConfigOptions } from "../src/shared/domain/config-options.model";
 import testSecurityConfig from "../security-config/test.security.config";
 
@@ -28,6 +30,11 @@ export default async () => {
 				maxRetries: 1,
 				retryDelay: 1000 // 1 second
 			}
+		},
+		log: {
+			appName: 'conditioning-service',
+			level: 'debug' as LogLevel,
+			useColors: true
 		},
 		modules: {
 			conditioning: {
