@@ -1,6 +1,6 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule, HttpService } from '@nestjs/axios';
-import { Global, Module, Logger as NestLogger }  from '@nestjs/common';
+import { Global, Module }  from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { AppHealthModule } from './app-health/app-health.module';
 
@@ -11,6 +11,7 @@ import AuthService from './authentication/domain/auth-service.class';
 import ConditioningController  from './conditioning/controllers/conditioning.controller';
 import ConditioningModule from './conditioning/conditioning.module';
 import EventDispatcherService  from './shared/services/utils/event-dispatcher/event-dispatcher.service';
+import NestLogger from './shared/logger/nest-logger';
 import RegistrationService from './authentication/services/registration/registration.service';
 import RetryHttpService from './shared/services/utils/retry-http/retry-http.service';
 import UserController  from './user/controllers/user.controller';
@@ -53,7 +54,7 @@ import TokenService from './authentication/services/token/token.service';
 				const logLevel = configService.get<string>('log.level') ?? 'debug';
 				const appName = configService.get<string>('log.appName') ?? 'conditioning-service';
 				const useColors = configService.get<boolean>('log.useColors') ?? true;
-				return new ConsoleLogger(logLevel as LogLevel, appName, undefined, useColors);
+				return new NestLogger(logLevel as LogLevel, appName, undefined, useColors);
 			},
 			inject: [ConfigService],
 		},

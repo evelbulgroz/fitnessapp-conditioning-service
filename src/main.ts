@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import * as express from 'express';
-import { ConsoleLogger, LogLevel } from '@evelbulgroz/logger';
+import { LogLevel } from '@evelbulgroz/logger';
 
 import { AppConfig } from 'src/shared/domain/config-options.model';
 import { AppInstance } from 'src/api-docs/app-instance.model';
 import { AppModule } from './app.module';
+import NestLogger from './shared/logger/nest-logger';
 
 async function bootstrap() {
 	// Set custom logger for NestJS before the app is created
@@ -47,23 +48,23 @@ async function bootstrap() {
 }
 
 // Set a default logger for early initialization logs, before ConfigService is available
-async function setDefaultLogger() {
+async function setDefaultLogger(): Promise<NestLogger> {
 	// Set a default logger for early initialization logs
-	const defaultLogger = new ConsoleLogger('debug', 'App', undefined, true);
-	const { Logger: NestLogger } = await import('@nestjs/common');
-	NestLogger.overrideLogger(defaultLogger);
-	return defaultLogger;
+	const logger = new NestLogger('debug', 'App', undefined, true);
+	const { Logger: DefaultLogger } = await import('@nestjs/common');
+	DefaultLogger.overrideLogger(logger);
+	return logger;
 }
 
 // Set a custom logger for the application using the configuration service
 // This logger is used for all logs after the application is created
-async function setCustomLogger(app: any, config: ConfigService) {
+async function setCustomLogger(app: any, config: ConfigService): Promise<NestLogger> {
 	const logLevel = config.get<string>('log.level') ?? 'debug';
 	const appName = config.get<string>('log.appName') ?? 'conditioning-service';
 	const useColors = config.get<boolean>('log.useColors') ?? true;
 
-	const customLogger = new ConsoleLogger(logLevel as LogLevel, appName, undefined, useColors);
-	app.useLogger(customLogger);
-	return customLogger;
+	const logger = new NestLogger(logLevel as LogLevel, appName, undefined, useColors);
+	app.useLogger(logger);
+	return logger;
 }
 bootstrap();
