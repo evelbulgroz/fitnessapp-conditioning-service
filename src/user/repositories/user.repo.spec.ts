@@ -3,7 +3,8 @@ import { TestingModule } from '@nestjs/testing';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom, Observable, take } from 'rxjs';
 
-import { ConsoleLogger, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from "@evelbulgroz/logger";
+import { PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 
 import { createTestingModule } from '../../test/test-utils';
 import { User } from '../domain/user.entity';
@@ -35,9 +36,15 @@ describe('UserRepo', () => {
 					provide: PersistenceAdapter,
 					useClass: PersistenceAdapterMock,
 				},
-				{
+				{ // Logger (suppress console output)
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: {
+						log: jest.fn(),
+						error: jest.fn(),
+						warn: jest.fn(),
+						debug: jest.fn(),
+						verbose: jest.fn(),
+					},
 				},
 				{
 					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue

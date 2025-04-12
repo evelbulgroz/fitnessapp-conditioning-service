@@ -39,9 +39,15 @@ describe('ConditioningLogRepository', () => {
 					provide: PersistenceAdapter,
 					useClass: PersistenceAdapterMock,
 				},
-				{
+				{ // Logger (suppress console output)
 					provide: Logger,
-					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
+					useValue: {
+						log: jest.fn(),
+						error: jest.fn(),
+						warn: jest.fn(),
+						debug: jest.fn(),
+						verbose: jest.fn(),
+					},
 				},
 				{
 					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue

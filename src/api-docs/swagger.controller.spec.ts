@@ -103,9 +103,15 @@ describe('SwaggerController', () => {
 					inject: [JwtSecretService],
 				},
 				JwtAuthStrategy, // mostly for internal use by JwtAuthGuard, but simpler to provide here
-				{ // Logger
+				{ // Logger (suppress console output)
 					provide: Logger,
-					useClass: ConsoleLogger,
+					useValue: {
+						log: jest.fn(),
+						error: jest.fn(),
+						warn: jest.fn(),
+						debug: jest.fn(),
+						verbose: jest.fn(),
+					},
 				},
 				{ //RolesGuard
 					provide: RolesGuard,

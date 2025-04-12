@@ -30,10 +30,16 @@ describe('LogUpdatedHandler', () => {
 					}
 				},
 				ConditioningLogUpdateHandler,
-				{
+				{ // Logger (suppress console output)
 					provide: Logger,
-					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
-				},				
+					useValue: {
+						log: jest.fn(),
+						error: jest.fn(),
+						warn: jest.fn(),
+						debug: jest.fn(),
+						verbose: jest.fn(),
+					},
+				},			
 			],
 		}))
 		.compile();

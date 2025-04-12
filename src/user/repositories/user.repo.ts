@@ -3,15 +3,8 @@ import { Inject, Injectable } from "@nestjs/common";
 import { Observable } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
-import {
-	EntityId,
-	EntityMetadataDTO,
-	EntityPersistenceDTO,
-	Logger,
-	PersistenceAdapter,
-	Repository,
-	Result
-} from "@evelbulgroz/ddd-base";
+import { EntityId, 	PersistenceAdapter, Repository, Result } from "@evelbulgroz/ddd-base";
+import { Logger } from "@evelbulgroz/logger";
 import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
 
 import User from "../domain/user.entity";

@@ -75,12 +75,15 @@ describe('UserController', () => {
 					},
 					inject: [JwtSecretService],
 				},
-				{ // Logger
+				{ // Logger (suppress console output)
 					provide: Logger,
 					useValue: {
 						log: jest.fn(),
 						error: jest.fn(),
-					}
+						warn: jest.fn(),
+						debug: jest.fn(),
+						verbose: jest.fn(),
+					},
 				},
 				{ // Data service
 					provide: UserService,

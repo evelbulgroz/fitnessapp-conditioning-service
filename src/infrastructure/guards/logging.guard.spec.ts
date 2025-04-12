@@ -14,10 +14,14 @@ describe('LoggingGuard', () => {
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
 				LoggingGuard,
-				{
+				{ // Logger (suppress console output)
 					provide: Logger,
 					useValue: {
 						log: jest.fn(),
+						error: jest.fn(),
+						warn: jest.fn(),
+						debug: jest.fn(),
+						verbose: jest.fn(),
 					},
 				},
 			],

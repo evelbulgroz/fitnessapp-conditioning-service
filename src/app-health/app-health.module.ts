@@ -8,9 +8,15 @@ import AppHealthService from './services/health/app-health.service';
 @Module({
 	controllers: [ AppHealthController ],
 	providers: [
-		{
+		{ // Logger (suppress console output)
 			provide: Logger,
-			useClass: ConsoleLogger,
+			useValue: {
+				log: jest.fn(),
+				error: jest.fn(),
+				warn: jest.fn(),
+				debug: jest.fn(),
+				verbose: jest.fn(),
+			},
 		},
 		AppHealthService,
 	],
