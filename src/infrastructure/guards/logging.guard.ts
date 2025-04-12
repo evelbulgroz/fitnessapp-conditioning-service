@@ -7,13 +7,13 @@ export class LoggingGuard implements CanActivate {
   constructor(private readonly logger: Logger) {}
 
   canActivate(context: ExecutionContext): boolean {
-	console.debug('context', context);
-    const request = context.switchToHttp().getRequest();
+	const controller = context.getClass();
+	const request = context.switchToHttp().getRequest();
     const user = request.user;
     const method = request.method;
     const url = request.url;
 
-    this.logger.log(`User ${user?.userName || 'unknown'} (${user?.userId ? user?.userId : ''}) accessed ${method} ${url}`);
+    this.logger.log(`User ${user?.userName || 'unknown'} (${user?.userId ? user?.userId : ''}) accessed ${method} ${url}`, controller.name);
     return true;
   }
 }
