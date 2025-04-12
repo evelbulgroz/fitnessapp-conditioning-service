@@ -22,7 +22,6 @@ import { UserRepository } from '../repositories/user.repo';
  * @remark Clients have no reason to request user retrieval from this microservice, only logs.
  * @remark Therefore, this service only needs to process create, delete and undelete events received from the user microservice.
  * @remark Depends on the User repository for caching and persistence of user entities.
- * * @todo Add context to all log messages, to make it easier to trace errors in the logs.
  */
 @Injectable()
 export class UserService {
@@ -42,7 +41,7 @@ export class UserService {
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
 	onModuleDestroy() {
-		this.logger.log(`${this.constructor.name}: Shutting down...`);
+		this.logger.log(`Shutting down...`, this.constructor.name);
 		this.subscriptions.forEach((subscription) => subscription?.unsubscribe());
 	}
 	

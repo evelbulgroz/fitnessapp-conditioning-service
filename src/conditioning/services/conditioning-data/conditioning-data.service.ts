@@ -84,7 +84,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
 	onModuleDestroy() {
-		this.logger.log(`${this.constructor.name}: Shutting down...`);
+		this.logger.log(`Shutting down...`, this.constructor.name);
 		this.subscriptions.forEach((subscription) => subscription?.unsubscribe());
 	}
 	
@@ -686,7 +686,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 
 		// cache not initialized, initialization not in progress -> initialize it
 		this.isInitializing = true;
-		this.logger.log(`${this.constructor.name}: Initializing cache...`);
+		this.logger.log(`Initializing cache...`, this.constructor.name);
 
 		// fetch all logs from conditioning log repo
 		let allLogs: ConditioningLog<any, ConditioningLogDTO>[] = [];
@@ -697,7 +697,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 			allLogs.sort((a, b) => (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0)); // sort logs ascending by start date and time, if available
 		}
 		else {
-			this.logger.error(`${this.constructor.name}: Error initializing conditioning logs: ${logsResult.error}`);
+			this.logger.error(`Error initializing conditioning logs`, logsResult.error.toString(), this.constructor.name);
 			this.isInitializing = false;
 		}
 		
@@ -709,7 +709,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 			users = await firstValueFrom(users$.pipe(take(1)));
 		}
 		else {
-			this.logger.error(`${this.constructor.name}: Error initializing user logs: ${usersResult.error}`);
+			this.logger.error(`Error initializing user logs`, usersResult.error.toString(), this.constructor.name);
 		}
 
 		// combine logs and users into user logs cache entries
@@ -721,7 +721,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		this.cache.next(userLogs);
 		
 		this.isInitializing = false;
-		this.logger.log(`${this.constructor.name}: Initialization complete: Cached ${allLogs.length} logs for ${users.length} users.`);
+		this.logger.log(`Initialization complete: Cached ${allLogs.length} logs for ${users.length} users.`, this.constructor.name);
 
 		return Promise.resolve(); // resolve with void
 	}
@@ -740,7 +740,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 				await this.rollbackLogCreation(logId, softDelete, retries - 1, delay);
 			}
 			else {
-				this.logger.error(`${this.constructor.name}: Error rolling back log creation for ${logId}: ${deleteResult.error}`);
+				this.logger.error(`Error rolling back log creation for ${logId}`,deleteResult.error.toString(), this.constructor.name);
 			}
 		}
 
@@ -760,7 +760,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 				await this.rollBackUserUpdate(originalPersistenceDTO, retries - 1, delay);
 			}
 			else {
-				this.logger.error(`${this.constructor.name}: Error rolling back user update for ${originalPersistenceDTO.userId}: ${result.error}`);
+				this.logger.error(`Error rolling back user update for ${originalPersistenceDTO.userId}`,result.error.toString(), this.constructor.name);
 			}
 		}
 	}
@@ -786,7 +786,7 @@ export class ConditioningDataService implements OnModuleDestroy {
 		// filter out any logs that do not have a start date, log id of logs missing start date
 		const logsWithDates = logs.filter(log => {
 			if (log.start !== undefined) return true;
-			this.logger.warn(`${this.constructor.name}: Conditioning log ${log.entityId} has no start date, excluding from ConditioningLogSeries.`);
+			this.logger.warn(`Conditioning log ${log.entityId} has no start date, excluding from ConditioningLogSeries.`, this.constructor.name);
 			return false;
 		});
 		
