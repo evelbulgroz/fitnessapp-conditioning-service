@@ -4,7 +4,7 @@ import { Global, Module }  from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { AppHealthModule } from './app-health/app-health.module';
 
-import { ConsoleLogger, Logger, LogLevel }  from '@evelbulgroz/logger';
+import { Logger, LogLevel }  from '@evelbulgroz/logger';
 
 import AuthenticationModule from './authentication/authentication.module';
 import AuthService from './authentication/domain/auth-service.class';
@@ -48,7 +48,7 @@ import TokenService from './authentication/services/token/token.service';
 	providers: [		
 		ConfigService,
 		EventDispatcherService,
-		{ // Logger compatible with ddd-base library. todo get log level from config
+		{ // Logger compatible with ddd-base library
 			provide: Logger,
 			useFactory(configService: ConfigService) {
 				const logLevel = configService.get<string>('log.level') ?? 'debug';
