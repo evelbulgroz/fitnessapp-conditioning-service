@@ -3,7 +3,8 @@ import { TestingModule } from '@nestjs/testing';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom, Observable, take } from 'rxjs';
 
-import { ConsoleLogger, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { EntityMetadataDTO, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 import { DeviceType, ActivityType, SensorType } from '@evelbulgroz/fitnessapp-base';
 
 import { ConditioningLogRepository } from './conditioning-log.repo';
@@ -40,7 +41,7 @@ describe('ConditioningLogRepository', () => {
 				},
 				{
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
 				},
 				{
 					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue

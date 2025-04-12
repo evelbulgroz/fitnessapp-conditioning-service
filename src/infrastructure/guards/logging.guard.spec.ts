@@ -4,7 +4,7 @@ import { LoggingGuard } from './logging.guard';
 
 import { jest } from '@jest/globals';
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 describe('LoggingGuard', () => {
 	let loggingGuard: LoggingGuard;

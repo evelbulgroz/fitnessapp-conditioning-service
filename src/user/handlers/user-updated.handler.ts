@@ -2,7 +2,7 @@ import { Inject, Injectable, forwardRef } from '@nestjs/common';
 
 import { firstValueFrom, Observable } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 import { ConditioningDataService } from '../../conditioning/services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../../conditioning/domain/conditioning-log.entity';

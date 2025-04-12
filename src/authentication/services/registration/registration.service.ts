@@ -4,7 +4,7 @@ import { Injectable, RequestMethod } from '@nestjs/common';
 
 import { firstValueFrom, from, Observable, switchMap, tap } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/service-data.dto';
 
 import { AuthService } from '../../domain/auth-service.class';

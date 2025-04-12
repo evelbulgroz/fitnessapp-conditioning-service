@@ -4,7 +4,7 @@ import { createTestingModule } from '../../test/test-utils';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
-import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 
 //import { jest } from '@jest/globals';
 
@@ -36,12 +36,7 @@ describe('ConditioningLogUndeletedHandler', () => {
 				ConditioningLogUndeletedHandler,
 				{ // Logger
 					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						warn: jest.fn(),
-						error: jest.fn(),
-						// add other methods as needed
-					}
+					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
 				},				
 			],
 		}))

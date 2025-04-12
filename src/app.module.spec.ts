@@ -1,7 +1,8 @@
 import { TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { ConsoleLogger, Logger } from '@nestjs/common';
+
+import { ConsoleLogger, Logger }  from '@evelbulgroz/logger';
 
 import { jest } from '@jest/globals';
 
@@ -34,7 +35,7 @@ describe('AppModule', () => {
 				ConfigService,
 				{
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
 				},
 				{
 					provide: AuthService,

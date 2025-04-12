@@ -1,5 +1,7 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, Logger } from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
 import { Request, Response } from 'express';
+
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 
 /** Middleware to catch all exceptions and log them
  * @remark This is a global exception filter
@@ -15,7 +17,7 @@ import { Request, Response } from 'express';
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-	private readonly logger = new Logger(AllExceptionsFilter.name);
+	private readonly logger = new ConsoleLogger('debug', AllExceptionsFilter.name);
 
 	catch(exception: unknown, host: ArgumentsHost) {
 		const ctx = host.switchToHttp();

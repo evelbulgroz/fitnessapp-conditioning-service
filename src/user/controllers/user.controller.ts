@@ -2,7 +2,7 @@ import { BadRequestException, Controller, Delete, HttpCode, HttpStatus, Param, P
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';

@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 @Injectable()
 export class LoggingGuard implements CanActivate {

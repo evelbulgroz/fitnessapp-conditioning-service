@@ -4,7 +4,7 @@ import { Global, Module, Logger as NestLogger }  from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { AppHealthModule } from './app-health/app-health.module';
 
-import { ConsoleLogger, Logger }  from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger, LogLevel }  from '@evelbulgroz/logger';
 
 import AuthenticationModule from './authentication/authentication.module';
 import AuthService from './authentication/domain/auth-service.class';
@@ -20,9 +20,6 @@ import productionConfig from './../config/production.config';
 import developmentConfig from '../config/development.config';
 import SwaggerController from './api-docs/swagger.controller';
 import TokenService from './authentication/services/token/token.service';
-
-class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger despite name conflit with ddd-base Logger
-
 
 @Global()
 @Module({
@@ -50,13 +47,14 @@ class NestJSLogger extends NestLogger {} // Enable injection of NestJS Logger de
 	providers: [		
 		ConfigService,
 		EventDispatcherService,
-		{ // Logger compatible with ddd-base library
+		{ // Logger compatible with ddd-base library. todo get log level from config
 			provide: Logger,
-			useClass: ConsoleLogger,
-		},
-		{ // Logger compatible with NestJS
-			provide: NestJSLogger,
-			useClass: NestLogger,
+			useFactory(configService: ConfigService) {
+				const logLevel = configService.get<string>('log.level') ?? 'debug';
+				const appName = configService.get<string>('app.servicename') ?? 'fitnessapp-conditioning-service';
+				const useColors = configService.get<boolean>('log.useColors') ?? true;
+				return new ConsoleLogger(logLevel as LogLevel, appName, undefined, useColors);
+			}
 		},
 		RegistrationService,
 		{ // AuthService
@@ -108,7 +106,7 @@ export class AppModule {
 	 * @todo Add "degraded" status to health check endpoint if initialization fails
 	 */
 	public async onModuleInit() {
-		return; // TEMP: disable initialization for now
+		//return; // TEMP: disable initialization for now
 		this.logger.log('Initializing server...');//, `${this.constructor.name}.onModuleInit`);
 
 		// Log in to the auth microservice (internally gets and stores access token)
@@ -137,7 +135,7 @@ export class AppModule {
 	 * @throws Error if deregistration or logout fails
 	 */
 	public async onModuleDestroy() {
-		return; // TEMP: disable destruction
+		//return; // TEMP: disable destruction
 		this.logger.log('Destroying server...');//, `${this.constructor.name}.onModuleDestroy`);		
 		
 		// Deregister from the microservice registry

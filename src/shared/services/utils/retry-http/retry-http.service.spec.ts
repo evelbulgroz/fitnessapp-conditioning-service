@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import axiosRetry from 'axios-retry';
 import { firstValueFrom, take } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 import * as ConfigFactory from '../../../../../config/test.config';
 import { ConfigOptions, RetryConfig } from '../../../domain/config-options.model';

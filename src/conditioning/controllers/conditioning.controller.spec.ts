@@ -7,7 +7,8 @@ import { jest } from '@jest/globals';
 import { of, lastValueFrom } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
-import { ConsoleLogger, EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 
 import { AggregationQueryDTO, AggregationQueryDTOProps } from '../dtos/aggregation-query.dto';

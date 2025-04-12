@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-import { Logger } from "@evelbulgroz/ddd-base";
+import { Logger } from "@evelbulgroz/logger";
 
 import AppHealthInfo from "../../domain/app-health-info.model";
 import AppHealthStatus from "../../domain/app-health-status.enum";

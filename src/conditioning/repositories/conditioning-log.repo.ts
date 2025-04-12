@@ -2,7 +2,8 @@ import { Inject, Injectable } from "@nestjs/common";
 
 import { v4 as uuidv4 } from 'uuid';
 
-import { EntityId, EntityMetadataDTO, Logger, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
+import { EntityId, EntityMetadataDTO, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
+import { Logger } from '@evelbulgroz/logger';
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
 import { ConditioningLog } from "../domain/conditioning-log.entity";

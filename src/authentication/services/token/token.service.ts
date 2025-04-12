@@ -5,7 +5,7 @@ import { Injectable, RequestMethod } from '@nestjs/common';
 import { firstValueFrom, Observable } from 'rxjs';
 import jwt from 'jsonwebtoken';
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../../shared/domain/config-options.model';
 import AuthService from '../../domain/auth-service.class';

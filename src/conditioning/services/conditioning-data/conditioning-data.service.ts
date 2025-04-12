@@ -4,7 +4,8 @@ import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take
 
 import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
-import { EntityId, Logger, Result } from '@evelbulgroz/ddd-base';
+import { EntityId, Result } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
 

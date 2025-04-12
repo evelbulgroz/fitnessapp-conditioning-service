@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 
 import { firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
-import { EntityId, Logger } from '@evelbulgroz/ddd-base';
+import { EntityId } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';

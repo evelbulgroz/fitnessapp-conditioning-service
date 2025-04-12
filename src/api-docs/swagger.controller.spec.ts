@@ -10,7 +10,8 @@ import { Response } from 'express';
 import { readFileSync } from 'fs';
 import { v4 as uuid } from 'uuid';
 
-import { ConsoleLogger, Logger, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { Result } from '@evelbulgroz/ddd-base';
 
 import AppInstance from './app-instance.model';
 import BcryptCryptoService from '../authentication/services/crypto/bcrypt-crypto.service';

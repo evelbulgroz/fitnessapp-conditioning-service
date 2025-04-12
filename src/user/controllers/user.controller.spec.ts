@@ -6,7 +6,8 @@ import { HttpService, HttpModule } from '@nestjs/axios';
 import { lastValueFrom, of } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
-import { Logger, Result } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
+import { Result } from '@evelbulgroz/ddd-base';
 
 import { BcryptCryptoService } from '../../authentication/services/crypto/bcrypt-crypto.service';
 import { createTestingModule } from '../../test/test-utils';

@@ -2,7 +2,7 @@ import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../test/test-utils';
 //import { jest } from '@jest/globals';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 
 import { ConditioningLogRepository } from '../../conditioning/repositories/conditioning-log.repo';
 import { UserDeletedEvent } from '../events/user-deleted.event';
@@ -33,7 +33,7 @@ describe('UserCreatedHandler', () => {
 				},
 				{
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
 				},				
 			],
 		}))

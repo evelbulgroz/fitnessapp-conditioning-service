@@ -2,7 +2,7 @@ import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../test/test-utils';
 //import { jest } from '@jest/globals';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 
 import { ConditioningDataService } from '../../conditioning/services/conditioning-data/conditioning-data.service';
 import { ConditioningLogRepository } from '../../conditioning/repositories/conditioning-log.repo';
@@ -36,7 +36,7 @@ describe('UserUpdatedHandler', () => {
 					}
 				},{
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
 				},
 				UserUpdatedHandler, // bug: enabling this breaks the test if UserUpdatedHandler injects ConditioningDataService
 			],

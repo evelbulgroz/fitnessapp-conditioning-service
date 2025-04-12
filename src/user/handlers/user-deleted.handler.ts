@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 import { ConditioningLog } from '../../conditioning/domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../conditioning/dtos/conditioning-log.dto';

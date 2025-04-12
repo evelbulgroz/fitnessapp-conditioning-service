@@ -2,7 +2,8 @@ import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatu
 import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, getSchemaPath } from '@nestjs/swagger';
 
 import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
-import { EntityId, Logger } from '@evelbulgroz/ddd-base';
+import { EntityId } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 import { AggregationQueryDTO } from '../dtos/aggregation-query.dto';
 import { BooleanDTO } from '../../shared/dtos/responses/boolean.dto';

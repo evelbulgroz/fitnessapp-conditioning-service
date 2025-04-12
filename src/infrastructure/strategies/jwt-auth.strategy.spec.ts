@@ -6,7 +6,8 @@ import jwt from 'jsonwebtoken';
 import { of } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
-import { ConsoleLogger, Logger, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { Result } from '@evelbulgroz/ddd-base';
 
 import { BcryptCryptoService } from '../../authentication/services/crypto/bcrypt-crypto.service';
 import { createTestingModule } from '../../test/test-utils';
@@ -48,7 +49,7 @@ describe('JwtAuthStrategy', () => {
 				},
 				{
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
 				},				
 				{
 					provide: UserRepository,

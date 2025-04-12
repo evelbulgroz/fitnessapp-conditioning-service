@@ -1,7 +1,7 @@
 import { ConfigService } from "@nestjs/config";
 import { Injectable } from "@nestjs/common";
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 import { AuthStrategy } from './auth-strategy.model';
 import { CryptoService } from '../../authentication/services/crypto/domain/crypto-service.model';

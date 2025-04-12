@@ -4,7 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { of, Subject } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ConsoleLogger, Logger, Result } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { Result } from '@evelbulgroz/ddd-base';
 
 import { createTestingModule } from '../../test/test-utils';
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
@@ -33,7 +34,7 @@ describe('UserService', () => {
 				ConfigService,
 				{
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
 				},
 				{
 					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue

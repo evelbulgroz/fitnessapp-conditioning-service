@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import { of } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 
 import ServiceDataDTOProps from '../../dtos/responses/service-data.dto';
 import BootstrapResponseDTO from '../../dtos/responses/bootstrap-response.dto';
@@ -41,7 +41,7 @@ describe('TokenService', () => {
 				ConfigService,
 				{
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
 				},
 				TokenService,
 			],

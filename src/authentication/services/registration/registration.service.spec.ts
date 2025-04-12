@@ -6,7 +6,7 @@ import { jest } from '@jest/globals';
 import jwt from 'jsonwebtoken';
 import { of } from 'rxjs';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/service-data.dto';
 
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../../shared/domain/config-options.model';
@@ -36,7 +36,7 @@ describe('RegistrationService', () => {
 				ConfigService,
 				{
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
 				},
 				RegistrationService,
 				{

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/ddd-base';
+import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 
 import AppHealthController from './controllers/app-health.controller';
 import AppHealthService from './services/health/app-health.service';

@@ -1,7 +1,7 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../../../test/test-utils';
 
-import { Logger, ConsoleLogger } from '@evelbulgroz/ddd-base';
+import { Logger, ConsoleLogger } from '@evelbulgroz/logger';
 //import { jest } from '@jest/globals';
 
 import { ConditioningDataService } from '../../../../conditioning/services/conditioning-data/conditioning-data.service';
@@ -45,7 +45,7 @@ describe('EventDispatcherService', () => {
 				},
 				{ // Logger
 					provide: Logger,
-					useClass: ConsoleLogger
+					useValue: new ConsoleLogger('debug', 'AppName', undefined, true),
 				},
 				EventDispatcherService,
 				ConditioningLogCreatedHandler,

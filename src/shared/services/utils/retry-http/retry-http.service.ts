@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
 
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../../../domain/config-options.model';
 
