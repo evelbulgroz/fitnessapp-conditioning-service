@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import * as express from 'express';
-import { Logger } from '@evelbulgroz/ddd-base';
+import { Logger } from '@evelbulgroz/logger';
 
 import { AppConfig } from 'src/shared/domain/config-options.model';
 import { AppInstance } from 'src/api-docs/app-instance.model';
@@ -28,11 +28,11 @@ async function bootstrap() {
 	const appConfig = configService.get('app') as AppConfig;
 	const port = appConfig.baseURL?.port;
 	await app.listen(port);
-	logger.log(`Application is running on: ${await app.getUrl()}/${prefix}`);//, 'Bootstrap');
+	logger.log(`Application is running on: ${await app.getUrl()}/${prefix}`, 'Bootstrap');
 
 	// Handle SIGINT signal, i.e. Ctrl+C in terminal
 	process.on('SIGINT', async () => {
-		logger.log('SIGINT signal received: closing the application...');//, 'Bootstrap');
+		logger.log('SIGINT signal received: closing the application...', 'Bootstrap');
 		await app.close();
 		process.exit(0); // exit process immediately
 	});
