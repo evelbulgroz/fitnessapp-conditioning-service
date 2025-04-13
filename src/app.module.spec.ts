@@ -73,7 +73,7 @@ describe('AppModule', () => {
 		expect(appModule).toBeDefined();
 	});
 
-	describe('Server initialization (onModuleInit)', () => {
+	describe('Server initialization - onModuleInit', () => {
 		let accessToken: string;
 		let registrationSpy: any;
 		let tokenServiceSpy: any;
@@ -130,7 +130,7 @@ describe('AppModule', () => {
 		});
 	});
 
-	describe('Server shutdown (onModuleDestroy)', () => {
+	describe('Server shutdown - onModuleDestroy', () => {
 		let deregistrationSpy: any;
 		let logoutSpy: any;
 		beforeEach(() => {

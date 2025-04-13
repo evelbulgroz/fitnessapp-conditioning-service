@@ -2351,7 +2351,7 @@ describe('ConditioningDataService', () => {
 
 				// assert
 				expect(errorSpy).toHaveBeenCalled();
-				expect(errorSpy).toHaveBeenCalledWith(`${logService.constructor.name}: Error rolling back log creation for ${orphanedLogId}: test error`);
+				expect(errorSpy).toHaveBeenCalledWith(`Error rolling back log creation for ${orphanedLogId}`, 'test error', logService.constructor.name);
 				errorSpy.mockRestore();
 			});
 		});
@@ -2469,7 +2469,7 @@ describe('ConditioningDataService', () => {
 
 				// assert
 				expect(errorSpy).toHaveBeenCalled();
-				expect(errorSpy).toHaveBeenCalledWith(`${logService.constructor.name}: Error rolling back user update for ${originalPersistenceDTO.userId}: Error: ${error.message}`);
+				expect(errorSpy).toHaveBeenCalledWith(`Error rolling back user update for ${originalPersistenceDTO.userId}`, `Error: ${error.message}`, logService.constructor.name);
 				errorSpy.mockRestore();
 			});
 		});
@@ -2545,7 +2545,7 @@ describe('ConditioningDataService', () => {
 
 				// assert
 				expect(warnSpy).toHaveBeenCalled();
-				expect(warnSpy).toHaveBeenCalledWith(`${logService.constructor.name}: Conditioning log ${logWithoutStart.entityId} has no start date, excluding from ConditioningLogSeries.`);
+				expect(warnSpy).toHaveBeenCalledWith(`Conditioning log ${logWithoutStart.entityId} has no start date, excluding from ConditioningLogSeries.`, logService.constructor.name);
 				warnSpy.mockRestore();
 			});			
 		});
