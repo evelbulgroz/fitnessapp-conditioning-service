@@ -5,6 +5,7 @@ export enum AppHealthStatus {
 	UNAVAILABLE = 'UNAVAILABLE',
 	INITIALIZING = 'INITIALIZING',
 	SHUTTING_DOWN = 'SHUTTING_DOWN',
+	// SHUT_DOWN = 'SHUT_DOWN'
 }
 
 export default AppHealthStatus;

@@ -50,8 +50,8 @@ export class AppHealthController {
 		description: 'Returns HTTP 200 if the app is healthy, HTTP 503 if degraded/unavailable. Used by load balancers and monitoring tools. Also returns the health status and reason for unavailability in the response body.'
 	})
 	@ApiResponse({ status: 200, description: 'The app is healthy' })
-	checkHealth(@Res() res: Response) {
-		const { status, reason } = this.appHealthService.getState();
+	async checkHealth(@Res() res: Response) {
+		const { status, reason } = await this.appHealthService.getState();
 		
 		if (status === AppHealthStatus.OK) {
 			res.status(HttpStatus.OK).send({ status });
