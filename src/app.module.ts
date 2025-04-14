@@ -70,7 +70,6 @@ import developmentConfig from '../config/development.config';
 		  provide: HttpService,
 		  useClass: RetryHttpService,
 		},
-		//RetryHttpService,
 		{ // AXIOS_INSTANCE_TOKEN
 			// Provide AxiosInstance for use in RetryHttpService			
 			provide: 'AXIOS_INSTANCE_TOKEN',
@@ -117,8 +116,8 @@ export class AppModule {
 			void await this.authService.getAuthData();
 		}
 		catch (error) {
-			this.logger.warn(`Failed to get access token from auth microservice: ${error.message}`, `${this.constructor.name}.onModuleInit`);
-			this.logger.warn(`Server authentication aborted`, `${this.constructor.name}.onModuleInit`);
+			this.logger.error(`Failed to get access token from auth microservice`, error, `${this.constructor.name}.onModuleInit`);
+			this.logger.warn(`Continuing startup without authentication.`, `${this.constructor.name}.onModuleInit`);
 			// todo: set health check status to degraded
 		}
 		
@@ -127,8 +126,8 @@ export class AppModule {
 			void await this.registrationService.register();
 		}
 		catch (error) {
-			this.logger.warn(`Failed to register with microservice registry: ${error.message}`, `${this.constructor.name}.onModuleInit`);
-			this.logger.warn(`Server registration aborted`, `${this.constructor.name}.onModuleInit`);
+			this.logger.error(`Failed to register with microservice registry`, error, `${this.constructor.name}.onModuleInit`);
+			this.logger.warn(`Continuing startup without registry registration.`, `${this.constructor.name}.onModuleInit`);
 			// todo: set health check status to degraded
 		}
 		
@@ -148,8 +147,8 @@ export class AppModule {
 			void await this.registrationService.deregister();
 		}
 		catch (error) {
-			this.logger.warn(`Failed to deregister from microservice registry: ${error.message}`, `${this.constructor.name}.onModuleDestroy`);
-			this.logger.warn(`Server deregistration aborted`, `${this.constructor.name}.onModuleDestroy`);
+			this.logger.error(`Failed to deregister from microservice registry`, error, `${this.constructor.name}.onModuleDestroy`);
+			this.logger.warn(`Continuing shutdown without deregistration.`, `${this.constructor.name}.onModuleDestroy`);
 			// todo: set health check status to degraded
 		}
 
@@ -158,8 +157,8 @@ export class AppModule {
 			void await this.authService.logout();
 		}
 		catch (error) {
-			this.logger.warn(`Failed to log out from auth service: ${error.message}`, `${this.constructor.name}.onModuleDestroy`);
-			this.logger.warn(`Server logout aborted`, `${this.constructor.name}.onModuleDestroy`);
+			this.logger.error(`Failed to log out from auth service`, error, `${this.constructor.name}.onModuleDestroy`);
+			this.logger.warn('Continuing shutdown without logout.', `${this.constructor.name}.onModuleDestroy`);
 			// todo: set health check status to degraded
 		}
 
