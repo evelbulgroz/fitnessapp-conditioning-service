@@ -319,11 +319,9 @@ export class TokenService extends AuthService {
 	protected executeRequest(url: string, method: RequestMethod, body: any, config: any): Observable<any> {
 		const methodString = RequestMethod[method].toLowerCase(); // get method as string from RequestMethod enum; convert to lowercase to match HttpService method names
 		try {
-			//this.logger.log(`Executing ${methodString.toUpperCase()} request for ${url}`, this.constructor.name);
 			return methodString === 'get' ? this.http.get(url, config) : (this.http as any)[methodString](url, body, config);
 		}
 		catch (error) {
-			//this.logger.error(`${methodString.toUpperCase()} request failed`, error.message, this.constructor.name);
 			throw new Error(`${this.constructor.name}.executeRequest ${methodString.toUpperCase()} request failed: ${error.message}`);
 		}
 		// note: the 'as any' cast is needed because HttpService does not have a method for each request method, only get, post, put, delete, etc.		
