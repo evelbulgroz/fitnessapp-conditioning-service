@@ -14,6 +14,8 @@ import UserRepository from './user/repositories/user.repo';
 import RetryHttpService from './shared/services/utils/retry-http/retry-http.service';
 import TokenService from './authentication/services/token/token.service';
 import EventDispatcherService from './shared/services/utils/event-dispatcher/event-dispatcher.service';
+import SwaggerController from './api-docs/swagger.controller';
+import { UserController } from './user/controllers/user.controller';
 
 describe('AppModule', () => {
 	let appModule: AppModule;	
@@ -26,6 +28,25 @@ describe('AppModule', () => {
 				AppModule
 			],
 			providers: [
+				{ // AuthService mock
+					provide: AuthService,
+					useValue: {
+						getAuthData: jest.fn()	
+					},
+				},
+				{ // ConditioningController mock
+					provide: 'ConditioningController',
+					useValue: {
+						// Mock methods as needed
+					},
+				},
+				ConfigService,
+				{ // EventDispatcherService mock
+					provide: EventDispatcherService,
+					useValue: {
+						dispatchEvent: jest.fn(),
+					},
+				},
 				{ // HttpService mock
 					provide: HttpService,
 					useValue: {
@@ -33,7 +54,6 @@ describe('AppModule', () => {
 						post: jest.fn()
 					},
 				},
-				ConfigService,
 				{ // Logger mock (suppress console output)
 					provide: Logger,
 					useValue: {
@@ -42,12 +62,6 @@ describe('AppModule', () => {
 						warn: jest.fn(),
 						debug: jest.fn(),
 						verbose: jest.fn(),
-					},
-				},
-				{ // AuthService mock
-					provide: AuthService,
-					useValue: {
-						getAuthData: jest.fn()	
 					},
 				},
 				{ // RegistrationService mock
@@ -64,11 +78,11 @@ describe('AppModule', () => {
 						post: jest.fn(),
 					},
 				},
-				{ // EventDispatcherService mock
-					provide: EventDispatcherService,
+				{ // SwaggerController mock
+					provide: SwaggerController,
 					useValue: {
-						dispatchEvent: jest.fn(),
-					},
+						// Mock methods as needed					
+					}
 				},
 				{ // TokenService mock
 					provide: TokenService,
@@ -77,24 +91,8 @@ describe('AppModule', () => {
 						logout: jest.fn(),
 					},
 				},
-				{ // ConfigService mock
-					provide: ConfigService,
-					useValue: {
-						get: jest.fn(),
-					},
-				},
-				{ // Logger mock
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},
-				{ // UserRepository mock
-					provide: UserRepository,
+				{ // UserController mock
+					provide: UserController,
 					useValue: {
 						isReady: jest.fn(),
 					},
@@ -103,6 +101,8 @@ describe('AppModule', () => {
 		}))
 		.compile();
 
+		const userRepo = module.get<UserRepository>(UserRepository);
+		console.debug('userRepo', userRepo);
 		appModule = module.get<AppModule>(AppModule);
 		authService = module.get<AuthService>(AuthService);
 		registrationService = module.get<RegistrationService>(RegistrationService);

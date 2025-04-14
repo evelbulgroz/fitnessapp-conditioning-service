@@ -14,13 +14,13 @@ import EventDispatcherService  from './shared/services/utils/event-dispatcher/ev
 import NestLogger from './shared/logger/nest-logger';
 import RegistrationService from './authentication/services/registration/registration.service';
 import RetryHttpService from './shared/services/utils/retry-http/retry-http.service';
+import SwaggerController from './api-docs/swagger.controller';
+import TokenService from './authentication/services/token/token.service';
 import UserController  from './user/controllers/user.controller';
 import UserModule from './user/user.module';
 
 import productionConfig from './../config/production.config';
 import developmentConfig from '../config/development.config';
-import SwaggerController from './api-docs/swagger.controller';
-import TokenService from './authentication/services/token/token.service';
 
 @Global()
 @Module({
