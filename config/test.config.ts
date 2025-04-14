@@ -27,8 +27,8 @@ export default async () => {
 				throttleTime: 50
 			},
 			retry: {
-				maxRetries: 1,
-				retryDelay: 1000 // 1 second
+				maxRetries: 3,
+				retryDelay: 100 // 1 second
 			}
 		},
 		log: {

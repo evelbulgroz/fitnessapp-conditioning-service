@@ -65,11 +65,19 @@ import developmentConfig from '../config/development.config';
 			provide: AuthService,
 			useClass: TokenService
 
-		},
+		},		
 		{ // RetryHttpService
-		  provide: HttpService,
-		  useClass: RetryHttpService,
+			provide: RetryHttpService,
+			useFactory: (configService: ConfigService, logger: Logger) => {
+				return new RetryHttpService(configService, logger);
+			},
+			inject: [ConfigService, Logger],
 		},
+		{ // HttpService
+			provide: HttpService,
+			useExisting: RetryHttpService, // Use the same instance as RetryHttpService
+		},
+		
 		{ // AXIOS_INSTANCE_TOKEN
 			// Provide AxiosInstance for use in RetryHttpService			
 			provide: 'AXIOS_INSTANCE_TOKEN',

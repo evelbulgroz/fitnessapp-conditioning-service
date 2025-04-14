@@ -22,7 +22,7 @@ export default () => (<ConfigOptions>{
 			throttleTime: 50
 		},
 		retry: {
-			maxRetries: 1,
+			maxRetries: 3,
 			retryDelay: 1000 // 1 second
 		}
 	},

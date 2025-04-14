@@ -54,7 +54,7 @@ describe('RetryHttpService', () => {
 	});
 
 	let axiosRef: any;
-	let configService: ConfigService;
+	let config: ConfigService;
 	let configGetSpy: jest.SpyInstance;
 	let logger: Logger;
 	let service: RetryHttpService;
@@ -89,11 +89,11 @@ describe('RetryHttpService', () => {
 
 		service = module.get<RetryHttpService>(RetryHttpService);
 		axiosRef = service['axiosRef'];
-		configService = service['configService'] as jest.Mocked<ConfigService>; // workaround: framework injects mock regardless of config service provided here, so get reference from service rather than module
+		config = service['config'] as jest.Mocked<ConfigService>; // workaround: framework injects mock regardless of config service provided here, so get reference from service rather than module
 		logger = module.get<Logger>(Logger);
 		
 		// spy on ConfigService.get to return the test config
-		configGetSpy = jest.spyOn(configService, 'get').mockImplementation((key: string) => { // workaround: can't control injection of ConfigService, so mock get method instead
+		configGetSpy = jest.spyOn(config, 'get').mockImplementation((key: string) => { // workaround: can't control injection of ConfigService, so mock get method instead
 			if (key === 'defaults') {
 				return testConfig.defaults;
 			}

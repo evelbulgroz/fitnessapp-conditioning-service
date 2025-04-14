@@ -166,7 +166,7 @@ describe('TokenService', () => {
 
 			it('initiates token acquisition if auth data is not available', async () => {
 				// arrange
-				service['_accessToken'] = undefined; // sanity check
+				service['accessToken'] = undefined; // sanity check
 
 				//act
 				void await service.getAuthData();
@@ -180,7 +180,7 @@ describe('TokenService', () => {
 				const postUrl = httpPostSpy.mock.calls[0][0];
 				expect(postUrl).toBe(loginUrl);
 
-				expect(service['_accessToken']).toBe(accessToken);
+				expect(service['accessToken']).toBe(accessToken);
 			});
 
 			it('fails if token acquisition fails', async () => {
@@ -194,10 +194,10 @@ describe('TokenService', () => {
 
 			it('initiates token refresh if access token has expired', async () => {
 				// arrange
-				service['_accessToken'] = accessToken; // sanity check
+				service['accessToken'] = accessToken; // sanity check
 				const jwtConfig = config.get(`security.authentication.jwt`) ?? {};
 				const expiredToken = jwt.sign({ serviceName }, jwtConfig.accessToken.secret, { expiresIn: '0s' });
-				service['_accessToken'] = expiredToken; // sanity check
+				service['accessToken'] = expiredToken; // sanity check
 
 				//act
 				const token = await service.getAuthData();
@@ -212,9 +212,9 @@ describe('TokenService', () => {
 				// arrange
 				const jwtConfig = config.get(`security.authentication.jwt`) ?? {};
 				const expiredAccessToken = jwt.sign({ serviceName }, jwtConfig.accessToken.secret, { expiresIn: '0s' });
-				service['_accessToken'] = expiredAccessToken; // set expired token, should trigger refresh
+				service['accessToken'] = expiredAccessToken; // set expired token, should trigger refresh
 				const expiredRefreshToken = jwt.sign({ serviceName }, jwtConfig.refreshToken.secret, { expiresIn: '0s' });
-				service['_refreshToken'] = expiredRefreshToken; // set expired token, should trigger re-authentication
+				service['refreshToken'] = expiredRefreshToken; // set expired token, should trigger re-authentication
 
 				//act
 				const token = await service.getAuthData();
@@ -270,20 +270,20 @@ describe('TokenService', () => {
 				// assert
 				expect(httpPostSpy).toHaveBeenCalledTimes(3);
 				expect(httpPostSpy).toHaveBeenCalledWith(logoutUrl, logoutData, logoutHeaders);
-				expect(result).toBe('TokenService.logout Service logged out successfully');
+				expect(result).toBe('Service logged out successfully');
 			});
 
 			it('clears access and refresh tokens after logging out', async () => {
 				// arrange
-				service['_accessToken'] = accessToken; // populate tokens
-				service['_refreshToken'] = refreshToken;
+				service['accessToken'] = accessToken; // populate tokens
+				service['refreshToken'] = refreshToken;
 
 				//act
 				void await service.logout();
 
 				// assert
-				expect(service['_accessToken']).toBeUndefined();
-				expect(service['_refreshToken']).toBeUndefined();
+				expect(service['accessToken']).toBeUndefined();
+				expect(service['refreshToken']).toBeUndefined();
 			});
 
 			it('fails if logout request fails', async () => {
@@ -310,8 +310,8 @@ describe('TokenService', () => {
 		describe('log in', () => {
 			it('orchestrates token acquisition and returns tokens', async () => {
 				// arrange
-				expect(service['_accessToken']).toBeUndefined(); // sanity checks
-				expect(service['_refreshToken']).toBeUndefined();
+				expect(service['accessToken']).toBeUndefined(); // sanity checks
+				expect(service['refreshToken']).toBeUndefined();
 
 				//act
 				const {accessToken, refreshToken} = await service['login']();
@@ -320,21 +320,21 @@ describe('TokenService', () => {
 				expect(accessToken).toBe(accessToken);
 				expect(refreshToken).toBe(refreshToken);
 
-				expect(service['_accessToken']).toBe(accessToken);
-				expect(service['_refreshToken']).toBe(refreshToken);
+				expect(service['accessToken']).toBe(accessToken);
+				expect(service['refreshToken']).toBe(refreshToken);
 			});
 
 			it('stores access and refresh tokens', async () => {
 				// arrange
-				expect(service['_accessToken']).toBeUndefined(); // sanity checks
-				expect(service['_refreshToken']).toBeUndefined();
+				expect(service['accessToken']).toBeUndefined(); // sanity checks
+				expect(service['refreshToken']).toBeUndefined();
 
 				//act
 				void await service['login']();
 
 				// assert
-				expect(service['_accessToken']).toBe(accessToken);
-				expect(service['_refreshToken']).toBe(refreshToken);
+				expect(service['accessToken']).toBe(accessToken);
+				expect(service['refreshToken']).toBe(refreshToken);
 			});
 		});
 
@@ -527,8 +527,8 @@ describe('TokenService', () => {
 			let expectedOptions: any;
 			let expiredToken: string;
 			beforeEach(async () => {
-				service['_accessToken'] = accessToken; // set access token, without causing http call intercepted by spy
-				service['_refreshToken'] = refreshToken; // set refresh token, without causing http call intercepted by spy
+				service['accessToken'] = accessToken; // set access token, without causing http call intercepted by spy
+				service['refreshToken'] = refreshToken; // set refresh token, without causing http call intercepted by spy
 
 				const appConfig = config.get('app') ?? {} as AppConfig;
 				const authServiceConfig = config.get('services.fitnessapp-authentication-service') ?? {} as ServiceConfig;
@@ -545,14 +545,14 @@ describe('TokenService', () => {
 				};		
 				expectedOptions = {
 					headers: {
-						authorization: `Bearer ${service['_refreshToken']}` // note: this presumes a bug fix in the auth service
+						authorization: `Bearer ${service['refreshToken']}` // note: this presumes a bug fix in the auth service
 					}
 				};
 			});
 			
 			it('refreshes the access token with the auth microservice, using the refresh token', async () => {
 				// arrange
-				service['_accessToken'] = expiredToken; // set expired token, should trigger refresh
+				service['accessToken'] = expiredToken; // set expired token, should trigger refresh
 
 				//act
 				const token = await service.getAuthData();
@@ -565,7 +565,7 @@ describe('TokenService', () => {
 
 			it('triggers refresh if access token is expired when requested', async () => {
 				// arrange
-				service['_accessToken'] = expiredToken; // set expired token, should trigger refresh
+				service['accessToken'] = expiredToken; // set expired token, should trigger refresh
 
 				//act
 				const token = await service.getAuthData();
@@ -590,7 +590,7 @@ describe('TokenService', () => {
 
 			it('fails if the refresh request fails', async () => {
 				// arrange
-				service['_accessToken'] = expiredToken; // set expired token, should trigger refresh
+				service['accessToken'] = expiredToken; // set expired token, should trigger refresh
 				httpPostSpy && httpPostSpy.mockRestore();
 				httpPostSpy.mockImplementationOnce(() => { throw new Error('test error') });
 
@@ -600,7 +600,7 @@ describe('TokenService', () => {
 
 			it('fails if the response status code is not 200 (i.e. OK)', async () => {
 				// arrange
-				service['_accessToken'] = expiredToken; // set expired token, should trigger refresh
+				service['accessToken'] = expiredToken; // set expired token, should trigger refresh
 				httpPostSpy && httpPostSpy.mockRestore();
 				httpPostSpy.mockImplementationOnce(() => of({ status: 500 }) as any);
 
@@ -610,7 +610,7 @@ describe('TokenService', () => {
 
 			it('fails if the access token is not received', async () => {
 				// arrange
-				service['_accessToken'] = expiredToken; // set expired token, should trigger refresh
+				service['accessToken'] = expiredToken; // set expired token, should trigger refresh
 				httpPostSpy && httpPostSpy.mockRestore();
 				httpPostSpy.mockImplementationOnce(() => of({ data: { }, status: 200 }) as any);
 
@@ -620,7 +620,7 @@ describe('TokenService', () => {
 
 			it('fails if the access token is invalid', async () => {
 				// arrange
-				service['_accessToken'] = expiredToken; // set expired token, should trigger refresh
+				service['accessToken'] = expiredToken; // set expired token, should trigger refresh
 				httpPostSpy && httpPostSpy.mockRestore();
 				httpPostSpy.mockImplementationOnce(() => of({ data: { accessToken: 'invalid-token' }, status: 200 }) as any);
 
@@ -632,8 +632,8 @@ describe('TokenService', () => {
 				// NOTE: Just test that the re-authentication is triggered, the actual authentication process is fully tested elsewhere
 				
 				// arrange
-				service['_accessToken'] = expiredToken; // set expired token, should trigger refresh
-				service['_refreshToken'] = expiredToken; // set expired token, should trigger re-authentication
+				service['accessToken'] = expiredToken; // set expired token, should trigger refresh
+				service['refreshToken'] = expiredToken; // set expired token, should trigger re-authentication
 
 				const authServiceConfig = config.get('services.fitnessapp-authentication-service') ?? {} as ServiceConfig;
 				const refreshConfig = authServiceConfig?.endpoints?.serviceRefresh ?? {} as EndPointConfig;		
@@ -652,7 +652,7 @@ describe('TokenService', () => {
 			
 			it('prevents concurrent requests from initiating overlapping login attempts', async () => {
 				// arrange
-				service['_accessToken'] = undefined; // set undefined token, should trigger login
+				service['accessToken'] = undefined; // set undefined token, should trigger login
 
 				//act
 				const promises = [service.getAuthData(), service.getAuthData(), service.getAuthData()];
@@ -664,7 +664,7 @@ describe('TokenService', () => {
 			
 			it('prevents concurrent requests from initiating overlapping refresh attempts', async () => {
 				// arrange
-				service['_accessToken'] = expiredToken; // set expired token, should trigger refresh
+				service['accessToken'] = expiredToken; // set expired token, should trigger refresh
 
 				//act
 				const promises = [service.getAuthData(), service.getAuthData(), service.getAuthData()];

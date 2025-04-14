@@ -23,20 +23,20 @@ import ServiceTokenRefreshDataDTO from '../../dtos/requests/service-token-refres
  */
 @Injectable()
 export class TokenService extends AuthService {
-	private _accessToken: string | undefined;
-	private _refreshToken: string | undefined;
-	private _loginPromise: Promise<{ accessToken: string, refreshToken: string }> | undefined;
-	private _refreshPromise: Promise<string> | undefined;
+	protected accessToken: string | undefined;
+	protected refreshToken: string | undefined;
+	protected loginPromise: Promise<{ accessToken: string, refreshToken: string }> | undefined;
+	protected refreshPromise: Promise<string> | undefined;
 
 	//------------------------------------- CONSTRUCTOR -----------------------------------------//
 	
 	public constructor(
 		private readonly config: ConfigService,
-		private readonly httpService: HttpService,
+		private readonly http: HttpService,
 		private readonly logger: Logger,
 	) {
 		super();
-		void this.httpService; // suppress compiler warning about unused variable (hidden by 'self' in executeRequest)
+		void this.http; // suppress compiler warning about unused variable (hidden by 'self' in executeRequest)
 		// intentionally empty: trying to set the token here breaks server startup
 	}
 
@@ -54,52 +54,51 @@ export class TokenService extends AuthService {
 		
 		// wrapper to guard against multiple login attempts running concurrently
 		async function getLoginPromise(): Promise<{ accessToken: string, refreshToken: string }> {
-			if (!self._loginPromise) {
-				self._loginPromise = self.bootstrap()
+			if (!self.loginPromise) {
+				self.loginPromise = self.bootstrap()
 					.then((bootstrapData) => self.authenticate(bootstrapData))
 					.then((tokens) => {
-						self._accessToken = tokens.accessToken;
-						self._refreshToken = tokens.refreshToken;
+						self.accessToken = tokens.accessToken;
+						self.refreshToken = tokens.refreshToken;
 						return tokens;
 					})
 					.finally(() => {
-						self._loginPromise = undefined;
+						self.loginPromise = undefined;
 					});
 			}
-			return self._loginPromise;
+			return self.loginPromise;
 		}
 
 		// wrapper to guard against multiple refresh attempts running concurrently
 		async function getRefreshPromise(): Promise<string> {
-			if (!self._refreshPromise) { // use refreshPromise as guard against multiple refresh attempts running concurrently
-				self._refreshPromise = self.refresh()
+			if (!self.refreshPromise) { // use refreshPromise as guard against multiple refresh attempts running concurrently
+				self.refreshPromise = self.refresh()
 					.then((token) => {
-						self._accessToken = token;
+						self.accessToken = token;
 						return token;
 					})
 					.finally(() => {
-						self._refreshPromise = undefined;
+						self.refreshPromise = undefined;
 					});
 			}
-			return self._refreshPromise!;
+			return self.refreshPromise!;
 		}
 
-		if (!this._accessToken) { // access token not set -> log in
+		if (!this.accessToken) { // access token not set -> log in
 			void await getLoginPromise();
 		}
 		else { // access token set -> check if it is still valid
-			const appConfig = this.config.get('app') ?? {} as AppConfig;
 			const jwtConfig = this.config.get(`security.authentication.jwt`) ?? {};
 			try {
-				jwt.verify(this._accessToken, jwtConfig.accessToken.secret); // throws an error if the token is invalid
+				jwt.verify(this.accessToken, jwtConfig.accessToken.secret); // throws an error if the token is invalid
 			}
 			catch (error) { // access token invalid -> check if refresh token is set
-				if (!this._refreshToken) { // refresh token not set -> log in
+				if (!this.refreshToken) { // refresh token not set -> log in
 					void await getLoginPromise();
 				}
 				else { // refresh token set -> check if it is still valid
 					try {
-						jwt.verify(this._refreshToken!, jwtConfig.refreshTokenSecret);					
+						jwt.verify(this.refreshToken!, jwtConfig.refreshTokenSecret);					
 					}
 					catch (error) {
 						void await getLoginPromise(); // refresh token invalid -> log in anew
@@ -110,7 +109,7 @@ export class TokenService extends AuthService {
 		}
 
 		// return the token
-		return this._accessToken!;
+		return this.accessToken!;
 	}
 
 	/** Login to authentication microservice to get access and refresh tokens
@@ -119,9 +118,9 @@ export class TokenService extends AuthService {
 	 * @remark Clients should use getAuthData() instead of login() to get the access token
 	 */
 	public async login(): Promise<{accessToken: string, refreshToken: string}> {
-		this.logger.log(`${this.constructor.name}.login Logging in to the auth service...`);
+		this.logger.log(`Logging in to the auth microservice...`, this.constructor.name);
 		void await this.getAuthData();
-		return { accessToken: this._accessToken!, refreshToken: this._refreshToken! };
+		return { accessToken: this.accessToken!, refreshToken: this.refreshToken! };
 	}
 
 	/** Logout from authentication microservice process to clear the access and refresh tokens
@@ -129,7 +128,7 @@ export class TokenService extends AuthService {
 	 * @remark Will clear the tokens and pass them to the auth service for invalidation
 	 */
 	public async logout(): Promise<string> {
-		this.logger.log(`${this.constructor.name}.logout Logging out from the auth service...`);
+		this.logger.log(`Logging out from the auth microservice...`, this.constructor.name);
 				
 		// get auth service endpoint from registry microservice
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
@@ -157,7 +156,7 @@ export class TokenService extends AuthService {
 		const logoutBody = <ServiceLogoutDataDTO>{
 			serviceId: appConfig.serviceid,
 			serviceName: appConfig.servicename,
-			refreshToken: this._refreshToken
+			refreshToken: this.refreshToken
 		};		
 		const logoutOptions = {
 			headers: {
@@ -172,20 +171,20 @@ export class TokenService extends AuthService {
 
 		// validate the response
 		if (!logoutResponse || logoutResponse.status !== 200) {
-			const errorMsg = `${this.constructor.name}.logout Logout request failed`;
-			this.logger.error(errorMsg);
+			const errorMsg = 'Logout request failed';
+			this.logger.error(errorMsg, undefined, this.constructor.name);
 			throw new Error(errorMsg);
 		}
 		
 		// clear the tokens
-		this._accessToken = undefined;
-		this._refreshToken = undefined;
+		this.accessToken = undefined;
+		this.refreshToken = undefined;
 
 		// log the response
-		this.logger.log(`${this.constructor.name}.logout Logout from auth service successful`);
+		this.logger.log(`Logout from auth microservice successful`, this.constructor.name);
 
 		// return the response
-		return `${this.constructor.name}.logout Service logged out successfully`;
+		return `Service logged out successfully`;
 	}
 
 	//----------------------------------- PROTECTED METHODS -------------------------------------//
@@ -199,7 +198,7 @@ export class TokenService extends AuthService {
 	 * @remark Will throw an error if the response contains auth service data that is invalid or incomplete
 	 */
 	protected async authenticate(bootstrapData: BootstrapResponseDTO): Promise<{accessToken: string, refreshToken: string}> {
-		this.logger.log(`${this.constructor.name}.authenticate Logging in to the auth service...`);
+		this.logger.log(`Authenticating with the auth microservice...`, this.constructor.name);
 		
 		// set up data for request
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
@@ -227,8 +226,8 @@ export class TokenService extends AuthService {
 		
 		// validate the response
 		if (!response || response.status !== 200) {
-			const errorMsg = `${this.constructor.name}.authenticate Login request failed`;
-			this.logger.error(errorMsg);
+			const errorMsg = `Login request failed`;
+			this.logger.error(errorMsg, undefined, this.constructor.name);
 			throw new Error(errorMsg);
 		}
 
@@ -240,9 +239,9 @@ export class TokenService extends AuthService {
 			refreshToken = refreshTokenDTO.value as string;
 		}
 		catch (error) {
-			const errorMsg = `${this.constructor.name}.authenticate Login response invalid: ${error.message}`;
-			this.logger.error(errorMsg);
-			throw new Error(errorMsg);
+			const errorMsg = `Login response invalid`;
+			this.logger.error(errorMsg, error.message, this.constructor.name);
+			throw new Error(`{$errorMsg}: ${error.message}`);
 		}
 
 		// validate the tokens
@@ -251,7 +250,7 @@ export class TokenService extends AuthService {
 		jwt.verify(refreshToken, jwtConfig.refreshToken.secret);
 
 		// log the response
-		this.logger.log('Auth service login successful, tokens received and verified');//, `${this.constructor.name}.authenticate`);
+		this.logger.log('Auth microservice login successful, tokens received and verified', `${this.constructor.name}.authenticate`);
 
 		// return the tokens
 		return { accessToken, refreshToken };
@@ -264,7 +263,7 @@ export class TokenService extends AuthService {
 	 * @remark Will throw an error if the response contains auth service data that is invalid or incomplete
 	 */
 	protected async bootstrap(): Promise<BootstrapResponseDTO> {
-		this.logger.log(`${this.constructor.name}.bootstrap Acquiring bootstrap token from microservice registry...`);
+		this.logger.log(`Acquiring bootstrap token from registry microservice...`, this.constructor.name);
 		
 		// set up data for request
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
@@ -286,8 +285,8 @@ export class TokenService extends AuthService {
 		
 		// validate the response
 		if (!response || response.status !== 200) {
-			const errorMsg = `${this.constructor.name}.bootstrap Bootstrap token request failed`;
-			this.logger.error(errorMsg);
+			const errorMsg = `Bootstrap token request failed`;
+			this.logger.error(errorMsg, undefined, this.constructor.name);
 			throw new Error(errorMsg);
 		}
 
@@ -297,13 +296,13 @@ export class TokenService extends AuthService {
 			bootstrapData = new BootstrapResponseDTO(response.data);
 		}
 		catch (error) {
-			const errorMsg = `${this.constructor.name}.bootstrap Bootstrap token response invalid: ${error.message}`
-			this.logger.error(errorMsg);
+			const errorMsg = `Bootstrap token response invalid`
+			this.logger.error(errorMsg, error.message, this.constructor.name);
 			throw new Error(errorMsg);
 		}
 
 		// log the response
-		this.logger.log(`${this.constructor.name}.bootstrap Bootstrap token acquired from microservice registry`);
+		this.logger.log(`Bootstrap token acquired from registry microservice`, this.constructor.name);
 
 		// return the response data
 		return bootstrapData;
@@ -319,7 +318,15 @@ export class TokenService extends AuthService {
 		*/
 	protected executeRequest(url: string, method: RequestMethod, body: any, config: any): Observable<any> {
 		const methodString = RequestMethod[method].toLowerCase(); // get method as string from RequestMethod enum; convert to lowercase to match HttpService method names
-		return methodString === 'get' ? this.httpService.get(url, config) : (this.httpService as any)[methodString](url, body, config);
+		try {
+			//this.logger.log(`Executing ${methodString.toUpperCase()} request for ${url}`, this.constructor.name);
+			return methodString === 'get' ? this.http.get(url, config) : (this.http as any)[methodString](url, body, config);
+		}
+		catch (error) {
+			//this.logger.error(`${methodString.toUpperCase()} request failed`, error.message, this.constructor.name);
+			throw new Error(`${this.constructor.name}.executeRequest ${methodString.toUpperCase()} request failed: ${error.message}`);
+		}
+		// note: the 'as any' cast is needed because HttpService does not have a method for each request method, only get, post, put, delete, etc.		
 	}
 
 	/** Refresh access token using refresh token
@@ -327,7 +334,7 @@ export class TokenService extends AuthService {
 	 * @throws Error if the refresh token request fails, or if the response is invalid
 	 */
 	protected async refresh(): Promise<string> {
-		this.logger.log(`${this.constructor.name}.refresh Refreshing access token...`);
+		this.logger.log(`Refreshing access token with authentication microservice...`, this.constructor.name);
 		
 		// set up data for request
 		const appConfig = this.config.get('app') ?? {} as AppConfig;
@@ -337,11 +344,11 @@ export class TokenService extends AuthService {
 		const body = <ServiceTokenRefreshDataDTO>{
 			serviceId: appConfig.serviceid,
 			serviceName: appConfig.servicename,
-			refreshToken: this._refreshToken // note: this presumes a bug fix in the auth service DTO
+			refreshToken: this.refreshToken // note: this presumes a bug fix in the auth service DTO
 		};		
 		const options = {
 			headers: {
-				authorization: `Bearer ${this._refreshToken}` // note: this presumes a bug fix in the auth service
+				authorization: `Bearer ${this.refreshToken}` // note: this presumes a bug fix in the auth service
 			}
 		}
 		
@@ -352,14 +359,14 @@ export class TokenService extends AuthService {
 
 		// validate the response
 		if (!response || response.status !== 200) {
-			const errorMsg = `${this.constructor.name}.refresh Refresh request failed`;
-			this.logger.error(errorMsg);
+			const errorMsg = `Access token refresh request failed`;
+			this.logger.error(errorMsg, undefined, this.constructor.name);
 			throw new Error(errorMsg);
 		}
 
 		if (!response.data) {
-			const errorMsg = `${this.constructor.name}.refresh Refresh response empty`;
-			this.logger.error(errorMsg);
+			const errorMsg = `Refresh response empty`;
+			this.logger.error(errorMsg, undefined, this.constructor.name);
 			throw new Error(errorMsg);
 		}
 
@@ -370,21 +377,21 @@ export class TokenService extends AuthService {
 			accessToken = accessTokenDTO.value as string;
 		}
 		catch (error) {
-			const errorMsg = `${this.constructor.name}.refresh Refresh response invalid: ${error.message}`;
-			this.logger.error(errorMsg);
+			const errorMsg = `Refresh response invalid`;
+			this.logger.error(errorMsg, error.message, this.constructor.name);
 			throw new Error(errorMsg);
 		}
 		
 		// validate the token
 		const jwtConfig = this.config.get(`security.authentication.jwt`) ?? {};
 		if (!jwt.verify(accessToken, jwtConfig.accessToken.secret)) {
-			const errorMsg = `${this.constructor.name}.refresh Access token verification failed`;
-			this.logger.error(errorMsg);
+			const errorMsg = `Access token verification failed`;
+			this.logger.error(errorMsg, undefined, this.constructor.name);
 			throw new Error(errorMsg);
 		}
 
 		// log the response
-		this.logger.log( `${this.constructor.name}.refresh Access token refresh successful, new access token received and verified`);
+		this.logger.log(`Access token refresh successful, new access token received and verified`, this.constructor.name);
 
 		// return the new access token
 		return accessToken;
