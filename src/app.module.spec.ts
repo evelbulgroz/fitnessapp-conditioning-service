@@ -9,13 +9,13 @@ import { jest } from '@jest/globals';
 import AppModule from './app.module';
 import AuthService from './authentication/domain/auth-service.class';
 import createTestingModule from './test/test-utils';
-import RegistrationService from './authentication/services/registration/registration.service';
-import UserRepository from './user/repositories/user.repo';
-import RetryHttpService from './shared/services/utils/retry-http/retry-http.service';
-import TokenService from './authentication/services/token/token.service';
 import EventDispatcherService from './shared/services/utils/event-dispatcher/event-dispatcher.service';
+import RegistrationService from './authentication/services/registration/registration.service';
+import RetryHttpService from './shared/services/utils/retry-http/retry-http.service';
 import SwaggerController from './api-docs/swagger.controller';
-import { UserController } from './user/controllers/user.controller';
+import TokenService from './authentication/services/token/token.service';
+import UserController from './user/controllers/user.controller';
+import UserRepository from './user/repositories/user.repo';
 
 describe('AppModule', () => {
 	let appModule: AppModule;	
@@ -102,7 +102,7 @@ describe('AppModule', () => {
 		.compile();
 
 		const userRepo = module.get<UserRepository>(UserRepository);
-		console.debug('userRepo', userRepo);
+		console.debug('userRepo', userRepo); // bug: returns UserRepository instance, but not the mock implementation
 		appModule = module.get<AppModule>(AppModule);
 		authService = module.get<AuthService>(AuthService);
 		registrationService = module.get<RegistrationService>(RegistrationService);
