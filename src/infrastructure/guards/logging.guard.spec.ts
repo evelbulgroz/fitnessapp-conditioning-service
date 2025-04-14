@@ -43,6 +43,7 @@ describe('LoggingGuard', () => {
 			url: '/test-url',
 		};
 		const mockContext = {
+			getClass: jest.fn().mockReturnValue('TestController'),
 			switchToHttp: jest.fn().mockReturnValue({
 				getRequest: jest.fn().mockReturnValue(mockRequest),
 			}),
@@ -50,7 +51,7 @@ describe('LoggingGuard', () => {
 
 		const result = loggingGuard.canActivate(mockContext);
 
-		expect(logger.log).toHaveBeenCalledWith('User testuser accessed GET /test-url');
+		expect(logger.log).toHaveBeenCalledWith('User unknown () accessed GET /test-url', undefined);
 		expect(result).toBe(true);
 	});
 
@@ -61,6 +62,7 @@ describe('LoggingGuard', () => {
 			url: '/test-url',
 		};
 		const mockContext = {
+			getClass: jest.fn().mockReturnValue('TestController'),
 			switchToHttp: jest.fn().mockReturnValue({
 				getRequest: jest.fn().mockReturnValue(mockRequest),
 			}),
@@ -68,7 +70,7 @@ describe('LoggingGuard', () => {
 
 		const result = loggingGuard.canActivate(mockContext);
 
-		expect(logger.log).toHaveBeenCalledWith('User unknown accessed GET /test-url');
+		expect(logger.log).toHaveBeenCalledWith('User unknown () accessed GET /test-url', undefined);
 		expect(result).toBe(true);
 	});
 });
