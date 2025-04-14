@@ -109,16 +109,17 @@ export class AppModule {
 	 * @todo Add "degraded" status to health check endpoint if initialization fails
 	 */
 	public async onModuleInit() {
-		//return; // TEMP: disable initialization for now
-		this.logger.log('Initializing server...');//, `${this.constructor.name}.onModuleInit`);
+		this.logger.log('Initializing server...', `${this.constructor.name}.onModuleInit`);
+		// todo : set health check status to initializing
 
 		// Log in to the auth microservice (internally gets and stores access token)
 		try {
 			void await this.authService.getAuthData();
 		}
 		catch (error) {
-			this.logger.error(`Failed to  get access token from auth service: ${error.message}`);//, `${this.constructor.name}.onModuleInit`);
-			throw new Error(`Failed to get access token from auth service: ${error.message}`);
+			this.logger.warn(`Failed to get access token from auth microservice: ${error.message}`, `${this.constructor.name}.onModuleInit`);
+			this.logger.warn(`Server authentication aborted`, `${this.constructor.name}.onModuleInit`);
+			// todo: set health check status to degraded
 		}
 		
 		// Register with the microservice registry (internally gets access token from auth service)
@@ -126,11 +127,12 @@ export class AppModule {
 			void await this.registrationService.register();
 		}
 		catch (error) {
-			this.logger.error(`Failed to register with microservice registry: ${error.message}`);//, `${this.constructor.name}.onModuleInit`);
-			throw new Error(`Failed to register with microservice registry: ${error.message}`);
+			this.logger.warn(`Failed to register with microservice registry: ${error.message}`, `${this.constructor.name}.onModuleInit`);
+			this.logger.warn(`Server registration aborted`, `${this.constructor.name}.onModuleInit`);
+			// todo: set health check status to degraded
 		}
 		
-		this.logger.log(`Server initialized with instance id ${this.appConfig.serviceid}`);//, `${this.constructor.name}.onModuleInit`);
+		this.logger.log(`Server initialized with instance id ${this.appConfig.serviceid}`, `${this.constructor.name}.onModuleInit`);
 	}
 
 	/** Shut down the server by deregistering from the microservice registry and logging out from the auth service
@@ -138,16 +140,17 @@ export class AppModule {
 	 * @throws Error if deregistration or logout fails
 	 */
 	public async onModuleDestroy() {
-		//return; // TEMP: disable destruction
-		this.logger.log('Destroying server...');//, `${this.constructor.name}.onModuleDestroy`);		
+		this.logger.log('Destroying server...', `${this.constructor.name}.onModuleDestroy`);		
+		// todo : set health check status to shutting down
 		
 		// Deregister from the microservice registry
 		try {
 			void await this.registrationService.deregister();
 		}
 		catch (error) {
-			this.logger.log(`Failed to deregister from microservice registry: ${error.message}`);//, `${this.constructor.name}.onModuleDestroy`);
-			throw new Error(`Failed to deregister from microservice registry: ${error.message}`);
+			this.logger.warn(`Failed to deregister from microservice registry: ${error.message}`, `${this.constructor.name}.onModuleDestroy`);
+			this.logger.warn(`Server deregistration aborted`, `${this.constructor.name}.onModuleDestroy`);
+			// todo: set health check status to degraded
 		}
 
 		// Log out from the auth microservice
@@ -155,11 +158,14 @@ export class AppModule {
 			void await this.authService.logout();
 		}
 		catch (error) {
-			this.logger.log(`Failed to log out from auth service: ${error.message}`);//, `${this.constructor.name}.onModuleDestroy`);
-			throw new Error(`Failed to log out from auth service: ${error.message}`);
+			this.logger.warn(`Failed to log out from auth service: ${error.message}`, `${this.constructor.name}.onModuleDestroy`);
+			this.logger.warn(`Server logout aborted`, `${this.constructor.name}.onModuleDestroy`);
+			// todo: set health check status to degraded
 		}
 
-		this.logger.log('Server destroyed');//, `${this.constructor.name}.onModuleDestroy`);
+		this.logger.log('Server destroyed', `${this.constructor.name}.onModuleDestroy`);
+		// todo : set health check status to destroyed
+		// todo : close all connections and clean up resources
 	}
 }
 

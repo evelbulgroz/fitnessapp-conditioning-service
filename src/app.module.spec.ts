@@ -2,7 +2,7 @@ import { TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 
-import { ConsoleLogger, Logger }  from '@evelbulgroz/logger';
+import { Logger }  from '@evelbulgroz/logger';
 
 import { jest } from '@jest/globals';
 
@@ -10,14 +10,15 @@ import AppModule from './app.module';
 import AuthService from './authentication/domain/auth-service.class';
 import createTestingModule from './test/test-utils';
 import RegistrationService from './authentication/services/registration/registration.service';
+import UserRepository from './user/repositories/user.repo';
+import RetryHttpService from './shared/services/utils/retry-http/retry-http.service';
+import TokenService from './authentication/services/token/token.service';
+import EventDispatcherService from './shared/services/utils/event-dispatcher/event-dispatcher.service';
 
 describe('AppModule', () => {
 	let appModule: AppModule;	
 	let authService: AuthService;
-	let errorLogSpy: any;
-	let logspy: any;
 	let registrationService: RegistrationService;
-
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
 			imports: [
@@ -25,7 +26,7 @@ describe('AppModule', () => {
 				AppModule
 			],
 			providers: [
-				{
+				{ // HttpService mock
 					provide: HttpService,
 					useValue: {
 						get: jest.fn(),
@@ -33,7 +34,7 @@ describe('AppModule', () => {
 					},
 				},
 				ConfigService,
-				{ // Logger (suppress console output)
+				{ // Logger mock (suppress console output)
 					provide: Logger,
 					useValue: {
 						log: jest.fn(),
@@ -43,13 +44,61 @@ describe('AppModule', () => {
 						verbose: jest.fn(),
 					},
 				},
-				{
+				{ // AuthService mock
 					provide: AuthService,
 					useValue: {
 						getAuthData: jest.fn()	
 					},
 				},
-				RegistrationService,
+				{ // RegistrationService mock
+					provide: RegistrationService,
+					useValue: {
+						register: jest.fn(),
+						deregister: jest.fn(),
+					},
+				},
+				{ // RetryHttpService mock
+					provide: RetryHttpService,
+					useValue: {
+						get: jest.fn(),
+						post: jest.fn(),
+					},
+				},
+				{ // EventDispatcherService mock
+					provide: EventDispatcherService,
+					useValue: {
+						dispatchEvent: jest.fn(),
+					},
+				},
+				{ // TokenService mock
+					provide: TokenService,
+					useValue: {
+						getAuthData: jest.fn(),
+						logout: jest.fn(),
+					},
+				},
+				{ // ConfigService mock
+					provide: ConfigService,
+					useValue: {
+						get: jest.fn(),
+					},
+				},
+				{ // Logger mock
+					provide: Logger,
+					useValue: {
+						log: jest.fn(),
+						error: jest.fn(),
+						warn: jest.fn(),
+						debug: jest.fn(),
+						verbose: jest.fn(),
+					},
+				},
+				{ // UserRepository mock
+					provide: UserRepository,
+					useValue: {
+						isReady: jest.fn(),
+					},
+				},
 			],
 		}))
 		.compile();
@@ -57,19 +106,13 @@ describe('AppModule', () => {
 		appModule = module.get<AppModule>(AppModule);
 		authService = module.get<AuthService>(AuthService);
 		registrationService = module.get<RegistrationService>(RegistrationService);
-
-		errorLogSpy = jest.spyOn(ConsoleLogger.prototype, 'error').mockImplementation(() => {}); // suppress console error output
-		logspy = jest.spyOn(ConsoleLogger.prototype, 'log').mockImplementation(() => {}); // suppress console log output
 	});
 
 	afterEach(() => {
-		errorLogSpy?.mockRestore();
-		logspy?.mockRestore();
 		jest.clearAllMocks();
 	});
 
 	it('can be created', () => {
-		errorLogSpy && errorLogSpy.mockRestore();
 		expect(appModule).toBeDefined();
 	});
 
@@ -80,8 +123,8 @@ describe('AppModule', () => {
 
 		beforeEach(() => {
 			accessToken = 'test-access-token';
-			registrationSpy = jest.spyOn(registrationService, 'register').mockImplementation(() => Promise.resolve(true));
-			tokenServiceSpy = jest.spyOn(authService, 'getAuthData').mockImplementation(() => Promise.resolve(accessToken));
+			registrationSpy = jest.spyOn(registrationService, 'register');//.mockImplementation(() => Promise.resolve(true));
+			tokenServiceSpy = jest.spyOn(authService, 'getAuthData');//.mockImplementation(() => Promise.resolve(accessToken));
 		});
 
 		afterEach(() => {
