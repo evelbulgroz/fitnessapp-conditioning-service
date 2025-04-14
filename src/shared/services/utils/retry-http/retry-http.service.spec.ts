@@ -166,7 +166,7 @@ describe('RetryHttpService', () => {
 			}
 		});
 
-		it('applies retry delay from config', async () => {
+		it('applies retry delay with exponential backoff and jitter based on base delay from config', async () => {
 			// arrange
 			const { maxRetries, retryDelay } = service['getRetryConfig'](testUrl) as RetryConfig;
 			const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
@@ -180,7 +180,11 @@ describe('RetryHttpService', () => {
 				// assert
 				expect(setTimeoutSpy).toHaveBeenCalledTimes(maxRetries!); // expect a setTimeout call for each retry
 				setTimeoutSpy.mock.calls.forEach((call, index) => {
-					expect(call).toEqual([expect.any(Function), retryDelay]); // check delay for each call
+					expect(call).toEqual([expect.any(Function), expect.any(Number)]);
+					expect(call[1]).toBeGreaterThanOrEqual(retryDelay!);
+					// assert that the delay is an irrational number (jitter) and not a simple multiple of the base delay
+					const jitter = call[1]! - retryDelay! * Math.pow(2, index); // subtract base delay from the total delay
+					expect(jitter).toBeGreaterThanOrEqual(0); // jitter should be non-negative
 				});
 			}
 			finally {

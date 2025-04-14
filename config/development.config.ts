@@ -23,7 +23,7 @@ export default () => (<ConfigOptions>{
 		},
 		retry: {
 			maxRetries: 3,
-			retryDelay: 1000 // 1 second
+			retryDelay: 100 // 100 ms
 		}
 	},
 	log: {

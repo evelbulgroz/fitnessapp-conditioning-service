@@ -28,7 +28,7 @@ export default async () => {
 			},
 			retry: {
 				maxRetries: 3,
-				retryDelay: 100 // 1 second
+				retryDelay: 100 // 100 ms
 			}
 		},
 		log: {
