@@ -88,6 +88,7 @@ export class TokenService extends AuthService {
 			void await getLoginPromise();
 		}
 		else { // access token set -> check if it is still valid
+			this.logger.debug(`Access token set, checking if it is still valid...`, this.constructor.name);
 			const jwtConfig = this.config.get(`security.authentication.jwt`) ?? {};
 			try {
 				jwt.verify(this.accessToken, jwtConfig.accessToken.secret); // throws an error if the token is invalid

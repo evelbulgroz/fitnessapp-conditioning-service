@@ -32,7 +32,7 @@ export class RegistrationService {
 	 * @todo Log out of the auth microservice after deregistering when supported by Auth/TokenService
 	 */
 	public async deregister(): Promise<boolean> {
-		this.logger.log('Deregistering service from the microservice registry...');//, `${this.constructor.name}.deregister`);
+		this.logger.log('Deregistering service from the microservice registry...', `${this.constructor.name}.deregister`);
 
 		// set up data for request
 		const registryConfig = this.configService.get<ServiceConfig>(`services.${this.registryServiceName}`) ?? {} as ServiceConfig;
@@ -66,12 +66,12 @@ export class RegistrationService {
 
 		// validate the response
 		if (!response || response.status !== 200) {
-			this.logger.error('Deregistration request failed');//, `${this.constructor.name}.deregister`);
+			this.logger.error('Deregistration request failed', `${this.constructor.name}.deregister`);
 			throw new Error('Deregistration request failed');
 		}
 
 		// log the response
-		this.logger.log(`Service deregistration successful: ${response.status}`);//, `${this.constructor.name}.deregister`);
+		this.logger.log(`Service deregistration successful: ${response.status}`, `${this.constructor.name}.deregister`);
 
 		// return true if successful
 		return true;
@@ -83,7 +83,7 @@ export class RegistrationService {
 	 * @remark Will recursively retry the request if it fails, up to the maximum number of attempts specified in config
 	 */
 	public async register(): Promise<boolean> {
-		this.logger.log('Registering service with the microservice registry...');//, `${this.constructor.name}.register`);
+		this.logger.log('Registering service with the microservice registry...', `${this.constructor.name}.register`);
 
 		// set up data for request
 		const registryConfig = this.configService.get<ServiceConfig>(`services.${this.registryServiceName}`) ?? {} as ServiceConfig;
@@ -108,7 +108,7 @@ export class RegistrationService {
 				return this.executeRequest(url, RequestMethod[endpointConfig.method!], body, config) // execute the request
 					.pipe(
 						tap((response) => {
-							this.logger.log(`Service registration successful: ${response.status}`);//, `${this.constructor.name}.register`);
+							this.logger.log(`Service registration successful: ${response.status}`, `${this.constructor.name}.register`);
 						})
 					)
 			})
@@ -117,12 +117,12 @@ export class RegistrationService {
 		
 		// validate the response
 		if (!response || response.status !== 200) {
-			this.logger.error('Registration request failed');//, `${this.constructor.name}.register`);
+			this.logger.error('Registration request failed', `${this.constructor.name}.register`);
 			throw new Error('Registration request failed');
 		}
 
 		// log the response
-		this.logger.log(`Service registration successful: ${response.status}`);//, `${this.constructor.name}.register`);
+		this.logger.log(`Service registration successful: ${response.status}`, `${this.constructor.name}.register`);
 
 		// return true if successful
 		return true;
@@ -137,6 +137,7 @@ export class RegistrationService {
 	 * @remark If injected with RetryHttpService, this method will automatically retry the request if it fails, using settings from config files
 	 */
 	protected executeRequest(url: string, method: RequestMethod, body: any, config: any): Observable<any> {
+		this.logger.debug(`${method} ${url}`, `${this.constructor.name}.executeRequest`);
 		const methodString = RequestMethod[method].toLowerCase(); // get method as string from RequestMethod enum; convert to lowercase to match HttpService method names
 		return methodString === 'get' ? this.http.get(url, config) : (this.http as any)[methodString](url, body, config);
 	}
