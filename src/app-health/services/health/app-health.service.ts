@@ -8,7 +8,7 @@ import { Logger } from "@evelbulgroz/logger";
 /** Overall application health status.
  * @remark This is used by the health check controller to report if the application is lively, and/or healthy, and ready to serve requests.
 */
-export enum AppHealthStatus {
+export enum HealthState {
 	/** Indicates that the application is healthy and ready to serve requests. */
 	OK = 'OK',
 
@@ -26,7 +26,7 @@ export enum AppHealthStatus {
 }
 
 export type AppHealthInfo = {
-	status: AppHealthStatus;
+	status: HealthState;
 	reason?: string;
 };
 /** Lifecycle state of  any monitorable application component.
@@ -89,12 +89,12 @@ export interface MonitorableComponent {
 @Injectable()
 export class AppHealthService {
 	private readonly components: MonitorableComponent[] = [];
-	protected status: AppHealthStatus;
+	protected status: HealthState;
 	protected reason: string | undefined;
 
 	public constructor(protected readonly logger: Logger) {
 		// Initialize the service with the default status
-		this.setState({status: AppHealthStatus.INITIALIZING, reason: `${this.constructor.name} initialized`});
+		this.setState({status: HealthState.INITIALIZING, reason: `${this.constructor.name} initialized`});
 	}
 
 	/** Get the current health status of the application and its components.
@@ -114,13 +114,13 @@ export class AppHealthService {
 	
 		if (unhealthyComponents.length > 0) {
 			return {
-				status: AppHealthStatus.DEGRADED,
+				status: HealthState.DEGRADED,
 				reason: `Unhealthy components: ${unhealthyComponents.join(', ')}`,
 			};
 		}
 		
 		this.logger.log(`${this.constructor.name}.getState All components are healthy`);
-		return { status: AppHealthStatus.OK, reason: 'All components are healthy' };
+		return { status: HealthState.OK, reason: 'All components are healthy' };
 	}
 	
 	/** Set the status of the application and log the change.
