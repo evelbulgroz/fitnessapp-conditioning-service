@@ -59,6 +59,22 @@ export type ComponentHealthInfo = {
 	reason?: string;
 };
 
+export interface ManageableComponent {
+	/** Initializes the component if it is not already initialized.
+	 * @returns Promise that resolves to void if the component was initialized, rejects with error if initialization fails.
+	 * @remark The component should respond gracefully to concurrent requests for initialization.
+	 * @remark The component should be in the INITIALIZED state after this method is called.
+	 */
+	initialize(): Promise<void>;
+
+	/** Destroys the component and cleans up any resources it is using.
+	 * @returns Promise that resolves to void if the component was destroyed, rejects with error if destruction fails.
+	 * @remark The component should respond gracefully to concurrent requests for destruction.
+	 * @remark The component should be in the DESTROYED state after this method is called.
+	 */
+	shutdown(): Promise<void>;
+}
+
 /** Interface for any monitorable application component.
  * @remark This is used by this service to track the lifecycle of the application and its components.
  * @remark Components must implement this interface to be monitored by the health check service.
