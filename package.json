@@ -1,6 +1,6 @@
 {
   "name": "test-project",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "",
   "author": "",
   "private": true,
@@ -21,9 +21,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@evelbulgroz/command": "^2.0.0",
-    "@evelbulgroz/ddd-base": "^9.0.0",
-    "@evelbulgroz/fitnessapp-base": "^8.0.0",
+    "@evelbulgroz/command": "^2.1.0",
+    "@evelbulgroz/ddd-base": "^10.0.0",
+    "@evelbulgroz/fitnessapp-base": "^9.0.0",
+    "@evelbulgroz/logger": "^1.2.0",
     "@evelbulgroz/quantity-class": "^1.0.1",
     "@evelbulgroz/query-fns": "^2.2.10",
     "@evelbulgroz/queue": "^2.0.0",
@@ -47,7 +48,6 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@evelbulgroz/logger": "^1.2.0",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
