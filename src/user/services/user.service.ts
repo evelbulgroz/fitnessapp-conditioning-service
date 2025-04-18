@@ -51,11 +51,11 @@ export class UserService {
 	 * @returns Promise that resolves when the service is ready to use
 	*/	
 	public async isReady(): Promise<boolean> {
-		const readyResult = await this.userRepo.isReady();
+		const readyResult = await this.userRepo.initialize();
 		if (readyResult.isFailure) {
 			throw new PersistenceError(`Failed to check if service is ready: ${readyResult.error}`);			
 		}
-		return readyResult.value as boolean;
+		return true;
 	}
 
 	/** Create a new user

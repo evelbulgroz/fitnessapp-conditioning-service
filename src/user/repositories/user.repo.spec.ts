@@ -15,6 +15,7 @@ import { UserPersistenceDTO } from '../dtos/user-persistence.dto';
 class PersistenceAdapterMock<T extends UserPersistenceDTO> extends PersistenceAdapter<T> {
 	// cannot get generics to work with jest.fn(), so skipping for now
 	public initialize = jest.fn();
+	public shutdown = jest.fn();
 	public create = jest.fn();
 	public update = jest.fn();
 	public delete = jest.fn();
@@ -94,7 +95,7 @@ describe('UserRepo', () => {
 	});
 
 	beforeEach(async () => {
-		await repo.isReady();
+		await repo.initialize();
 	});
 
 	afterEach(() => {

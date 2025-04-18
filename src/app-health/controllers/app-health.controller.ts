@@ -53,7 +53,7 @@ export class AppHealthController {
 	async checkHealth(@Res() res: Response) {
 		const { status, reason } = await this.appHealthService.getState();
 		
-		if (status === AppHealthStatus.OK) {
+		if (status as unknown as AppHealthStatus === AppHealthStatus.OK) {
 			res.status(HttpStatus.OK).send({ status });
 		} else {
 			res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ status, reason });

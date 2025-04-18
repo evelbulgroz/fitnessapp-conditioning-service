@@ -1,4 +1,3 @@
-import e from "express";
 import AppHealthStatus from "./app-health-status.enum";
 
 /** Type representing the health status of the application */
