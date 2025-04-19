@@ -13,7 +13,7 @@ export interface StatefulComponent {
 	state$: Observable<ComponentStateInfo>;
 
 	/** The current lifecycle status of the component.
-	 * * @returns The current lifecycle status of the component.
+	 * @returns The current lifecycle status of the component (immutable).
 	 */
 	getState(): ComponentStateInfo;
 }

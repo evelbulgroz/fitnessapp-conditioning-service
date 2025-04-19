@@ -17,7 +17,7 @@ export interface ManageableComponent {
 	 * @remark Any other state should be considered not ready.
 	 * @remark This is used by the health check service to determine if the application is lively, and/or healthy, and ready to serve requests.
 	 */
-	isReady(): boolean;
+	isReady(): Promise<boolean>;
 
 	/** Shuts down the component and cleans up any resources it is using.
 	 * @returns Promise that resolves to void if the component was shut down, rejects with error if shutdown fails.

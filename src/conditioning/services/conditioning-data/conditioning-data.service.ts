@@ -12,6 +12,8 @@ import { Query } from '@evelbulgroz/query-fns';
 import { AggregationQueryDTO } from '../../dtos/aggregation-query.dto';
 import { AggregatorService } from '../aggregator/aggregator.service';
 import { BooleanDTO } from '../../../shared/dtos/responses/boolean.dto';
+import ComponentState from '../../../app-health/models/component-state';
+import ComponentStateInfo from '../../../app-health/models/component-state-info';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
@@ -20,15 +22,18 @@ import { ConditioningLogSeries } from '../../domain/conditioning-log-series.mode
 import { DomainEventHandler } from '../../../shared/handlers/domain-event.handler';
 import { EntityIdDTO } from '../../../shared/dtos/responses/entity-id.dto';
 import { EventDispatcherService } from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
-import { QueryDTO } from '../../../shared/dtos/responses/query.dto';
-import { QueryMapper } from '../../mappers/query.mapper';
+import ManageableComponent from '../../../app-health/models/manageable-component';
+import MonitorableComponent from 'src/app-health/models/monitorable-component'
 import { NotFoundError } from '../../../shared/domain/not-found.error';
 import { PersistenceError } from '../../../shared/domain/persistence.error';
+import { QueryDTO } from '../../../shared/dtos/responses/query.dto';
+import { QueryMapper } from '../../mappers/query.mapper';
 import { UnauthorizedAccessError } from '../../../shared/domain/unauthorized-access.error';
 import { User } from '../../../user/domain/user.entity';
 import { UserContext } from '../../../shared/domain/user-context.model';
 import { UserPersistenceDTO } from '../../../user/dtos/user-persistence.dto';
-import { UserRepository } from '../../../user/repositories/user.repo';
+import { UserRepository } from '../../../user/repositories/user.repo';import StatefulComponent from 'src/app-health/models/stateful-component';
+;
 
 /** Helper function to default sort logs ascending by start date and time */
 function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: ConditioningLog<any, ConditioningLogDTO>): number {
@@ -52,18 +57,22 @@ export interface UserLogsCacheEntry {
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
  * @remark Local cache is kept in sync with repository data via subscriptions to log and user repo events.
- * @todo Refactor to comply with MonitorableComponent interface, to allow for better lifecycle management and monitoring of the service.
+ * @todo Flesh out ManageableComponent, StatefulComponent implementation, add state transitions where appropriate
  * @todo Break each public method out into separate service class, to make this class more manageable and testable by simply providing a facade to the new services.
  * @todo Factor cache out into separate service that can be shared across multiple mini-services.
  */
 @Injectable()
-export class ConditioningDataService implements OnModuleDestroy {
+export class ConditioningDataService implements OnModuleDestroy, ManageableComponent, StatefulComponent {
 	
 	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
 	
 	protected readonly cache = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
 	protected isInitializing = false; // flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
 	protected readonly subscriptions: Subscription[] = []; // array to hold subscriptions to unsubsribe on destroy
+	protected readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ name: this.constructor.name, state: ComponentState.UNINITIALIZED, reason: 'Service created', updatedOn: new Date() });
+	
+	/** Observable stream of the component's state changes */
+	public readonly state$ = this.stateSubject.asObservable();
 	
 	// Inject separately to keep constructor signature clean
 	@Inject(Logger) protected readonly logger: Logger;
@@ -88,13 +97,52 @@ export class ConditioningDataService implements OnModuleDestroy {
 		this.subscriptions.forEach((subscription) => subscription?.unsubscribe());
 	}
 	
-	//---------------------------------------- PUBLIC API ---------------------------------------//
-	
-	/** New API: Check if service is ready to use, i.e. has been initialized
+	//----------------------------- PUBLIC API: SERVICE MANAGEMENT ------------------------------//
+
+	/** Get the current state of the service
+	 * @returns Current state of the service as a ComponentStateInfo object (immutable)
+	 * @see StatefulComponent interface for details
+	 * @remark The state is a snapshot of the current state of the service, and may not reflect the latest changes.
+	 * @remark The state is updated by the service itself, and can be used to monitor the service's health and performance.
+	 */
+	public getState(): ComponentStateInfo {
+		return {... this.stateSubject.value} ; // return current state of the service
+	}
+
+	/** Initialize the service and its dependencies
+	 * @returns Promise that resolves when the service is initialized
+	 * @throws Error if initialization fails
+	 * @see ManageableComponent interface for details
+	 * @remark Invokes initializeCache() to load logs from persistence and subscribe to repo events
+	 * @todo Refactor to wait for initialization to complete before returning the promise on concurrent calls
+	 */
+	public initialize(): Promise<void> {
+		return new Promise(async (resolve, reject) => {
+			if (this.isInitializing) { // initialization already in progress -> resolve with success
+				resolve();
+				return;
+			}
+			this.isInitializing = true; // set flag to indicate initialization in progress
+
+			try {
+				await this.initializeCache(); // initialize cache and subscribe to repo events
+				this.isInitializing = false; // reset flag after initialization
+				resolve(); // resolve with success
+			}
+			catch (error) { // initialization failed -> reject with error
+				this.isInitializing = false; // reset flag on error
+				reject(error); // reject with error
+			}
+		});
+	}
+
+	/** Check if service is ready to use, i.e. has been initialized
 	 * @returns Promise that resolves when the service is ready to use
+	 * @throws Error if initialization fails
+	 * @see ManageableComponent interface for details
 	 * @remark Invokes initialization if not already initialized
 	 * @remark Only applies to new API, old API handles initialization internally
-	*/	
+	 */	
 	public async isReady(): Promise<boolean> {
 		return new Promise(async (resolve) => {
 			if (this.cache.value.length === 0) { // load logs if cache is empty
@@ -102,13 +150,32 @@ export class ConditioningDataService implements OnModuleDestroy {
 					await this.initializeCache();
 				}
 				catch (error) {
-					resolve(false);
+					resolve(error.message); // initialization failed, resolve with error message
 					return; // exit early on error
 				}
 			}
-			resolve(true);
+			resolve(true); // cache is initialized, resolve with true
 		});
 	}
+
+	/** Shut down the service and clean up any resources it is using
+	 * @returns Promise that resolves when the service is shut down
+	 * @throws Error if shutdown fails
+	 * @see ManageableComponent interface for details
+	 * @remark Unsubscribes from all subscriptions and completes the cache observable to release resources
+	 * @todo This is a rough draft to comply with ManageableComponent, refactor later
+	 */
+	public shutdown(): Promise<void> {
+		return new Promise(async (resolve) => {
+			this.logger.log(`Shutting down...`, this.constructor.name);
+			this.subscriptions.forEach((subscription) => subscription?.unsubscribe()); // unsubscribe from all subscriptions
+			this.cache.complete(); // complete the cache observable to release resources
+			this.cache.next([]); // emit empty array to clear cache
+			resolve(); // resolve with success
+		});
+	}
+	
+	//------------------------------------ PUBLIC API: CRUD -------------------------------------//
 
 	/** New API: Create a new conditioning log for a user in the system
 	 * @param ctx User context for the request (includes user id and roles)
