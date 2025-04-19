@@ -3,13 +3,13 @@ import { Controller, Get, HttpStatus, Res, UseGuards, UseInterceptors, UsePipes 
 import { Response } from 'express';
 
 import AppHealthService from '../services/health/app-health.service';
-import AppHealthStatus from '../domain/app-health-status.enum';
-import Roles from '../../infrastructure/decorators/roles.decorator';
+import { ComponentState as AppState} from '../models/component-state';
+import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
 import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
 import LoggingGuard from '../../infrastructure/guards/logging.guard';
-import RolesGuard from '../../infrastructure/guards/roles.guard';
-import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
 import Public from '../../infrastructure/decorators/public.decorator';
+import Roles from '../../infrastructure/decorators/roles.decorator';
+import RolesGuard from '../../infrastructure/guards/roles.guard';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 
 /** Controller for serving health check requests
@@ -51,12 +51,12 @@ export class AppHealthController {
 	})
 	@ApiResponse({ status: 200, description: 'The app is healthy' })
 	async checkHealth(@Res() res: Response) {
-		const { status, reason } = await this.appHealthService.getState();
+		const { state, reason } = await this.appHealthService.getState();
 		
-		if (status as unknown as AppHealthStatus === AppHealthStatus.OK) {
-			res.status(HttpStatus.OK).send({ status });
+		if (state as unknown as AppState === AppState.OK) {
+			res.status(HttpStatus.OK).send({ state });
 		} else {
-			res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ status, reason });
+			res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ state, reason });
 		}
 	}
 }
