@@ -67,16 +67,19 @@ export class ConditioningDataService implements OnModuleDestroy, ManageableCompo
 	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
 	
 	protected readonly cache = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
-	protected isInitializing = false; // flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
+	protected isInitializing = false; // DEPRECATED: flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
 	protected readonly subscriptions: Subscription[] = []; // array to hold subscriptions to unsubsribe on destroy
 	protected readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ name: this.constructor.name, state: ComponentState.UNINITIALIZED, reason: 'Service created', updatedOn: new Date() });
-	
-	/** Observable stream of the component's state changes */
-	public readonly state$ = this.stateSubject.asObservable();
 	
 	// Inject separately to keep constructor signature clean
 	@Inject(Logger) protected readonly logger: Logger;
 	@Inject(QueryMapper) protected readonly queryMapper: QueryMapper<QueryType, QueryDTO>;
+	
+	//----------------------------------- PUBLIC PROPERTIES ----------------------------------//
+	
+	/** Observable stream of the component's state changes */
+	public readonly state$ = this.stateSubject.asObservable();
+	
 	
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
@@ -94,7 +97,8 @@ export class ConditioningDataService implements OnModuleDestroy, ManageableCompo
 
 	onModuleDestroy() {
 		this.logger.log(`Shutting down...`, this.constructor.name);
-		this.subscriptions.forEach((subscription) => subscription?.unsubscribe());
+		// todo: call shutdown() here to clean up resources and unsubscribe from all subscriptions
+		this.subscriptions.forEach((subscription) => subscription?.unsubscribe()); // retire this when shutdown() is implemented
 	}
 	
 	//----------------------------- PUBLIC API: SERVICE MANAGEMENT ------------------------------//
@@ -115,6 +119,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManageableCompo
 	 * @see ManageableComponent interface for details
 	 * @remark Invokes initializeCache() to load logs from persistence and subscribe to repo events
 	 * @todo Refactor to wait for initialization to complete before returning the promise on concurrent calls
+	 * @todo Use and set new internal state to indicate initialization in progress, and set it to OK on success or ERROR on failure
 	 */
 	public initialize(): Promise<void> {
 		return new Promise(async (resolve, reject) => {
