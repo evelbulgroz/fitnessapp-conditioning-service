@@ -30,18 +30,6 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 export class AppHealthController {
 	constructor(private readonly appHealthService: AppHealthService) {}
 
-	// Liveness check: Simply returns HTTP 200 if the app is running
-	@Get('liveness')
-	@Public() // debug: disable authentication during development
-	@ApiOperation({
-		summary: 'Liveness check',
-		description: 'Returns HTTP 200 if the app is running. Used by load balancers and monitoring tools.'
-	})
-	@ApiResponse({ status: 200, description: 'The app is running' })
-	checkLiveness(@Res() res: Response) {
-		res.status(HttpStatus.OK).send({ alive: true });
-	}
-
 	// Health check: Returns 200 if healthy, 503 if degraded/unavailable
 	@Get()
 	@Public() // debug: disable authentication during development
@@ -59,5 +47,26 @@ export class AppHealthController {
 			res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ state, reason });
 		}
 	}
+
+	@Get('/readiness')
+	public async isReady(): Promise<{ status: string; details?: any }> {
+		const state = await this.appHealthService.getState();
+		const status = state.state === AppState.OK ? 'healthy' : 'unhealthy';
+		return { status, details: state };
+	}
+	
+	// Liveness check: Simply returns HTTP 200 if the app is running
+	@Get('liveness')
+	@Public() // debug: disable authentication during development
+	@ApiOperation({
+		summary: 'Liveness check',
+		description: 'Returns HTTP 200 if the app is running. Used by load balancers and monitoring tools.'
+	})
+	@ApiResponse({ status: 200, description: 'The app is running' })
+	checkLiveness(@Res() res: Response) {
+		res.status(HttpStatus.OK).send({ alive: true });
+	}
+
+	
 }
 export default AppHealthController;
