@@ -24,7 +24,7 @@ import ManagedStatefulComponentMixin from "../../app-health/mixins/managed-state
  */
 @Injectable()
 export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO>
-	extends ManagedStatefulComponentMixin(TrainingLogRepo as any)<ConditioningLog<T,U>, U> {
+	extends ManagedStatefulComponentMixin(TrainingLogRepo)<ConditioningLog<T,U>, U> {
 	// implements OnModuleInit, OnModuleDestroy {
 
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
@@ -53,13 +53,9 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
     protected async executeInitialization(): Promise<void> {
         this.logger.log(`Executing initialization`, this.constructor.name);
 		
-		// Go 3 levels up the prototype chain to reach TrainingLogRepo
-        const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this));
-        const realSuper = Object.getPrototypeOf(mixinProto);
-
-		 // bug: overlapping state names in ddd-base and mixin cause this call never to return,
-		 // as the state is already set to 'INITIALIZING' by the mixin when initialize() is called in the base class,
-		 // which further causes the base class to never execute initialization and update the state to 'OK'.
+		// Repository.initialize() does most of the work, so we just need to call it and unwrap its result here
+		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
+		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
 		const initResults = await realSuper.initialize.call(this);
 		if (initResults.isFailure) {
 			this.logger.error(`Failed to execute initialization`, initResults.error, this.constructor.name);
@@ -80,7 +76,10 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
     protected async executeShutdown(): Promise<void> {
         this.logger.log(`Executing shutdown`, this.constructor.name);
 
-		const initResults = await super.shutdown()
+		// Repository.shutdown() does most of the work, so we just need to call it and unwrap its result here
+		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
+		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
+		const initResults = await realSuper.shutdown()
 		if (initResults.isFailure) {
 			this.logger.error(`Failed to execute shutdown`, initResults.error, this.constructor.name);
 			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${initResults.error}`);
@@ -92,10 +91,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
         return Promise.resolve();
     }
 
-	// BUG:
-	// There is complete naming overlap between the mixin and Repository re. both state values and members, e.g. `stateSubject`, `state$`, `initialize()` `getState()`, `isReady()`, `shutdown`.
-	// This causes conflicts that prevent calls to inherited members from working as expected.
-		
+	// NOTE: Repository.isReady() is basically a call to initialize(), so no need to override or call it here. The mixin is sufficient.
 
 	//-------------------------------- TEMPLATE METHOD OVERRIDES --------------------------------//
 	
