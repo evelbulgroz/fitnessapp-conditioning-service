@@ -102,7 +102,7 @@ export class ConditioningController {
 	public async createLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,
-		@Body() logDTO: ConditioningLogDTO
+		@Body() logDTO: Record<string, any> // NestJS strips undecorated properties from the body, so we need to use a more basic type here
 	): Promise<EntityId> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
@@ -202,7 +202,7 @@ export class ConditioningController {
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,
 		@Param('logId') logIdDTO: EntityIdDTO,
-		@Body() partialLogDTO: Partial<ConditioningLogDTO>
+		@Body() partialLogDTO: Record<string, any>// Partial<ConditioningLogDTO> // NestJS strips undecorated properties from the body, so we need to use a more basic type here
 	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
@@ -515,7 +515,8 @@ export class ConditioningController {
 			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
-		return createResult.value as ConditioningLog<any, ConditioningLogDTO>;
+		const log = createResult.value as ConditioningLog<any, ConditioningLogDTO>;
+		return log;
 	}
 }
 
