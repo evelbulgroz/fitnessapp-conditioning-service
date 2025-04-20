@@ -2145,8 +2145,9 @@ describe('ConditioningDataService', () => {
 	});
 
 	describe('Management API', () => {
-		describe('getState', () => {});
-		
+		// NOTE: no need to retest ManagedStatefulComponentMixin methods, as they are already tested in the base class.
+		// Just do a few checks that things are hooked up correctly.
+			
 		describe('initialize', () => {	
 			it('populates cache with conditioning logs grouped by user id', async () => {
 				// arrange

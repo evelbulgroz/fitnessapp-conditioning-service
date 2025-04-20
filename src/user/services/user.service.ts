@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { firstValueFrom, Observable, Subscription, take } from 'rxjs';
@@ -7,13 +7,14 @@ import { EntityId } from '@evelbulgroz/ddd-base';
 import { Logger } from '@evelbulgroz/logger';
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 
-import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
-import { PersistenceError } from '../../shared/domain/persistence.error';
-import { UnauthorizedAccessError } from '../../shared/domain/unauthorized-access.error';
-import { User } from '../domain/user.entity';
-import { UserContext } from '../../shared/domain/user-context.model';
-import { UserDTO } from '../dtos/user.dto';
-import { UserRepository } from '../repositories/user.repo';
+import EntityIdDTO from '../../shared/dtos/responses/entity-id.dto';
+import ManagedStatefulComponentMixin from '../../app-health/mixins/managed-stateful-component.mixin';
+import PersistenceError from '../../shared/domain/persistence.error';
+import UnauthorizedAccessError from '../../shared/domain/unauthorized-access.error';
+import User from '../domain/user.entity';
+import UserContext from '../../shared/domain/user-context.model';
+import UserDTO from '../dtos/user.dto';
+import UserRepository from '../repositories/user.repo';
 
 /** Processes User CRUD events received via requests from the User microservice.
  * @remark The user microservice holds all business data for the user, name, contact info, etc.
@@ -24,11 +25,7 @@ import { UserRepository } from '../repositories/user.repo';
  * @remark Depends on the User repository for caching and persistence of user entities.
  */
 @Injectable()
-export class UserService {
-	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
-		
-	protected isInitializing = false; // flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations		
-	protected readonly subscriptions: Subscription[] = []; // array to hold subscriptions to unsubsribe on destroy
+export class UserService  extends ManagedStatefulComponentMixin(class {}) implements OnModuleDestroy {
 
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
@@ -36,28 +33,19 @@ export class UserService {
 		protected readonly config: ConfigService,
 		protected readonly logger: Logger,
 		protected readonly userRepo: UserRepository
-	) {}
+	) {
+		super();
+	}
 
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
 	onModuleDestroy() {
 		this.logger.log(`Shutting down...`, this.constructor.name);
-		this.subscriptions.forEach((subscription) => subscription?.unsubscribe());
+		this.shutdown(); // call shutdown method from mixin
 	}
 	
-	//---------------------------------------- PUBLIC API ---------------------------------------//
+	//---------------------------------------- DATA API ---------------------------------------//
 	
-	/** Check if service is ready to use, i.e. has been initialized
-	 * @returns Promise that resolves when the service is ready to use
-	*/	
-	public async isReady(): Promise<boolean> {
-		const readyResult = await this.userRepo.initialize();
-		if (readyResult.isFailure) {
-			throw new PersistenceError(`Failed to check if service is ready: ${readyResult.error}`);			
-		}
-		return true;
-	}
-
 	/** Create a new user
 	 * @param ctx The user context for the user to be created
 	 * @param userIdDTO The user id in the user microservice of the user to be created
@@ -154,6 +142,62 @@ export class UserService {
 		return Promise.resolve();
 	}
 
+	//------------------------------------- MANAGEMENT API --------------------------------------//
+	
+	/** @see ManagedStatefulComponentMixin for management API methods */
+
+	/* Execute component initialization (required by ManagedStatefulComponentMixin)
+	 * @returns Promise that resolves when the component is initialized
+	 * @throws Error if initialization fails
+	 * @remark ManagedStatefulComponentMixin.initialize() caller already handles concurrency and updates state, so no need to replicate that here
+	 * @remark For now basically a placeholder, as Repository handles all initialization
+	 * @todo Refactor to use cache library, when available
+	 */
+	protected async executeInitialization(): Promise<void> {
+		try {
+			this.logger.log(`Executing initialization...`, this.constructor.name);
+			
+			// initialize the cache with all conditioning logs and users from the respective repositories
+			//this.cache = new BehaviorSubject<User[]>([]); // initialize cache observable
+			//this.cache.next(await this.userRepo.fetchAll()); // populate cache with all users from user repo
+			
+			this.logger.log(`Initialization complete.`, this.constructor.name);
+			return Promise.resolve();
+		}
+		catch (error) {
+			this.logger.error(`Initialization failed:`, error instanceof Error ? error.message : String(error), this.constructor.name);
+			return Promise.reject(error);
+		}
+	}
+
+	/** Execute component shutdown (required by ManagedStatefulComponentMixin)
+	 * @returns Promise that resolves when the component is shut down
+	 * @throws Error if shutdown fails
+	 * @remark Cleans up resources and unsubscribes from all subscriptions
+	 * @remark Sets the state to SHUT_DOWN to indicate that the component is no longer active
+	 * @todo ManagedStatefulComponentMixin.shutdown() caller already handles concurrency and updates state, so no need to replicate that here
+	 * @todo Refactor to use cache library, when available
+	 */
+	protected executeShutdown(): Promise<void> {		
+		try {
+			this.logger.log(`Executing shutdown...`, this.constructor.name);
+			
+			// clean up resources
+			this.subscriptions.forEach((subscription) => subscription?.unsubscribe()); // unsubscribe all subscriptions
+			this.subscriptions = []; // clear subscriptions array
+			//this.cache.complete(); // complete the cache observable to release resources
+			//this.cache.next([]); // emit empty array to clear cache
+			
+			this.logger.log(`Shutdown execution complete.`, this.constructor.name);
+			return Promise.resolve();
+		} 
+		catch (error) {
+			this.logger.error(`Shutdown execution failed:`, error instanceof Error ? error.message : String(error), this.constructor.name);
+			return Promise.reject(error);
+		}
+	}
+	protected subscriptions: Subscription[] = []; // array of subscriptions to be cleaned up on shutdown
+	
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
 	/* Check if caller is authorized to access a method

@@ -86,8 +86,7 @@ export class ConditioningDataService extends ManagedStatefulComponentMixin(class
 
 	onModuleDestroy() {
 		this.logger.log(`Shutting down...`, this.constructor.name);
-		// todo: call shutdown() here to clean up resources and unsubscribe from all subscriptions
-		this.subscriptions.forEach((subscription) => subscription?.unsubscribe()); // retire this when shutdown() is implemented
+		this.shutdown(); // call shutdown method from mixin
 	}
 	
 	//---------------------------------------- DATA API -----------------------------------------//
@@ -645,18 +644,6 @@ export class ConditioningDataService extends ManagedStatefulComponentMixin(class
 	
 	/** @see ManagedStatefulComponentMixin for management API methods */
 	
-	//------------------------------------ PROTECTED METHODS ------------------------------------//
-
-	/* Subscribe to changes and log them using the logger
-	 * @remark Currently logs state changes only, but can be extended to log cache and repo updates as well
-	 */
-	protected logChanges(): void {
-		this.state$.subscribe((state) => {
-			this.logger.log(`State changed: ${state}`, this.constructor.name);
-		});
-		// later, optionally add cache and repo updates to log changes
-	}
-
 	/* Execute component initialization (required by ManagedStatefulComponentMixin)
 	 * @returns Promise that resolves when the component is initialized
 	 * @throws Error if initialization fails
@@ -746,6 +733,18 @@ export class ConditioningDataService extends ManagedStatefulComponentMixin(class
 	}
 	protected subscriptions: Subscription[] = []; // array of subscriptions to be cleaned up on shutdown
 	
+	//------------------------------------ PROTECTED METHODS ------------------------------------//
+
+	/* Subscribe to changes and log them using the logger
+	 * @remark Currently logs state changes only, but can be extended to log cache and repo updates as well
+	 */
+	protected logChanges(): void {
+		this.state$.subscribe((state) => {
+			this.logger.log(`State changed: ${state}`, this.constructor.name);
+		});
+		// later, optionally add cache and repo updates to log changes
+	}
+
 	/* Purge log from log repo that has been orphaned by failed user update (log creation helper)
 	 * @param logId Entity id of the log to purge from the log repo
 	 * @param softDelete Flag to indicate whether to soft delete the log (default: false since log is orphaned by other CRUD error)

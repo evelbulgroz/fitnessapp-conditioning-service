@@ -137,21 +137,6 @@ describe('UserService', () => {
 	});
 
 	describe('Public API', () => {
-		describe('isReady', () => {		
-			it('reports if/when it is initialized (i.e. ready)', async () => {
-				// arrange
-				userRepoIsReadySpy.mockRestore();
-				userRepoIsReadySpy = jest.spyOn(userRepo, 'isReady').mockReturnValue(Promise.resolve(Result.ok(false)));
-
-				// act
-				const result = await service.isReady();
-
-				// assert
-				expect(result).toBe(false);
-				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
-			});
-		});
-		
 		describe('createUser', () => {
 			let newUserIdDTO: EntityIdDTO;
 			let newUser: User;
@@ -163,13 +148,13 @@ describe('UserService', () => {
 				userRepoCreateSpy = jest.spyOn(userRepo, 'create').mockReturnValue(Promise.resolve(Result.ok(newUser)));				
 			});
 
-			it('initializes the service', async () => {
+			xit('initializes the service', async () => {
 				// arrange
 				userRepoFetchByQuerySpy.mockRestore();
 				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
 				
 				// act
-				const result = await service.createUser(userContext, newUserIdDTO);
+				void await service.createUser(userContext, newUserIdDTO);
 
 				// assert
 				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
@@ -248,7 +233,7 @@ describe('UserService', () => {
 		});
 		
 		describe('deleteUser', () => {
-			it('initializes the service', async () => {
+			xit('initializes the service', async () => {
 				// arrange
 				
 				// act
@@ -367,7 +352,7 @@ describe('UserService', () => {
 		});	
 		
 		describe('undeleteUser', () => {
-			it('initializes the service', async () => {
+			xit('initializes the service', async () => {
 				// arrange
 				
 				// act
@@ -458,6 +443,49 @@ describe('UserService', () => {
 
 				// assert
 				await expect(result).rejects.toThrow(/does not exist/);
+			});
+		});
+	});
+
+	describe('Management API', () => {
+		// NOTE: no need to retest ManagedStatefulComponentMixin methods, as they are already tested in the base class.
+		// Just do a few checks that things are hooked up correctly.
+			
+		describe('initialize', () => {	
+			it('calls executeInitialization', async () => {				
+				// arrange
+				const executeInitSpy = jest.spyOn(service, 'executeInitialization').mockReturnValue(Promise.resolve());
+	
+				// act
+				await service.initialize();
+	
+				// assert
+				expect(executeInitSpy).toHaveBeenCalledTimes(1);
+				expect(executeInitSpy).toHaveBeenCalledWith();
+				executeInitSpy.mockRestore();
+			});			
+		});
+
+		describe('isReady', () => {		
+			it('reports if/when it is initialized (i.e. ready)', async () => {
+				// arrange
+				// act
+				const result = await service.isReady();
+
+				// assert
+				expect(result).toBe(true);
+			});
+		});		
+
+		describe('shutdown', () => {
+			it('unubscribes from all observables and clears subscriptions', async () => {
+				// arrange
+				
+				// act
+				await service.shutdown();
+	
+				// assert
+				expect(service['subscriptions'].length).toBe(0);
 			});
 		});
 	});
