@@ -730,6 +730,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManageableCompo
 	 * @see ManageableComponent interface for details
 	 * @remark Invokes initialization if not already initialized
 	 * @remark Only applies to new API, old API handles initialization internally
+	 * @todo Refactor to use service state, rather than cache length, to determine readiness
 	 */	
 	public async isReady(): Promise<boolean> {
 		return new Promise(async (resolve) => {

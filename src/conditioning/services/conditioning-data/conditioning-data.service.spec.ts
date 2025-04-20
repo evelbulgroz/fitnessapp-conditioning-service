@@ -693,55 +693,7 @@ describe('ConditioningDataService', () => {
 		expect(logService).toBeTruthy();
 	});
 
-	describe('Initialization', () => {
-		it('reports if/when it is initialized (i.e. ready)', async () => {
-			// arrange
-			logService['cache'].next([]); // force re-initialization
-			expect(logService['cache']).toBeDefined(); // sanity checks
-			expect(logService['cache'].value.length).toBe(0);
-
-			// act
-			const isReady = await logService.isReady();
-
-			// assert
-			expect(isReady).toBe(true);
-			expect(logService['cache'].value.length).toBeGreaterThan(0);
-		});
-
-		it('populates cache with conditioning logs grouped by user id', async () => {
-			// arrange
-			const expectedIds = users.map(user => user.userId);
-			
-			// act
-			await logService.isReady();
-			const cache = logService['cache'].value;
-			const cachedIds = cache.map(entry => entry.userId);
-			
-			// assert
-			expect(cache.length).toBe(expectedIds.length);
-			expect(cachedIds).toEqual(expect.arrayContaining(expectedIds));
-		});
-
-		it('can be initialized multiple times without side effects', async () => {
-			// arrange
-			expect(logService['cache']).toBeDefined(); // sanity checks			
-			expect(logService['cache'].value.length).toBe(users.length)
-			const expectedLength = logService['cache'].value.length;
-			const expectedIds = users.map(user => user.userId);
-
-			// act			
-			await logService.isReady();
-			await logService.isReady();
-			await logService.isReady();
-			const cachedIds = logService['cache'].value.map(entry => entry.userId);
-
-			// assert
-			expect(logService['cache'].value.length).toBe(expectedLength);
-			expect(cachedIds).toEqual(expect.arrayContaining(expectedIds));
-		});
-	});	
-
-	describe('Public API', () => {
+	describe('Data API', () => {
 		let aggregationQueryDTO: AggregationQueryDTO;
 		let aggregatorSpy: any;
 		let userIdDTO: EntityIdDTO;
@@ -769,7 +721,7 @@ describe('ConditioningDataService', () => {
 			aggregatorSpy && aggregatorSpy.mockRestore();
 		});
 
-		describe('isReady', () => {		
+		describe('isReady', () => { // todo: move to protected method tests (no longer in public API)
 			it('reports if/when it is initialized (i.e. ready)', async () => {
 				// arrange
 				logService['cache'].next([]); // force re-initialization
@@ -2205,6 +2157,62 @@ describe('ConditioningDataService', () => {
 				expect(async () => await logService.undeleteLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
 			});
 		});
+	});
+
+	describe('Management API', () => {
+		describe('getState', () => {});
+		
+		describe('initialize', () => {
+			it('reports if/when it is initialized (i.e. ready)', async () => {
+				// arrange
+				logService['cache'].next([]); // force re-initialization
+				expect(logService['cache']).toBeDefined(); // sanity checks
+				expect(logService['cache'].value.length).toBe(0);
+	
+				// act
+				const isReady = await logService.isReady();
+	
+				// assert
+				expect(isReady).toBe(true);
+				expect(logService['cache'].value.length).toBeGreaterThan(0);
+			});
+	
+			it('populates cache with conditioning logs grouped by user id', async () => {
+				// arrange
+				const expectedIds = users.map(user => user.userId);
+				
+				// act
+				await logService.isReady();
+				const cache = logService['cache'].value;
+				const cachedIds = cache.map(entry => entry.userId);
+				
+				// assert
+				expect(cache.length).toBe(expectedIds.length);
+				expect(cachedIds).toEqual(expect.arrayContaining(expectedIds));
+			});
+	
+			it('can be initialized multiple times without side effects', async () => {
+				// arrange
+				expect(logService['cache']).toBeDefined(); // sanity checks			
+				expect(logService['cache'].value.length).toBe(users.length)
+				const expectedLength = logService['cache'].value.length;
+				const expectedIds = users.map(user => user.userId);
+	
+				// act			
+				await logService.isReady();
+				await logService.isReady();
+				await logService.isReady();
+				const cachedIds = logService['cache'].value.map(entry => entry.userId);
+	
+				// assert
+				expect(logService['cache'].value.length).toBe(expectedLength);
+				expect(cachedIds).toEqual(expect.arrayContaining(expectedIds));
+			});
+		});
+
+		describe('isReady', () => {});
+
+		describe('shutdown', () => {});
 	});
 
 	describe('Protected Methods', () => {
