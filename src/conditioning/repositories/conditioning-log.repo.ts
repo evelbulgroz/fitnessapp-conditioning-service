@@ -92,10 +92,9 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
         return Promise.resolve();
     }
 
-	// NOTE:
-	// ManagedStatefulComponentMixin completely shadows base repo management features:
-	// there is perfect naming overlap re. both state values and members, e.g. `stateSubject`, `state$`, `initialize()` `getState()`, `isReady()`, `shutdown`.
-	// So long as this is the case, there should be no need to override any of the base class methods here.
+	// BUG:
+	// There is complete naming overlap between the mixin and Repository re. both state values and members, e.g. `stateSubject`, `state$`, `initialize()` `getState()`, `isReady()`, `shutdown`.
+	// This causes conflicts that prevent calls to inherited members from working as expected.
 		
 
 	//-------------------------------- TEMPLATE METHOD OVERRIDES --------------------------------//
