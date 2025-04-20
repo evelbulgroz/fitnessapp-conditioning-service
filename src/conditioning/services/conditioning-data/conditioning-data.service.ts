@@ -688,7 +688,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 		// create a new initialization promise
 		this.initializationPromise = new Promise<void>(async (resolve, reject) => {
 			try {
-				await this.initializeCache();
+				await this.executeInitialization();
 				
 				// update state to indicate successful initialization
 				this.stateSubject.next({
@@ -826,7 +826,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 	 * @remark Cache is populated with all logs from conditioning log repo and all users from user repo
 	 * @todo Refactor to use cache library, when available
 	 */
-	protected async initializeCache(): Promise<void> {
+	protected async executeInitialization(): Promise<void> {
 		// if cache is already populated, return immediately
 		if (this.cache.value.length > 0) {
 			return Promise.resolve();
