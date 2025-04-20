@@ -67,7 +67,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManageableCompo
 	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
 	
 	protected readonly cache = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
-	protected isInitializing = false; // DEPRECATED: flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
+	//protected isInitializing = false; // DEPRECATED: flag to indicate whether initialization is in progress, to avoid multiple concurrent initializations
 	protected readonly subscriptions: Subscription[] = []; // array to hold subscriptions to unsubsribe on destroy
 	protected readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ name: this.constructor.name, state: ComponentState.UNINITIALIZED, reason: 'Service created', updatedOn: new Date() });
 	
@@ -824,70 +824,73 @@ export class ConditioningDataService implements OnModuleDestroy, ManageableCompo
 		// later, optionally add cache and repo updates to log changes
 	}
 
-	/* Initialize user-log cache */
-	protected async initializeCache(): Promise<void> {		
-		const cache = this.cache;
-		
-		// initialization already in progress, wait for it to complete
-		if (this.isInitializing) { 
-			const readyPromise = new Promise<void>((resolve) => { // resolves when initialization is complete
-				cache.pipe(
-					filter((data) => data.length > 0), // wait for cache to be populated
-					take(1)
-				).subscribe(() => {
-					this.isInitializing = false;
-					resolve(); // resolve with void
+	/* Initialize user-log cache
+	 * @remark Cache is initialized lazily on first access to avoid unnecessary overhead
+	 * @remark Cache is populated with all logs from conditioning log repo and all users from user repo
+	 * @todo Refactor to use cache library, when available
+	 */
+	protected async initializeCache(): Promise<void> {
+		// if cache is already populated, return immediately
+		if (this.cache.value.length > 0) {
+			return Promise.resolve();
+		}
+
+		// if initialization is already in progress, return the existing promise
+		if (this.cacheInitializationPromise) {
+			return this.cacheInitializationPromise;
+		}
+
+		// create a new initialization promise
+		this.cacheInitializationPromise = new Promise<void>(async (resolve, reject) => {
+			try {
+				this.logger.log(`Initializing cache...`, this.constructor.name);
+
+				// fetch all logs from conditioning log repo
+				let allLogs: ConditioningLog<any, ConditioningLogDTO>[] = [];
+				const logsResult = await this.logRepo.fetchAll();
+				if (logsResult.isSuccess) {
+					const allLogs$ = logsResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
+					allLogs = await firstValueFrom(allLogs$.pipe(take(1)));
+					allLogs.sort((a, b) => (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0)); // sort logs ascending by start date and time, if available
+				}
+				else {
+					throw new Error(`Error initializing conditioning logs: ${logsResult.error}`);
+				}
+				
+				// fetch all users from user repo
+				let users: User[] = [];
+				const usersResult = await this.userRepo.fetchAll();
+				if (usersResult.isSuccess) {
+					const users$ = usersResult.value as Observable<User[]>;
+					users = await firstValueFrom(users$.pipe(take(1)));
+				}
+				else {
+					throw new Error(`Error initializing user logs: ${usersResult.error}`);
+				}
+
+				// combine logs and users into user logs cache entries
+				const now = new Date();
+				const userLogs: UserLogsCacheEntry[] = users.map((user: User) => {
+					const logs = allLogs.filter((log) => user.logs.includes(log.entityId!));
+					return { userId: user.userId!, logs: logs, lastAccessed: now };
 				});
-			});
-			return readyPromise;
-		}
-		
-		// cache already initialized
-		if (cache.value.length > 0) { 
-			return Promise.resolve(); // resolve with void
-		}
-
-		// cache not initialized, initialization not in progress -> initialize it
-		this.isInitializing = true;
-		this.logger.log(`Initializing cache...`, this.constructor.name);
-
-		// fetch all logs from conditioning log repo
-		let allLogs: ConditioningLog<any, ConditioningLogDTO>[] = [];
-		const logsResult = await this.logRepo.fetchAll();
-		if (logsResult.isSuccess) {
-			const allLogs$ = logsResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
-			allLogs = await firstValueFrom(allLogs$.pipe(take(1)));
-			allLogs.sort((a, b) => (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0)); // sort logs ascending by start date and time, if available
-		}
-		else {
-			this.logger.error(`Error initializing conditioning logs`, logsResult.error.toString(), this.constructor.name);
-			this.isInitializing = false;
-		}
-		
-		// fetch all users from user repo
-		let users: User[] = [];
-		const usersResult = await this.userRepo.fetchAll();
-		if (usersResult.isSuccess) {
-			const users$ = usersResult.value as Observable<User[]>;
-			users = await firstValueFrom(users$.pipe(take(1)));
-		}
-		else {
-			this.logger.error(`Error initializing user logs`, usersResult.error.toString(), this.constructor.name);
-		}
-
-		// combine logs and users into user logs cache entries
-		const now = new Date();
-		const userLogs: UserLogsCacheEntry[] = users.map((user: User) => {	
-			const logs = allLogs.filter((log) => user.logs.includes(log.entityId!));
-			return { userId: user.userId!, logs: logs, lastAccessed: now };
+				this.cache.next(userLogs);
+				
+				this.logger.log(`Initialization complete: Cached ${allLogs.length} logs for ${users.length} users.`, this.constructor.name);
+				resolve();
+			}
+			catch (error) {
+				this.logger.error(`Cache initialization failed:`, error instanceof Error ? error.message : String(error), this.constructor.name);
+				reject(error);
+			}
+			finally {
+				this.cacheInitializationPromise = undefined; // Reset initialization promise for potential retry
+			}
 		});
-		this.cache.next(userLogs);
-		
-		this.isInitializing = false;
-		this.logger.log(`Initialization complete: Cached ${allLogs.length} logs for ${users.length} users.`, this.constructor.name);
 
-		return Promise.resolve(); // resolve with void
+		return this.cacheInitializationPromise;
 	}
+	protected cacheInitializationPromise: Promise<void> | undefined = undefined; // promise to flag cache initialization state
 
 	/* Purge log from log repo that has been orphaned by failed user update (log creation helper)
 	 * @param logId Entity id of the log to purge from the log repo
