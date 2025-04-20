@@ -86,3 +86,50 @@ export class AppHealthService {
 }
 
 export default AppHealthService;
+
+/* ALTERNATIVE IMPLEMENTATION
+@Injectable()
+export class AppHealthService {
+  private readonly moduleRegistry = new Map<string, ManagedStatefulComponent>();
+  
+  constructor(private readonly logger: Logger) {}
+
+  registerModule(name: string, module: ManagedStatefulComponent): void {
+    this.moduleRegistry.set(name, module);
+  }
+
+  async getSystemHealth(): Promise<SystemHealthStatus> {
+    const moduleStatuses = await Promise.all(
+      Array.from(this.moduleRegistry.entries()).map(async ([name, module]) => {
+        // For modules with enhanced health reporting
+        if ('getAggregateHealth' in module) {
+          return await (module as any).getAggregateHealth();
+        }
+        // For basic modules
+        return {
+          moduleName: name,
+          moduleState: module.getState(),
+          components: [],
+          isHealthy: module.getState().state === ComponentState.OK
+        };
+      })
+    );
+
+    return {
+      systemState: this.determineSystemState(moduleStatuses),
+      modules: moduleStatuses,
+      timestamp: new Date()
+    };
+  }
+
+  private determineSystemState(moduleStatuses: ModuleHealthStatus[]): SystemState {
+    const allOk = moduleStatuses.every(m => m.isHealthy);
+    const anyFailed = moduleStatuses.some(m => 
+      m.moduleState.state === ComponentState.FAILED);
+    
+    if (anyFailed) return SystemState.DEGRADED;
+    if (allOk) return SystemState.HEALTHY;
+    return SystemState.UNHEALTHY;
+  }
+}
+*/

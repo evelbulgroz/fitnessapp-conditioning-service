@@ -177,3 +177,46 @@ export class AppModule {
 }
 
 export default AppModule;
+
+/* Scaffold for implementing ManagedStatefulComponent interface
+@Module({
+  imports: [
+    ConditioningModule,
+    UserModule,
+    // other modules
+  ],
+  providers: [AppHealthService]
+})
+export class AppModule implements OnApplicationBootstrap, OnApplicationShutdown {
+  constructor(
+    private readonly conditioningModule: ConditioningModule,
+    private readonly userModule: UserModule,
+    private readonly healthService: AppHealthService,
+    private readonly logger: Logger
+  ) {
+    // Register modules with health service
+    this.healthService.registerModule('conditioning', this.conditioningModule);
+    this.healthService.registerModule('users', this.userModule);
+  }
+
+  async onApplicationBootstrap() {
+    this.logger.log('Application bootstrapping, initializing modules...');
+    
+    // Initialize modules in dependency order
+    await this.userModule.initialize();
+    await this.conditioningModule.initialize();
+    
+    this.logger.log('All modules initialized successfully');
+  }
+
+  async onApplicationShutdown(signal?: string) {
+    this.logger.log(`Application shutting down (signal: ${signal})`);
+    
+    // Shutdown in reverse dependency order
+    await this.conditioningModule.shutdown();
+    await this.userModule.shutdown();
+    
+    this.logger.log('All modules shut down successfully');
+  }
+}
+  */

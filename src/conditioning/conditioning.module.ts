@@ -53,3 +53,52 @@ import QueryMapper from './mappers/query.mapper';
 })
 export class ConditioningModule {}
 export default ConditioningModule;
+
+/* Example implementation supporting the ManagedStatefulComponent interface
+@Module({
+  providers: [ConditioningDataService, ConditioningLogRepository]
+})
+export class ConditioningModule extends ManagedStatefulComponentMixin(class {}) implements OnModuleInit, OnModuleDestroy {
+  constructor(
+    private readonly dataService: ConditioningDataService,
+    private readonly logRepo: ConditioningLogRepository,
+    @Inject(LOGGER_TOKEN) public readonly logger: Logger
+  ) {
+    super();
+  }
+
+  public async executeInitialization(): Promise<void> {
+    await this.dataService.initialize();
+    await this.logRepo.initialize();
+  }
+
+  public async executeShutdown(): Promise<void> {
+    await this.dataService.shutdown();
+    await this.logRepo.shutdown();
+  }
+
+  // Map NestJS lifecycle hooks to our component lifecycle
+  async onModuleInit() {
+    await this.initialize();
+  }
+
+  async onModuleDestroy() {
+    await this.shutdown();
+  }
+
+  // Enhanced health check that aggregates component statuses
+  public async getAggregateHealth(): Promise<ModuleHealthStatus> {
+    const dataServiceState = this.dataService.getState();
+    const logRepoState = this.logRepo.getState();
+
+    return {
+      moduleName: this.constructor.name,
+      moduleState: this.getState(),
+      components: [dataServiceState, logRepoState],
+      isHealthy: this.getState().state === ComponentState.OK &&
+                 [dataServiceState, logRepoState].every(s => 
+                   s.state === ComponentState.OK || s.state === ComponentState.DEGRADED)
+    };
+  }
+}
+  */
