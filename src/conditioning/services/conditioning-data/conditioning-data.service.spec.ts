@@ -2181,26 +2181,42 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		describe('isReady', () => {
-			it('reports if/when it is initialized (i.e. ready)', async () => {
+		describe('shutdown', () => {
+			it('completes and clears the cache', async () => {
 				// arrange
-				const unInitState = { name: 'ConditioningDataService', state: ComponentState.UNINITIALIZED, updatedOn: new Date() };
-				logService['stateSubject'].next(unInitState); // force re-initialization
-				logService['cache'].next([]); // clear cache
-				expect(logService.getState()).toEqual(unInitState); // sanity checks
+				expect(logService['cache']).toBeDefined(); // sanity check
+				
+				let cacheCompleted = false; // isStopped is deprecated -> must subscribe to test for completion
+				const subscription = logService['cache'].subscribe({
+					complete: () => { cacheCompleted = true; }
+				});	
+
+				expect(logService['cache'].value.length).toBe(users.length)
+	
+				// act
+				await logService.shutdown();
+	
+				// assert
+				expect(cacheCompleted).toBe(true);
 				expect(logService['cache'].value.length).toBe(0);
 
-				// act
-				const isReady = await logService.isReady();
+				// clean up
+				subscription.unsubscribe();
+			});
 
+
+			it('unubscribes from all observables and clears subscriptions', async () => {
+				// arrange
+				expect(logService['cache']).toBeDefined(); // sanity checks			
+				expect(logService['cache'].value.length).toBe(users.length)
+	
+				// act
+				await logService.shutdown();
+	
 				// assert
-				expect(isReady).toBe(true);
-				expect(logService.getState().state).toBe(ComponentState.OK);
-				expect(logService['cache'].value.length).toBeGreaterThan(0);
+				expect(logService['subscriptions'].length).toBe(0);
 			});
 		});
-
-		describe('shutdown', () => {});
 	});
 
 	describe('Protected Methods', () => {

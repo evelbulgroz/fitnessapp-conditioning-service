@@ -12,7 +12,6 @@ import { Query } from '@evelbulgroz/query-fns';
 import AggregationQueryDTO from '../../dtos/aggregation-query.dto';
 import AggregatorService from '../aggregator/aggregator.service';
 import BooleanDTO from '../../../shared/dtos/responses/boolean.dto';
-import ComponentState from '../../../app-health/models/component-state';
 import ComponentStateInfo from '../../../app-health/models/component-state-info';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
@@ -22,7 +21,7 @@ import ConditioningLogSeries from '../../domain/conditioning-log-series.model';
 import DomainEventHandler from '../../../shared/handlers/domain-event.handler';
 import EntityIdDTO from '../../../shared/dtos/responses/entity-id.dto';
 import EventDispatcherService from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
-import ManagedStatefulComponent from '../../../app-health/models/managed-stateful-component'
+import ManagedStatefulComponentMixin from '../../../app-health/mixins/managed-stateful-component.mixin';
 import NotFoundError from '../../../shared/domain/not-found.error';
 import PersistenceError from '../../../shared/domain/persistence.error';
 import QueryDTO from '../../../shared/dtos/responses/query.dto';
@@ -31,8 +30,7 @@ import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.
 import User from '../../../user/domain/user.entity';
 import UserContext from '../../../shared/domain/user-context.model';
 import UserPersistenceDTO from '../../../user/dtos/user-persistence.dto';
-import UserRepository from '../../../user/repositories/user.repo';import StatefulComponent from 'src/app-health/models/stateful-component';
-;
+import UserRepository from '../../../user/repositories/user.repo';
 
 /** Helper function to default sort logs ascending by start date and time */
 function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: ConditioningLog<any, ConditioningLogDTO>): number {
@@ -56,12 +54,12 @@ export interface UserLogsCacheEntry {
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
  * @remark Local cache is kept in sync with repository data via subscriptions to log and user repo events.
- * @todo Flesh out ManageableComponent, StatefulComponent implementation, add state transitions where appropriate
+ * @remark Provides ManagedStatefulComponent API for lifecycle management and state tracking, using ManagedStatefulComponentMixin.
  * @todo Break each public method out into separate service class, to make this class more manageable and testable by simply providing a facade to the new services.
- * @todo Factor cache out into separate service that can be shared across multiple mini-services.
+ * @todo Use shared cache library when available
  */
 @Injectable()
-export class ConditioningDataService implements OnModuleDestroy, ManagedStatefulComponent { //extends ManagedStatefulComponentMixin(TrainingLogRepo)<ConditioningLog<T,U>, U>
+export class ConditioningDataService extends ManagedStatefulComponentMixin(class {}) implements OnModuleDestroy {
 	
 	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
 	
@@ -80,6 +78,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 		protected readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		protected readonly userRepo: UserRepository
 	) {
+		super();
 		this.subscribeToRepoEvents(); // deps not intialized in onModuleInit, so subscribe here
 	}
 
@@ -644,167 +643,8 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 
 	//------------------------------------- MANAGEMENT API --------------------------------------//
 	
-	/** Observable stream of the component's state changes */
-	protected readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ name: this.constructor.name, state: ComponentState.UNINITIALIZED, reason: 'Service created', updatedOn: new Date() });
-	public readonly state$ = this.stateSubject.asObservable();
+	/** @see ManagedStatefulComponentMixin for management API methods */
 	
-	/** Get the current state of the service
-	 * @returns Current state of the service as a ComponentStateInfo object (immutable)
-	 * @see StatefulComponent interface for details
-	 * @remark The state is a snapshot of the current state of the service, and may not reflect the latest changes.
-	 * @remark The state is updated by the service itself, and can be used to monitor the service's health and performance.
-	 */
-	public getState(): ComponentStateInfo {
-		return {... this.stateSubject.value} ; // return current state of the service
-	}
-
-	/** Initialize the component and its dependencies
-	 * @returns Promise that resolves when the component is initialized
-	 * @throws Error if initialization fails
-	 * @see ManageableComponent interface for details
-	 * @remark Delegates initialization to executeInitialize() method in clients using the management mixin
-	 */
-	public initialize(): Promise<void> {
-		// if already initialized, resolve immediately
-		if (this.stateSubject.value.state !== ComponentState.UNINITIALIZED) {
-			return Promise.resolve();
-		}
-
-		// if initialization is already in progress, return the existing promise
-		if (this.initializationPromise) {
-			return this.initializationPromise;
-		}
-
-		// set the internal state to indicate initialization in progress
-		this.stateSubject.next({
-			name: this.constructor.name,
-			state: ComponentState.INITIALIZING,
-			reason: 'Component initialization in progress',
-			updatedOn: new Date()
-		});
-		
-		// create a new initialization promise
-		this.initializationPromise = new Promise<void>(async (resolve, reject) => {
-			try {
-				await this.executeInitialization();
-				
-				// update state to indicate successful initialization
-				this.stateSubject.next({
-					name: this.constructor.name,
-					state: ComponentState.OK,
-					reason: 'Component initialized successfully',
-					updatedOn: new Date()
-				});
-				
-				resolve();
-			} 
-			catch (error) {
-				// update state to indicate initialization failure
-				this.stateSubject.next({
-					name: this.constructor.name,
-					state: ComponentState.FAILED,
-					reason: `Component initialization failed: ${error instanceof Error ? error.message : String(error)}`,
-					updatedOn: new Date(),
-					//error: error instanceof Error ? error.message : String(error)
-				});
-			
-				reject(error);
-			}
-			finally {
-				this.initializationPromise = undefined; // reset initialization promise to flag that initialization is complete
-			}
-		});
-
-		return this.initializationPromise;
-	}
-	protected initializationPromise: Promise<void> | undefined = undefined; // promise to flag active initialization
-
-	/** Check if component is ready to use, i.e. has been initialized
-	 * @returns Promise that resolves when the component is ready to use
-	 * @throws Error if initialization fails
-	 * @see ManageableComponent interface for details
-	 * @remark Invokes initialization if not already initialized
-	 * @remark Only applies to new API, old API handles initialization internally
-	 */	
-	public async isReady(): Promise<boolean> {
-		return new Promise(async (resolve) => {
-			if (this.getState().state === ComponentState.UNINITIALIZED) { // initialized state check
-				this.logger.log(`Component is not initialized, initializing...`, this.constructor.name);
-				try {
-					await this.initialize();
-				}
-				catch (error) {
-					resolve(error.message); // initialization failed, resolve with error message
-					return; // exit early on error
-				}
-			}
-			resolve(true); // component is initialized, resolve with true
-		});
-	}
-
-	/** Shut down the service and clean up any resources it is using
-	 * @returns Promise that resolves when the service is shut down
-	 * @throws Error if shutdown fails
-	 * @see ManageableComponent interface for details
-	 * @remark Unsubscribes from all subscriptions and completes the cache observable to release resources
-	 */
-	public shutdown(): Promise<void> {
-		// if already shut down, return immediately		
-		if (this.stateSubject.value.state === ComponentState.SHUT_DOWN) {
-			return Promise.resolve();
-		}
-
-		// if shutdown is already in progress, return the existing promise
-		if (this.shutdownPromise) {
-			return this.shutdownPromise;
-		}
-
-		// set the internal state to indicate shutdown in progress
-		this.stateSubject.next({
-			name: this.constructor.name,
-			state: ComponentState.SHUTTING_DOWN,
-			reason: 'Component shutdown in progress',
-			updatedOn: new Date()
-		});
-
-		// create a new shutdown promise
-		this.shutdownPromise = new Promise<void>(async (resolve, reject) => {
-			try {
-				this.logger.log(`Shutting down...`, this.constructor.name);
-				
-				// clean up resources
-				this.executeShutdown(); // emit empty array to clear cache
-				
-				// update state to indicate successful shutdown
-				this.stateSubject.next({
-					name: this.constructor.name,
-					state: ComponentState.SHUT_DOWN,
-					reason: 'Component shut down successfully',
-					updatedOn: new Date()
-				});
-				
-				resolve();
-			} 
-			catch (error) {
-				// update state to indicate shutdown failure
-				this.stateSubject.next({
-					name: this.constructor.name,
-					state: ComponentState.FAILED,
-					reason: `Component shutdown failed: ${error instanceof Error ? error.message : String(error)}`,
-					updatedOn: new Date()
-				});
-				
-				reject(error);
-			}
-			finally {
-				this.shutdownPromise = undefined; // reset shutdown promise to flag that shutdown is complete
-			}
-		});
-
-		return this.shutdownPromise;
-	}
-	protected shutdownPromise: Promise<void> | undefined = undefined; // promise to flag active shutdown	
-
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
 	/* Subscribe to changes and log them using the logger
@@ -817,13 +657,13 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 		// later, optionally add cache and repo updates to log changes
 	}
 
-	/* Execute component initialization
+	/* Execute component initialization (required by ManagedStatefulComponentMixin)
 	 * @returns Promise that resolves when the component is initialized
 	 * @throws Error if initialization fails
 	 * @remark Initializes the cache with all conditioning logs and users from the respective repositories
 	 * @remark Cache is initialized lazily on first access to avoid unnecessary overhead
 	 * @remark Cache is populated with all logs from conditioning log repo and all users from user repo
-	 * @todo initialize() caller already handles concurrency, so may be overkill to do the same here
+	 * @remark ManagedStatefulComponentMixin.initialize() caller already handles concurrency and updates state, so no need to replicate that here
 	 * @todo Refactor to use cache library, when available
 	 */
 	protected async executeInitialization(): Promise<void> {
@@ -832,104 +672,78 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 			return Promise.resolve();
 		}
 
-		// if initialization is already executing, return the existing promise
-		if (this.executeInitializationPromise) {
-			return this.executeInitializationPromise;
+		// execute initialization
+		try {
+			this.logger.log(`Executing initialization...`, this.constructor.name);
+
+			// fetch all logs from conditioning log repo
+			let allLogs: ConditioningLog<any, ConditioningLogDTO>[] = [];
+			const logsResult = await this.logRepo.fetchAll();
+			if (logsResult.isSuccess) {
+				const allLogs$ = logsResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
+				allLogs = await firstValueFrom(allLogs$.pipe(take(1)));
+				allLogs.sort((a, b) => (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0)); // sort logs ascending by start date and time, if available
+			}
+			else {
+				throw new Error(`Error initializing conditioning logs: ${logsResult.error}`);
+			}
+			
+			// fetch all users from user repo
+			let users: User[] = [];
+			const usersResult = await this.userRepo.fetchAll();
+			if (usersResult.isSuccess) {
+				const users$ = usersResult.value as Observable<User[]>;
+				users = await firstValueFrom(users$.pipe(take(1)));
+			}
+			else {
+				throw new Error(`Error initializing user logs: ${usersResult.error}`);
+			}
+
+			// combine logs and users into user logs cache entries
+			const now = new Date();
+			const userLogs: UserLogsCacheEntry[] = users.map((user: User) => {
+				const logs = allLogs.filter((log) => user.logs.includes(log.entityId!));
+				return { userId: user.userId!, logs: logs, lastAccessed: now };
+			});
+			this.cache.next(userLogs);
+			
+			this.logger.log(`Initialization execution complete: Cached ${allLogs.length} logs for ${users.length} users.`, this.constructor.name);
+			return Promise.resolve();
 		}
-
-		// create a new initialization promise
-		this.executeInitializationPromise = new Promise<void>(async (resolve, reject) => {
-			try {
-				this.logger.log(`Executing initialization...`, this.constructor.name);
-
-				// fetch all logs from conditioning log repo
-				let allLogs: ConditioningLog<any, ConditioningLogDTO>[] = [];
-				const logsResult = await this.logRepo.fetchAll();
-				if (logsResult.isSuccess) {
-					const allLogs$ = logsResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
-					allLogs = await firstValueFrom(allLogs$.pipe(take(1)));
-					allLogs.sort((a, b) => (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0)); // sort logs ascending by start date and time, if available
-				}
-				else {
-					throw new Error(`Error initializing conditioning logs: ${logsResult.error}`);
-				}
-				
-				// fetch all users from user repo
-				let users: User[] = [];
-				const usersResult = await this.userRepo.fetchAll();
-				if (usersResult.isSuccess) {
-					const users$ = usersResult.value as Observable<User[]>;
-					users = await firstValueFrom(users$.pipe(take(1)));
-				}
-				else {
-					throw new Error(`Error initializing user logs: ${usersResult.error}`);
-				}
-
-				// combine logs and users into user logs cache entries
-				const now = new Date();
-				const userLogs: UserLogsCacheEntry[] = users.map((user: User) => {
-					const logs = allLogs.filter((log) => user.logs.includes(log.entityId!));
-					return { userId: user.userId!, logs: logs, lastAccessed: now };
-				});
-				this.cache.next(userLogs);
-				
-				this.logger.log(`Initialization execution complete: Cached ${allLogs.length} logs for ${users.length} users.`, this.constructor.name);
-				resolve();
-			}
-			catch (error) {
-				this.logger.error(`Cache initialization failed:`, error instanceof Error ? error.message : String(error), this.constructor.name);
-				reject(error);
-			}
-			finally {
-				this.executeInitializationPromise = undefined; // Reset initialization promise for potential retry
-			}
-		});
-
-		return this.executeInitializationPromise;
+		catch (error) {
+			this.logger.error(`Cache initialization failed:`, error instanceof Error ? error.message : String(error), this.constructor.name);
+			return Promise.reject(error);
+		}
 	}
-	protected executeInitializationPromise: Promise<void> | undefined = undefined; // promise to flag initialization execution state
-
-	/** Execute component shutdown
+	
+	/** Execute component shutdown (required by ManagedStatefulComponentMixin)
 	 * @returns Promise that resolves when the component is shut down
 	 * @throws Error if shutdown fails
 	 * @remark Cleans up resources and unsubscribes from all subscriptions
 	 * @remark Completes the cache observable to release resources
 	 * @remark Unsubscribes from all subscriptions to avoid memory leaks
 	 * @remark Sets the state to SHUT_DOWN to indicate that the component is no longer active
-	 * @todo shutdown() caller already handles concurrency, so may be overkill to do the same here
+	 * @todo ManagedStatefulComponentMixin.shutdown() caller already handles concurrency and updates state, so no need to replicate that here
 	 * @todo Refactor to use cache library, when available
 	 */
 	protected executeShutdown(): Promise<void> {		
-		// if shutdown is already executing, return the existing promise
-		if (this.executeShutdownPromise) {
-			return this.executeShutdownPromise;
+		try {
+			this.logger.log(`Executing shutdown...`, this.constructor.name);
+			
+			// clean up resources
+			this.subscriptions.forEach((subscription) => subscription?.unsubscribe()); // unsubscribe all subscriptions
+			this.subscriptions = []; // clear subscriptions array
+			this.cache.complete(); // complete the cache observable to release resources
+			this.cache.next([]); // emit empty array to clear cache
+			
+			this.logger.log(`Shutdown execution complete.`, this.constructor.name);
+			return Promise.resolve();
+		} 
+		catch (error) {
+			this.logger.error(`Shutdown execution failed:`, error instanceof Error ? error.message : String(error), this.constructor.name);
+			return Promise.reject(error);
 		}
-
-		// create a new shutdown promise
-		this.executeShutdownPromise = new Promise<void>(async (resolve, reject) => {
-			try {
-				this.logger.log(`Executing shutdown...`, this.constructor.name);
-				
-				// clean up resources
-				this.subscriptions.forEach((subscription) => subscription?.unsubscribe()); // unsubscribe all subscriptions
-				this.cache.complete(); // complete the cache observable to release resources
-				this.cache.next([]); // emit empty array to clear cache
-				
-				this.logger.log(`Shutdown execution complete.`, this.constructor.name);
-				resolve();
-			} 
-			catch (error) {
-				this.logger.error(`Shutdown execution failed:`, error instanceof Error ? error.message : String(error), this.constructor.name);
-				reject(error);
-			}
-			finally {
-				this.executeShutdownPromise = undefined; // Reset shutdown promise for potential retry
-			}
-		});
-		
-		return Promise.resolve(); // resolve immediately, no async work to do
 	}
-	protected executeShutdownPromise: Promise<void> | undefined = undefined; // promise to flag shutdown execution state
 	protected subscriptions: Subscription[] = []; // array of subscriptions to be cleaned up on shutdown
 	
 	/* Purge log from log repo that has been orphaned by failed user update (log creation helper)

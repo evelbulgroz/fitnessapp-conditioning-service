@@ -256,3 +256,5 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 	
 	return ManagedStatefulComponentClass;
 }
+
+export default ManagedStatefulComponentMixin;
