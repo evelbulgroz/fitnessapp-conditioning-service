@@ -508,7 +508,7 @@ describe('ConditioningLogRepository', () => {
 	});
 
 	beforeEach(async () => {
-		await repo.isReady();
+		await repo.initialize();
 	});
 
 	afterEach(() => {
@@ -523,7 +523,7 @@ describe('ConditioningLogRepository', () => {
 	});
 
 	describe('Initialization', () => {
-		it('initializes cache with a collection of overview logs from persistence', async () => {
+		it('initializes cache with a collection of overview logs from persistence', async () => {			
 			const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
 			expect(fetchAllResult.isSuccess).toBeTruthy();
 			const logs$ = fetchAllResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;

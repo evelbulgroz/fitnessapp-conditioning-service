@@ -6,6 +6,7 @@ import { Entity, EntityId, EntityMetadataDTO, PersistenceAdapter, Result } from 
 import { Logger } from '@evelbulgroz/logger';
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
+import ComponentState from '../../app-health/models/component-state';
 import { ConditioningLog } from "../domain/conditioning-log.entity";
 import { ConditioningLogCreatedEvent } from "../events/conditioning-log-created.event";
 import { ConditioningLogDeletedEvent } from "../events/conditioning-log-deleted.event";
@@ -51,8 +52,15 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
      */
     protected async executeInitialization(): Promise<void> {
         this.logger.log(`Executing initialization`, this.constructor.name);
+		
+		// Go 3 levels up the prototype chain to reach TrainingLogRepo
+        const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this));
+        const realSuper = Object.getPrototypeOf(mixinProto);
 
-		const initResults = await super.initalize()
+		 // bug: overlapping state names in ddd-base and mixin cause this call never to return,
+		 // as the state is already set to 'INITIALIZING' by the mixin when initialize() is called in the base class,
+		 // which further causes the base class to never execute initialization and update the state to 'OK'.
+		const initResults = await realSuper.initialize.call(this);
 		if (initResults.isFailure) {
 			this.logger.error(`Failed to execute initialization`, initResults.error, this.constructor.name);
 			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${initResults.error}`);
