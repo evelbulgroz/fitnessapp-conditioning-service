@@ -101,7 +101,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManageableCompo
 		this.subscriptions.forEach((subscription) => subscription?.unsubscribe()); // retire this when shutdown() is implemented
 	}
 	
-	//----------------------------- PUBLIC API: SERVICE MANAGEMENT ------------------------------//
+	//------------------------------------- MANAGEMENT API --------------------------------------//
 
 	/** Get the current state of the service
 	 * @returns Current state of the service as a ComponentStateInfo object (immutable)
@@ -118,28 +118,61 @@ export class ConditioningDataService implements OnModuleDestroy, ManageableCompo
 	 * @throws Error if initialization fails
 	 * @see ManageableComponent interface for details
 	 * @remark Invokes initializeCache() to load logs from persistence and subscribe to repo events
-	 * @todo Refactor to wait for initialization to complete before returning the promise on concurrent calls
-	 * @todo Use and set new internal state to indicate initialization in progress, and set it to OK on success or ERROR on failure
 	 */
 	public initialize(): Promise<void> {
-		return new Promise(async (resolve, reject) => {
-			if (this.isInitializing) { // initialization already in progress -> resolve with success
-				resolve();
-				return;
-			}
-			this.isInitializing = true; // set flag to indicate initialization in progress
+		// if already initialized, return immediately
+		if (this.stateSubject.value.state !== ComponentState.UNINITIALIZED) {
+			return Promise.resolve(); // service is already initialized, resolve immediately
+		}
 
+		// if initialization is already in progress, return the existing promise
+		if (this.initializationPromise) {
+			return this.initializationPromise;
+		}
+
+		// set the internal state to indicate initialization in progress
+		this.stateSubject.next({
+			name: this.constructor.name,
+			state: ComponentState.INITIALIZING,
+			reason: 'Service initialization in progress',
+			updatedOn: new Date()
+		});
+		
+		// create a new initialization promise
+		this.initializationPromise = new Promise<void>(async (resolve, reject) => {
 			try {
-				await this.initializeCache(); // initialize cache and subscribe to repo events
-				this.isInitializing = false; // reset flag after initialization
-				resolve(); // resolve with success
+				await this.initializeCache();
+				
+				// update state to indicate successful initialization
+				this.stateSubject.next({
+					name: this.constructor.name,
+					state: ComponentState.OK,
+					reason: 'Service initialized successfully',
+					updatedOn: new Date()
+				});
+				
+				resolve();
+			} 
+			catch (error) {
+				// update state to indicate initialization failure
+				this.stateSubject.next({
+					name: this.constructor.name,
+					state: ComponentState.FAILED,
+					reason: `Service initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+					updatedOn: new Date(),
+					//error: error instanceof Error ? error.message : String(error)
+				});
+			
+				reject(error);
 			}
-			catch (error) { // initialization failed -> reject with error
-				this.isInitializing = false; // reset flag on error
-				reject(error); // reject with error
+			finally {
+				this.initializationPromise = undefined; // reset initialization promise to flag that initialization is complete
 			}
 		});
+
+		return this.initializationPromise;
 	}
+	protected initializationPromise: Promise<void> | undefined = undefined; // promise to flag active initialization
 
 	/** Check if service is ready to use, i.e. has been initialized
 	 * @returns Promise that resolves when the service is ready to use
@@ -168,19 +201,67 @@ export class ConditioningDataService implements OnModuleDestroy, ManageableCompo
 	 * @throws Error if shutdown fails
 	 * @see ManageableComponent interface for details
 	 * @remark Unsubscribes from all subscriptions and completes the cache observable to release resources
-	 * @todo This is a rough draft to comply with ManageableComponent, refactor later
 	 */
 	public shutdown(): Promise<void> {
-		return new Promise(async (resolve) => {
-			this.logger.log(`Shutting down...`, this.constructor.name);
-			this.subscriptions.forEach((subscription) => subscription?.unsubscribe()); // unsubscribe from all subscriptions
-			this.cache.complete(); // complete the cache observable to release resources
-			this.cache.next([]); // emit empty array to clear cache
-			resolve(); // resolve with success
+		// if already shut down, return immediately		
+		if (this.stateSubject.value.state === ComponentState.SHUT_DOWN) {
+			return Promise.resolve();
+		}
+
+		// if shutdown is already in progress, return the existing promise
+		if (this.shutdownPromise) {
+			return this.shutdownPromise;
+		}
+
+		// set the internal state to indicate shutdown in progress
+		this.stateSubject.next({
+			name: this.constructor.name,
+			state: ComponentState.SHUTTING_DOWN,
+			reason: 'Service shutdown in progress',
+			updatedOn: new Date()
 		});
+
+		// create a new shutdown promise
+		this.shutdownPromise = new Promise<void>(async (resolve, reject) => {
+			try {
+				this.logger.log(`Shutting down...`, this.constructor.name);
+				
+				// clean up resources
+				this.subscriptions.forEach((subscription) => subscription?.unsubscribe());
+				this.cache.complete(); // complete the cache observable to release resources
+				this.cache.next([]); // emit empty array to clear cache
+				
+				// update state to indicate successful shutdown
+				this.stateSubject.next({
+					name: this.constructor.name,
+					state: ComponentState.SHUT_DOWN,
+					reason: 'Service shut down successfully',
+					updatedOn: new Date()
+				});
+				
+				resolve();
+			} 
+			catch (error) {
+				// update state to indicate shutdown failure
+				this.stateSubject.next({
+					name: this.constructor.name,
+					state: ComponentState.FAILED,
+					reason: `Service shutdown failed: ${error instanceof Error ? error.message : String(error)}`,
+					updatedOn: new Date()
+				});
+				
+				reject(error);
+			}
+			finally {
+				this.shutdownPromise = undefined; // reset shutdown promise to flag that shutdown is complete
+			}
+		});
+
+		return this.shutdownPromise;
 	}
+	protected shutdownPromise: Promise<void> | undefined = undefined; // promise to flag active shutdown
 	
-	//------------------------------------ PUBLIC API: CRUD -------------------------------------//
+	//---------------------------------------- DATA API -----------------------------------------//
 
 	/** New API: Create a new conditioning log for a user in the system
 	 * @param ctx User context for the request (includes user id and roles)
@@ -732,6 +813,16 @@ export class ConditioningDataService implements OnModuleDestroy, ManageableCompo
 	}
 
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
+
+	/* Subscribe to changes and log them using the logger
+	 * @remark Currently logs state changes only, but can be extended to log cache and repo updates as well
+	 */
+	protected logChanges(): void {
+		this.state$.subscribe((state) => {
+			this.logger.log(`State changed: ${state}`, this.constructor.name);
+		});
+		// later, optionally add cache and repo updates to log changes
+	}
 
 	/* Initialize user-log cache */
 	protected async initializeCache(): Promise<void> {		
