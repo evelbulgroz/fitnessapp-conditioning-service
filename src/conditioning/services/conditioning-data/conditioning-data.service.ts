@@ -67,17 +67,10 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 	
 	protected readonly cache = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
 	protected readonly subscriptions: Subscription[] = []; // array to hold subscriptions to unsubsribe on destroy
-	protected readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ name: this.constructor.name, state: ComponentState.UNINITIALIZED, reason: 'Service created', updatedOn: new Date() });
 	
 	// Inject separately to keep constructor signature clean
 	@Inject(Logger) protected readonly logger: Logger;
 	@Inject(QueryMapper) protected readonly queryMapper: QueryMapper<QueryType, QueryDTO>;
-	
-	//----------------------------------- PUBLIC PROPERTIES ----------------------------------//
-	
-	/** Observable stream of the component's state changes */
-	public readonly state$ = this.stateSubject.asObservable();
-	
 	
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
@@ -652,6 +645,11 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 
 	//------------------------------------- MANAGEMENT API --------------------------------------//
 
+	
+	/** Observable stream of the component's state changes */
+	protected readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ name: this.constructor.name, state: ComponentState.UNINITIALIZED, reason: 'Service created', updatedOn: new Date() });
+	public readonly state$ = this.stateSubject.asObservable();
+	
 	/** Get the current state of the service
 	 * @returns Current state of the service as a ComponentStateInfo object (immutable)
 	 * @see StatefulComponent interface for details
@@ -662,16 +660,16 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 		return {... this.stateSubject.value} ; // return current state of the service
 	}
 
-	/** Initialize the service and its dependencies
-	 * @returns Promise that resolves when the service is initialized
+	/** Initialize the component and its dependencies
+	 * @returns Promise that resolves when the component is initialized
 	 * @throws Error if initialization fails
 	 * @see ManageableComponent interface for details
-	 * @remark Invokes initializeCache() to load logs from persistence and subscribe to repo events
+	 * @remark Delegates initialization to executeInitialize() method in clients using the management mixin
 	 */
 	public initialize(): Promise<void> {
-		// if already initialized, return immediately
+		// if already initialized, resolve immediately
 		if (this.stateSubject.value.state !== ComponentState.UNINITIALIZED) {
-			return Promise.resolve(); // service is already initialized, resolve immediately
+			return Promise.resolve();
 		}
 
 		// if initialization is already in progress, return the existing promise
@@ -683,7 +681,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 		this.stateSubject.next({
 			name: this.constructor.name,
 			state: ComponentState.INITIALIZING,
-			reason: 'Service initialization in progress',
+			reason: 'Component initialization in progress',
 			updatedOn: new Date()
 		});
 		
@@ -696,7 +694,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 				this.stateSubject.next({
 					name: this.constructor.name,
 					state: ComponentState.OK,
-					reason: 'Service initialized successfully',
+					reason: 'Component initialized successfully',
 					updatedOn: new Date()
 				});
 				
@@ -707,7 +705,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 				this.stateSubject.next({
 					name: this.constructor.name,
 					state: ComponentState.FAILED,
-					reason: `Service initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+					reason: `Component initialization failed: ${error instanceof Error ? error.message : String(error)}`,
 					updatedOn: new Date(),
 					//error: error instanceof Error ? error.message : String(error)
 				});
@@ -723,26 +721,26 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 	}
 	protected initializationPromise: Promise<void> | undefined = undefined; // promise to flag active initialization
 
-	/** Check if service is ready to use, i.e. has been initialized
-	 * @returns Promise that resolves when the service is ready to use
+	/** Check if component is ready to use, i.e. has been initialized
+	 * @returns Promise that resolves when the component is ready to use
 	 * @throws Error if initialization fails
 	 * @see ManageableComponent interface for details
 	 * @remark Invokes initialization if not already initialized
 	 * @remark Only applies to new API, old API handles initialization internally
-	 * @todo Refactor to use service state, rather than cache length, to determine readiness
 	 */	
 	public async isReady(): Promise<boolean> {
 		return new Promise(async (resolve) => {
-			if (this.cache.value.length === 0) { // load logs if cache is empty
+			if (this.getState().state === ComponentState.UNINITIALIZED) { // initialized state check
+				this.logger.log(`Component is not initialized, initializing...`, this.constructor.name);
 				try {
-					await this.initializeCache();
+					await this.initialize();
 				}
 				catch (error) {
 					resolve(error.message); // initialization failed, resolve with error message
 					return; // exit early on error
 				}
 			}
-			resolve(true); // cache is initialized, resolve with true
+			resolve(true); // component is initialized, resolve with true
 		});
 	}
 

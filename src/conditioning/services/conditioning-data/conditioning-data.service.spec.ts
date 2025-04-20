@@ -41,6 +41,7 @@ import { UserContext } from '../../../shared/domain/user-context.model';
 import { UserDTO } from '../../../user/dtos/user.dto';
 import { UserPersistenceDTO } from '../../../user/dtos/user-persistence.dto';
 import { UserRepository } from '../../../user/repositories/user.repo';
+import ComponentState from '../../../app-health/models/component-state';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -721,22 +722,6 @@ describe('ConditioningDataService', () => {
 			aggregatorSpy && aggregatorSpy.mockRestore();
 		});
 
-		describe('isReady', () => { // todo: move to protected method tests (no longer in public API)
-			it('reports if/when it is initialized (i.e. ready)', async () => {
-				// arrange
-				logService['cache'].next([]); // force re-initialization
-				expect(logService['cache']).toBeDefined(); // sanity checks
-				expect(logService['cache'].value.length).toBe(0);
-
-				// act
-				const isReady = await logService.isReady();
-
-				// assert
-				expect(isReady).toBe(true);
-				expect(logService['cache'].value.length).toBeGreaterThan(0);
-			});
-		});
-		
 		describe('conditioningData', () => {
 			it('can provide a collection of ConditioningDataSeries for all users', async () => {
 				// act
@@ -2162,21 +2147,7 @@ describe('ConditioningDataService', () => {
 	describe('Management API', () => {
 		describe('getState', () => {});
 		
-		describe('initialize', () => {
-			it('reports if/when it is initialized (i.e. ready)', async () => {
-				// arrange
-				logService['cache'].next([]); // force re-initialization
-				expect(logService['cache']).toBeDefined(); // sanity checks
-				expect(logService['cache'].value.length).toBe(0);
-	
-				// act
-				const isReady = await logService.isReady();
-	
-				// assert
-				expect(isReady).toBe(true);
-				expect(logService['cache'].value.length).toBeGreaterThan(0);
-			});
-	
+		describe('initialize', () => {	
 			it('populates cache with conditioning logs grouped by user id', async () => {
 				// arrange
 				const expectedIds = users.map(user => user.userId);
@@ -2210,7 +2181,24 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		describe('isReady', () => {});
+		describe('isReady', () => {
+			it('reports if/when it is initialized (i.e. ready)', async () => {
+				// arrange
+				const unInitState = { name: 'ConditioningDataService', state: ComponentState.UNINITIALIZED, updatedOn: new Date() };
+				logService['stateSubject'].next(unInitState); // force re-initialization
+				logService['cache'].next([]); // clear cache
+				expect(logService.getState()).toEqual(unInitState); // sanity checks
+				expect(logService['cache'].value.length).toBe(0);
+
+				// act
+				const isReady = await logService.isReady();
+
+				// assert
+				expect(isReady).toBe(true);
+				expect(logService.getState().state).toBe(ComponentState.OK);
+				expect(logService['cache'].value.length).toBeGreaterThan(0);
+			});
+		});
 
 		describe('shutdown', () => {});
 	});
