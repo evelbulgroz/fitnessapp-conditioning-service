@@ -6,7 +6,7 @@ import AppState from '../../models/app-state';
 import AppStateInfo from '../../models/app-state-info';
 import ComponentState from '../../models/component-state';
 import ComponentStateInfo from '../../models/component-state-info';
-import MonitorableComponent from '../../models/monitorable-component';
+import ManagedStatefulComponent from '../../models/managed-stateful-component';
 
 /** This service is used to manage the application state and health check status.
  * @remark It keeps the application's current state in memory and provides methods to set and get the state.
@@ -17,7 +17,7 @@ import MonitorableComponent from '../../models/monitorable-component';
  */
 @Injectable()
 export class AppHealthService {
-	private readonly components: MonitorableComponent[] = [];
+	private readonly components: ManagedStatefulComponent[] = [];
 	protected state: AppStateInfo = { name: this.constructor.name, state: ComponentState.UNINITIALIZED, reason: 'AppHealthService created', updatedOn: new Date() };
 	
 	public constructor(protected readonly logger: Logger) {
@@ -74,7 +74,7 @@ export class AppHealthService {
 	 * @remark The component must implement the MonitorableComponent interface to be registered.
 	 * @remark The component will be included in the health check status.
 	 */
-	public registerComponent(component: MonitorableComponent): void {
+	public registerComponent(component: ManagedStatefulComponent): void {
 		this.components.push(component);
 		this.logger.log(`Registered component: ${component.constructor.name}`);
 	}	

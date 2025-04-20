@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 
-import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
 import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
@@ -9,30 +9,29 @@ import { Logger } from '@evelbulgroz/logger';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
 
-import { AggregationQueryDTO } from '../../dtos/aggregation-query.dto';
-import { AggregatorService } from '../aggregator/aggregator.service';
-import { BooleanDTO } from '../../../shared/dtos/responses/boolean.dto';
+import AggregationQueryDTO from '../../dtos/aggregation-query.dto';
+import AggregatorService from '../aggregator/aggregator.service';
+import BooleanDTO from '../../../shared/dtos/responses/boolean.dto';
 import ComponentState from '../../../app-health/models/component-state';
 import ComponentStateInfo from '../../../app-health/models/component-state-info';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
-import { ConditioningLogRepository } from '../../repositories/conditioning-log.repo';
-import { ConditioningLogSeries } from '../../domain/conditioning-log-series.model';
-import { DomainEventHandler } from '../../../shared/handlers/domain-event.handler';
-import { EntityIdDTO } from '../../../shared/dtos/responses/entity-id.dto';
-import { EventDispatcherService } from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
-import ManageableComponent from '../../../app-health/models/manageable-component';
-import MonitorableComponent from 'src/app-health/models/monitorable-component'
-import { NotFoundError } from '../../../shared/domain/not-found.error';
-import { PersistenceError } from '../../../shared/domain/persistence.error';
-import { QueryDTO } from '../../../shared/dtos/responses/query.dto';
-import { QueryMapper } from '../../mappers/query.mapper';
-import { UnauthorizedAccessError } from '../../../shared/domain/unauthorized-access.error';
-import { User } from '../../../user/domain/user.entity';
-import { UserContext } from '../../../shared/domain/user-context.model';
-import { UserPersistenceDTO } from '../../../user/dtos/user-persistence.dto';
-import { UserRepository } from '../../../user/repositories/user.repo';import StatefulComponent from 'src/app-health/models/stateful-component';
+import ConditioningLogDTO from '../../dtos/conditioning-log.dto';
+import ConditioningLogRepository from '../../repositories/conditioning-log.repo';
+import ConditioningLogSeries from '../../domain/conditioning-log-series.model';
+import DomainEventHandler from '../../../shared/handlers/domain-event.handler';
+import EntityIdDTO from '../../../shared/dtos/responses/entity-id.dto';
+import EventDispatcherService from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
+import ManagedStatefulComponent from '../../../app-health/models/managed-stateful-component'
+import NotFoundError from '../../../shared/domain/not-found.error';
+import PersistenceError from '../../../shared/domain/persistence.error';
+import QueryDTO from '../../../shared/dtos/responses/query.dto';
+import QueryMapper from '../../mappers/query.mapper';
+import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.error';
+import User from '../../../user/domain/user.entity';
+import UserContext from '../../../shared/domain/user-context.model';
+import UserPersistenceDTO from '../../../user/dtos/user-persistence.dto';
+import UserRepository from '../../../user/repositories/user.repo';import StatefulComponent from 'src/app-health/models/stateful-component';
 ;
 
 /** Helper function to default sort logs ascending by start date and time */
@@ -62,7 +61,7 @@ export interface UserLogsCacheEntry {
  * @todo Factor cache out into separate service that can be shared across multiple mini-services.
  */
 @Injectable()
-export class ConditioningDataService implements OnModuleDestroy, ManageableComponent, StatefulComponent {
+export class ConditioningDataService implements OnModuleDestroy, ManagedStatefulComponent {
 	
 	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
 	

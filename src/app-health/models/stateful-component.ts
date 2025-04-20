@@ -1,19 +1,20 @@
 import { Observable } from "rxjs";
 import { ComponentStateInfo } from "./component-state-info";
 
-/** Interface for any application component that tracks its own state with respect to readiness to serve requests.
- * @remark This is used by this service to track the lifecycle of the application and its components.
- * @remark Components must implement this interface to be monitored by the health check service.
+/** Interface for observable component health state tracking.
+ * @remark Provides access to the current health state and a stream of state changes.
+ * @remark Allows external systems to monitor component health without tight coupling.
  */
-
 export interface StatefulComponent {
-	/** Stream of the component's state changes.
-	 * @returns Observable that emits the component's state changes.
+	/** Observable stream of the component's state changes.
+	 * @returns Observable that emits when the component's state changes.
+	 * @remark Subscribers should receive a consistent view of the component's state transitions.
 	 */
 	state$: Observable<ComponentStateInfo>;
 
-	/** The current lifecycle status of the component.
-	 * @returns The current lifecycle status of the component (immutable).
+	/** Get the current health state of the component.
+	 * @returns The current state information (name, status, timestamp, etc.).
+	 * @remark Should return an immutable snapshot of the component's current state.
 	 */
 	getState(): ComponentStateInfo;
 }

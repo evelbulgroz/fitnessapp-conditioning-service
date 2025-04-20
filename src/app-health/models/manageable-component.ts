@@ -1,28 +1,27 @@
-/** Interface for any manageable application component.
- * @remark This is used by this service to track the lifecycle of the application and its components.
- * @remark Components must implement this interface to be managed by the health check service.
+/** Interface for components with lifecycle management capabilities.
+ * @remark Represents components that can be initialized, checked for readiness, and shut down.
+ * @remark Lifecycle events should update the component's state.
+ * @remark Implementation should handle concurrent calls gracefully.
  */
-
 export interface ManageableComponent {
 	/** Initializes the component if it is not already initialized.
-	 * @returns Promise that resolves to void if the component was initialized, rejects with error if initialization fails.
-	 * @remark The component should respond gracefully to concurrent requests for initialization.
-	 * @remark The component should be in the INITIALIZED state after this method is called.
+	 * @returns Promise that resolves when initialization is complete, rejects if initialization fails.
+	 * @remark Should handle concurrent calls by returning the same promise for all callers during initialization.
+	 * @remark Should transition state to INITIALIZING during the process and to OK when complete.
 	 */
 	initialize(): Promise<void>;
 
-	/** Check if the service is ready to serve requests
-	 * @returns true if the component is ready to serve requests, false otherwise.
-	 * @remark The component should be in the OK, or possibly DEGRADED, state to be considered ready.
-	 * @remark Any other state should be considered not ready.
-	 * @remark This is used by the health check service to determine if the application is lively, and/or healthy, and ready to serve requests.
+	/** Check if the component is ready to process requests.
+	 * @returns Promise resolving to true if ready to serve requests, false otherwise.
+	 * @remark May trigger initialization if the component supports lazy initialization.
+	 * @remark A component is typically ready when in OK or DEGRADED state.
 	 */
 	isReady(): Promise<boolean>;
 
-	/** Shuts down the component and cleans up any resources it is using.
-	 * @returns Promise that resolves to void if the component was shut down, rejects with error if shutdown fails.
-	 * @remark The component should respond gracefully to concurrent requests for shutdown.
-	 * @remark The component should be in the SHUTDOWN state after this method is called.
+	/** Gracefully shuts down the component and releases resources.
+	 * @returns Promise that resolves when shutdown is complete, rejects if shutdown fails.
+	 * @remark Should handle concurrent calls by returning the same promise for all callers during shutdown.
+	 * @remark Should transition state to SHUTTING_DOWN during the process and to SHUT_DOWN when complete.
 	 */
 	shutdown(): Promise<void>;
 }
