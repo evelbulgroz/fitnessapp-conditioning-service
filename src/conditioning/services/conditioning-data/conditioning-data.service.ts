@@ -61,7 +61,7 @@ export interface UserLogsCacheEntry {
  * @todo Factor cache out into separate service that can be shared across multiple mini-services.
  */
 @Injectable()
-export class ConditioningDataService implements OnModuleDestroy, ManagedStatefulComponent {
+export class ConditioningDataService implements OnModuleDestroy, ManagedStatefulComponent { //extends ManagedStatefulComponentMixin(TrainingLogRepo)<ConditioningLog<T,U>, U>
 	
 	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
 	

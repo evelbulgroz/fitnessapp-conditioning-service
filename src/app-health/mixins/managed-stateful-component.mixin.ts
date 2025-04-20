@@ -1,17 +1,83 @@
 import { BehaviorSubject, Observable } from 'rxjs';
-import { Logger } from '@evelbulgroz/logger';
 
 import ComponentState from '../models/component-state';
 import ComponentStateInfo from '../models/component-state-info';
 import ManagedStatefulComponent from '../models/managed-stateful-component';
 
 /** A mixin that provides a standard implementation of the ManagedStatefulComponent interface.
- * @param Base The base class to extend
- * @returns A class that extends Base and implements ManagedStatefulComponent
+ * @param Parent The immediate parent class of the target class using this mixin, or `class {}` if the target class does not inherit from any other class.
+ * @typeparam TParent The type of the parent class
+ * @returns A class that implements ManagedStatefulComponent and extends the provided parent class (if any)
+ * @remarks This mixin inserts a standard implementation of the ManagedStatefulComponent interface into the existing class hierarchy, which it otherwise leaves intact.
+ * 
+ * @example Class that does not inherit and uses this mixin:
+ * ```typescript
+ * class MyComponent extends ManagedStatefulComponentMixin(class {}) {
+ *    // Implement the required methods and properties here
+ *    public async executeInitialization(): Promise<void> {
+ *      // Component-specific initialization logic goes here
+ *    }
+ *    public async executeShutdown(): Promise<void> {
+ *      // Component-specific shutdown logic goes here
+ *    }
+ * }
+ * ```
+ * 
+ * @example Class that inherits from a parent class and uses this mixin:
+ * ```typescript
+ * class MyComponent extends ManagedStatefulComponentMixin(ParentClass) {
+ *    // Implement the required methods and properties here
+ *    public async executeInitialization(): Promise<void> {
+ *      // Component-specific initialization logic goes here
+ *    }
+ *    public async executeShutdown(): Promise<void> {
+ *      // Component-specific shutdown logic goes here
+ *    }
+ *  }
+ * ```
+ *
+ * IMPLEMENTATION REQUIREMENTS
+ * Classes using this mixin must implement two public methods:
+ * `executeInitialization(): Promise<void>` - Component specific logic to be executed during initialization, called from `initialize()`
+ * `executeShutdown(): Promise<void>` - Component specific logic to be executed during shutdown, called from `shutdown()`
+ * 
+ * Classes using this mixin must also implement a `logger` property of type Logger compatible with the `@evelbulgroz/logger` API.
+ * This logger will be used for logging state changes and errors during initialization and shutdown.
+ * 
+ * INHERITANCE CONSIDERATIONS
+ * - If the parent class already has `initialize()` or `shutdown()` methods, the mixin will shadow them.
+ * - If your parent class has its own initialization or shutdown logic, you MUST call the parent methods 
+ *   explicitly from your `executeInitialization()` or `executeShutdown()` implementations, e.g.:
+ *   ```typescript
+ *   public executeInitialization(): Promise<void> {
+ *     // First call parent class initialization if needed
+ *     await super.initialize();
+ *     
+ *     // Then do component-specific initialization
+ *     // ...
+ *     
+ *     return Promise.resolve();
+ *   }
+ *   ```
+ * 
+ * CAUTIONS
+ * - Properties `stateSubject`, `initializationPromise` and `shutdownPromise` are not intended for public access, 
+ *   but must be marked as public to be accessible to the mixin.
+ * - The mixin's implementation of `initialize()` and `shutdown()` does NOT automatically call parent class methods 
+ *   with the same name.
+ * - Avoid applying this mixin to classes that already implement the ManagedStatefulComponent interface (e.g. using this mixin), as this will introduce unnessesary complexity and potential conflicts.
+ * 
+ * TYPESAFETY
+ * When using with multiple inheritance or complex class hierarchies, you may need to use declaration merging to ensure proper TypeScript type checking:
+ * ```typescript
+ * interface MyClass extends ReturnType<typeof ManagedStatefulComponentMixin> {}
+ * ```
  */
-export function ManagedStatefulComponentMixin<TBase extends new (...args: any[]) => any>(Base: TBase) {
-	abstract class ManagedStatefulComponentClass extends Base implements ManagedStatefulComponent {
+export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(Parent: TParent) {
+	abstract class ManagedStatefulComponentClass extends Parent implements ManagedStatefulComponent {
 		// State management properties
+		
+		/** @internal */
 		public readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
 			name: this.constructor.name, 
 			state: ComponentState.UNINITIALIZED, 
@@ -22,11 +88,12 @@ export function ManagedStatefulComponentMixin<TBase extends new (...args: any[])
 		public readonly state$: Observable<ComponentStateInfo> = this.stateSubject.asObservable();
 		
 		// Promise tracking properties
+
+		/** @internal */
 		public initializationPromise: Promise<void> | undefined = undefined;
-		public shutdownPromise: Promise<void> | undefined = undefined;
 		
-		// Property to ensure logger is available
-		public abstract readonly logger: Logger;
+		/** @internal */
+		public shutdownPromise: Promise<void> | undefined = undefined;
 		
 		/** Gets the current state of the component
 		 * @returns The current state information
@@ -38,6 +105,10 @@ export function ManagedStatefulComponentMixin<TBase extends new (...args: any[])
 		/** Initializes the component if it is not already initialized
 		 * @returns Promise that resolves when the component is initialized
 		 * @throws Error if initialization fails
+		 * @remark Expects the implementing class to provide a `executeInitialization(): Promise<void>` method containing the component-specific initialization logic
+		 * @remark Transitions state to `INITIALIZING` during the process and to `OK` when complete
+		 * @remark Handles concurrent calls by returning the same promise for all callers during initialization
+		 * @remark If the component is already initialized, resolves immediately
 		 */
 		public initialize(): Promise<void> {
 			// If already initialized, resolve immediately
@@ -96,7 +167,7 @@ export function ManagedStatefulComponentMixin<TBase extends new (...args: any[])
 		 * @returns Promise that resolves to true if ready, false otherwise
 		 * @throws Error if the component is not ready
 		 * @remark May trigger initialization if the component supports lazy initialization
-		 * * @remark A component is typically ready when in OK or DEGRADED state
+		 * @remark A component is typically ready when in `OK` or `DEGRADED` state
 		 */
 		public async isReady(): Promise<boolean> {
 			return new Promise(async (resolve) => {
@@ -122,6 +193,10 @@ export function ManagedStatefulComponentMixin<TBase extends new (...args: any[])
 		/** Shuts down the component and cleans up any resources it is using
 		 * @returns Promise that resolves when the component is shut down
 		 * @throws Error if shutdown fails
+		 * @remark Expects the implementing class to provide a `executeShutdown(): Promise<void>` method containing the component-specific shutdown logic
+		 * @remark Transitions state to `SHUTTING_DOWN` during the process and to `SHUT_DOWN` when complete
+		 * @remark Handles concurrent calls by returning the same promise for all callers during shutdown
+		 * @remark If the component is already shut down, resolves immediately
 		 */
 		public shutdown(): Promise<void> {
 			// If already shut down, return immediately
@@ -177,16 +252,6 @@ export function ManagedStatefulComponentMixin<TBase extends new (...args: any[])
 
 			return this.shutdownPromise;
 		}
-		
-		/** The actual initialization implementation specific to the component.
-		 * Must be implemented by derived classes.
-		 */
-		public abstract executeInitialization(): Promise<void>;
-		
-		/** The actual shutdown implementation specific to the component.
-		 * Must be implemented by derived classes.
-		 */
-		public abstract executeShutdown(): Promise<void>;
 	}
 	
 	return ManagedStatefulComponentClass;
