@@ -66,7 +66,6 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
 	
 	protected readonly cache = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
-	protected readonly subscriptions: Subscription[] = []; // array to hold subscriptions to unsubsribe on destroy
 	
 	// Inject separately to keep constructor signature clean
 	@Inject(Logger) protected readonly logger: Logger;
@@ -775,9 +774,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 				this.logger.log(`Shutting down...`, this.constructor.name);
 				
 				// clean up resources
-				this.subscriptions.forEach((subscription) => subscription?.unsubscribe());
-				this.cache.complete(); // complete the cache observable to release resources
-				this.cache.next([]); // emit empty array to clear cache
+				this.executeShutdown(); // emit empty array to clear cache
 				
 				// update state to indicate successful shutdown
 				this.stateSubject.next({
@@ -809,6 +806,8 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 	}
 	protected shutdownPromise: Promise<void> | undefined = undefined; // promise to flag active shutdown	
 
+	
+
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
 	/* Subscribe to changes and log them using the logger
@@ -821,9 +820,13 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 		// later, optionally add cache and repo updates to log changes
 	}
 
-	/* Initialize user-log cache
+	/* Execute component initialization
+	 * @returns Promise that resolves when the component is initialized
+	 * @throws Error if initialization fails
+	 * @remark Initializes the cache with all conditioning logs and users from the respective repositories
 	 * @remark Cache is initialized lazily on first access to avoid unnecessary overhead
 	 * @remark Cache is populated with all logs from conditioning log repo and all users from user repo
+	 * @todo initialize() caller already handles concurrency, so may be overkill to do the same here
 	 * @todo Refactor to use cache library, when available
 	 */
 	protected async executeInitialization(): Promise<void> {
@@ -832,15 +835,15 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 			return Promise.resolve();
 		}
 
-		// if initialization is already in progress, return the existing promise
-		if (this.cacheInitializationPromise) {
-			return this.cacheInitializationPromise;
+		// if initialization is already executing, return the existing promise
+		if (this.executeInitializationPromise) {
+			return this.executeInitializationPromise;
 		}
 
 		// create a new initialization promise
-		this.cacheInitializationPromise = new Promise<void>(async (resolve, reject) => {
+		this.executeInitializationPromise = new Promise<void>(async (resolve, reject) => {
 			try {
-				this.logger.log(`Initializing cache...`, this.constructor.name);
+				this.logger.log(`Executing initialization...`, this.constructor.name);
 
 				// fetch all logs from conditioning log repo
 				let allLogs: ConditioningLog<any, ConditioningLogDTO>[] = [];
@@ -873,7 +876,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 				});
 				this.cache.next(userLogs);
 				
-				this.logger.log(`Initialization complete: Cached ${allLogs.length} logs for ${users.length} users.`, this.constructor.name);
+				this.logger.log(`Initialization execution complete: Cached ${allLogs.length} logs for ${users.length} users.`, this.constructor.name);
 				resolve();
 			}
 			catch (error) {
@@ -881,14 +884,57 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 				reject(error);
 			}
 			finally {
-				this.cacheInitializationPromise = undefined; // Reset initialization promise for potential retry
+				this.executeInitializationPromise = undefined; // Reset initialization promise for potential retry
 			}
 		});
 
-		return this.cacheInitializationPromise;
+		return this.executeInitializationPromise;
 	}
-	protected cacheInitializationPromise: Promise<void> | undefined = undefined; // promise to flag cache initialization state
+	protected executeInitializationPromise: Promise<void> | undefined = undefined; // promise to flag initialization execution state
 
+	/** Execute component shutdown
+	 * @returns Promise that resolves when the component is shut down
+	 * @throws Error if shutdown fails
+	 * @remark Cleans up resources and unsubscribes from all subscriptions
+	 * @remark Completes the cache observable to release resources
+	 * @remark Unsubscribes from all subscriptions to avoid memory leaks
+	 * @remark Sets the state to SHUT_DOWN to indicate that the component is no longer active
+	 * @todo shutdown() caller already handles concurrency, so may be overkill to do the same here
+	 * @todo Refactor to use cache library, when available
+	 */
+	protected executeShutdown(): Promise<void> {		
+		// if shutdown is already executing, return the existing promise
+		if (this.executeShutdownPromise) {
+			return this.executeShutdownPromise;
+		}
+
+		// create a new shutdown promise
+		this.executeShutdownPromise = new Promise<void>(async (resolve, reject) => {
+			try {
+				this.logger.log(`Executing shutdown...`, this.constructor.name);
+				
+				// clean up resources
+				this.subscriptions.forEach((subscription) => subscription?.unsubscribe()); // unsubscribe all subscriptions
+				this.cache.complete(); // complete the cache observable to release resources
+				this.cache.next([]); // emit empty array to clear cache
+				
+				this.logger.log(`Shutdown execution complete.`, this.constructor.name);
+				resolve();
+			} 
+			catch (error) {
+				this.logger.error(`Shutdown execution failed:`, error instanceof Error ? error.message : String(error), this.constructor.name);
+				reject(error);
+			}
+			finally {
+				this.executeShutdownPromise = undefined; // Reset shutdown promise for potential retry
+			}
+		});
+		
+		return Promise.resolve(); // resolve immediately, no async work to do
+	}
+	protected executeShutdownPromise: Promise<void> | undefined = undefined; // promise to flag shutdown execution state
+	protected subscriptions: Subscription[] = []; // array of subscriptions to be cleaned up on shutdown
+	
 	/* Purge log from log repo that has been orphaned by failed user update (log creation helper)
 	 * @param logId Entity id of the log to purge from the log repo
 	 * @param softDelete Flag to indicate whether to soft delete the log (default: false since log is orphaned by other CRUD error)
