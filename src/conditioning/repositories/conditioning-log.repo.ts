@@ -186,6 +186,6 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 			// comparing primitives, so no need to serialize the entiry or deserialize the DTO
 			return (e.meta?.sourceId?.id === dto.meta?.sourceId?.id && e.meta?.sourceId?.source === dto.meta?.sourceId?.source);
 		}) as T | undefined;
-	}	
+	}
 }
 export default ConditioningLogRepository;
