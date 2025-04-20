@@ -14,13 +14,14 @@ import UserUpdatedEvent from "../events/user-updated.event";
 import UserDeletedEvent from "../events/user-deleted.event";
 import UserUndeletedEvent from "../events/user-undeleted.event";
 import UserPersistenceDTO from "../dtos/user-persistence.dto";
+import ManagedStatefulComponentMixin from "../../app-health/mixins/managed-stateful-component.mixin";
 
 /** Concrete implementation of an injectable UserRepository that uses an adapter to interact with a persistence layer
  * @remark This class is a repository for User entities, and is intended to be injected into other classes, e.g. services.
  * @remark Implements a few method overrides but otherwise relies on the base class for most of its functionality.
  */
 @Injectable()
-export class UserRepository extends Repository<User, UserDTO> {
+export class UserRepository extends ManagedStatefulComponentMixin(Repository<User, UserDTO>) {
 
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 	
@@ -32,7 +33,7 @@ export class UserRepository extends Repository<User, UserDTO> {
 			super(adapter, logger, throttleTime);
 		}
 	
-	//---------------------------------------- PUBLIC API ---------------------------------------//
+	//---------------------------------------- DATA API ---------------------------------------//
 
 	/** Get the class constructor from a class name
 	 * @param className The name of the class to get
@@ -71,6 +72,60 @@ export class UserRepository extends Repository<User, UserDTO> {
 	}
 
 	// NOTE: Rest of the public API is inherited from the base class, and is fully sufficient for the User repo.
+
+	//------------------------------------- MANAGEMENT API --------------------------------------//
+	
+	/** @see ManagedStatefulComponentMixin for public management API methods */
+
+	/** Execute repository initialization (required by ManagedStatefulComponentMixin)
+	 * @returns Promise that resolves when initialization is complete
+	 * @throws Error if initialization fails
+	 * @remark Basically calls base class initialize method and unwraps the result
+     */
+    protected async executeInitialization(): Promise<void> {
+        this.logger.log(`Executing initialization`, this.constructor.name);
+		
+		// Repository.initialize() does most of the work, so we just need to call it and unwrap its result here
+		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
+		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
+		const initResults = await realSuper.initialize.call(this);
+		if (initResults.isFailure) {
+			this.logger.error(`Failed to execute initialization`, initResults.error, this.constructor.name);
+			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${initResults.error}`);
+		}
+		
+		// If/when needed, add local initialization here
+        
+		this.logger.log(`Initialization executed successfully`, this.constructor.name);
+        return Promise.resolve();
+    }
+    
+    /** Execute repository shutdown (required by ManagedStatefulComponentMixin)
+	 * @returns Promise that resolves when shutdown is complete
+	 * @throws Error if shutdown fails
+	 * @remark Basically calls base class shutdown method and unwraps the result
+     */
+    protected async executeShutdown(): Promise<void> {
+        this.logger.log(`Executing shutdown`, this.constructor.name);
+
+		// Repository.shutdown() does most of the work, so we just need to call it and unwrap its result here
+		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
+		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
+		const initResults = await realSuper.shutdown()
+		if (initResults.isFailure) {
+			this.logger.error(`Failed to execute shutdown`, initResults.error, this.constructor.name);
+			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${initResults.error}`);
+		}
+		
+		// If/when needed, add local shutdown here
+        
+		this.logger.log(`Shutdown executed successfully`, this.constructor.name);
+        return Promise.resolve();
+    }
+
+	// NOTE: Repository.isReady() is basically a call to initialize(), so no need to override or call it here. The mixin is sufficient.
+
+	
 
 	
 	//----------------------------- TEMPLATE METHOD IMPLEMENTATIONS -----------------------------//	

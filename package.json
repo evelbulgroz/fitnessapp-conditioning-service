@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "@evelbulgroz/command": "^2.1.0",
-    "@evelbulgroz/ddd-base": "^11.0.0",
-    "@evelbulgroz/fitnessapp-base": "^10.0.1",
+    "@evelbulgroz/ddd-base": "^11.1.0",
+    "@evelbulgroz/fitnessapp-base": "^10.1.0",
     "@evelbulgroz/logger": "^1.2.0",
     "@evelbulgroz/quantity-class": "^1.0.1",
     "@evelbulgroz/query-fns": "^2.2.10",

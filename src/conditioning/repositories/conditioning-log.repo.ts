@@ -6,14 +6,13 @@ import { Entity, EntityId, EntityMetadataDTO, PersistenceAdapter, Result } from 
 import { Logger } from '@evelbulgroz/logger';
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
-import ComponentState from '../../app-health/models/component-state';
-import { ConditioningLog } from "../domain/conditioning-log.entity";
-import { ConditioningLogCreatedEvent } from "../events/conditioning-log-created.event";
-import { ConditioningLogDeletedEvent } from "../events/conditioning-log-deleted.event";
-import { ConditioningLogDTO } from "../dtos/conditioning-log.dto";
-import { ConditioningLogPersistenceDTO } from "../dtos/conditioning-log-persistence.dto";
-import { ConditioningLogUndeletedEvent } from "../events/conditioning-log-undeleted.event";
-import { ConditioningLogUpdatedEvent } from "../events/conditioning-log-updated.event";
+import ConditioningLog from "../domain/conditioning-log.entity";
+import ConditioningLogCreatedEvent from "../events/conditioning-log-created.event";
+import ConditioningLogDeletedEvent from "../events/conditioning-log-deleted.event";
+import ConditioningLogDTO from "../dtos/conditioning-log.dto";
+import ConditioningLogPersistenceDTO from "../dtos/conditioning-log-persistence.dto";
+import ConditioningLogUndeletedEvent from "../events/conditioning-log-undeleted.event";
+import ConditioningLogUpdatedEvent from "../events/conditioning-log-updated.event";
 import ManagedStatefulComponentMixin from "../../app-health/mixins/managed-stateful-component.mixin";
 
 /** Concrete implementation of an injectable ConditioningLogRepository that uses an adapter to interact with a persistence layer
@@ -56,10 +55,10 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		// Repository.initialize() does most of the work, so we just need to call it and unwrap its result here
 		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
 		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
-		const initResults = await realSuper.initialize.call(this);
-		if (initResults.isFailure) {
-			this.logger.error(`Failed to execute initialization`, initResults.error, this.constructor.name);
-			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${initResults.error}`);
+		const initResult = await realSuper.initialize.call(this);
+		if (initResult.isFailure) {
+			this.logger.error(`Failed to execute initialization`, initResult.error, this.constructor.name);
+			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${initResult.error}`);
 		}
 		
 		// If/when needed, add local initialization here
@@ -71,7 +70,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
     /** Execute repository shutdown (required by ManagedStatefulComponentMixin)
 	 * @returns Promise that resolves when shutdown is complete
 	 * @throws Error if shutdown fails
-	 * @remark Basically calls base class initialize method and unwraps the result
+	 * @remark Basically calls base class shutdown method and unwraps the result
      */
     protected async executeShutdown(): Promise<void> {
         this.logger.log(`Executing shutdown`, this.constructor.name);
@@ -79,10 +78,10 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		// Repository.shutdown() does most of the work, so we just need to call it and unwrap its result here
 		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
 		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
-		const initResults = await realSuper.shutdown()
-		if (initResults.isFailure) {
-			this.logger.error(`Failed to execute shutdown`, initResults.error, this.constructor.name);
-			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${initResults.error}`);
+		const shutdownResult = await realSuper.shutdown.call(this);
+		if (shutdownResult.isFailure) {
+			this.logger.error(`Failed to execute shutdown`, shutdownResult.error, this.constructor.name);
+			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${shutdownResult.error}`);
 		}
 		
 		// If/when needed, add local shutdown here
@@ -100,7 +99,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	 * @returns The log created event
 	 * @remark Overriding base class method to return domain specific event type
 	 */
-	protected createEntityCreatedEvent(log: ConditioningLog<T,U>): ConditioningLogCreatedEvent {
+	protected override createEntityCreatedEvent(log: ConditioningLog<T,U>): ConditioningLogCreatedEvent {
 		return new ConditioningLogCreatedEvent({
 			eventId: uuidv4(),
 			eventName: ConditioningLogCreatedEvent.name,
@@ -114,7 +113,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	 * @returns The log updated event
 	 * @remark Overriding base class method to return domain specific event type
 	 */
-	protected createEntityUpdatedEvent(log: ConditioningLog<T,U>): ConditioningLogUpdatedEvent {
+	protected override createEntityUpdatedEvent(log: ConditioningLog<T,U>): ConditioningLogUpdatedEvent {
 		return new ConditioningLogUpdatedEvent({
 			eventId: uuidv4(),
 			eventName: ConditioningLogUpdatedEvent.name,
@@ -128,7 +127,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	 * @returns The log deleted event
 	 * @remark Overriding base class method to return domain specific event type
 	 */
-	protected createEntityDeletedEvent(entityId?: EntityId): ConditioningLogDeletedEvent {
+	protected override createEntityDeletedEvent(entityId?: EntityId): ConditioningLogDeletedEvent {
 		return new ConditioningLogDeletedEvent({
 			eventId: uuidv4(),
 			eventName: ConditioningLogDeletedEvent.name,
@@ -143,7 +142,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	 * @returns The log undeleted event
 	 * @remark Overriding base class method to return domain specific event type
 	 */
-	protected createEntityUndeletedEvent(entityId: EntityId, undeletionDate: Date): ConditioningLogUndeletedEvent {
+	protected override createEntityUndeletedEvent(entityId: EntityId, undeletionDate: Date): ConditioningLogUndeletedEvent {
 			return new ConditioningLogUndeletedEvent({
 				eventId: uuidv4(),
 				eventName: ConditioningLogUndeletedEvent.name,

@@ -522,24 +522,7 @@ describe('ConditioningLogRepository', () => {
 		expect(repo).toBeDefined();
 	});
 
-	describe('Initialization', () => {
-		it('initializes cache with a collection of overview logs from persistence', async () => {			
-			const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
-			expect(fetchAllResult.isSuccess).toBeTruthy();
-			const logs$ = fetchAllResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
-			const logs = await firstValueFrom(logs$);
-			expect(logs).toHaveLength(testDTOs.length);
-			logs.forEach((log, index) => {
-				expect(log).toBeInstanceOf(ConditioningLog);
-				const dto = testDTOs.find(dto => dto.entityId === log.entityId);
-				expect(dto).toBeDefined();
-				expect(log.entityId).toBe(dto!.entityId);
-				expect(log.isOverview).toBe(true);
-			});
-		});
-	});
-
-	describe('Public API', () => {
+	describe('Data API', () => {
 		// NOTE: Repository methods are fully tested in the base class, so only testing fetchById here
 		// to sample that the base class methods are called correctly.
 
@@ -558,7 +541,45 @@ describe('ConditioningLogRepository', () => {
 				expect(log!.entityId).toBe(randomDTO.entityId);
 			});
 		});
-	});	
+	});
+
+	describe('Management API', () => {
+		// NOTE: no need to retest either Repository or ManagedStatefulComponentMixin methods, as they are already tested in the base class.
+		// Just do a few checks that things are hooked up correctly.
+		describe('initialize', () => {
+			it('initializes cache with a collection of overview logs from persistence', async () => {			
+				const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
+				expect(fetchAllResult.isSuccess).toBeTruthy();
+				const logs$ = fetchAllResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
+				const logs = await firstValueFrom(logs$);
+				expect(logs).toHaveLength(testDTOs.length);
+				logs.forEach((log, index) => {
+					expect(log).toBeInstanceOf(ConditioningLog);
+					const dto = testDTOs.find(dto => dto.entityId === log.entityId);
+					expect(dto).toBeDefined();
+					expect(log.entityId).toBe(dto!.entityId);
+					expect(log.isOverview).toBe(true);
+				});
+			});
+		});
+
+		describe('isReady', () => {
+			it('returns true if the repository is ready', async () => {
+				const result = await repo.isReady();
+				expect(result).toBeTruthy();
+			});
+		});
+
+		describe('shutdown', () => {
+			it('shuts down the repository', async () => {
+				const shutdownSpy = jest.spyOn(repo['adapter'], 'shutdown').mockResolvedValue(Promise.resolve(Result.ok()));
+				await repo.shutdown();
+				expect(repo['cache'].value.length).toBe(0);
+				expect(shutdownSpy).toHaveBeenCalledTimes(1);
+				shutdownSpy.mockRestore();
+			});
+		});
+	});
 
 	describe('Template Method Implementations', () => {
 		describe('getClassFromDTO', () => {
