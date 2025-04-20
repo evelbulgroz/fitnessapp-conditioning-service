@@ -643,7 +643,6 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 	}
 
 	//------------------------------------- MANAGEMENT API --------------------------------------//
-
 	
 	/** Observable stream of the component's state changes */
 	protected readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ name: this.constructor.name, state: ComponentState.UNINITIALIZED, reason: 'Service created', updatedOn: new Date() });
@@ -764,7 +763,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 		this.stateSubject.next({
 			name: this.constructor.name,
 			state: ComponentState.SHUTTING_DOWN,
-			reason: 'Service shutdown in progress',
+			reason: 'Component shutdown in progress',
 			updatedOn: new Date()
 		});
 
@@ -780,7 +779,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 				this.stateSubject.next({
 					name: this.constructor.name,
 					state: ComponentState.SHUT_DOWN,
-					reason: 'Service shut down successfully',
+					reason: 'Component shut down successfully',
 					updatedOn: new Date()
 				});
 				
@@ -791,7 +790,7 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 				this.stateSubject.next({
 					name: this.constructor.name,
 					state: ComponentState.FAILED,
-					reason: `Service shutdown failed: ${error instanceof Error ? error.message : String(error)}`,
+					reason: `Component shutdown failed: ${error instanceof Error ? error.message : String(error)}`,
 					updatedOn: new Date()
 				});
 				
@@ -805,8 +804,6 @@ export class ConditioningDataService implements OnModuleDestroy, ManagedStateful
 		return this.shutdownPromise;
 	}
 	protected shutdownPromise: Promise<void> | undefined = undefined; // promise to flag active shutdown	
-
-	
 
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
