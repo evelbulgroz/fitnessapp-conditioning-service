@@ -791,13 +791,13 @@ export class ConditioningDataService extends ManagedStatefulComponentMixin(class
 	 */
 	protected subscribeToRepoEvents(): void {
 		// subscribe to user repo events
-		this.subscriptions.push(this.userRepo.updates$.subscribe(async (event) => {
-			await this.eventDispatcher.dispatch(event as any); // todo: sort out typing later
+		this.subscriptions.push(this.userRepo.updates$.subscribe(async (event: any) => { // todo: sort out typing later
+			await this.eventDispatcher.dispatch(event);
 		}));
 
 		// subscribe to log repo events
-		this.subscriptions.push(this.logRepo.updates$?.subscribe(async (event) => {
-			await this.eventDispatcher.dispatch(event as any); // todo: sort out typing later
+		this.subscriptions.push(this.logRepo.updates$?.subscribe(async (event: any) => { // todo: sort out typing later
+			await this.eventDispatcher.dispatch(event);
 		}));
 	}	
 	

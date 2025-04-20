@@ -22,6 +22,7 @@ class PersistenceAdapterMock<T extends ConditioningLogPersistenceDTO<Conditionin
 	public fetchById = jest.fn();
 	public fetchAll = jest.fn();
 	public undelete = jest.fn();
+	public shutdown = jest.fn();
 }
 
 // process.env.NODE_ENV = 'not-test'; // set NODE_ENV to not 'test' to enable logging
