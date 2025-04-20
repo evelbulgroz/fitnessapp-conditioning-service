@@ -110,7 +110,7 @@ describe('UserRepo', () => {
 		expect(repo).toBeInstanceOf(UserRepository);
 	});
 
-	describe('Public API', () => {
+	describe('Data API', () => {
 		// NOTE: Repository methods are fully tested in the base class, so only the User specific methods are tested here,
 		// as well as a single test for fetchAll to sample that the base class methods are called correctly.
 
@@ -236,6 +236,51 @@ describe('UserRepo', () => {
 			});
 		});
 	});
+
+	describe('Management API', () => {
+			// NOTE: no need to retest either Repository or ManagedStatefulComponentMixin methods, as they are already tested in the base class.
+			// Just do a few checks that things are hooked up correctly.
+			describe('initialize', () => {
+				it('initializes cache with a collection of overview logs from persistence', async () => {			
+					const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
+					expect(fetchAllResult.isSuccess).toBeTruthy();
+					const logs$ = fetchAllResult.value as Observable<User[]>;
+					const logs = await firstValueFrom(logs$);
+					expect(logs).toHaveLength(testDTOs.length);
+					logs.forEach((log, index) => {
+						expect(log).toBeInstanceOf(User);
+						const dto = testDTOs.find(dto => dto.entityId === log.entityId);
+						expect(dto).toBeDefined();
+						expect(log.entityId).toBe(dto!.entityId);
+					});
+				});
+			});
+	
+			describe('isReady', () => {
+				it('returns true if the repository is ready', async () => {
+					const result = await repo.isReady();
+					expect(result).toBeTruthy();
+				});
+			});
+	
+			describe('shutdown', () => {
+				it('shuts down the repository', async () => {
+				  // Clear any existing mocks
+				  jest.clearAllMocks();
+				  
+				  // Setup the spy directly on the mock's method that already exists
+				  const shutdownSpy = jest.spyOn(adapter, 'shutdown')
+					.mockResolvedValue(Result.ok());
+				  
+				  // Perform the shutdown
+				  await repo.shutdown();
+				  
+				  // Assertions
+				  expect(repo['cache'].value.length).toBe(0);
+				  expect(shutdownSpy).toHaveBeenCalledTimes(1);
+				});
+			  });
+		});
 
 	describe('Template Method Implementations', () => {
 		describe('getClassFromDTO', () => {
