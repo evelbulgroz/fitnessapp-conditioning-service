@@ -126,7 +126,7 @@ export function CompositeStatefulComponentMixin<
 		public override async shutdown(): Promise<void> {
 			// Clean up all subscriptions
 			for (const subscription of this.componentSubscriptions.values()) {
-			subscription.unsubscribe();
+				subscription.unsubscribe();
 			}
 			this.componentSubscriptions.clear();
 			
@@ -135,11 +135,11 @@ export function CompositeStatefulComponentMixin<
 			
 			// Shut down all subcomponents in parallel
 			const shutdownPromises = this.subcomponents.map(async component => {
-			try {
-				await component.shutdown();
-			} catch (error) {
-				errors.push(error as Error);
-			}
+				try {
+					await component.shutdown();
+				} catch (error) {
+					errors.push(error instanceof Error ? error : new Error(String(error)));
+				}
 			});
 			
 			// Wait for all shutdown attempts to complete
@@ -150,10 +150,10 @@ export function CompositeStatefulComponentMixin<
 			
 			// If any subcomponents failed to shut down, throw an aggregate error
 			if (errors.length > 0) {
-			throw new AggregateError(
-				errors, 
-				`Failed to shut down ${errors.length} subcomponent(s)`
-			);
+				throw new AggregateError(
+					errors, 
+					`Failed to shut down ${errors.length} subcomponent(s)`
+				);
 			}
 		}
 		
@@ -182,6 +182,10 @@ export function CompositeStatefulComponentMixin<
 		}
 		
 		//---------------------------------- PROTECTED METHODS ----------------------------------//
+
+		// NOTE: Anonymous classes in TypeScript cannot have non-public members.
+		  // Instead, these members are marked `@internal` to clarify that they
+		  // are not intended as part of the public API.
 		
 		/** Register a subcomponent to be managed by this composite component
 		 * @param component The subcomponent to register
@@ -256,9 +260,9 @@ export function CompositeStatefulComponentMixin<
 			
 			// Determine the worst state
 			const worstState = this.calculateWorstState(states);
-			
+
 			// Update component's state to reflect the aggregated state
-			this.stateSubject.next({
+			(this as any).stateSubject.next({ // compiler workaround for inherited stateSubject
 				name: this.constructor.name,
 				state: worstState.state,
 				reason: this.createAggregatedReason(states, worstState),
