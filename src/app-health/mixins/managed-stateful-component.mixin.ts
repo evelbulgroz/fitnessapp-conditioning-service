@@ -8,7 +8,9 @@ import ManagedStatefulComponent from '../models/managed-stateful-component';
  * @param Parent The immediate parent class of the target class using this mixin, or `class {}` if the target class does not inherit from any other class.
  * @typeparam TParent The type of the parent class
  * @returns A class that implements ManagedStatefulComponent and extends the provided parent class (if any)
- * @remarks This mixin inserts a standard implementation of the ManagedStatefulComponent interface into the existing class hierarchy, which it otherwise leaves intact.
+ * @remark This mixin inserts a standard implementation of the ManagedStatefulComponent interface into the existing class hierarchy, which it otherwise leaves intact.
+ * @remark Anonymous classes in TypeScript cannot have non-public members. Instead, members not intended for the public API are marked as `@internal`.
+ * - It is up to clients to respect this convention, as it is not enforced by TypeScript.
  * 
  * @example Class that does not inherit and uses this mixin:
  * ```typescript
@@ -77,8 +79,8 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 	abstract class ManagedStatefulComponentClass extends Parent implements ManagedStatefulComponent {
 		// State management properties
 		
-		/** @internal */
-		public readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
+		
+		public /* @internal */  readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
 			name: this.constructor.name, 
 			state: ComponentState.UNINITIALIZED, 
 			reason: 'Component created', 
@@ -86,14 +88,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		});
 		
 		public readonly state$: Observable<ComponentStateInfo> = this.stateSubject.asObservable();
-		
-		// Promise tracking properties
-
-		/** @internal */
-		public initializationPromise: Promise<void> | undefined = undefined;
-		
-		/** @internal */
-		public shutdownPromise: Promise<void> | undefined = undefined;
 		
 		/** Gets the current state of the component
 		 * @returns The current state information
@@ -162,6 +156,8 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 			return this.initializationPromise;
 		}
+		public /* @internal */  initializationPromise: Promise<void> | undefined = undefined;
+		
 		
 		/** Checks if the component is ready to serve requests
 		 * @returns Promise that resolves to true if ready, false otherwise
@@ -252,6 +248,8 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 			return this.shutdownPromise;
 		}
+		public /* @internal */  shutdownPromise: Promise<void> | undefined = undefined;
+		
 	}
 	
 	return ManagedStatefulComponentClass;
