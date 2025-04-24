@@ -7,6 +7,7 @@ import { EntityId, LogEntry, LogLevel, PersistenceAdapter, Repository, Result } 
 import { Logger } from "@evelbulgroz/logger";
 import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
 
+import ManagedStatefulComponentMixin from "../../app-health/mixins/managed-stateful-component.mixin";
 import User from "../domain/user.entity";
 import UserCreatedEvent from "../events/user-created.event";
 import UserDTO from "../dtos/user.dto";
@@ -14,7 +15,6 @@ import UserUpdatedEvent from "../events/user-updated.event";
 import UserDeletedEvent from "../events/user-deleted.event";
 import UserUndeletedEvent from "../events/user-undeleted.event";
 import UserPersistenceDTO from "../dtos/user-persistence.dto";
-import ManagedStatefulComponentMixin from "../../app-health/mixins/managed-stateful-component.mixin";
 
 /** Concrete implementation of an injectable UserRepository that uses an adapter to interact with a persistence layer
  * @remark This class is a repository for User entities, and is intended to be injected into other classes, e.g. services.
@@ -80,7 +80,7 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	
 	/** @see ManagedStatefulComponentMixin for public management API methods */
 
-	/* Subscribe to log events and log them using the logger
+	/* Subscribe to log events and log them using the logger (helper for executeInitialization)
 	 * @returns void
 	 * @throws Error if subscription fails
 	 * @remark This method is called by the mixin during initialization, and should not be called directly

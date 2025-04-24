@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 
+import { Subscription } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
 import { EntityId, EntityMetadataDTO, LogEntry, LogLevel, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
@@ -14,7 +15,6 @@ import ConditioningLogPersistenceDTO from "../dtos/conditioning-log-persistence.
 import ConditioningLogUndeletedEvent from "../events/conditioning-log-undeleted.event";
 import ConditioningLogUpdatedEvent from "../events/conditioning-log-updated.event";
 import ManagedStatefulComponentMixin from "../../app-health/mixins/managed-stateful-component.mixin";
-import { Subscription } from "rxjs";
 
 /** Concrete implementation of an injectable ConditioningLogRepository that uses an adapter to interact with a persistence layer
  * @template T The type of the log, e.g. ConditioningLog
@@ -49,12 +49,12 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	
 	/** @see ManagedStatefulComponentMixin for public management API methods */
 
-	/* Subscribe to log events and log them using the logger
+	/* Subscribe to log events and log them using the logger (helper for executeInitialization)
 	 * @returns void
 	 * @throws Error if subscription fails
 	 * @remark This method is called by the mixin during initialization, and should not be called directly
 	 */
-	 	protected initializeLogging(): void {
+	protected initializeLogging(): void {
 		const logsSub = this.logs$.subscribe({
 			next: (log: LogEntry) => {
 				switch (log.level) {
