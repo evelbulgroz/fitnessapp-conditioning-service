@@ -3,7 +3,7 @@ import { TestingModule } from '@nestjs/testing';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom, Observable, take } from 'rxjs';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { Logger } from '@evelbulgroz/logger';
 import { EntityMetadataDTO, PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 import { DeviceType, ActivityType, SensorType } from '@evelbulgroz/fitnessapp-base';
 
