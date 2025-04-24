@@ -1,9 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
 
-import { Observable } from "rxjs";
+import { Observable, Subscription } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
-import { EntityId, 	PersistenceAdapter, Repository, Result } from "@evelbulgroz/ddd-base";
+import { EntityId, LogEntry, LogLevel, PersistenceAdapter, Repository, Result } from "@evelbulgroz/ddd-base";
 import { Logger } from "@evelbulgroz/logger";
 import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
 
@@ -22,6 +22,9 @@ import ManagedStatefulComponentMixin from "../../app-health/mixins/managed-state
  */
 @Injectable()
 export class UserRepository extends ManagedStatefulComponentMixin(Repository<User, UserDTO>) {
+	//---------------------------------------- PROPERTIES ---------------------------------------//
+	
+	protected readonly subscriptions: Subscription[] = []; // array of subscriptions to be cleaned up on shutdown			
 
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 	
@@ -30,7 +33,7 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 			protected readonly logger: Logger,
 			@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
 		) {
-			super(adapter, logger, throttleTime);
+			super(adapter, throttleTime);
 		}
 	
 	//---------------------------------------- DATA API ---------------------------------------//
@@ -77,26 +80,64 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	
 	/** @see ManagedStatefulComponentMixin for public management API methods */
 
+	/* Subscribe to log events and log them using the logger
+	 * @returns void
+	 * @throws Error if subscription fails
+	 * @remark This method is called by the mixin during initialization, and should not be called directly
+	 */
+	protected initializeLogging(): void {
+		const logsSub = this.logs$.subscribe({
+			next: (log: LogEntry) => {
+				switch (log.level) {
+					case LogLevel.LOG:
+						this.logger.log(log.message);
+						break;
+					case LogLevel.WARN:
+						this.logger.warn(log.message);
+						break;
+					case LogLevel.ERROR:
+						this.logger.error(log.message, log.data);
+						break;
+					case LogLevel.INFO:
+						this.logger.info(log.message);
+						break;
+					case LogLevel.DEBUG:
+						this.logger.debug(log.message);
+						break;
+					case LogLevel.VERBOSE:
+						this.logger.verbose(`${log.message}, ${log.data}`);
+						break;
+					default:
+						this.logger.log(log.message);
+						break;
+				}
+			}
+		});
+		this.subscriptions.push(logsSub); // base class should complete the oberservable on shutdown, but add it to the list just in case
+		this.log(LogLevel.LOG, `Subscribed to logs`);
+	}
+
 	/** Execute repository initialization (required by ManagedStatefulComponentMixin)
 	 * @returns Promise that resolves when initialization is complete
 	 * @throws Error if initialization fails
 	 * @remark Basically calls base class initialize method and unwraps the result
      */
     protected async executeInitialization(): Promise<void> {
-        this.logger.log(`Executing initialization`, this.constructor.name);
+		this.initializeLogging(); // initialize logging before anything else
+        this.log(LogLevel.LOG, `Executing initialization`);
 		
 		// Repository.initialize() does most of the work, so we just need to call it and unwrap its result here
 		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
 		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
 		const initResult = await realSuper.initialize.call(this);
 		if (initResult.isFailure) {
-			this.logger.error(`Failed to execute initialization`, initResult.error, this.constructor.name);
+			this.log(LogLevel.ERROR, `Failed to execute initialization`, undefined, initResult.error);
 			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${initResult.error}`);
 		}
 		
 		// If/when needed, add local initialization here
         
-		this.logger.log(`Initialization executed successfully`, this.constructor.name);
+		this.log(LogLevel.LOG, `Initialization executed successfully`);
         return Promise.resolve();
     }
     
@@ -106,20 +147,21 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	 * @remark Basically calls base class shutdown method and unwraps the result
      */
     protected async executeShutdown(): Promise<void> {
-        this.logger.log(`Executing shutdown`, this.constructor.name);
+        this.log(LogLevel.LOG, `Executing shutdown`);
 
 		// Repository.shutdown() does most of the work, so we just need to call it and unwrap its result here
 		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
 		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
 		const shutdownResult = await realSuper.shutdown.call(this);
 		if (shutdownResult.isFailure) {
-			this.logger.error(`Failed to execute shutdown`, shutdownResult.error, this.constructor.name);
+			this.log(LogLevel.ERROR, `Failed to execute shutdown`, undefined, shutdownResult.error);
 			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${shutdownResult.error}`);
 		}
 		
-		// If/when needed, add local shutdown here
-        
-		this.logger.log(`Shutdown executed successfully`, this.constructor.name);
+		// Clean up subscriptions
+		this.subscriptions.forEach((sub: Subscription) => sub?.unsubscribe());
+		
+		this.logger.log(`Shutdown executed successfully`); // log to the logger, repo log stream is closed at this point
         return Promise.resolve();
     }
 
