@@ -216,7 +216,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			// Create a new shutdown promise
 			this.shutdownPromise = new Promise<void>(async (resolve, reject) => {
 				try {
-					this.logger.log(`Shutting down...`, this.constructor.name);
+					this.logger.log(`Shutting down...`, this.constructor.name); // bug: this.logger is not defined in this context
 					
 					await this.executeShutdown();
 					
