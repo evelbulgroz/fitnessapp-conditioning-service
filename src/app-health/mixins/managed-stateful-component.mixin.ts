@@ -11,6 +11,7 @@ import ManagedStatefulComponent from '../models/managed-stateful-component';
  * @remark This mixin inserts a standard implementation of the ManagedStatefulComponent interface into the existing class hierarchy, which it otherwise leaves intact.
  * @remark Anonymous classes in TypeScript cannot have non-public members. Instead, members not intended for the public API are marked as `@internal`.
  * - It is up to clients to respect this convention, as it is not enforced by TypeScript.
+ * @todo Figure out how to support logging without introducing a Logger dependency, and without conflicting with e.g. Repository' logs$ Observable
  * 
  * @example Class that does not inherit and uses this mixin:
  * ```typescript
@@ -216,8 +217,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			// Create a new shutdown promise
 			this.shutdownPromise = new Promise<void>(async (resolve, reject) => {
 				try {
-					this.logger.log(`Shutting down...`, this.constructor.name); // bug: this.logger is not defined in this context
-					
 					await this.executeShutdown();
 					
 					// Update state to indicate successful shutdown
