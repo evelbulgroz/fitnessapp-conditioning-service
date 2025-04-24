@@ -187,7 +187,7 @@ describe('CompositeStatefulComponentMixin', () => {
 		});
 	});
 	
-	describe('getState()', () => {
+	describe('getState', () => {
 		it('should return basic state when no subcomponents are registered', () => {
 			// Arrange - default setup with no subcomponents
 			
@@ -230,7 +230,7 @@ describe('CompositeStatefulComponentMixin', () => {
 		});
 	});
 	
-	describe('initialize()', () => {
+	describe('initialize', () => {
 		it('should initialize the composite component first', async () => {
 			// Arrange
 			composite.testRegisterComponent(subComponent1);
@@ -289,7 +289,7 @@ describe('CompositeStatefulComponentMixin', () => {
 		});
 	});
 	
-	describe('shutdown()', () => {
+	describe('shutdown', () => {
 		it('should shut down all subcomponents before shutting down the composite', async () => {
 			// Arrange
 			composite.testRegisterComponent(subComponent1);
@@ -377,7 +377,7 @@ describe('CompositeStatefulComponentMixin', () => {
 		});
 	});
 	
-	describe('isReady()', () => {
+	describe('isReady', () => {
 		it('should return true if composite and all subcomponents are ready', async () => {
 			// Arrange
 			composite.testRegisterComponent(subComponent1);
