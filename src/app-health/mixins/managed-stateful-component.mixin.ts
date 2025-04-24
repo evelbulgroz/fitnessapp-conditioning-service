@@ -79,8 +79,7 @@ import ManagedStatefulComponent from '../models/managed-stateful-component';
 export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(Parent: TParent) {
 	abstract class ManagedStatefulComponentClass extends Parent implements ManagedStatefulComponent {
 		// State management properties
-		
-		
+				
 		public /* @internal */  readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
 			name: this.constructor.name, 
 			state: ComponentState.UNINITIALIZED, 
