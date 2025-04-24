@@ -90,25 +90,25 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 			next: (log: LogEntry) => {
 				switch (log.level) {
 					case LogLevel.LOG:
-						this.logger.log(log.message);
+						this.logger.log(log.message, log.context);
 						break;
 					case LogLevel.WARN:
-						this.logger.warn(log.message);
+						this.logger.warn(log.message, log.context);
 						break;
 					case LogLevel.ERROR:
-						this.logger.error(log.message, log.data);
+						this.logger.error(log.message, log.data, log.context);
 						break;
 					case LogLevel.INFO:
-						this.logger.info(log.message);
+						this.logger.info(log.message, log.context);
 						break;
 					case LogLevel.DEBUG:
-						this.logger.debug(log.message);
+						this.logger.debug(log.message, log.context);
 						break;
 					case LogLevel.VERBOSE:
-						this.logger.verbose(`${log.message}, ${log.data}`);
+						this.logger.verbose(`${log.message}, ${log.data}`, log.context);
 						break;
 					default:
-						this.logger.log(log.message);
+						this.logger.log(log.message, log.context);
 						break;
 				}
 			}
