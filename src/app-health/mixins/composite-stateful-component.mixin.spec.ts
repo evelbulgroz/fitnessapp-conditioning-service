@@ -1,4 +1,4 @@
-import { filter, firstValueFrom, take } from 'rxjs';
+import { filter, firstValueFrom, take, tap } from 'rxjs';
 
 import ManagedStatefulComponentMixin from './managed-stateful-component.mixin';
 import CompositeStatefulComponentMixin from './composite-stateful-component.mixin';
@@ -294,44 +294,40 @@ describe('CompositeStatefulComponentMixin', () => {
 			// Arrange
 			composite.testRegisterComponent(subComponent1);
 			
-			// Create a promise that will resolve when both components reach OK state
-			const compositeStatePromise = firstValueFrom(
-				composite.state$.pipe(
-				filter(state => state.state === ComponentState.OK),
+			// Create a promise that resolves when composite state reaches OK
+			const compositeStateOk = firstValueFrom(
+			  composite.state$.pipe(
+				filter(state => 
+				  state.state === ComponentState.OK && 
+				  (!state.components || state.components.every(c => c.state === ComponentState.OK))
+				),
+				tap(state => console.debug('Composite state inside compositeStateOk:', state.state)),
 				take(1)
-				)
+			  )
 			);
-			
-			const subComponentStatePromise = firstValueFrom(
-				subComponent1.state$.pipe(
-				filter(state => state.state === ComponentState.OK),
-				take(1)
-				)
-			);
-			
+
 			// Initialize both components
 			await composite.initialize();
 			await subComponent1.initialize();
+
+			// Wait for the composite state to reach OK with all subcomponents OK
+			await compositeStateOk;
 			
-			// Wait for both components to reach OK state
-			await Promise.all([compositeStatePromise, subComponentStatePromise]);
+			// Log state for debugging
+			console.debug('After waiting for OK state:', {
+			  'composite.getState().state': composite.getState().state, // INITIALIZING
+			  'subComponent1.getState().state': subComponent1.getState().state // OK
+			});
 			
-			// Verify both components are now in OK state
+			// Verify the components are in the expected state
 			expect(composite.getState().state).toBe(ComponentState.OK);
 			expect(subComponent1.getState().state).toBe(ComponentState.OK);
 			
-			// Explicitly mock isReady for both components to ensure consistent behavior
-			jest.spyOn(composite, 'isComponentReady').mockImplementation(async () => true);
-			jest.spyOn(subComponent1, 'isReady').mockImplementation(async () => true);
-			
-			// Act
+			// Act - Test isReady
 			const isReady = await composite.isReady();
 			
 			// Assert
 			expect(isReady).toBe(true);
-			
-			// Cleanup
-			jest.restoreAllMocks();
 		});
 		
 		it('should return false if composite is not ready', async () => {

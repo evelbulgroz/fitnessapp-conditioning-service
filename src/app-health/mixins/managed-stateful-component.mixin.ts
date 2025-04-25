@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, filter, firstValueFrom, Observable, take, tap } from 'rxjs';
 
 import ComponentState from '../models/component-state';
 import ComponentStateInfo from '../models/component-state-info';
@@ -79,7 +79,7 @@ import ManagedStatefulComponent from '../models/managed-stateful-component';
 export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(Parent: TParent) {
 	abstract class ManagedStatefulComponentClass extends Parent implements ManagedStatefulComponent {
 		// State management properties
-				
+
 		public /* @internal */  readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
 			name: this.constructor.name, 
 			state: ComponentState.UNINITIALIZED, 
@@ -89,14 +89,39 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		
 		public readonly state$: Observable<ComponentStateInfo> = this.stateSubject.asObservable();
 		
-		/** Gets the current state of the component
+		/** Get the current state of the component
 		 * @returns The current state information
 		 */
 		public getState(): ComponentStateInfo {
 			return { ...this.stateSubject.value };
 		}
+
+		/** Get the current state of the component asynchronously
+		 * @returns A promise that resolves to the current state information
+		 * @throws Error if the state cannot be retrieved
+		 */
+		/*public async getStateAsync(): Promise<ComponentStateInfo> {
+			const latestState = await firstValueFrom(this.state$.pipe(take(1)));
+			return { ...latestState };
+		}
+		*/
+
+		public getStateAsync(): Promise<ComponentStateInfo> {
+			return new Promise((resolve, reject) => {
+				this.state$.subscribe({
+					next: (state) => {
+						resolve(state);
+					},
+					error: (err) => {
+						reject(err);
+					}
+				});
+			});
+		}
 		
-		/** Initializes the component if it is not already initialized
+		
+		
+		/** Initialize the component if it is not already initialized
 		 * @returns Promise that resolves when the component is initialized
 		 * @throws Error if initialization fails
 		 * @remark Expects the implementing class to provide a `executeInitialization(): Promise<void>` method containing the component-specific initialization logic
@@ -127,6 +152,15 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			this.initializationPromise = new Promise<void>(async (resolve, reject) => {
 				try {
 					await this.executeInitialization();
+
+					// Create a promise that resolves when the state$ emits ComponentState.OK
+					// This is to ensure that the state is updated before resolving the promise
+					const stateUpdatePromise = firstValueFrom(
+						this.state$.pipe(
+						filter(state => state.state === ComponentState.OK),
+						take(1)
+						)
+					);
 					
 					// Update state to indicate successful initialization
 					this.stateSubject.next({
@@ -135,6 +169,11 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 						reason: 'Component initialized successfully',
 						updatedOn: new Date()
 					});
+
+					// Wait for the state update to propagate through the observable chain
+    				await stateUpdatePromise;
+
+					console.debug(`Component initialized successfully: ${this.stateSubject.getValue().state}`, this.constructor.name); // correctly logs OK state
 					
 					resolve();
 				} 
@@ -146,7 +185,20 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 						reason: `Component initialization failed: ${error instanceof Error ? error.message : String(error)}`,
 						updatedOn: new Date()
 					});
-				
+
+					// Create a promise that resolves when the state$ emits ComponentState.FAILED
+					// This is to ensure that the state is updated before rejecting the promise
+					const stateUpdatePromise = firstValueFrom(
+						this.state$.pipe(
+						filter(state => state.state === ComponentState.FAILED),
+						take(1)
+						)
+					);
+
+					// Wait for the state update to propagate through the observable chain
+					await stateUpdatePromise;
+
+					// Reject the promise with the error				
 					reject(error);
 				}
 				finally {

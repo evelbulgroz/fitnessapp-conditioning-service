@@ -1,4 +1,4 @@
-import { Observable, Subscription } from 'rxjs';
+import { filter, firstValueFrom, Observable, Subscription, take, timeout, TimeoutError } from 'rxjs';
 
 import ComponentState from '../models/component-state';
 import ComponentStateInfo from '../models/component-state-info';
@@ -90,7 +90,7 @@ export function CompositeStatefulComponentMixin<
 			
 			return baseState;
 		}
-		
+
 		/** Initialize this component and all its subcomponents
 		 * @returns Promise that resolves when all components are initialized
 		 * @throws Error if initialization of any component fails
@@ -108,6 +108,25 @@ export function CompositeStatefulComponentMixin<
 				
 				// Update the aggregated state one final time
 				this.updateAggregatedState();
+
+				// Wait for state to be fully updated - this is critical
+				/*await firstValueFrom( // makes no difference in this case
+					this.state$.pipe(
+						filter(state => 
+							state.components !== undefined && 
+							state.components.every(c => c.state === ComponentState.OK)
+						),
+						take(1),
+						timeout(5000) // Add timeout to prevent hanging
+					)
+				).catch(err => {
+					if (err instanceof TimeoutError) {
+						console.warn("Timed out waiting for state propagation");
+					} else {
+						throw err;
+					}
+				});
+				*/
 			}
 			catch (error) {
 				// Update state to reflect failure - important to capture the failure state
