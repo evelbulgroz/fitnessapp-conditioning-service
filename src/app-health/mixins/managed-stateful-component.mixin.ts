@@ -8,6 +8,7 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
 /** A mixin that provides a standard implementation of the ManagedStatefulComponent interface.
  * @param Parent The immediate parent class of the target class using this mixin, or `class {}` if the target class does not inherit from any other class.
  * @typeparam TParent The type of the parent class
+ * @param unshadowPrefix The prefix to use for internal members to avoid shadowing parent members of the same name. Default is "msc_".
  * @returns A class that implements ManagedStatefulComponent and extends the provided parent class (if any)
  * @remark This mixin inserts a standard implementation of the ManagedStatefulComponent interface into the existing class hierarchy, which it otherwise leaves intact.
  * @remark Anonymous classes in TypeScript cannot have non-public members. Instead, members not intended for the public API are marked as `@internal`.
@@ -76,11 +77,17 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * interface MyClass extends ReturnType<typeof ManagedStatefulComponentMixin> {}
  * ```
  */
-export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(Parent: TParent) {
+export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(
+	Parent: TParent,
+	unshadowPrefix: string = `msc_${Math.random().toString(36).substring(2, 6)}_` // Default prefix: "managed stateful component" + random string
+) {
 	abstract class ManagedStatefulComponentClass extends Parent implements ManagedStatefulComponent {
 		
 		//------------------------------------- PROPERTIES --------------------------------------//
 		
+		// Prefix internal member names to avoid shadowing parent members of the same name
+		public /* @internal */  readonly unshadowPrefix: string;
+
 		// State management properties
 
 		// BehaviorSubject to track the aggregated state of the component and its subcomponents
@@ -117,6 +124,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			subcomponentStrategy: 'parallel'
 		};
 
+		//------------------------------------ CONSTRUCTOR --------------------------------------//
+
+		public constructor(...args: any[]) {
+			super(...args); // Call parent constructor, passing any arguments
+			this.unshadowPrefix = unshadowPrefix; // Set the unshadow prefix for internal members
+		}		
+
 		//------------------------------------- PUBLIC API --------------------------------------//
 		
 		// Standard getState implementation that supports components with subcomponents
@@ -125,7 +139,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @returns The current state of the component and its subcomponents (if any)
 		 * @remark Returns aggregated state if subcomponents are present, otherwise returns the components own state
 		 */
-		public /* @internal */ getState(): ComponentStateInfo {
+		public getState(): ComponentStateInfo {
 			// If no subcomponents, just return the current state
 			if (this.subcomponents.length === 0) {
 				return { ...this.stateSubject.value };
@@ -138,13 +152,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			];
 			
 			// Calculate worst state
-			const worstState = this.calculateWorstState(states);
+			const worstState = this[`${unshadowPrefix}calculateWorstState`](states);
 			
 			// Return the aggregated state without updating the subject
 			return {
 				name: this.constructor.name,
 				state: worstState.state,
-				reason: this.createAggregatedReason(states, worstState),
+				reason: this[`${unshadowPrefix}createAggregatedReason`](states, worstState),
 				updatedOn: new Date(),
 				components: this.subcomponents.map(c => c.getState())
 			};
@@ -167,14 +181,16 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		}
 	
 		/** Initialize the component and all of its subcomponents (if any) if it is not already initialized
+		 * @param args Optional arguments to pass to parent initialize methods 
 		 * @returns Promise that resolves when the component and all of its subcomponents are initialized
 		 * @throws Error if initialization fails
+		 * @remark Executes any inherited initialize() method before executing subclass initialize() logic
 		 * @remark Subclasses may optionally override `executeInitialization()` to provide component-specific initialization logic
 		 * @remark Transitions state to `INITIALIZING` during the process and to `OK` when complete
 		 * @remark Handles concurrent calls by returning the same promise for all callers during initialization
 		 * @remark If the component is already initialized, resolves immediately
 		 */
-		public async initialize(): Promise<void> {
+		public async initialize(...args: any[]): Promise<void> {
 			// If already initialized, resolve immediately
 			if (this.stateSubject.value.state !== ComponentState.UNINITIALIZED) {
 				return Promise.resolve();
@@ -195,14 +211,17 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 						reason: 'Component initialization in progress',
 						updatedOn: new Date()
 					});
-					await this.updateState(this.ownState); // returns when state change is observed
+					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
+
+					// Call parent initialize method if found (preserving inheritance)
+					await this[`${unshadowPrefix}callParentMethod`](this.initialize, ...args);
 
 					// Initialize main component and any subcomponents in the order specified in options
 					if (this.options.initializationStrategy === 'parent-first') {
 						await this.initializeComponent();
-						await this.initializeSubcomponents();
+						await this[`${unshadowPrefix}initializeSubcomponents`]();
 					} else { // 'children-first'
-						await this.initializeSubcomponents();
+						await this[`${unshadowPrefix}initializeSubcomponents`]();
 						await this.initializeComponent();
 					}
 					
@@ -213,18 +232,19 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 						reason: 'Component initialized successfully',
 						updatedOn: new Date()
 					});
-					await this.updateState(this.ownState); // returns when state change is observed
+					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
 
 					resolve();
 				} 
 				catch (error) {
-					await this.updateState({
+					this.ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.FAILED,
 						reason: `Component initialization failed: ${error instanceof Error ? error.message : String(error)}`,
 						updatedOn: new Date()
 					});
-					
+					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
+										
 					reject(error);
 				}
 				finally {
@@ -238,6 +258,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		/** Check if the component, including any subcomponents, is ready to serve requests
 		 * @returns Promise that resolves to true if ready, false otherwise
 		 * @throws Error if the component or any of its subcomponents is not ready
+		 * @remark Ignores any inherited isReady() method, as isReady() is considered purely informational
 		 * @remark May trigger initialization if the component supports lazy initialization
 		 * @remark A component is typically ready when it and all of its subcomponents are in the `OK` or `DEGRADED` state
 		 */
@@ -278,14 +299,16 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		}
 		
 		/** Shutdown the component and all of its subcomponents (if any) if it is not already shut down
+		 * @param args Optional arguments to pass to parent shutdown methods
 		 * @returns Promise that resolves when the component and all of its subcomponents are shut down
 		 * @throws Error if shutdown fails
+		 * @remark Executes any inherited shutdown() method before executing subclass shutdown() logic
 		 * @remark Subclasses may optionally override `executeShutdown()` to provide component-specific shutdown logic
 		 * @remark Transitions state to `SHUTTING_DOWN` during the process and to `SHUT_DOWN` when complete
 		 * @remark Handles concurrent calls by returning the same promise for all callers during shutdown
 		 * @remark If the component is already shut down, resolves immediately
 		 */
-		public async shutdown(): Promise<void> {
+		public async shutdown(...args: any[]): Promise<void> {
 			// If already shut down, resolve immediately
 			if (this.stateSubject.value.state === ComponentState.SHUT_DOWN) {
 				return Promise.resolve();
@@ -305,14 +328,17 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 						reason: 'Component shutdown in progress',
 						updatedOn: new Date()
 					});
-					await this.updateState(this.ownState); // returns when state change is observed
+					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
+
+					// Call parent shutdown method if found (preserving inheritance)
+					await this[`${unshadowPrefix}callParentMethod`](this.shutdown, ...args);
 
 					// Shut down main component and any subcomponents in the order specified in options
 					if (this.options.shutDownStrategy === 'parent-first') {
 						await this.shutdownComponent();
-						await this.shutdownSubcomponents();
+						await this[`${unshadowPrefix}shutdownSubcomponents`];
 					} else { // 'children-first'
-						await this.shutdownSubcomponents();
+						await this[`${unshadowPrefix}shutdownSubcomponents`];
 						await this.shutdownComponent();
 					}
 
@@ -323,18 +349,19 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 						reason: 'Component shut down successfully',
 						updatedOn: new Date()
 					});
-					await this.updateState(this.ownState); // returns when state change is observed
+					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
 					
 					resolve();
 				} 
 				catch (error) {
 					// Update state to indicate shutdown failure
-					await this.updateState({
+					this.ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.FAILED,
 						reason: `Component shutdown failed: ${error instanceof Error ? error.message : String(error)}`,
 						updatedOn: new Date()
 					});
+					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
 					
 					reject(error);
 				}
@@ -374,6 +401,38 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		
 		// NOTE: TS does not support protected members in abstract classes, so we use public with @internal tag
 		
+		/* Call parent method shadowed by this mixin
+		 * @param method The method to call in the parent class hierarchy
+		 * @returns The result of the parent method call, or undefined if not found
+		 * @throws Error if the method is not found in the parent class hierarchy
+		 */
+		public /* @internal */ async [`${unshadowPrefix}callParentMethod`](method: Function, ...args: any[]): Promise<any> {
+			// Extract the method name from the function
+			const methodName = method.name;
+			if (!methodName) {
+				throw new Error('Method name could not be determined from function reference');
+			}
+
+			// Store reference to our own implementation
+			const mixinMethod = (ManagedStatefulComponentClass.prototype as any)[methodName];
+			if (!mixinMethod) {
+				throw new Error(`Method ${methodName} not found in mixin`);
+			}
+
+			// Try to find parent class implementation (if any)
+			let parentMethod = this[`${unshadowPrefix}findParentMethodOf`](method);
+			if (parentMethod) {
+				// If the parent method is the same as the mixin method, return undefined
+				if (parentMethod === mixinMethod) {
+					return undefined;
+				}
+				// Else, call the parent method and return the result
+				return await parentMethod.call(this, ...args);
+			}
+			
+			return undefined; // No parent method found, return undefined
+		}
+		
 		/* Calculate the worst state from a collection of states
 		 * @param states Collection of component states
 		 * @returns The worst state from known states
@@ -382,7 +441,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @throws Error if states array is empty
 		 * @remark Logs a warning if unknown states are encountered
 		 */
-		public /* @internal */ calculateWorstState(states: ComponentStateInfo[]): ComponentStateInfo {
+		public /* @internal */ [`${unshadowPrefix}calculateWorstState`](states: ComponentStateInfo[]): ComponentStateInfo {
 			if (states.length === 0) {
 			throw new Error('Cannot calculate worst state from an empty array');
 			}
@@ -471,7 +530,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @param worstState The worst state from the collection
 		 * @returns A human-readable reason string
 		 */
-		public /* @internal */ createAggregatedReason(states: ComponentStateInfo[], worstState: ComponentStateInfo): string {
+		public /* @internal */ [`${unshadowPrefix}createAggregatedReason`](states: ComponentStateInfo[], worstState: ComponentStateInfo): string {
 			// Count components in each state
 			const stateCounts: Record<string, number> = {};			
 			states.forEach(state => {
@@ -499,13 +558,47 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return `Aggregated state [${stateSummary}]. Worst: ${worstReason}`;
 		}
 
+		/** Find a method in the parent class hierarchy that may be shadowed by this mixin
+		 * @param method The method to find in the parent class hierarchy
+		 * @returns The parent method if found, undefined otherwise
+		 * @internal
+		 */
+		public /* @internal */ [`${unshadowPrefix}findParentMethodOf`](method: Function): Function | undefined {
+			// Extract the method name from the function
+			const methodName = method.name;
+			
+			if (!methodName) {
+				throw new Error('Method name could not be determined from function reference');
+			}
+			
+			// Store reference to our own implementation
+			const mixinMethod = (ManagedStatefulComponentClass.prototype as any)[methodName];
+			
+			if (!mixinMethod) {
+				throw new Error(`Method ${methodName} not found in mixin`);
+			}
+			
+			// Try to find parent class implementation (if any)
+			let proto = Object.getPrototypeOf(Object.getPrototypeOf(this));
+			
+			// Look for a method in the parent chain that isn't our own
+			while (proto) {
+				if (proto[methodName] && proto[methodName] !== mixinMethod) {
+					return proto[methodName];
+				}
+				proto = Object.getPrototypeOf(proto);
+			}
+			
+			return undefined;
+		}
+
 		/* Initialize subcomponents
 		 * @returns Promise that resolves when all subcomponents are initialized
 		 * @throws Error if initialization fails
 		 * @remark defaults to parallel initialization
 		 * @remark Sequential initialization is slower but guarantees that subcomponents are initialized in the order they were registered
 		 */
-		public /* @internal */ async initializeSubcomponents(): Promise<void> {
+		public /* @internal */ async [`${unshadowPrefix}initializeSubcomponents`](): Promise<void> {
 			if (this.subcomponents.length === 0) return;
 			
 			if (this.options.subcomponentStrategy === 'parallel') { // fastest				
@@ -526,7 +619,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
 		 * @remark The component must be an instance of ManagedStatefulComponent.
 		 */
-		public /* @internal */ registerSubcomponent(component: ManagedStatefulComponent): void {
+		public /* @internal */ [`${unshadowPrefix}registerSubcomponent`](component: ManagedStatefulComponent): void {
 			if (!component) {
 				throw new Error('Component cannot be null or undefined');
 			}
@@ -557,7 +650,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark defaults to parallel shutdown
 		 * @remark Sequential shutdown is slower but guarantees that subcomponents are shut down in the reverse order they were registered
 		 */
-		public /* @internal */ async shutdownSubcomponents(): Promise<void> {
+		public /* @internal */ async [`${unshadowPrefix}shutdownSubcomponents`](): Promise<void> {
 			if (this.subcomponents.length === 0) return;
 			
 			if (this.options.subcomponentStrategy === 'parallel') { // fastest
@@ -586,13 +679,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			];
 			
 			// Calculate worst state
-			const worstState = this.calculateWorstState(states);
+			const worstState = this[`${unshadowPrefix}calculateWorstState`](states);
 			
 			// Update the state
 			this.stateSubject.next({
 				name: this.constructor.name,
 				state: worstState.state,
-				reason: this.createAggregatedReason(states, worstState),
+				reason: this[`${unshadowPrefix}createAggregatedReason`](states, worstState),
 				updatedOn: new Date(),
 				components: this.subcomponents.map(c => c.getState())
 			});
@@ -603,7 +696,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @returns Promise that resolves when the state update has fully propagated
 		 * @remark Waits for state change to propagate before resolving (i.e. "Wait for Your Own Events" pattern to ensure consistency)
 		 */
-		public /* @internal */ async updateState(newState: Partial<ComponentStateInfo>): Promise<void> {
+		public /* @internal */ async [`${unshadowPrefix}updateState`](newState: Partial<ComponentStateInfo>): Promise<void> {
 			// Create updated state object
 			let updatedState: ComponentStateInfo = {
 				...this.stateSubject.value, // merge current aggregated state with...
@@ -622,16 +715,15 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				// Calculate the aggregated state with updated properties
 				const states = [
 					baseState,
-					...this.subcomponents.map(c => c.getState())
-				];
-				
-				const worstState = this.calculateWorstState(states);
+					...this.subcomponents.map((c: ManagedStatefulComponent) => c.getState())
+				];				
+				const worstState = this[`${unshadowPrefix}calculateWorstState`](states);
 				
 				// Create the final aggregated state
 				updatedState = {
 					...baseState,
 					state: worstState.state,
-					reason: this.createAggregatedReason(states, worstState),
+					reason: this[`${unshadowPrefix}createAggregatedReason`](states, worstState),
 					updatedOn: new Date(),
 					components: this.subcomponents.map(c => c.getState())
 				};
@@ -666,7 +758,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
 		 * @remark The component must be an instance of ManagedStatefulComponent.
 		 */
-		public /* @internal */ unregisterSubcomponent(component: ManagedStatefulComponent): boolean {
+		public /* @internal */ [`${unshadowPrefix}unregisterSubcomponent`](component: ManagedStatefulComponent): boolean {
 			const index = this.subcomponents.indexOf(component);
 			if (index === -1) {
 				return false;

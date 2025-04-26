@@ -49,9 +49,10 @@ class TestComponent extends ManagedStatefulComponentMixin(class {}) {
 
 describe('ManagedStatefulComponentMixin', () => {
 	let component: TestComponent;
-
+	let unshadowPrefix: string;
 	beforeEach(() => {
 		component = new TestComponent();
+		unshadowPrefix = component['unshadowPrefix'];
 		jest.clearAllMocks();
 	});
 
@@ -78,7 +79,7 @@ describe('ManagedStatefulComponentMixin', () => {
 
 			it(`returns aggregated state if subcomponents are registered`, async () => {
 				const subcomponent1 = new TestComponent();
-				component.registerSubcomponent(subcomponent1);
+				component[`${unshadowPrefix}registerSubcomponent`](subcomponent1);
 				subcomponent1.stateSubject.next({
 					name: 'Subcomponent1',
 					state: ComponentState.OK,
@@ -87,7 +88,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				});
 
 				const subComponent2 = new TestComponent();
-				component.registerSubcomponent(subComponent2);
+				component[`${unshadowPrefix}registerSubcomponent`](subComponent2);
 				subComponent2.stateSubject.next({
 					name: 'Subcomponent2',
 					state: ComponentState.DEGRADED,
@@ -95,7 +96,7 @@ describe('ManagedStatefulComponentMixin', () => {
 					updatedOn: new Date()
 				});
 				
-				await component.initialize();				
+				await component.initialize();
 				expect(component['ownState'].state).toBe(ComponentState.OK);
 				const aggregatedState = component.getState();
 				expect(aggregatedState.state).toBe(ComponentState.DEGRADED);
@@ -331,7 +332,7 @@ describe('ManagedStatefulComponentMixin', () => {
 					{state: ComponentState.FAILED, name: 'Component3', updatedOn: new Date()},
 					{state: ComponentState.UNINITIALIZED, name: 'Component4', updatedOn: new Date()}
 				];
-				const worstState = component.calculateWorstState(states);
+				const worstState = component[`${unshadowPrefix}calculateWorstState`](states);
 				expect(worstState.state).toBe(ComponentState.FAILED);
 			});
 
@@ -341,7 +342,7 @@ describe('ManagedStatefulComponentMixin', () => {
 					{state: ComponentState.OK, name: 'Component2', updatedOn: new Date()},
 					{state: ComponentState.OK, name: 'Component3', updatedOn: new Date()}
 				];
-				const worstState = component.calculateWorstState(states);
+				const worstState = component[`${unshadowPrefix}calculateWorstState`](states);
 				expect(worstState.state).toBe(ComponentState.OK);
 			});
 
@@ -349,7 +350,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				const states: ComponentStateInfo[] = [
 					{state: ComponentState.OK, name: 'Component1', updatedOn: new Date()}
 				];
-				const worstState = component.calculateWorstState(states);
+				const worstState = component[`${unshadowPrefix}calculateWorstState`](states);
 				expect(worstState.state).toBe(ComponentState.OK);
 			});		
 			
@@ -360,7 +361,7 @@ describe('ManagedStatefulComponentMixin', () => {
 					{state: 'UNKNOWN' as any, name: 'Component2', updatedOn: new Date()}
 				];
 				
-				const worstState = component.calculateWorstState(states);
+				const worstState = component[`${unshadowPrefix}calculateWorstState`](states);
 				
 				expect(warnSpy).toHaveBeenCalledWith('Failed to determine component state, falling back to DEGRADED state', 'TestComponent.calculateWorstState()');
 				expect(worstState.state).toBe(ComponentState.DEGRADED);				
@@ -372,13 +373,13 @@ describe('ManagedStatefulComponentMixin', () => {
 					{state: ComponentState.OK, name: 'Component1', updatedOn: new Date()},
 					{state: 'UNKNOWN' as any, name: 'Component2', updatedOn: new Date()}
 				];
-				const worstState = component.calculateWorstState(states);
+				const worstState = component[`${unshadowPrefix}calculateWorstState`](states);
 				expect(warnSpy).toHaveBeenCalledWith('Unknown states were encountered during state calculation, returning worst state, or DEGRADED if worse', 'TestComponent.calculateWorstState()');
 				expect(worstState.state).toBe(ComponentState.DEGRADED);
 			});
 
 			it('throws an error if no states are provided', () => {
-				expect(() => component.calculateWorstState([])).toThrow('Cannot calculate worst state from an empty array');
+				expect(() => component[`${unshadowPrefix}calculateWorstState`]([])).toThrow('Cannot calculate worst state from an empty array');
 			});
 		});
 
@@ -409,7 +410,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				const worstState = states[2]; // FAILED component
 				
 				// Act
-				const reason = component.createAggregatedReason(states, worstState);
+				const reason = component[`${unshadowPrefix}createAggregatedReason`](states, worstState);
 				
 				// Assert
 				expect(reason).toContain('Aggregated state [');
@@ -445,7 +446,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				const worstState = states[0]; // OK component
 				
 				// Act
-				const reason = component.createAggregatedReason(states, worstState);
+				const reason = component[`${unshadowPrefix}createAggregatedReason`](states, worstState);
 				
 				// Assert
 				expect(reason).toContain('Aggregated state [OK: 3/3]');
@@ -466,7 +467,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				const worstState = states[0]; // INITIALIZING component
 				
 				// Act
-				const reason = component.createAggregatedReason(states, worstState);
+				const reason = component[`${unshadowPrefix}createAggregatedReason`](states, worstState);
 				
 				// Assert
 				expect(reason).toContain('Aggregated state [INITIALIZING: 1/1]');
@@ -493,7 +494,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				const worstState = states[0]; // OK component (assuming calculateWorstState filtered unknown)
 				
 				// Act
-				const reason = component.createAggregatedReason(states, worstState);
+				const reason = component[`${unshadowPrefix}createAggregatedReason`](states, worstState);
 				
 				// Assert
 				expect(reason).toContain('Aggregated state [');
@@ -521,7 +522,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				const worstState = states[1]; // DEGRADED component
 				
 				// Act
-				const reason = component.createAggregatedReason(states, worstState);
+				const reason = component[`${unshadowPrefix}createAggregatedReason`](states, worstState);
 				
 				// Assert
 				expect(reason).toContain('Aggregated state [');
@@ -549,7 +550,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				const worstState = states[1]; // FAILED component with missing reason
 				
 				// Act
-				const reason = component.createAggregatedReason(states, worstState);
+				const reason = component[`${unshadowPrefix}createAggregatedReason`](states, worstState);
 				
 				// Assert
 				expect(reason).toContain('Aggregated state [');
@@ -598,23 +599,23 @@ describe('ManagedStatefulComponentMixin', () => {
 		describe('registerSubcomponent', () => {
 			it('adds a subcomponent to the list', () => {
 				const subcomponent = new TestComponent();
-				component.registerSubcomponent(subcomponent);
+				component[`${unshadowPrefix}registerSubcomponent`](subcomponent);
 				expect(component.subcomponents).toContain(subcomponent);
 			});
 
 			it('does not allow null or undefined subcomponents', () => {
-				expect(() => component.registerSubcomponent(null as any)).toThrow(); // Null
-				expect(() => component.registerSubcomponent(undefined as any)).toThrow(); // Undefined
+				expect(() => component[`${unshadowPrefix}registerSubcomponent`](null as any)).toThrow(); // Null
+				expect(() => component[`${unshadowPrefix}registerSubcomponent`](undefined as any)).toThrow(); // Undefined
 			});
 
 			it('does not allow non-component subcomponents', () => {
-				expect(() => component.registerSubcomponent({} as any)).toThrow(); // Non-component
+				expect(() => component[`${unshadowPrefix}registerSubcomponent`]({} as any)).toThrow(); // Non-component
 			});
 
 			it('does not allow duplicate subcomponents', () => {
 				const subcomponent = new TestComponent();
-				component.registerSubcomponent(subcomponent);
-				expect(() => component.registerSubcomponent(subcomponent)).toThrow(); // Register again
+				component[`${unshadowPrefix}registerSubcomponent`](subcomponent);
+				expect(() => component[`${unshadowPrefix}registerSubcomponent`](subcomponent)).toThrow(); // Register again
 				expect(component.subcomponents.length).toBe(1); // Should still be only one
 			});
 
@@ -661,8 +662,8 @@ describe('ManagedStatefulComponentMixin', () => {
 			it('updates the aggregated state based on subcomponents', () => {
 				const subcomponent1 = new TestComponent();
 				const subcomponent2 = new TestComponent();
-				component.registerSubcomponent(subcomponent1);
-				component.registerSubcomponent(subcomponent2);
+				component[`${unshadowPrefix}registerSubcomponent`](subcomponent1);
+				component[`${unshadowPrefix}registerSubcomponent`](subcomponent2);
 
 				subcomponent1.stateSubject.next({
 					name: 'Subcomponent1',
@@ -716,14 +717,14 @@ describe('ManagedStatefulComponentMixin', () => {
 		describe('unregisterSubcomponent', () => {
 			it('removes a subcomponent from the list', () => {
 				const subcomponent = new TestComponent();
-				component.registerSubcomponent(subcomponent);
-				component.unregisterSubcomponent(subcomponent);
+				component[`${unshadowPrefix}registerSubcomponent`](subcomponent);
+				component[`${unshadowPrefix}unregisterSubcomponent`](subcomponent);
 				expect(component.subcomponents).not.toContain(subcomponent);
 			});
 
 			it('does nothing if the subcomponent is not registered', () => {
 				const subcomponent = new TestComponent();
-				component.unregisterSubcomponent(subcomponent); // Not registered
+				component[`${unshadowPrefix}unregisterSubcomponent`](subcomponent); // Not registered
 				expect(component.subcomponents.length).toBe(0); // Should still be empty
 			});
 
