@@ -59,14 +59,15 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		
 		//------------------------------------- PROPERTIES --------------------------------------//
 		
-		// Prefix for internal method names to avoid shadowing parent methods of the same name
-		 // - itself prefixed manually to avoid shadowing any parent property of the same name
-		public /* @internal */  readonly msc_zh7y_unshadowPrefix: string;
+		/* Prefix for internal method names to avoid shadowing parent methods of the same name
+		 * - itself prefixed manually to avoid shadowing any parent property of the same name
+		 */
+		/* @internal */  readonly msc_zh7y_unshadowPrefix: string;
 
 		// State management properties
 
-		// BehaviorSubject to track the aggregated state of the component and its subcomponents
-		public /* @internal */ readonly  msc_zh7y_stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
+		/* BehaviorSubject to track the aggregated state of the component and its subcomponents */
+		/* @internal */ readonly  msc_zh7y_stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
 			name: this.constructor.name, 
 			state: ComponentState.UNINITIALIZED, 
 			reason: 'Component created', 
@@ -74,8 +75,8 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		});
 		
 		
-		// Isolated state for the component itself, without subcomponents
-		public /* @internal */ msc_zh7y_ownState: ComponentStateInfo = { 
+		/* Isolated state for the component itself, without subcomponents */
+		/* @internal */ msc_zh7y_ownState: ComponentStateInfo = { 
 			name: this.constructor.name, 
 			state: ComponentState.UNINITIALIZED, 
 			reason: 'Component created', 
@@ -83,15 +84,15 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		};
 		
 		// Optional subcomponent support
-		public /* @internal */ msc_zh7y_subcomponents: ManagedStatefulComponent[] = [];
-		public /* @internal */ msc_zh7y_componentSubscriptions: Map<ManagedStatefulComponent, Subscription> = new Map();
+		/* @internal */ msc_zh7y_subcomponents: ManagedStatefulComponent[] = [];
+		/* @internal */ msc_zh7y_componentSubscriptions: Map<ManagedStatefulComponent, Subscription> = new Map();
 
 		// Initialization and shutdown promises
-		public /* @internal */ msc_zh7y_initializationPromise?: Promise<void>;
-		public /* @internal */ msc_zh7y_shutdownPromise?: Promise<void>;
+		/* @internal */ msc_zh7y_initializationPromise?: Promise<void>;
+		/* @internal */ msc_zh7y_shutdownPromise?: Promise<void>;
 
-		// Default options for initialization and shutdown strategies
-		public /* @internal */ msc_zh7y_options: ManagedStatefulComponentOptions = { // no underscore, prefix does the job
+		/* Default options for initialization and shutdown strategies */
+		/* @internal */ msc_zh7y_options: ManagedStatefulComponentOptions = { // no underscore, prefix does the job
 			initializationStrategy: 'parent-first',
 			shutDownStrategy: 'parent-first',
 			subcomponentStrategy: 'parallel'
@@ -334,7 +335,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It should leave it to initialize() to handle the state management and observable emissions.
 		 * @remark A default implementation is provided that simply resolves the promise.
 		 */
-		public /* @internal */ initializeStateFulComponent(): Promise<void> { return Promise.resolve(); }
+		/* @internal */ initializeStateFulComponent(): Promise<void> { return Promise.resolve(); }
 		
 		/** Execute component-specific shutdown
 		 * @returns Promise that resolves when shutdown is complete
@@ -344,14 +345,14 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It should leave it to shutdown() to handle the state management and observable emissions.
 		 * @remark A default implementation is provided that simply resolves the promise.
 		 */
-		public /* @internal */ shutdownStatefulComponent(): Promise<void> { return Promise.resolve(); }
+		/* @internal */ shutdownStatefulComponent(): Promise<void> { return Promise.resolve(); }
 
 		//--------------------------------- PROTECTED METHODS -----------------------------------//
 		
 		// NOTE: TS does not support protected members in abstract classes, so we use public with @internal tag
 		
 		/* Calculate the current aggregated component state */
-		public /* @internal */ [`${unshadowPrefix}calculateState`](): ComponentStateInfo {
+		/* @internal */ [`${unshadowPrefix}calculateState`](): ComponentStateInfo {
 			// If no subcomponents, just return the current state
 			if (this.msc_zh7y_subcomponents.length === 0) {
 				return { ...this.msc_zh7y_stateSubject.value };
@@ -381,7 +382,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @returns The result of the parent method call, or undefined if not found
 		 * @throws Error if the method is not found in the parent class hierarchy
 		 */
-		public /* @internal */ async [`${unshadowPrefix}callParentMethod`](method: Function, ...args: any[]): Promise<any> {
+		/* @internal */ async [`${unshadowPrefix}callParentMethod`](method: Function, ...args: any[]): Promise<any> {
 			// Extract the method name from the function
 			const methodName = method.name;
 			if (!methodName) {
@@ -416,7 +417,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @throws Error if states array is empty
 		 * @remark Logs a warning if unknown states are encountered
 		 */
-		public /* @internal */ [`${unshadowPrefix}calculateWorstState`](states: ComponentStateInfo[]): ComponentStateInfo {
+		/* @internal */ [`${unshadowPrefix}calculateWorstState`](states: ComponentStateInfo[]): ComponentStateInfo {
 			if (states.length === 0) {
 			throw new Error('Cannot calculate worst state from an empty array');
 			}
@@ -505,7 +506,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @param worstState The worst state from the collection
 		 * @returns A human-readable reason string
 		 */
-		public /* @internal */ [`${unshadowPrefix}createAggregatedReason`](states: ComponentStateInfo[], worstState: ComponentStateInfo): string {
+		/* @internal */ [`${unshadowPrefix}createAggregatedReason`](states: ComponentStateInfo[], worstState: ComponentStateInfo): string {
 			// Count components in each state
 			const stateCounts: Record<string, number> = {};			
 			states.forEach(state => {
@@ -538,7 +539,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @returns The parent method if found, undefined otherwise
 		 * @internal
 		 */
-		public /* @internal */ [`${unshadowPrefix}findParentMethodOf`](method: Function): Function | undefined {
+		/* @internal */ [`${unshadowPrefix}findParentMethodOf`](method: Function): Function | undefined {
 			// Extract the method name from the function
 			const methodName = method.name;
 			
@@ -573,7 +574,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark defaults to parallel initialization
 		 * @remark Sequential initialization is slower but guarantees that subcomponents are initialized in the order they were registered
 		 */
-		public /* @internal */ async [`${unshadowPrefix}initializeSubcomponents`](): Promise<void> {
+		/* @internal */ async [`${unshadowPrefix}initializeSubcomponents`](): Promise<void> {
 			if (this. msc_zh7y_subcomponents.length === 0) return;
 			
 			if (this.options.subcomponentStrategy === 'parallel') { // fastest				
@@ -594,7 +595,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
 		 * @remark The component must be an instance of ManagedStatefulComponent.
 		 */
-		public /* @internal */ [`${unshadowPrefix}registerSubcomponent`](component: ManagedStatefulComponent): void {
+		/* @internal */ [`${unshadowPrefix}registerSubcomponent`](component: ManagedStatefulComponent): void {
 			if (!component) {
 				throw new Error('Component cannot be null or undefined');
 			}
@@ -625,7 +626,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark defaults to parallel shutdown
 		 * @remark Sequential shutdown is slower but guarantees that subcomponents are shut down in the reverse order they were registered
 		 */
-		public /* @internal */ async [`${unshadowPrefix}shutdownSubcomponents`](): Promise<void> {
+		/* @internal */ async [`${unshadowPrefix}shutdownSubcomponents`](): Promise<void> {
 			if (this. msc_zh7y_subcomponents.length === 0) return;
 			
 			if (this.options.subcomponentStrategy === 'parallel') { // fastest
@@ -642,7 +643,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @todo Refactor callers to use e.g. `updateState()` instead, if possible, then retire
 		 * @remark New code should possibly not rely on this method
 		 */
-		public /* @internal */ updateAggregatedState(): void {
+		/* @internal */ updateAggregatedState(): void {
 			if (this.msc_zh7y_subcomponents.length === 0) {
 				return; // Nothing to aggregate
 			}
@@ -659,7 +660,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @returns Promise that resolves when the state update has fully propagated
 		 * @remark Waits for state change to propagate before resolving (i.e. "Wait for Your Own Events" pattern to ensure consistency)
 		 */
-		public /* @internal */ async [`${unshadowPrefix}updateState`](newState: Partial<ComponentStateInfo>): Promise<void> {
+		/* @internal */ async [`${unshadowPrefix}updateState`](newState: Partial<ComponentStateInfo>): Promise<void> {
 			// Create base updated state by merging with current state
 			let baseState: ComponentStateInfo = {
 				...this.msc_zh7y_stateSubject.value,
@@ -713,7 +714,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
 		 * @remark The component must be an instance of ManagedStatefulComponent.
 		 */
-		public /* @internal */ [`${unshadowPrefix}unregisterSubcomponent`](component: ManagedStatefulComponent): boolean {
+		/* @internal */ [`${unshadowPrefix}unregisterSubcomponent`](component: ManagedStatefulComponent): boolean {
 			const index = this. msc_zh7y_subcomponents.indexOf(component);
 			if (index === -1) {
 				return false;
