@@ -9,20 +9,22 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * @param Parent The immediate parent class of the target class using this mixin, or `class {}` if the target class does not inherit from any other class.
  * @typeparam TParent The type of the parent class
  * @param unshadowPrefix The prefix to use for internal members to avoid shadowing parent members of the same name. Default is "msc_".
- * @returns A class that implements ManagedStatefulComponent and extends the provided parent class (if any)
- * @remark This mixin inserts a standard implementation of the ManagedStatefulComponent interface into the existing class hierarchy, which it otherwise leaves intact.
+ * @returns A class that implements ManagedStatefulComponent and extends the provided parent class (if any).
+ * @remark This mixin inserts a standard implementation of the ManagedStatefulComponent interface into the existing class hierarchy.
+ * @remark All public API method names are reserved for the mixin and will, in most cases, shadow any similarly named methods in the class hierarchy, breaking inheritance.
+ * @remark Template methods `initializeStateFulComponent()` and `shutdownStateFulComponent()` are reserved for the mixin and will shadow any similarly named methods in the class hierarchy.
  * @remark Anonymous classes in TypeScript cannot have non-public members. Instead, members not intended for the public API are marked as `@internal`.
- * - It is up to clients to respect this convention, as it is not enforced by TypeScript.
+ * @remark All `@internal` member names are prefixed with `msc_*` to reduce the risk of shadowing parent members of the same name.
  * @todo Figure out how to support logging without introducing a Logger dependency, and without conflicting with e.g. Repository' logs$ Observable
  * 
- * @example Class that does not inherit and uses this mixin:
+  * @example Class that does not inherit and uses this mixin:
  * ```typescript
  * class MyComponent extends ManagedStatefulComponentMixin(class {}) {
  *		// Implement the required methods and properties here
- *		public async executeInitialization(): Promise<void> {
+ *		public async initializeStateFulComponent(): Promise<void> {
  *			// Component-specific initialization logic goes here
  *		}
- *		public async executeShutdown(): Promise<void> {
+ *		public async shutdownStateFulComponent(): Promise<void> {
  *			// Component-specific shutdown logic goes here
  *		}
  * }
@@ -32,50 +34,22 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * ```typescript
  * class MyComponent extends ManagedStatefulComponentMixin(ParentClass) {
  *		// Implement the required methods and properties here
- *		public async executeInitialization(): Promise<void> {
+ *		public async initializeStateFulComponent(): Promise<void> {
  *			// Component-specific initialization logic goes here
  *		}
- *		public async executeShutdown(): Promise<void> {
+ *		public async shutdownStateFulComponent(): Promise<void> {
  *			// Component-specific shutdown logic goes here
  *		}
  *	}
  * ```
  *
- * IMPLEMENTATION REQUIREMENTS
- * Classes using this mixin must implement two public methods:
- * `executeInitialization(): Promise<void>` - Component specific logic to be executed during initialization, called from `initialize()`
- * `executeShutdown(): Promise<void>` - Component specific logic to be executed during shutdown, called from `shutdown()`
- * 
- * Classes using this mixin must also implement a `logger` property of type Logger compatible with the `@evelbulgroz/logger` API.
- * This logger will be used for logging state changes and errors during initialization and shutdown.
- * 
- * INHERITANCE CONSIDERATIONS
- * - If the parent class already has `initialize()` or `shutdown()` methods, the mixin will shadow them.
- * - If your parent class has its own initialization or shutdown logic, you MUST call the parent methods 
- *	 explicitly from your `executeInitialization()` or `executeShutdown()` implementations, e.g.:
- *	 ```typescript
- *	 public executeInitialization(): Promise<void> {
- *		 // First call parent class initialization if needed
- *		 await super.initialize();
- *		 
- *		 // Then do component-specific initialization
- *		 // ...
- *		 
- *		 return Promise.resolve();
- *	 }
- *	 ```
- * 
- * CAUTIONS
- * - Members marked `@internal` are not intended for public access, but must be marked as `public` to be accessible to the mixin.
- * - The mixin's implementation of `initialize()` and `shutdown()` does NOT automatically call parent class methods 
- *	 with the same name.
- * - Avoid applying this mixin to classes that already implement the ManagedStatefulComponent interface (e.g. using this mixin), as this will introduce unnessesary complexity and potential conflicts.
- * 
  * TYPESAFETY
  * When using with multiple inheritance or complex class hierarchies, you may need to use declaration merging to ensure proper TypeScript type checking:
  * ```typescript
  * interface MyClass extends ReturnType<typeof ManagedStatefulComponentMixin> {}
  * ```
+
+
  */
 export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(
 	Parent: TParent,
@@ -86,7 +60,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		//------------------------------------- PROPERTIES --------------------------------------//
 		
 		// Prefix for internal method names to avoid shadowing parent methods of the same name
-		 // itself prefixed manually to avoid shadowing parent property of the same name
+		 // - itself prefixed manually to avoid shadowing any parent property of the same name
 		public /* @internal */  readonly msc_zh7y_unshadowPrefix: string;
 
 		// State management properties
@@ -99,9 +73,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			updatedOn: new Date() 
 		});
 		
-		// Observable to expose the aggregated state as a stream of state changes
-		public readonly state$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
-
+		
 		// Isolated state for the component itself, without subcomponents
 		public /* @internal */ msc_zh7y_ownState: ComponentStateInfo = { 
 			name: this.constructor.name, 
@@ -135,6 +107,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		//------------------------------------- PUBLIC API --------------------------------------//
 		
 		// Standard getState implementation that supports components with subcomponents
+		
+		/** Observable stream of state changes for the component and its subcomponents (if any)
+		 * @returns Observable that emits the current state of the component and its subcomponents (if any) whenever the state changes
+		 * @remark The observable is a BehaviorSubject, so it will emit the current state immediately upon subscription
+		 * @remark The observable will emit the aggregated state if subcomponents are present, otherwise it will emit the component's own state
+		 */
+		public readonly state$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
 		
 		/** Get the component state without updating the state subject
 		 * @returns The current state of the component and its subcomponents (if any)
@@ -219,11 +198,11 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 					// Initialize main component and any subcomponents in the order specified in options
 					if (this.options.initializationStrategy === 'parent-first') {
-						await this.initializeComponent();
+						await this.initializeStateFulComponent();
 						await this[`${unshadowPrefix}initializeSubcomponents`]();
 					} else { // 'children-first'
 						await this[`${unshadowPrefix}initializeSubcomponents`]();
-						await this.initializeComponent();
+						await this.initializeStateFulComponent();
 					}
 					
 					// Set own state and update the state subject with the new state
@@ -336,11 +315,11 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 					// Shut down main component and any subcomponents in the order specified in options
 					if (this.options.shutDownStrategy === 'parent-first') {
-						await this.shutdownComponent();
+						await this.shutdownStatefulComponent();
 						await this[`${unshadowPrefix}shutdownSubcomponents`];
 					} else { // 'children-first'
 						await this[`${unshadowPrefix}shutdownSubcomponents`];
-						await this.shutdownComponent();
+						await this.shutdownStatefulComponent();
 					}
 
 					// Set own state and update the state subject with the new state
@@ -386,7 +365,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It should leave it to initialize() to handle the state management and observable emissions.
 		 * @remark A default implementation is provided that simply resolves the promise.
 		 */
-		public /* @internal */ initializeComponent(): Promise<void> { return Promise.resolve(); }
+		public /* @internal */ initializeStateFulComponent(): Promise<void> { return Promise.resolve(); }
 		
 		/** Execute component-specific shutdown
 		 * @returns Promise that resolves when shutdown is complete
@@ -396,7 +375,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It should leave it to shutdown() to handle the state management and observable emissions.
 		 * @remark A default implementation is provided that simply resolves the promise.
 		 */
-		public /* @internal */ shutdownComponent(): Promise<void> { return Promise.resolve(); }
+		public /* @internal */ shutdownStatefulComponent(): Promise<void> { return Promise.resolve(); }
 
 		//--------------------------------- PROTECTED METHODS -----------------------------------//
 		

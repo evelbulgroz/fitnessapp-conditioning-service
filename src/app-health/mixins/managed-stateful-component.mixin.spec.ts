@@ -20,7 +20,7 @@ class TestComponent extends ManagedStatefulComponentMixin(class {}) {
 	public initDelay = 0;
 	public shutdownDelay = 0;
 
-	public initializeComponent(): Promise<void> {
+	public initializeStateFulComponent(): Promise<void> {
 		this.initCount++;
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
@@ -33,7 +33,7 @@ class TestComponent extends ManagedStatefulComponentMixin(class {}) {
 		});
 	}
 
-	public shutdownComponent(): Promise<void> {
+	public shutdownStatefulComponent(): Promise<void> {
 		this.shutdownCount++;
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
@@ -155,7 +155,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				expect(stateChanges[2].state).toBe(ComponentState.OK);
 			});
 
-			it('calls initializeComponent exactly once', async () => {
+			it('calls initializeStateFulComponent exactly once', async () => {
 				await component.initialize();
 				expect(component.initCount).toBe(1);
 			});
@@ -261,7 +261,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				expect(stateChanges[2].state).toBe(ComponentState.SHUT_DOWN);
 			});
 
-			it('calls shutdownComponent exactly once', async () => {
+			it('calls shutdownStatefulComponent exactly once', async () => {
 				await component.initialize();
 				await component.shutdown();
 				expect(component.shutdownCount).toBe(1);
@@ -561,7 +561,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 		});
 
-		describe('initializeComponent', () => {
+		describe('initializeStateFulComponent', () => {
 			it('is called during initialization', async () => {
 				await component.initialize();
 				expect(component.initCount).toBe(1);
@@ -576,14 +576,14 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 
 			it('by default returns a resolved promise', async () => {
-				const result = await component.initializeComponent();
+				const result = await component.initializeStateFulComponent();
 				expect(result).toBeUndefined();
 			});
 			
 			it('can be overridden to provide custom initialization logic', async () => {
 				component.initDelay = 100; // Simulate a delay
 				const startTime = Date.now();
-				await component.initializeComponent();
+				await component.initializeStateFulComponent();
 				const endTime = Date.now();
 				expect(endTime - startTime).toBeGreaterThanOrEqual(100); // Should take at least 100ms
 
@@ -622,7 +622,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			// todo: test subscription to subcomponent state changes when deciding to keep updateAggregatedState() or not
 		});
 
-		describe('shutdownComponent', () => {
+		describe('shutdownStatefulComponent', () => {
 			it('is called during shutdown', async () => {
 				await component.initialize();
 				await component.shutdown();
@@ -639,13 +639,13 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 
 			it('by default returns a resolved promise', async () => {
-				const result = await component.shutdownComponent();
+				const result = await component.shutdownStatefulComponent();
 				expect(result).toBeUndefined();
 			});
 			it('can be overridden to provide custom shutdown logic', async () => {
 				component.shutdownDelay = 100; // Simulate a delay
 				const startTime = Date.now();
-				await component.shutdownComponent();
+				await component.shutdownStatefulComponent();
 				const endTime = Date.now();
 				expect(endTime - startTime).toBeGreaterThanOrEqual(100); // Should take at least 100ms
 
