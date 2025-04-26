@@ -6,50 +6,80 @@ import ManagedStatefulComponent from '../models/managed-stateful-component.model
 import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
 
 /** A mixin that provides a standard implementation of the ManagedStatefulComponent interface.
- * @typeparam TParent The type of the parent class
- * @param Parent The immediate parent class of the target class using this mixin, or `class {}` if the target class does not inherit from any other class.
- * @param options Options to configure the mixin behavior, such as initialization and shutdown strategies.
- * @param unshadowPrefix The prefix to use for internal members to avoid shadowing parent members of the same name. Default is "msc_".
- * @returns A class that implements ManagedStatefulComponent and extends the provided parent class (if any).
- * @remark This mixin inserts a standard implementation of the ManagedStatefulComponent interface into the existing class hierarchy.
- * @remark All public API method names are required by `ManagedStatefulComponent`, reserved for the mixin.
- * - `initialize()` and `shutdown()` methods preserve inheritance and pass the call up the class hierarchy.
- * - `isReady()` shadows any inherited method of the same name, as it is considered purely informational.
- * @remark Template methods `initializeStateFulComponent()` and `shutdownStateFulComponent()` are reserved for the mixin and will shadow any similarly named methods in the class hierarchy.
- * @remark Anonymous classes in TypeScript cannot have non-public members. Instead, members not intended for the public API are marked as `@internal`.
- * @remark All `@internal` member names are prefixed with `msc_*` to reduce the risk of shadowing parent members of the same name.
- * @todo Figure out how to support logging without introducing a Logger dependency, and without conflicting with e.g. Repository' logs$ Observable
+ * This mixin follows the stateful component pattern for lifecycle management with built-in
+ * state tracking, hierarchical composition, and standardized initialization/shutdown flows.
  * 
-  * @example Class that does not inherit and uses this mixin:
+ * @typeparam TParent The type of the parent class
+ * @param Parent The immediate parent class to extend, or `class {}` if no inheritance is needed
+ * @param options Configuration options for initialization, shutdown, and subcomponent strategies
+ * @param unshadowPrefix Prefix for internal methods to avoid name collisions. Defaults to "msc_" + random string
+ * @returns A class that implements ManagedStatefulComponent and extends the provided parent
+ * 
+ * @remark COMPONENT STATES
+ * Components move through the following states:
+ * - UNINITIALIZED → INITIALIZING → OK (normal flow)
+ * - OK → DEGRADED (when partial functionality is compromised)
+ * - OK/DEGRADED → SHUTTING_DOWN → SHUT_DOWN (normal shutdown)
+ * - Any state → FAILED (on error)
+ * 
+ * @remark STATE MANAGEMENT
+ * - Component's own state is tracked in `msc_zh7y_ownState`
+ * - All internal properties use the fixed prefix `msc_zh7y_` to avoid name collisions
+ * - Internal methods are prefixed with 'msc_' + a random string to avoid shadowing parent methods
+ * - Component state changes are observable through the `state$` Observable
+ * - Aggregated state includes all subcomponents, with the "worst" state propagating upward
+ * 
+ * @remark INHERITANCE BEHAVIOR
+ * - Preserves inheritance chain and passes calls up through class hierarchy
+ * - `initialize()` and `shutdown()` call parent methods before executing local logic
+ * - Template methods `onInitialize()` and `onShutdown()` may be implemented by concrete classes that require custom behavior
+ * - `isReady()` shadows the inherited method to ensure consistent readyness checks
+ * - Protected methods are prefixed with unshadowPrefix to avoid collisions
+ * 
+ * @remark COMPONENT HIERARCHY
+ * - Parent-child relationships are supported via registerSubcomponent()
+ * - State is automatically aggregated across the component hierarchy
+ * - Initialization order is configurable in options (parent-first or children-first, default: parent-first)
+ * - Shutdown order is configurable in options (parent-first or children-first, default: parent-first)
+ * - Subcomponent operations are configurable in options (parallel or sequential, default: parallel)
+ * 
+ * @remark IMPLEMENTATION NOTES
+ * - All asynchronous methods follow the async/await pattern
+ * - Concurrent calls to initialization/shutdown methods share a promise
+ * - State changes are observable and wait for propagation to complete
+ * - TypeScript limitations: protected members are marked with @internal annotation
+ * 
+ * @example Basic component with no parent class:
  * ```typescript
  * class MyComponent extends ManagedStatefulComponentMixin(class {}) {
- *		// Implement the required methods and properties here
- *		public async initializeStateFulComponent(): Promise<void> {
- *			// Component-specific initialization logic goes here
- *		}
- *		public async shutdownStateFulComponent(): Promise<void> {
- *			// Component-specific shutdown logic goes here
- *		}
+ *   public async onInitialize(): Promise<void> {
+ *     // Initialize resources, open connections, etc.
+ *   }
+ *   
+ *   public async onShutdown(): Promise<void> {
+ *     // Release resources, close connections, etc.
+ *   }
  * }
  * ```
  * 
- * @example Class that inherits from a parent class and uses this mixin:
+ * @example Component with inheritance:
  * ```typescript
  * class MyComponent extends ManagedStatefulComponentMixin(ParentClass) {
- *		// Implement the required methods and properties here
- *		public async initializeStateFulComponent(): Promise<void> {
- *			// Component-specific initialization logic goes here
- *		}
- *		public async shutdownStateFulComponent(): Promise<void> {
- *			// Component-specific shutdown logic goes here
- *		}
- *	}
+ *   public async onInitialize(): Promise<void> {
+ *     // Component-specific initialization logic
+ *   }
+ *   
+ *   public async onShutdown(): Promise<void> {
+ *     // Component-specific shutdown logic
+ *   }
+ * }
  * ```
- *
- * TYPESAFETY
- * When using with multiple inheritance or complex class hierarchies, you may need to use declaration merging to ensure proper TypeScript type checking:
+ * 
+ * @example Using with TypeScript type system:
  * ```typescript
- * interface MyClass extends ReturnType<typeof ManagedStatefulComponentMixin> {}
+ * // Ensure proper type checking with multiple inheritance
+ * interface MyComponent extends ReturnType<typeof ManagedStatefulComponentMixin> {}
+ * class MyComponent extends ManagedStatefulComponentMixin(ParentClass) {...}
  * ```
  */
 export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(
@@ -238,6 +268,39 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				return false;
 			}
 		}
+
+		/* Register a subcomponent to be managed by this component
+		 * @param component The subcomponent to register
+		 * @returns void
+		 * @throws Error if the component is null, undefined, or already registered
+		 * @remark This method is intended for internal use and should not be called directly by clients.
+		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
+		 * @remark The component must be an instance of ManagedStatefulComponent.
+		 */
+		public registerSubcomponent(component: ManagedStatefulComponent): void {
+			if (!component) {
+				throw new Error('Component cannot be null or undefined');
+			}
+			else if (!(component instanceof ManagedStatefulComponentClass)) {
+				throw new Error('Component must be an instance of ManagedStatefulComponent');
+			}
+			else if (this. msc_zh7y_subcomponents.includes(component)) {
+				throw new Error('Component is already registered as a subcomponent');
+			}
+			
+			this. msc_zh7y_subcomponents.push(component);
+			
+			// Subscribe to component state changes
+			const subscription = component.state$.subscribe(state => {
+				// Update the aggregated state when a subcomponent's state changes
+				this[`${unshadowPrefix}updateAggregatedState`]();
+			});
+			
+			this.msc_zh7y_componentSubscriptions.set(component, subscription);
+			
+			// Update the aggregated state to include the new component
+			this[`${unshadowPrefix}updateAggregatedState`]();
+		}
 		
 		/** Shutdown the component and all of its subcomponents (if any) if it is not already shut down
 		 * @param args Optional arguments to pass to parent shutdown methods
@@ -312,6 +375,36 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			});
 
 			return this.msc_zh7y_shutdownPromise;
+		}
+
+		/* Unregister a subcomponent from this component
+		 * @param component The subcomponent to unregister
+		 * @returns true if the component was successfully unregistered, false otherwise
+		 * @throws Error if the component is null or undefined
+		 * @remark This method is intended for internal use and should not be called directly by clients.
+		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
+		 * @remark The component must be an instance of ManagedStatefulComponent.
+		 */
+		public unregisterSubcomponent(component: ManagedStatefulComponent): boolean {
+			const index = this. msc_zh7y_subcomponents.indexOf(component);
+			if (index === -1) {
+				return false;
+			}
+			
+			// Clean up subscription
+			const subscription = this.msc_zh7y_componentSubscriptions.get(component);
+			if (subscription) {
+				subscription.unsubscribe();
+				this.msc_zh7y_componentSubscriptions.delete(component);
+			}
+			
+			// Remove component
+			this. msc_zh7y_subcomponents.splice(index, 1);
+			
+			// Update the aggregated state
+			this[`${unshadowPrefix}updateAggregatedState`]();
+			
+			return true;
 		}
 
 		//---------------------------------- TEMPLATE METHODS -----------------------------------//
@@ -578,39 +671,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 		}
 		
-		/* Register a subcomponent to be managed by this component
-		 * @param component The subcomponent to register
-		 * @returns void
-		 * @throws Error if the component is null, undefined, or already registered
-		 * @remark This method is intended for internal use and should not be called directly by clients.
-		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
-		 * @remark The component must be an instance of ManagedStatefulComponent.
-		 */
-		/* @internal */ [`${unshadowPrefix}registerSubcomponent`](component: ManagedStatefulComponent): void {
-			if (!component) {
-				throw new Error('Component cannot be null or undefined');
-			}
-			else if (!(component instanceof ManagedStatefulComponentClass)) {
-				throw new Error('Component must be an instance of ManagedStatefulComponent');
-			}
-			else if (this. msc_zh7y_subcomponents.includes(component)) {
-				throw new Error('Component is already registered as a subcomponent');
-			}
-			
-			this. msc_zh7y_subcomponents.push(component);
-			
-			// Subscribe to component state changes
-			const subscription = component.state$.subscribe(state => {
-				// Update the aggregated state when a subcomponent's state changes
-				this[`${unshadowPrefix}updateAggregatedState`]();
-			});
-			
-			this.msc_zh7y_componentSubscriptions.set(component, subscription);
-			
-			// Update the aggregated state to include the new component
-			this[`${unshadowPrefix}updateAggregatedState`]();
-		}
-
 		/* Shut down subcomponents
 		 * @returns Promise that resolves when all subcomponents are shut down
 		 * @throws Error if shutdown fails
@@ -696,36 +756,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			await updateStatePromise;
 
 			return void 0; // State update complete
-		}
-		
-		/* Unregister a subcomponent from this component
-		 * @param component The subcomponent to unregister
-		 * @returns true if the component was successfully unregistered, false otherwise
-		 * @throws Error if the component is null or undefined
-		 * @remark This method is intended for internal use and should not be called directly by clients.
-		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
-		 * @remark The component must be an instance of ManagedStatefulComponent.
-		 */
-		/* @internal */ [`${unshadowPrefix}unregisterSubcomponent`](component: ManagedStatefulComponent): boolean {
-			const index = this. msc_zh7y_subcomponents.indexOf(component);
-			if (index === -1) {
-				return false;
-			}
-			
-			// Clean up subscription
-			const subscription = this.msc_zh7y_componentSubscriptions.get(component);
-			if (subscription) {
-				subscription.unsubscribe();
-				this.msc_zh7y_componentSubscriptions.delete(component);
-			}
-			
-			// Remove component
-			this. msc_zh7y_subcomponents.splice(index, 1);
-			
-			// Update the aggregated state
-			this[`${unshadowPrefix}updateAggregatedState`]();
-			
-			return true;
 		}
 	}
 	

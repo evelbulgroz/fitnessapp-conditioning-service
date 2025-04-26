@@ -65,7 +65,6 @@ describe('ManagedStatefulComponentMixin', () => {
 		expect(state.state).toBe(ComponentState.UNINITIALIZED);
 	});
 
-
 	describe('public API', () => {	
 		describe('constructor', () => {
 			it('applies default options when none are provided', () => {
@@ -402,7 +401,7 @@ describe('ManagedStatefulComponentMixin', () => {
 
 			it(`returns aggregated state if subcomponents are registered`, async () => {
 				const subcomponent1 = new TestComponent();
-				component[`${unshadowPrefix}registerSubcomponent`](subcomponent1);
+				component.registerSubcomponent(subcomponent1);
 				subcomponent1. msc_zh7y_stateSubject.next({
 					name: 'Subcomponent1',
 					state: ComponentState.OK,
@@ -411,7 +410,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				});
 
 				const subComponent2 = new TestComponent();
-				component[`${unshadowPrefix}registerSubcomponent`](subComponent2);
+				component.registerSubcomponent(subComponent2);
 				subComponent2. msc_zh7y_stateSubject.next({
 					name: 'Subcomponent2',
 					state: ComponentState.DEGRADED,
@@ -703,23 +702,23 @@ describe('ManagedStatefulComponentMixin', () => {
 		describe('registerSubcomponent', () => {
 			it('adds a subcomponent to the list', () => {
 				const subcomponent = new TestComponent();
-				component[`${unshadowPrefix}registerSubcomponent`](subcomponent);
+				component.registerSubcomponent(subcomponent);
 				expect(component. msc_zh7y_subcomponents).toContain(subcomponent);
 			});
 
 			it('does not allow null or undefined subcomponents', () => {
-				expect(() => component[`${unshadowPrefix}registerSubcomponent`](null as any)).toThrow(); // Null
-				expect(() => component[`${unshadowPrefix}registerSubcomponent`](undefined as any)).toThrow(); // Undefined
+				expect(() => component.registerSubcomponent(null as any)).toThrow(); // Null
+				expect(() => component.registerSubcomponent(undefined as any)).toThrow(); // Undefined
 			});
 
 			it('does not allow non-component subcomponents', () => {
-				expect(() => component[`${unshadowPrefix}registerSubcomponent`]({} as any)).toThrow(); // Non-component
+				expect(() => component.registerSubcomponent({} as any)).toThrow(); // Non-component
 			});
 
 			it('does not allow duplicate subcomponents', () => {
 				const subcomponent = new TestComponent();
-				component[`${unshadowPrefix}registerSubcomponent`](subcomponent);
-				expect(() => component[`${unshadowPrefix}registerSubcomponent`](subcomponent)).toThrow(); // Register again
+				component.registerSubcomponent(subcomponent);
+				expect(() => component.registerSubcomponent(subcomponent)).toThrow(); // Register again
 				expect(component. msc_zh7y_subcomponents.length).toBe(1); // Should still be only one
 			});
 
@@ -766,8 +765,8 @@ describe('ManagedStatefulComponentMixin', () => {
 			xit('updates the aggregated state based on subcomponents', () => {
 				const subcomponent1 = new TestComponent();
 				const subcomponent2 = new TestComponent();
-				component[`${unshadowPrefix}registerSubcomponent`](subcomponent1);
-				component[`${unshadowPrefix}registerSubcomponent`](subcomponent2);
+				component.registerSubcomponent(subcomponent1);
+				component.registerSubcomponent(subcomponent2);
 
 				subcomponent1. msc_zh7y_stateSubject.next({
 					name: 'Subcomponent1',
@@ -821,14 +820,14 @@ describe('ManagedStatefulComponentMixin', () => {
 		describe('unregisterSubcomponent', () => {
 			it('removes a subcomponent from the list', () => {
 				const subcomponent = new TestComponent();
-				component[`${unshadowPrefix}registerSubcomponent`](subcomponent);
-				component[`${unshadowPrefix}unregisterSubcomponent`](subcomponent);
+				component.registerSubcomponent(subcomponent);
+				component.unregisterSubcomponent(subcomponent);
 				expect(component. msc_zh7y_subcomponents).not.toContain(subcomponent);
 			});
 
 			it('does nothing if the subcomponent is not registered', () => {
 				const subcomponent = new TestComponent();
-				component[`${unshadowPrefix}unregisterSubcomponent`](subcomponent); // Not registered
+				component.unregisterSubcomponent(subcomponent); // Not registered
 				expect(component. msc_zh7y_subcomponents.length).toBe(0); // Should still be empty
 			});
 
