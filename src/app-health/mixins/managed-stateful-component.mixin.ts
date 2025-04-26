@@ -611,13 +611,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			// Subscribe to component state changes
 			const subscription = component.state$.subscribe(state => {
 				// Update the aggregated state when a subcomponent's state changes
-				this.updateAggregatedState();
+				this[`${unshadowPrefix}updateAggregatedState`]();
 			});
 			
 			this.msc_zh7y_componentSubscriptions.set(component, subscription);
 			
 			// Update the aggregated state to include the new component
-			this.updateAggregatedState();
+			this[`${unshadowPrefix}updateAggregatedState`]();
 		}
 
 		/* Shut down subcomponents
@@ -639,11 +639,12 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 		}
 		
-		/* DEPRECATED?: Aggregated state calculation (used by composite components)
-		 * @todo Refactor callers to use e.g. `updateState()` instead, if possible, then retire
+		/* DEPRECATED Update state when registering ir unregistering subcomponents
+		 * @returns void
 		 * @remark New code should possibly not rely on this method
+		 * @todo Remove this method in future versions
 		 */
-		/* @internal */ updateAggregatedState(): void {
+		/* @internal */ [`${unshadowPrefix}updateAggregatedState`](): void {
 			if (this.msc_zh7y_subcomponents.length === 0) {
 				return; // Nothing to aggregate
 			}
@@ -731,7 +732,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			this. msc_zh7y_subcomponents.splice(index, 1);
 			
 			// Update the aggregated state
-			this.updateAggregatedState();
+			this[`${unshadowPrefix}updateAggregatedState`]();
 			
 			return true;
 		}

@@ -715,14 +715,14 @@ describe('ManagedStatefulComponentMixin', () => {
 					updatedOn: new Date()
 				});
 
-				component.updateAggregatedState();
+				component[`${unshadowPrefix}updateAggregatedState`]();
 
 				const state = component.getState();
 				expect(state.state).toBe(ComponentState.DEGRADED);
 			});
 
 			it('does not update the aggregated state if no subcomponents are registered', () => {
-				component.updateAggregatedState();
+				component[`${unshadowPrefix}updateAggregatedState`]();
 				const state = component.getState();
 				expect(state.state).toBe(ComponentState.UNINITIALIZED);
 			});
