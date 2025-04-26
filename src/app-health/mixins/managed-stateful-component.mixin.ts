@@ -115,35 +115,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 */
 		public readonly state$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
 		
-		/** Get the component state without updating the state subject
-		 * @returns The current state of the component and its subcomponents (if any)
-		 * @remark Returns aggregated state if subcomponents are present, otherwise returns the components own state
-		 */
-		public getState(): ComponentStateInfo {
-			// If no subcomponents, just return the current state
-			if (this. msc_zh7y_subcomponents.length === 0) {
-				return { ...this. msc_zh7y_stateSubject.value };
-			}
-			
-			// Get all component states including self
-			const states = [
-				{ ...this. msc_zh7y_stateSubject.value }, // Base state without components
-				...this. msc_zh7y_subcomponents.map(c => c.getState())
-			];
-			
-			// Calculate worst state
-			const worstState = this[`${unshadowPrefix}calculateWorstState`](states);
-			
-			// Return the aggregated state without updating the subject
-			return {
-				name: this.constructor.name,
-				state: worstState.state,
-				reason: this[`${unshadowPrefix}createAggregatedReason`](states, worstState),
-				updatedOn: new Date(),
-				components: this. msc_zh7y_subcomponents.map(c => c.getState())
-			};
-		}
-
 		/** Set or get component option defaults, e.g. to control component behavior during initialization and shutdown
 		 * @param options Options to optionally wholly or partially override defaults (if set)
 		 * @returns The current options (if get)
@@ -380,6 +351,32 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		//--------------------------------- PROTECTED METHODS -----------------------------------//
 		
 		// NOTE: TS does not support protected members in abstract classes, so we use public with @internal tag
+		
+		/* Calculate the current aggregated component state */
+		public /* @internal */ [`${unshadowPrefix}calculateState`](): ComponentStateInfo {
+			// If no subcomponents, just return the current state
+			if (this.msc_zh7y_subcomponents.length === 0) {
+				return { ...this.msc_zh7y_stateSubject.value };
+			}
+			
+			// Get all component states - include own state directly rather than from stateSubject
+			const states = [
+				{ ...this.msc_zh7y_ownState }, // Use ownState instead of stateSubject value
+				...this.msc_zh7y_subcomponents.map((c: any) => c[`${unshadowPrefix}calculateState`]())
+			];
+			
+			// Calculate worst state
+			const worstState = this[`${unshadowPrefix}calculateWorstState`](states);
+			
+			// Return the aggregated state without updating the subject
+			return {
+				name: this.constructor.name,
+				state: worstState.state,
+				reason: this[`${unshadowPrefix}createAggregatedReason`](states, worstState),
+				updatedOn: new Date(),
+				components: this.msc_zh7y_subcomponents.map((c: any) => c[`${unshadowPrefix}calculateState`]())
+			};
+		}
 		
 		/* Call parent method shadowed by this mixin
 		 * @param method The method to call in the parent class hierarchy
@@ -648,27 +645,15 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark New code should possibly not rely on this method
 		 */
 		public /* @internal */ updateAggregatedState(): void {
-			if (this. msc_zh7y_subcomponents.length === 0) {
+			if (this.msc_zh7y_subcomponents.length === 0) {
 				return; // Nothing to aggregate
 			}
 			
-			// Get all component states including self
-			const states = [
-				{ ...this. msc_zh7y_stateSubject.value }, // Base state without components
-				...this. msc_zh7y_subcomponents.map(c => c.getState())
-			];
+			// Calculate the aggregated state
+			const aggregatedState = this[`${unshadowPrefix}calculateState`]();
 			
-			// Calculate worst state
-			const worstState = this[`${unshadowPrefix}calculateWorstState`](states);
-			
-			// Update the state
-			this. msc_zh7y_stateSubject.next({
-				name: this.constructor.name,
-				state: worstState.state,
-				reason: this[`${unshadowPrefix}createAggregatedReason`](states, worstState),
-				updatedOn: new Date(),
-				components: this. msc_zh7y_subcomponents.map(c => c.getState())
-			});
+			// Update the state subject directly (no partial updates to merge)
+			this.msc_zh7y_stateSubject.next(aggregatedState);
 		}
 
 		/* Update the state of the component and optionally its subcomponents
@@ -677,37 +662,29 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Waits for state change to propagate before resolving (i.e. "Wait for Your Own Events" pattern to ensure consistency)
 		 */
 		public /* @internal */ async [`${unshadowPrefix}updateState`](newState: Partial<ComponentStateInfo>): Promise<void> {
-			// Create updated state object
-			let updatedState: ComponentStateInfo = {
-				...this. msc_zh7y_stateSubject.value, // merge current aggregated state with...
-				...newState, // ...new state values...
-				updatedOn: new Date() // ...and update the timestamp
+			// Create base updated state by merging with current state
+			let baseState: ComponentStateInfo = {
+				...this.msc_zh7y_stateSubject.value,
+				...newState,
+				updatedOn: new Date()
 			};
-
+			
 			// For components with subcomponents, recalculate the aggregated state
-			if (this. msc_zh7y_subcomponents?.length > 0) {
-				// We need to preserve the partial updates from newState
-				const baseState = {
-				...this. msc_zh7y_stateSubject.value,
-				...newState
+			let updatedState: ComponentStateInfo;			
+			if (this.msc_zh7y_subcomponents.length > 0) {
+				// Update own state with new values
+				this.msc_zh7y_ownState = {
+					...this.msc_zh7y_ownState,
+					...newState,
+					updatedOn: new Date()
 				};
 				
-				// Calculate the aggregated state with updated properties
-				const states = [
-					baseState,
-					...this. msc_zh7y_subcomponents.map((c: ManagedStatefulComponent) => c.getState())
-				];				
-				const worstState = this[`${unshadowPrefix}calculateWorstState`](states);
-				
-				// Create the final aggregated state
-				updatedState = {
-					...baseState,
-					state: worstState.state,
-					reason: this[`${unshadowPrefix}createAggregatedReason`](states, worstState),
-					updatedOn: new Date(),
-					components: this. msc_zh7y_subcomponents.map(c => c.getState())
-				};
-			}			
+				// Calculate the full aggregated state (will include subcomponents)
+				updatedState = this[`${unshadowPrefix}calculateState`]();
+			} else {
+				// No subcomponents, just use the merged state
+				updatedState = baseState;
+			}
 			
 			// Create a promise that resolves when this state change is observed
 			const updateStatePromise = firstValueFrom(

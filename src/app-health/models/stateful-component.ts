@@ -11,12 +11,6 @@ export interface StatefulComponent {
 	 * @remark Subscribers should receive a consistent view of the component's state transitions.
 	 */
 	state$: Observable<ComponentStateInfo>;
-
-	/** Get the current health state of the component.
-	 * @returns The current state information (name, status, timestamp, etc.).
-	 * @remark Should return an immutable snapshot of the component's current state.
-	 */
-	getState(): ComponentStateInfo;
 }
 
 export default StatefulComponent;

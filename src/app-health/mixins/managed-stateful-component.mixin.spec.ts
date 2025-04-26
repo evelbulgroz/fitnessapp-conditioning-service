@@ -62,13 +62,13 @@ describe('ManagedStatefulComponentMixin', () => {
 	});
 	
 	it('should start in UNINITIALIZED state', () => {
-		const state = component.getState();
+		const state = component[`${unshadowPrefix}calculateState`]();
 		expect(state.state).toBe(ComponentState.UNINITIALIZED);
 	});
 
 
 	describe('public API', () => {		
-		describe('getState', () => {
+		xdescribe('getState', () => {
 			it(`returns component's own state if no subcomponents are registered`, () => {
 				const state = component.getState();
 				expect(state.state).toBe(ComponentState.UNINITIALIZED);
@@ -186,7 +186,7 @@ describe('ManagedStatefulComponentMixin', () => {
 					await component.initialize();
 					fail('has thrown an error');
 				} catch (error) {
-					const state = component.getState();
+					const state = component[`${unshadowPrefix}calculateState`]();
 					expect(state.state).toBe(ComponentState.FAILED);
 					expect(state.reason).toContain('Initialization failed');
 				}
@@ -296,7 +296,7 @@ describe('ManagedStatefulComponentMixin', () => {
 					await component.shutdown();
 					fail('has thrown an error');
 				} catch (error) {
-					const state = component.getState();
+					const state = component[`${unshadowPrefix}calculateState`]();
 					expect(state.state).toBe(ComponentState.FAILED);
 					expect(state.reason).toContain('Shutdown failed');
 				}
@@ -324,6 +324,43 @@ describe('ManagedStatefulComponentMixin', () => {
 	});
 
 	describe('Protected methods', () => {
+		describe('calculateState', () => {
+			it(`returns component's own state if no subcomponents are registered`, () => {
+				const state = component[`${unshadowPrefix}calculateState`]();
+				expect(state.state).toBe(ComponentState.UNINITIALIZED);
+				expect(state.name).toBe('TestComponent');
+				expect(state.reason).toBe('Component created');
+				expect(state.updatedOn).toBeInstanceOf(Date);
+			});
+
+			it(`returns aggregated state if subcomponents are registered`, async () => {
+				const subcomponent1 = new TestComponent();
+				component[`${unshadowPrefix}registerSubcomponent`](subcomponent1);
+				subcomponent1. msc_zh7y_stateSubject.next({
+					name: 'Subcomponent1',
+					state: ComponentState.OK,
+					reason: 'All good',
+					updatedOn: new Date()
+				});
+
+				const subComponent2 = new TestComponent();
+				component[`${unshadowPrefix}registerSubcomponent`](subComponent2);
+				subComponent2. msc_zh7y_stateSubject.next({
+					name: 'Subcomponent2',
+					state: ComponentState.DEGRADED,
+					reason: 'Minor issue',
+					updatedOn: new Date()
+				});
+				
+				await component.initialize();
+				expect(component['msc_zh7y_ownState'].state).toBe(ComponentState.OK);
+				const aggregatedState = component[`${unshadowPrefix}calculateState`]();
+				expect(aggregatedState.state).toBe(ComponentState.DEGRADED);
+				expect(aggregatedState.name).toBe('TestComponent');
+				expect(aggregatedState.reason).toContain('Aggregated state [OK: 2/3, DEGRADED: 1/3]');
+			});
+		});
+
 		describe('calculateWorstState', () => {
 			it('returns the worst state from the list of states', () => {
 				const states: ComponentStateInfo[] = [
