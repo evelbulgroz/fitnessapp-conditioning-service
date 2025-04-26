@@ -1,9 +1,8 @@
 import { take } from 'rxjs';
 
-import { ManagedStatefulComponentMixin } from './managed-stateful-component.mixin';
+import ManagedStatefulComponentMixin from './managed-stateful-component.mixin';
 import ComponentState from '../models/component-state.enum';
 import ComponentStateInfo from '../models/component-state-info.model';
-import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
 
 // NOTE: Future test enhancements:
 	// - Error Propagation: More detailed tests for error handling scenarios.
@@ -20,7 +19,7 @@ class TestComponent extends ManagedStatefulComponentMixin(class {}) {
 	public initDelay = 0;
 	public shutdownDelay = 0;
 
-	public initializeStateFulComponent(): Promise<void> {
+	public onInitialize(): Promise<void> {
 		this.initCount++;
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
@@ -33,7 +32,7 @@ class TestComponent extends ManagedStatefulComponentMixin(class {}) {
 		});
 	}
 
-	public shutdownStatefulComponent(): Promise<void> {
+	public onShutdown(): Promise<void> {
 		this.shutdownCount++;
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
@@ -67,44 +66,125 @@ describe('ManagedStatefulComponentMixin', () => {
 	});
 
 
-	describe('public API', () => {		
-		xdescribe('getState', () => {
-			it(`returns component's own state if no subcomponents are registered`, () => {
-				const state = component.getState();
-				expect(state.state).toBe(ComponentState.UNINITIALIZED);
-				expect(state.name).toBe('TestComponent');
-				expect(state.reason).toBe('Component created');
-				expect(state.updatedOn).toBeInstanceOf(Date);
-			});
-
-			it(`returns aggregated state if subcomponents are registered`, async () => {
-				const subcomponent1 = new TestComponent();
-				component[`${unshadowPrefix}registerSubcomponent`](subcomponent1);
-				subcomponent1. msc_zh7y_stateSubject.next({
-					name: 'Subcomponent1',
-					state: ComponentState.OK,
-					reason: 'All good',
-					updatedOn: new Date()
-				});
-
-				const subComponent2 = new TestComponent();
-				component[`${unshadowPrefix}registerSubcomponent`](subComponent2);
-				subComponent2. msc_zh7y_stateSubject.next({
-					name: 'Subcomponent2',
-					state: ComponentState.DEGRADED,
-					reason: 'Minor issue',
-					updatedOn: new Date()
-				});
+	describe('public API', () => {	
+		describe('constructor', () => {
+			it('applies default options when none are provided', () => {
+				const component = new TestComponent();
 				
-				await component.initialize();
-				expect(component['msc_zh7y_ownState'].state).toBe(ComponentState.OK);
-				const aggregatedState = component.getState();
-				expect(aggregatedState.state).toBe(ComponentState.DEGRADED);
-				expect(aggregatedState.name).toBe('TestComponent');
-				expect(aggregatedState.reason).toContain('Aggregated state [DEGRADED: 2/3, OK: 1/3]');
+				expect(component.msc_zh7y_options).toEqual({
+					initializationStrategy: 'parent-first',
+					shutDownStrategy: 'parent-first',
+					subcomponentStrategy: 'parallel'
+				});
 			});
-		});
-
+			
+			it('applies custom options when provided', () => {
+				// Create a class that uses the mixin with custom options
+				class CustomOptionsComponent extends ManagedStatefulComponentMixin(class {}, {
+					initializationStrategy: 'children-first',
+					shutDownStrategy: 'children-first',
+					subcomponentStrategy: 'sequential'
+				}) {}
+				
+				const component = new CustomOptionsComponent();
+				
+				expect(component.msc_zh7y_options).toEqual({
+					initializationStrategy: 'children-first',
+					shutDownStrategy: 'children-first',
+					subcomponentStrategy: 'sequential'
+				});
+			});
+			
+			it('applies a custom prefix when provided', () => {
+				// Create a class that uses the mixin with a custom prefix
+				class CustomPrefixComponent extends ManagedStatefulComponentMixin(class {}, undefined, 'custom_prefix_') {}
+				
+				const component = new CustomPrefixComponent();
+				
+				expect(component.msc_zh7y_unshadowPrefix).toBe('custom_prefix_');
+			});
+			
+			it('maintains inheritance from parent class properties', () => {
+				// Create a parent class with properties
+				class ParentWithProperties {
+					public parentProperty = 'parent value';
+					public parentMethod() {
+					return 'parent method called';
+					}
+				}
+				
+				// Create a class that extends the parent with the mixin
+				class InheritingComponent extends ManagedStatefulComponentMixin(ParentWithProperties) {}
+				
+				const component = new InheritingComponent();
+				
+				// Verify parent properties are accessible
+				expect(component.parentProperty).toBe('parent value');
+				expect(component.parentMethod()).toBe('parent method called');
+			});
+				
+			it('maintains inheritance from parent class constructor arguments', () => {
+				// Create a parent class that accepts constructor arguments
+				class ParentWithConstructor {
+					public constructorArg: string;
+					
+					constructor(arg: string) {
+					this.constructorArg = arg;
+					}
+				}
+				
+				// Create a class that extends the parent with the mixin
+				class InheritingComponent extends ManagedStatefulComponentMixin(ParentWithConstructor) {}
+				
+				const component = new InheritingComponent('test argument');
+				
+				// Verify constructor arguments are passed to parent
+				expect(component.constructorArg).toBe('test argument');
+			});
+			
+			it('allows overriding parent class methods', () => {
+				// Create a parent class with a method
+				class ParentWithMethod {
+					public testMethod() {
+					return 'parent method';
+					}
+				}
+				
+				// Create a class that extends the parent with the mixin and overrides the method
+				class OverridingComponent extends ManagedStatefulComponentMixin(ParentWithMethod) {
+					public testMethod() {
+					return 'overridden method';
+					}
+				}
+				
+				const component = new OverridingComponent();
+				
+				// Verify method is properly overridden
+				expect(component.testMethod()).toBe('overridden method');
+			});
+			
+			it('allows super calls to parent class methods', () => {
+				// Create a parent class with a method
+				class ParentWithMethod {
+					public testMethod() {
+					return 'parent method';
+					}
+				}
+				
+				// Create a class that extends the parent with the mixin and calls super
+				class SuperCallingComponent extends ManagedStatefulComponentMixin(ParentWithMethod) {
+					public testMethod() {
+					return `extended ${super.testMethod()}`;
+					}
+				}
+				
+				const component = new SuperCallingComponent();
+				
+				// Verify super call works correctly
+				expect(component.testMethod()).toBe('extended parent method');
+			});
+		});	
+		
 		describe('initialize', () => {
 			it('changes state to INITIALIZING then OK', async () => {
 				const stateChanges: ComponentStateInfo[] = [];
@@ -118,7 +198,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				expect(stateChanges[2].state).toBe(ComponentState.OK);
 			});
 
-			it('calls initializeStateFulComponent exactly once', async () => {
+			it('calls onInitialize exactly once', async () => {
 				await component.initialize();
 				expect(component.initCount).toBe(1);
 			});
@@ -224,7 +304,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				expect(stateChanges[2].state).toBe(ComponentState.SHUT_DOWN);
 			});
 
-			it('calls shutdownStatefulComponent exactly once', async () => {
+			it('calls onShutdown exactly once', async () => {
 				await component.initialize();
 				await component.shutdown();
 				expect(component.shutdownCount).toBe(1);
@@ -282,6 +362,30 @@ describe('ManagedStatefulComponentMixin', () => {
 				}
 				
 				expect(component.msc_zh7y_shutdownPromise).toBeUndefined();
+			});
+		});
+
+		xdescribe('state$', () => { // TODO: Breaks other tests, investigate
+			it('emits the current state', (done) => {
+				const sub = component.state$.subscribe(state => {
+					expect(state.state).toBe(ComponentState.UNINITIALIZED);
+					expect(state.name).toBe('TestComponent');
+					expect(state.reason).toBe('Component created');
+					expect(state.updatedOn).toBeInstanceOf(Date);
+					sub.unsubscribe();
+					done();
+				});
+			});
+
+			it('emits state changes', (done) => {
+				const sub = component.state$.subscribe(state => {
+					expect(state.state).toBe(ComponentState.OK);
+					expect(state.reason).toBe('Test reason');
+					sub.unsubscribe();
+					done();
+				});
+
+				component[`${unshadowPrefix}updateState`]({state: ComponentState.OK, reason: 'Test reason'});
 			});
 		});
 	});
@@ -561,7 +665,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 		});
 
-		describe('initializeStateFulComponent', () => {
+		describe('onInitialize', () => {
 			it('is called during initialization', async () => {
 				await component.initialize();
 				expect(component.initCount).toBe(1);
@@ -576,14 +680,14 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 
 			it('by default returns a resolved promise', async () => {
-				const result = await component.initializeStateFulComponent();
+				const result = await component.onInitialize();
 				expect(result).toBeUndefined();
 			});
 			
 			it('can be overridden to provide custom initialization logic', async () => {
 				component.initDelay = 100; // Simulate a delay
 				const startTime = Date.now();
-				await component.initializeStateFulComponent();
+				await component.onInitialize();
 				const endTime = Date.now();
 				expect(endTime - startTime).toBeGreaterThanOrEqual(100); // Should take at least 100ms
 
@@ -622,7 +726,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			// todo: test subscription to subcomponent state changes when deciding to keep updateAggregatedState() or not
 		});
 
-		describe('shutdownStatefulComponent', () => {
+		describe('onShutdown', () => {
 			it('is called during shutdown', async () => {
 				await component.initialize();
 				await component.shutdown();
@@ -639,13 +743,13 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 
 			it('by default returns a resolved promise', async () => {
-				const result = await component.shutdownStatefulComponent();
+				const result = await component.onShutdown();
 				expect(result).toBeUndefined();
 			});
 			it('can be overridden to provide custom shutdown logic', async () => {
 				component.shutdownDelay = 100; // Simulate a delay
 				const startTime = Date.now();
-				await component.shutdownStatefulComponent();
+				await component.onShutdown();
 				const endTime = Date.now();
 				expect(endTime - startTime).toBeGreaterThanOrEqual(100); // Should take at least 100ms
 

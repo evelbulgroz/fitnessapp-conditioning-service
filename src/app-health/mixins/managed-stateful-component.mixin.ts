@@ -159,11 +159,11 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 					// Initialize main component and any subcomponents in the order specified in options
 					if (this.msc_zh7y_options.initializationStrategy === 'parent-first') {
-						await this.initializeStateFulComponent();
+						await this.onInitialize();
 						await this[`${unshadowPrefix}initializeSubcomponents`]();
 					} else { // 'children-first'
 						await this[`${unshadowPrefix}initializeSubcomponents`]();
-						await this.initializeStateFulComponent();
+						await this.onInitialize();
 					}
 					
 					// Set own state and update the state subject with the new state
@@ -276,11 +276,11 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 					// Shut down main component and any subcomponents in the order specified in options
 					if (this.msc_zh7y_options.shutDownStrategy === 'parent-first') {
-						await this.shutdownStatefulComponent();
+						await this.onShutdown();
 						await this[`${unshadowPrefix}shutdownSubcomponents`];
 					} else { // 'children-first'
 						await this[`${unshadowPrefix}shutdownSubcomponents`];
-						await this.shutdownStatefulComponent();
+						await this.onShutdown();
 					}
 
 					// Set own state and update the state subject with the new state
@@ -326,7 +326,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It should leave it to initialize() to handle the state management and observable emissions.
 		 * @remark A default implementation is provided that simply resolves the promise.
 		 */
-		/* @internal */ initializeStateFulComponent(): Promise<void> { return Promise.resolve(); }
+		/* @internal */ onInitialize(): Promise<void> { return Promise.resolve(); }
 		
 		/** Execute component-specific shutdown
 		 * @returns Promise that resolves when shutdown is complete
@@ -336,7 +336,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It should leave it to shutdown() to handle the state management and observable emissions.
 		 * @remark A default implementation is provided that simply resolves the promise.
 		 */
-		/* @internal */ shutdownStatefulComponent(): Promise<void> { return Promise.resolve(); }
+		/* @internal */ onShutdown(): Promise<void> { return Promise.resolve(); }
 
 		//--------------------------------- PROTECTED METHODS -----------------------------------//
 		
