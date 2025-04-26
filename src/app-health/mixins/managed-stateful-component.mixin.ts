@@ -5,15 +5,15 @@ import ComponentStateInfo from '../models/component-state-info.model';
 import ManagedStatefulComponent from '../models/managed-stateful-component.model';
 import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
 
-/** A mixin that provides a standard implementation of the ManagedStatefulComponent interface.
+/** A mixin that provides a standard implementation of the {@link ManagedStatefulComponent} interface.
  * This mixin follows the stateful component pattern for lifecycle management with built-in
  * state tracking, hierarchical composition, and standardized initialization/shutdown flows.
  * 
- * @typeparam TParent The type of the parent class
  * @param Parent The immediate parent class to extend, or `class {}` if no inheritance is needed
+ * @typeparam TParent The type of the parent class
  * @param options Configuration options for initialization, shutdown, and subcomponent strategies
  * @param unshadowPrefix Prefix for internal methods to avoid name collisions. Defaults to "msc_" + random string
- * @returns A class that implements ManagedStatefulComponent and extends the provided parent
+ * @returns A class that implements {@link ManagedStatefulComponent} and extends the provided parent
  * 
  * @remark COMPONENT STATES
  * Components move through the following states:
@@ -25,19 +25,39 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * @remark STATE MANAGEMENT
  * - Component's own state is tracked in `msc_zh7y_ownState`
  * - All internal properties use the fixed prefix `msc_zh7y_` to avoid name collisions
- * - Internal methods are prefixed with 'msc_' + a random string to avoid shadowing parent methods
  * - Component state changes are observable through the `state$` Observable
  * - Aggregated state includes all subcomponents, with the "worst" state propagating upward
+ * - The mixin uses the "Wait for Your Own Events" pattern to ensure state changes are propagated before resolving promises
  * 
  * @remark INHERITANCE BEHAVIOR
  * - Preserves inheritance chain and passes calls up through class hierarchy
- * - `initialize()` and `shutdown()` call parent methods before executing local logic
- * - Template methods `onInitialize()` and `onShutdown()` may be implemented by concrete classes that require custom behavior
- * - `isReady()` shadows the inherited method to ensure consistent readyness checks
- * - Protected methods are prefixed with unshadowPrefix to avoid collisions
+ * - All members specified by {@link ManagedStatefulComponent} are reserved for the mixin:
+ * 
+ * {@link ManageableComponent} members:
+ * - `initialize()` - Initializes the component and its subcomponents, passing calls up the hierarchy
+ * - `shutdown()` - Shuts down the component and its subcomponents, passing calls up the hierarchy
+ * - `isReady()` - Checks if component is ready to serve requests, shadows any parent method
+ * - `onInitialize()` - Template method for component-specific initialization logic, called by `initialize()`, shadows any parent method
+ * - `onShutdown()` - Template method for component-specific shutdown logic, called by `shutdown()`, shadows any parent method 
+ * 
+ * {@link StatefulComponent} members:
+ * - `state$` - Observable that emits state changes, shadows any parent property
+ * 
+ * {@link ComponentContainer} members:
+ * - `registerSubcomponent()` - Registers a subcomponent for lifecycle management and subscribes to its state changes
+ *                            - Shadows any parent method
+ * - `unregisterSubcomponent()` - Removes a subcomponent from management and unsubscribes from its state changes
+ *                              - Shadows any parent method
+ * 
+ * Notes:
+ * - Concrete classes may optionally override template methods `onInitialize()` and `onShutdown()`
+ *   if they have specific initialization/shutdown needs
+ * - Protected members are prefixed with 'msc_' + a random string to avoid name collisions and shadowing
+ * - The protected method prefix is configurable via the `unshadowPrefix` parameter
+ * - The protected property prefix is hard coded to `msc_zh7y_` for simplicity
  * 
  * @remark COMPONENT HIERARCHY
- * - Parent-child relationships are supported via registerSubcomponent()
+ * - Parent-child relationships are supported via `registerSubcomponent()` and `unregisterSubcomponent()` methods
  * - State is automatically aggregated across the component hierarchy
  * - Initialization order is configurable in options (parent-first or children-first, default: parent-first)
  * - Shutdown order is configurable in options (parent-first or children-first, default: parent-first)
@@ -49,6 +69,10 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * - State changes are observable and wait for propagation to complete
  * - TypeScript limitations: protected members are marked with @internal annotation
  * 
+ * @remark USAGE AND EXAMPLES
+ * - Target class should extend the mixin to gain {@link ManagedStatefulComponent} functionality
+ * - The mixin can be used with or without further inheritance, and with or without subcomponents
+ *  
  * @example Basic component with no parent class:
  * ```typescript
  * class MyComponent extends ManagedStatefulComponentMixin(class {}) {
@@ -73,13 +97,6 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  *     // Component-specific shutdown logic
  *   }
  * }
- * ```
- * 
- * @example Using with TypeScript type system:
- * ```typescript
- * // Ensure proper type checking with multiple inheritance
- * interface MyComponent extends ReturnType<typeof ManagedStatefulComponentMixin> {}
- * class MyComponent extends ManagedStatefulComponentMixin(ParentClass) {...}
  * ```
  */
 export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(
