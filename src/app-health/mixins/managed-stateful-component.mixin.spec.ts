@@ -4,6 +4,7 @@ import { Logger } from '@evelbulgroz/logger';
 import { ManagedStatefulComponentMixin } from './managed-stateful-component.mixin';
 import ComponentState from '../models/component-state';
 import ComponentStateInfo from '../models/component-state-info';
+import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
 
 // NOTE: Future test enhancements:
 	// - Error Propagation: More detailed tests for error handling scenarios.
@@ -151,110 +152,159 @@ describe('ManagedStatefulComponentMixin', () => {
 		});
 	});
 
-	describe('initialize()', () => {
-		it('changes state to INITIALIZING then OK', async () => {
-			const stateChanges: ComponentStateInfo[] = [];
-			component.state$.subscribe(state => stateChanges.push({ ...state }));
-
-			await component.initialize();
-
-			expect(stateChanges.length).toBe(3); // UNINITIALIZED -> INITIALIZING -> OK
-			expect(stateChanges[0].state).toBe(ComponentState.UNINITIALIZED);
-			expect(stateChanges[1].state).toBe(ComponentState.INITIALIZING);
-			expect(stateChanges[2].state).toBe(ComponentState.OK);
-		});
-
-		it('calls initializeComponent exactly once', async () => {
-			await component.initialize();
-			expect(component.initCount).toBe(1);
-		});
-
-		it('resolves immediately if already initialized', async () => {
-			await component.initialize();
-			component.initCount = 0; // Reset for clarity
-			
-			await component.initialize();
-			expect(component.initCount).toBe(0); // Should not be called again
-		});
-
-		it('shares the same promise for concurrent calls', async () => {
-			component.initDelay = 50; // Add delay to ensure concurrent calls
-			
-			const promise1 = component.initialize();
-			const promise2 = component.initialize();
-			
-			await Promise.all([promise1, promise2]);
-			
-			expect(component.initCount).toBe(1); // Should be called only once
-		});
-
-		it('changes state to FAILED if initialization fails', async () => {
-			component.shouldFailInit = true;
-			
-			try {
-				await component.initialize();
-				fail('has thrown an error');
-			} catch (error) {
+	describe('public API', () => {		
+		describe('getState()', () => {
+			it('returns the current state', () => {
 				const state = component.getState();
-				expect(state.state).toBe(ComponentState.FAILED);
-				expect(state.reason).toContain('Initialization failed');
-			}
-		});
-
-		it('resets initializationPromise after completion', async () => {
-			await component.initialize();
-			expect(component.initializationPromise).toBeUndefined();
+				expect(state.state).toBe(ComponentState.UNINITIALIZED);
+				expect(state.name).toBe('TestComponent');
+				expect(state.reason).toBe('Component created');
+				expect(state.updatedOn).toBeInstanceOf(Date);
+			});
 		});
 		
-		it('resets initializationPromise after failure', async () => {
-			component.shouldFailInit = true;
-			
-			try {
+		describe('initialize()', () => {
+			it('changes state to INITIALIZING then OK', async () => {
+				const stateChanges: ComponentStateInfo[] = [];
+				component.state$.subscribe(state => stateChanges.push({ ...state }));
+
 				await component.initialize();
-			} catch (error) {
-				// Expected error
-			}
-			
-			expect(component.initializationPromise).toBeUndefined();
-		});
-	});
 
-	describe('isReady()', () => {
-		it('returns true if component is in OK state', async () => {
-			await component.initialize();
-			const ready = await component.isReady();
-			expect(ready).toBe(true);
-		});
+				expect(stateChanges.length).toBe(3); // UNINITIALIZED -> INITIALIZING -> OK
+				expect(stateChanges[0].state).toBe(ComponentState.UNINITIALIZED);
+				expect(stateChanges[1].state).toBe(ComponentState.INITIALIZING);
+				expect(stateChanges[2].state).toBe(ComponentState.OK);
+			});
 
-		it('returns false if initialization fails', async () => {
-			component.shouldFailInit = true;
-			const ready = await component.isReady();
-			expect(ready).toBe(false);
-		});
+			it('calls initializeComponent exactly once', async () => {
+				await component.initialize();
+				expect(component.initCount).toBe(1);
+			});
 
-		it('initializes the component if not initialized', async () => {
-			const ready = await component.isReady();
-			expect(ready).toBe(true);
-			expect(component.initCount).toBe(1);
-		});
+			it('resolves immediately if already initialized', async () => {
+				await component.initialize();
+				component.initCount = 0; // Reset for clarity
+				
+				await component.initialize();
+				expect(component.initCount).toBe(0); // Should not be called again
+			});
 
-		it('returns true if component is in DEGRADED state', async () => {
-			await component.initialize();
-			
-			// Manually set state to DEGRADED
-			component.stateSubject.next({
-				name: component.constructor.name,
-				state: ComponentState.DEGRADED,
-				reason: 'Service is degraded',
-				updatedOn: new Date()
+			it('shares the same promise for concurrent calls', async () => {
+				component.initDelay = 50; // Add delay to ensure concurrent calls
+				
+				const promise1 = component.initialize();
+				const promise2 = component.initialize();
+				
+				await Promise.all([promise1, promise2]);
+				
+				expect(component.initCount).toBe(1); // Should be called only once
+			});
+
+			it('changes state to FAILED if initialization fails', async () => {
+				component.shouldFailInit = true;
+				
+				try {
+					await component.initialize();
+					fail('has thrown an error');
+				} catch (error) {
+					const state = component.getState();
+					expect(state.state).toBe(ComponentState.FAILED);
+					expect(state.reason).toContain('Initialization failed');
+				}
+			});
+
+			it('resets initializationPromise after completion', async () => {
+				await component.initialize();
+				expect(component.initializationPromise).toBeUndefined();
 			});
 			
-			const ready = await component.isReady();
-			expect(ready).toBe(true);
+			it('resets initializationPromise after failure', async () => {
+				component.shouldFailInit = true;
+				
+				try {
+					await component.initialize();
+				} catch (error) {
+					// Expected error
+				}
+				
+				expect(component.initializationPromise).toBeUndefined();
+			});
 		});
-	});
 
-	describe('shutdown()', () => {
+		describe('isReady()', () => {
+			it('returns true if component is in OK state', async () => {
+				await component.initialize();
+				const ready = await component.isReady();
+				expect(ready).toBe(true);
+			});
+
+			it('returns false if initialization fails', async () => {
+				component.shouldFailInit = true;
+				const ready = await component.isReady();
+				expect(ready).toBe(false);
+			});
+
+			it('initializes the component if not initialized', async () => {
+				const ready = await component.isReady();
+				expect(ready).toBe(true);
+				expect(component.initCount).toBe(1);
+			});
+
+			it('returns true if component is in DEGRADED state', async () => {
+				await component.initialize();
+				
+				// Manually set state to DEGRADED
+				component.stateSubject.next({
+					name: component.constructor.name,
+					state: ComponentState.DEGRADED,
+					reason: 'Service is degraded',
+					updatedOn: new Date()
+				});
+				
+				const ready = await component.isReady();
+				expect(ready).toBe(true);
+			});
+		});
+
+		describe('options', () => {
+			it('gets the options of the component', () => {
+				const options: ManagedStatefulComponentOptions = component.options;
+				expect(options).toEqual({
+					name: 'TestComponent',
+					state: ComponentState.UNINITIALIZED,
+					reason: 'Component created',
+					updatedOn: expect.any(Date),
+				});
+			});
+			
+			xit('sets the options of the component', () => {
+				const newOptions: Partial<ManagedStatefulComponentOptions> = {
+					initializationStrategy: 'children-first',
+					subcomponentStrategy: 'sequential',
+				};
+				component.options = newOptions;
+				const options = component.options;
+				expect(options).toEqual(newOptions);
+			});
+			
+			xit('is immutable', () => {
+				const originalOptions = component.options;
+				const newOptions: Partial<ManagedStatefulComponentOptions> = {
+					initializationStrategy: 'children-first',
+					subcomponentStrategy: 'sequential',
+				};
+				component.options = newOptions;
+				expect(originalOptions).not.toEqual(newOptions);
+				expect(originalOptions).toEqual({
+					name: 'TestComponent',
+					state: ComponentState.UNINITIALIZED,
+					reason: 'Component created',
+					updatedOn: expect.any(Date),
+				});
+			});
+		});
+
+		describe('shutdown()', () => {
 		it('changes state to SHUTTING_DOWN then SHUT_DOWN', async () => {
 			await component.initialize();
 			component.shutdownDelay = 250; // Add delay to ensure state changes are observable
@@ -329,7 +379,9 @@ describe('ManagedStatefulComponentMixin', () => {
 			
 			expect(component.shutdownPromise).toBeUndefined();
 		});
+		});
 	});
+		
 
 	describe('constructor name', () => {
 		it('uses the derived class name in state info', () => {
