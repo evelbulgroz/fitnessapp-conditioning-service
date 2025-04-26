@@ -83,6 +83,8 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		//------------------------------------- PROPERTIES --------------------------------------//
 		
 		// State management properties
+
+		// BehaviorSubject to track the aggregated state of the component and its subcomponents
 		public /* @internal */ readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
 			name: this.constructor.name, 
 			state: ComponentState.UNINITIALIZED, 
@@ -90,7 +92,16 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			updatedOn: new Date() 
 		});
 		
+		// Observable to expose the aggregated state as a stream of state changes
 		public readonly state$: Observable<ComponentStateInfo> = this.stateSubject.asObservable();
+
+		// Isolated state for the component itself, without subcomponents
+		public /* @internal */ ownState: ComponentStateInfo = { 
+			name: this.constructor.name, 
+			state: ComponentState.UNINITIALIZED, 
+			reason: 'Component created', 
+			updatedOn: new Date() 
+		};
 		
 		// Optional subcomponent support
 		public /* @internal */ subcomponents: ManagedStatefulComponent[] = [];
@@ -110,20 +121,36 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		//------------------------------------- PUBLIC API --------------------------------------//
 		
 		// Standard getState implementation that supports components with subcomponents
-		public getState(): ComponentStateInfo {
-			const baseState = { ...this.stateSubject.value };
-			
-			// If we have subcomponents, include their states
-			if (this.subcomponents.length > 0) {
-				return {
-					...baseState,
-					components: this.subcomponents.map(c => c.getState())
-				};
+		
+		/** Get the component state without updating the state subject
+		 * @returns The current state of the component and its subcomponents (if any)
+		 * @remark Returns aggregated state if subcomponents are present, otherwise returns the components own state
+		 */
+		public /* @internal */ getState(): ComponentStateInfo {
+			// If no subcomponents, just return the current state
+			if (this.subcomponents.length === 0) {
+				return { ...this.stateSubject.value };
 			}
 			
-			return baseState;
+			// Get all component states including self
+			const states = [
+				{ ...this.stateSubject.value }, // Base state without components
+				...this.subcomponents.map(c => c.getState())
+			];
+			
+			// Calculate worst state
+			const worstState = this.calculateWorstState(states);
+			
+			// Return the aggregated state without updating the subject
+			return {
+				name: this.constructor.name,
+				state: worstState.state,
+				reason: this.createAggregatedReason(states, worstState),
+				updatedOn: new Date(),
+				components: this.subcomponents.map(c => c.getState())
+			};
 		}
-		
+
 		/** Set or get component option defaults, e.g. to control component behavior during initialization and shutdown
 		 * @param options Options to optionally wholly or partially override defaults (if set)
 		 * @returns The current options (if get)
@@ -148,7 +175,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Handles concurrent calls by returning the same promise for all callers during initialization
 		 * @remark If the component is already initialized, resolves immediately
 		 */
-		public initialize(): Promise<void> {
+		public async initialize(): Promise<void> {
 			// If already initialized, resolve immediately
 			if (this.stateSubject.value.state !== ComponentState.UNINITIALIZED) {
 				return Promise.resolve();
@@ -157,19 +184,20 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			// If initialization is already in progress, return the existing promise
 			if (this.initializationPromise) {
 				return this.initializationPromise;
-			}
-		
-			// Set the internal state to indicate initialization in progress
-			this.stateSubject.next({
-				name: this.constructor.name,
-				state: ComponentState.INITIALIZING,
-				reason: 'Component initialization in progress',
-				updatedOn: new Date()
-			});
+			}			
 			
 			// Create a new initialization promise
 			this.initializationPromise = new Promise<void>(async (resolve, reject) => {
 				try {
+					// Set own state and update the state subject with the new state
+					this.ownState = ({
+						name: this.constructor.name,
+						state: ComponentState.INITIALIZING,
+						reason: 'Component initialization in progress',
+						updatedOn: new Date()
+					});
+					await this.updateState(this.ownState); // returns when state change is observed
+
 					// Initialize main component and any subcomponents in the order specified in options
 					if (this.options.initializationStrategy === 'parent-first') {
 						await this.initializeComponent();
@@ -179,13 +207,14 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 						await this.initializeComponent();
 					}
 					
-					// Update state to indicate successful initialization, and wait for the state change to propagate
-					await this.updateState({
+					// Set own state and update the state subject with the new state
+					this.ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.OK,
 						reason: 'Component initialized successfully',
 						updatedOn: new Date()
 					});
+					await this.updateState(this.ownState); // returns when state change is observed
 
 					resolve();
 				} 
@@ -257,7 +286,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Handles concurrent calls by returning the same promise for all callers during shutdown
 		 * @remark If the component is already shut down, resolves immediately
 		 */
-		public shutdown(): Promise<void> {
+		public async shutdown(): Promise<void> {
 			// If already shut down, resolve immediately
 			if (this.stateSubject.value.state === ComponentState.SHUT_DOWN) {
 				return Promise.resolve();
@@ -268,16 +297,17 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				return this.shutdownPromise;
 			}
 
-			// Set the internal state to indicate shutdown in progress
-			this.stateSubject.next({
-				name: this.constructor.name,
-				state: ComponentState.SHUTTING_DOWN,
-				reason: 'Component shutdown in progress',
-				updatedOn: new Date()
-			});
-
 			this.shutdownPromise = new Promise<void>(async (resolve, reject) => {
 				try {
+					// Set own state and update the state subject with the new state
+					this.ownState = ({
+						name: this.constructor.name,
+						state: ComponentState.SHUTTING_DOWN,
+						reason: 'Component shutdown in progress',
+						updatedOn: new Date()
+					});
+					await this.updateState(this.ownState); // returns when state change is observed
+
 					// Shut down main component and any subcomponents in the order specified in options
 					if (this.options.shutDownStrategy === 'parent-first') {
 						await this.shutdownComponent();
@@ -286,14 +316,15 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 						await this.shutdownSubcomponents();
 						await this.shutdownComponent();
 					}
-					
-					// Update state to indicate successful shutdown
-					await this.updateState({
+
+					// Set own state and update the state subject with the new state
+					this.ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.SHUT_DOWN,
 						reason: 'Component shut down successfully',
 						updatedOn: new Date()
-					});					
+					});
+					await this.updateState(this.ownState); // returns when state change is observed
 					
 					resolve();
 				} 
@@ -568,23 +599,44 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			});
 		}
 
-		/* Update the state of the component and optionally its subcomponents, waiting for state changes to propagate
+		/* Update the state of the component and optionally its subcomponents
 		 * @param state The new state to set
 		 * @returns Promise that resolves when the state update has fully propagated
-		 * @remark Uses the "Wait for Your Own Events" pattern to ensure state consistency
+		 * @remark Waits for state change to propagate before resolving (i.e. "Wait for Your Own Events" pattern to ensure consistency)
 		 */
 		public /* @internal */ async updateState(newState: Partial<ComponentStateInfo>): Promise<void> {
 			// Create updated state object
-			const updatedState: ComponentStateInfo = {
-				...this.stateSubject.value,
-				...newState,
-				updatedOn: new Date()
+			let updatedState: ComponentStateInfo = {
+				...this.stateSubject.value, // merge current aggregated state with...
+				...newState, // ...new state values...
+				updatedOn: new Date() // ...and update the timestamp
 			};
-			
-			// Include subcomponents if present
-			if (this.subcomponents.length > 0) {
-				updatedState.components = this.subcomponents.map(c => c.getState());
-			}
+
+			// For components with subcomponents, recalculate the aggregated state
+			if (this.subcomponents?.length > 0) {
+				// We need to preserve the partial updates from newState
+				const baseState = {
+				...this.stateSubject.value,
+				...newState
+				};
+				
+				// Calculate the aggregated state with updated properties
+				const states = [
+					baseState,
+					...this.subcomponents.map(c => c.getState())
+				];
+				
+				const worstState = this.calculateWorstState(states);
+				
+				// Create the final aggregated state
+				updatedState = {
+					...baseState,
+					state: worstState.state,
+					reason: this.createAggregatedReason(states, worstState),
+					updatedOn: new Date(),
+					components: this.subcomponents.map(c => c.getState())
+				};
+			}			
 			
 			// Create a promise that resolves when this state change is observed
 			const stateUpdatePromise = firstValueFrom(
@@ -603,6 +655,8 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			
 			// Wait for state update to propagate through the observable chain
 			await stateUpdatePromise;
+
+			return void 0; // State update complete
 		}
 		
 		/* Unregister a subcomponent from this component

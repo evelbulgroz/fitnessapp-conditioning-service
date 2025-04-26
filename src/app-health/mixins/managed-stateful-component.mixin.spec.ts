@@ -155,12 +155,39 @@ describe('ManagedStatefulComponentMixin', () => {
 
 	describe('public API', () => {		
 		describe('getState', () => {
-			it('returns the current state', () => {
+			it(`returns component's own state if no subcomponents are registered`, () => {
 				const state = component.getState();
 				expect(state.state).toBe(ComponentState.UNINITIALIZED);
 				expect(state.name).toBe('TestComponent');
 				expect(state.reason).toBe('Component created');
 				expect(state.updatedOn).toBeInstanceOf(Date);
+			});
+
+			it(`returns aggregated state if subcomponents are registered`, async () => {
+				const subcomponent1 = new TestComponent();
+				component.registerSubcomponent(subcomponent1);
+				subcomponent1.stateSubject.next({
+					name: 'Subcomponent1',
+					state: ComponentState.OK,
+					reason: 'All good',
+					updatedOn: new Date()
+				});
+
+				const subComponent2 = new TestComponent();
+				component.registerSubcomponent(subComponent2);
+				subComponent2.stateSubject.next({
+					name: 'Subcomponent2',
+					state: ComponentState.DEGRADED,
+					reason: 'Minor issue',
+					updatedOn: new Date()
+				});
+				
+				await component.initialize();				
+				expect(component['ownState'].state).toBe(ComponentState.OK);
+				const aggregatedState = component.getState();
+				expect(aggregatedState.state).toBe(ComponentState.DEGRADED);
+				expect(aggregatedState.name).toBe('TestComponent');
+				expect(aggregatedState.reason).toContain('Aggregated state [DEGRADED: 2/3, OK: 1/3]');
 			});
 		});
 
