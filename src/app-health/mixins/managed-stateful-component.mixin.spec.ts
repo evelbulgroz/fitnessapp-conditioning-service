@@ -1,4 +1,5 @@
 import { take } from 'rxjs';
+
 import { Logger } from '@evelbulgroz/logger';
 
 import { ManagedStatefulComponentMixin } from './managed-stateful-component.mixin';
@@ -141,15 +142,9 @@ describe('ManagedStatefulComponentMixin', () => {
 		jest.clearAllMocks();
 	});
 
-	describe('initial state', () => {
-		it('should start in UNINITIALIZED state', () => {
-			const state = component.getState();
-			expect(state.state).toBe(ComponentState.UNINITIALIZED);
-		});
-
-		it('has a state$ Observable', () => {
-			expect(component.state$).toBeDefined();
-		});
+	it('can be created as an instance retaining its inheritance from the base class', () => {
+		expect(component).toBeDefined();
+		expect(component).toBeInstanceOf(TestComponent);
 	});
 
 	describe('public API', () => {		
@@ -270,165 +265,176 @@ describe('ManagedStatefulComponentMixin', () => {
 			it('gets the options of the component', () => {
 				const options: ManagedStatefulComponentOptions = component.options;
 				expect(options).toEqual({
-					name: 'TestComponent',
-					state: ComponentState.UNINITIALIZED,
-					reason: 'Component created',
-					updatedOn: expect.any(Date),
+					initializationStrategy: 'parent-first',
+					shutDownStrategy: 'parent-first',
+					subcomponentStrategy: 'parallel'
 				});
 			});
 			
-			xit('sets the options of the component', () => {
+			it('sets the options of the component', () => {
 				const newOptions: Partial<ManagedStatefulComponentOptions> = {
 					initializationStrategy: 'children-first',
+					shutDownStrategy: 'parent-first',
 					subcomponentStrategy: 'sequential',
 				};
 				component.options = newOptions;
-				const options = component.options;
-				expect(options).toEqual(newOptions);
+				expect(component.options).toEqual(newOptions);
 			});
 			
-			xit('is immutable', () => {
+			it('is immutable', () => {
 				const originalOptions = component.options;
 				const newOptions: Partial<ManagedStatefulComponentOptions> = {
+					...originalOptions,
 					initializationStrategy: 'children-first',
 					subcomponentStrategy: 'sequential',
 				};
 				component.options = newOptions;
 				expect(originalOptions).not.toEqual(newOptions);
 				expect(originalOptions).toEqual({
-					name: 'TestComponent',
-					state: ComponentState.UNINITIALIZED,
-					reason: 'Component created',
-					updatedOn: expect.any(Date),
+					initializationStrategy: 'parent-first',
+					shutDownStrategy: 'parent-first',
+					subcomponentStrategy: 'parallel'
 				});
 			});
 		});
 
 		describe('shutdown()', () => {
-		it('changes state to SHUTTING_DOWN then SHUT_DOWN', async () => {
-			await component.initialize();
-			component.shutdownDelay = 250; // Add delay to ensure state changes are observable
-			
-			const stateChanges: ComponentStateInfo[] = [];
-			component.state$.pipe(take(3)).subscribe(state => stateChanges.push({ ...state }));
-			
-			await component.shutdown();
-			
-			expect(stateChanges.length).toBe(3); // OK -> SHUTTING_DOWN -> SHUT_DOWN
-			expect(stateChanges[0].state).toBe(ComponentState.OK); // BehaviorSubject always immediately emits the current value
-			expect(stateChanges[1].state).toBe(ComponentState.SHUTTING_DOWN);
-			expect(stateChanges[2].state).toBe(ComponentState.SHUT_DOWN);
-		});
-
-		it('calls shutdownComponent exactly once', async () => {
-			await component.initialize();
-			await component.shutdown();
-			expect(component.shutdownCount).toBe(1);
-		});
-
-		it('resolves immediately if already shut down', async () => {
-			await component.initialize();
-			await component.shutdown();
-			component.shutdownCount = 0; // Reset for clarity
-			
-			await component.shutdown();
-			expect(component.shutdownCount).toBe(0); // Should not be called again
-		});
-
-		it('shares the same promise for concurrent calls', async () => {
-			await component.initialize();
-			component.shutdownDelay = 50; // Add delay to ensure concurrent calls
-			
-			const promise1 = component.shutdown();
-			const promise2 = component.shutdown();
-			
-			await Promise.all([promise1, promise2]);
-			
-			expect(component.shutdownCount).toBe(1); // Should be called only once
-		});
-
-		it('changes state to FAILED if shutdown fails', async () => {
-			await component.initialize();
-			component.shouldFailShutdown = true;
-			
-			try {
+			it('changes state to SHUTTING_DOWN then SHUT_DOWN', async () => {
+				await component.initialize();
+				component.shutdownDelay = 250; // Add delay to ensure state changes are observable
+				
+				const stateChanges: ComponentStateInfo[] = [];
+				component.state$.pipe(take(3)).subscribe(state => stateChanges.push({ ...state }));
+				
 				await component.shutdown();
-				fail('has thrown an error');
-			} catch (error) {
+				
+				expect(stateChanges.length).toBe(3); // OK -> SHUTTING_DOWN -> SHUT_DOWN
+				expect(stateChanges[0].state).toBe(ComponentState.OK); // BehaviorSubject always immediately emits the current value
+				expect(stateChanges[1].state).toBe(ComponentState.SHUTTING_DOWN);
+				expect(stateChanges[2].state).toBe(ComponentState.SHUT_DOWN);
+			});
+
+			it('calls shutdownComponent exactly once', async () => {
+				await component.initialize();
+				await component.shutdown();
+				expect(component.shutdownCount).toBe(1);
+			});
+
+			it('resolves immediately if already shut down', async () => {
+				await component.initialize();
+				await component.shutdown();
+				component.shutdownCount = 0; // Reset for clarity
+				
+				await component.shutdown();
+				expect(component.shutdownCount).toBe(0); // Should not be called again
+			});
+
+			it('shares the same promise for concurrent calls', async () => {
+				await component.initialize();
+				component.shutdownDelay = 50; // Add delay to ensure concurrent calls
+				
+				const promise1 = component.shutdown();
+				const promise2 = component.shutdown();
+				
+				await Promise.all([promise1, promise2]);
+				
+				expect(component.shutdownCount).toBe(1); // Should be called only once
+			});
+
+			it('changes state to FAILED if shutdown fails', async () => {
+				await component.initialize();
+				component.shouldFailShutdown = true;
+				
+				try {
+					await component.shutdown();
+					fail('has thrown an error');
+				} catch (error) {
+					const state = component.getState();
+					expect(state.state).toBe(ComponentState.FAILED);
+					expect(state.reason).toContain('Shutdown failed');
+				}
+			});
+
+			it('resets shutdownPromise after completion', async () => {
+				await component.initialize();
+				await component.shutdown();
+				expect(component.shutdownPromise).toBeUndefined();
+			});
+			
+			it('resets shutdownPromise after failure', async () => {
+				await component.initialize();
+				component.shouldFailShutdown = true;
+				
+				try {
+					await component.shutdown();
+				} catch (error) {
+					// Expected error
+				}
+				
+				expect(component.shutdownPromise).toBeUndefined();
+			});
+		});
+	});
+
+	describe('Internals', () => {			
+		describe('initial state', () => {
+			it('should start in UNINITIALIZED state', () => {
 				const state = component.getState();
-				expect(state.state).toBe(ComponentState.FAILED);
-				expect(state.reason).toContain('Shutdown failed');
-			}
-		});
+				expect(state.state).toBe(ComponentState.UNINITIALIZED);
+			});
 
-		it('resets shutdownPromise after completion', async () => {
-			await component.initialize();
-			await component.shutdown();
-			expect(component.shutdownPromise).toBeUndefined();
+			it('has a state$ Observable', () => {
+				expect(component.state$).toBeDefined();
+			});
 		});
 		
-		it('resets shutdownPromise after failure', async () => {
-			await component.initialize();
-			component.shouldFailShutdown = true;
-			
-			try {
-				await component.shutdown();
-			} catch (error) {
-				// Expected error
-			}
-			
-			expect(component.shutdownPromise).toBeUndefined();
-		});
-		});
-	});
-		
+		describe('constructor name', () => {
+			it('uses the derived class name in state info', () => {
+				const state = component.getState();
+				expect(state.name).toBe('TestComponent');
+			});
+		});	
 
-	describe('constructor name', () => {
-		it('uses the derived class name in state info', () => {
-			const state = component.getState();
-			expect(state.name).toBe('TestComponent');
-		});
-	});
+		describe('inheritance', () => {
+			let inheritingComponent: InheritingComponent;
+			let properInheritingComponent: ProperInheritingComponent;
 
-	describe('inheritance', () => {
-		let inheritingComponent: InheritingComponent;
-		let properInheritingComponent: ProperInheritingComponent;
+			beforeEach(() => {
+				inheritingComponent = new InheritingComponent();
+				properInheritingComponent = new ProperInheritingComponent();
+			});
 
-		beforeEach(() => {
-			inheritingComponent = new InheritingComponent();
-			properInheritingComponent = new ProperInheritingComponent();
-		});
+			it('shadows base class initialize method', async () => {
+				await inheritingComponent.initialize();
+				
+				expect(inheritingComponent.baseInitCalled).toBe(false);
+				expect(inheritingComponent.getState().state).toBe(ComponentState.OK);
+			});
 
-		it('shadows base class initialize method', async () => {
-			await inheritingComponent.initialize();
-			
-			expect(inheritingComponent.baseInitCalled).toBe(false);
-			expect(inheritingComponent.getState().state).toBe(ComponentState.OK);
-		});
+			it('shadows base class shutdown method', async () => {
+				await inheritingComponent.initialize();
+				await inheritingComponent.shutdown();
+				
+				expect(inheritingComponent.baseShutdownCalled).toBe(false);
+				expect(inheritingComponent.getState().state).toBe(ComponentState.SHUT_DOWN);
+			});
 
-		it('shadows base class shutdown method', async () => {
-			await inheritingComponent.initialize();
-			await inheritingComponent.shutdown();
-			
-			expect(inheritingComponent.baseShutdownCalled).toBe(false);
-			expect(inheritingComponent.getState().state).toBe(ComponentState.SHUT_DOWN);
-		});
+			it('allows executing base class methods explicitly', async () => {
+				await properInheritingComponent.initialize();
+				
+				// Access baseClass via private property, need to cast to access it in test
+				expect((properInheritingComponent as any).baseClass.baseInitCalled).toBe(true);
+				expect(properInheritingComponent.getState().state).toBe(ComponentState.OK);
+			});
 
-		it('allows executing base class methods explicitly', async () => {
-			await properInheritingComponent.initialize();
-			
-			// Access baseClass via private property, need to cast to access it in test
-			expect((properInheritingComponent as any).baseClass.baseInitCalled).toBe(true);
-			expect(properInheritingComponent.getState().state).toBe(ComponentState.OK);
-		});
-
-		it('allows executing base class shutdown methods explicitly', async () => {
-			await properInheritingComponent.initialize();
-			await properInheritingComponent.shutdown();
-			
-			// Access baseClass via private property, need to cast to access it in test
-			expect((properInheritingComponent as any).baseClass.baseShutdownCalled).toBe(true);
-			expect(properInheritingComponent.getState().state).toBe(ComponentState.SHUT_DOWN);
+			it('allows executing base class shutdown methods explicitly', async () => {
+				await properInheritingComponent.initialize();
+				await properInheritingComponent.shutdown();
+				
+				// Access baseClass via private property, need to cast to access it in test
+				expect((properInheritingComponent as any).baseClass.baseShutdownCalled).toBe(true);
+				expect(properInheritingComponent.getState().state).toBe(ComponentState.SHUT_DOWN);
+			});
 		});
 	});
 });

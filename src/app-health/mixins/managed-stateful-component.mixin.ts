@@ -307,7 +307,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Options are not intended to be changed after the component is created, but this method allows for some flexibility
 		 */
 		public set options(options: Partial<ManagedStatefulComponentOptions>) {
-			this.options = {
+			this._options = {
 				...this._options,
 				...options
 			};
