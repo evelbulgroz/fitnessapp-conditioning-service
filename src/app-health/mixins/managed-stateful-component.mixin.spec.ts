@@ -49,7 +49,7 @@ class TestComponent extends ManagedStatefulComponentMixin(class {}) {
 	public initDelay = 0;
 	public shutdownDelay = 0;
 
-	public executeInitialization(): Promise<void> {
+	public initializeComponent(): Promise<void> {
 		this.initCount++;
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
@@ -62,7 +62,7 @@ class TestComponent extends ManagedStatefulComponentMixin(class {}) {
 		});
 	}
 
-	public executeShutdown(): Promise<void> {
+	public shutdownComponent(): Promise<void> {
 		this.shutdownCount++;
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
@@ -96,13 +96,13 @@ class BaseWithLifecycle {
 class InheritingComponent extends ManagedStatefulComponentMixin(BaseWithLifecycle) {
 	public readonly logger = new MockLogger();
 
-	public async executeInitialization(): Promise<void> {
+	public async initializeComponent(): Promise<void> {
 		// Note: this doesn't call super.initialize() since the mixin shadows it
 		// In a real component, you might need to call the base method explicitly
 		return Promise.resolve();
 	}
 
-	public async executeShutdown(): Promise<void> {
+	public async shutdownComponent(): Promise<void> {
 		return Promise.resolve();
 	}
 }
@@ -119,13 +119,13 @@ class ProperInheritingComponent extends ManagedStatefulComponentMixin(BaseWithLi
 		this.baseClass = new BaseWithLifecycle();
 	}
 
-	public async executeInitialization(): Promise<void> {
+	public async initializeComponent(): Promise<void> {
 		// Explicitly call the base class method via the instance
 		await this.baseClass.initialize();
 		return Promise.resolve();
 	}
 
-	public async executeShutdown(): Promise<void> {
+	public async shutdownComponent(): Promise<void> {
 		// Explicitly call the base class method via the instance
 		await this.baseClass.shutdown();
 		return Promise.resolve();
@@ -164,7 +164,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			expect(stateChanges[2].state).toBe(ComponentState.OK);
 		});
 
-		it('calls executeInitialization exactly once', async () => {
+		it('calls initializeComponent exactly once', async () => {
 			await component.initialize();
 			expect(component.initCount).toBe(1);
 		});
@@ -270,7 +270,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			expect(stateChanges[2].state).toBe(ComponentState.SHUT_DOWN);
 		});
 
-		it('calls executeShutdown exactly once', async () => {
+		it('calls shutdownComponent exactly once', async () => {
 			await component.initialize();
 			await component.shutdown();
 			expect(component.shutdownCount).toBe(1);
