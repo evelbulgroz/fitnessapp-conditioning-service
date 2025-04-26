@@ -710,7 +710,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}			
 			
 			// Create a promise that resolves when this state change is observed
-			const stateUpdatePromise = firstValueFrom(
+			const updateStatePromise = firstValueFrom(
 				this.state$.pipe(
 					filter(state => 
 						// Match on state value and timestamp to ensure we're waiting for this specific update
@@ -725,7 +725,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			this. msc_zh7y_stateSubject.next(updatedState);
 			
 			// Wait for state update to propagate through the observable chain
-			await stateUpdatePromise;
+			await updateStatePromise;
 
 			return void 0; // State update complete
 		}
