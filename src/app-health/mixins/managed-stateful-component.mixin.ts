@@ -85,13 +85,14 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		
 		//------------------------------------- PROPERTIES --------------------------------------//
 		
-		// Prefix internal member names to avoid shadowing parent members of the same name
-		public /* @internal */  readonly unshadowPrefix: string;
+		// Prefix for internal method names to avoid shadowing parent methods of the same name
+		 // itself prefixed manually to avoid shadowing parent property of the same name
+		public /* @internal */  readonly msc_zh7y_unshadowPrefix: string;
 
 		// State management properties
 
 		// BehaviorSubject to track the aggregated state of the component and its subcomponents
-		public /* @internal */ readonly stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
+		public /* @internal */ readonly  msc_zh7y_stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
 			name: this.constructor.name, 
 			state: ComponentState.UNINITIALIZED, 
 			reason: 'Component created', 
@@ -99,10 +100,10 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		});
 		
 		// Observable to expose the aggregated state as a stream of state changes
-		public readonly state$: Observable<ComponentStateInfo> = this.stateSubject.asObservable();
+		public readonly state$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
 
 		// Isolated state for the component itself, without subcomponents
-		public /* @internal */ ownState: ComponentStateInfo = { 
+		public /* @internal */ msc_zh7y_ownState: ComponentStateInfo = { 
 			name: this.constructor.name, 
 			state: ComponentState.UNINITIALIZED, 
 			reason: 'Component created', 
@@ -110,15 +111,15 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		};
 		
 		// Optional subcomponent support
-		public /* @internal */ subcomponents: ManagedStatefulComponent[] = [];
-		public /* @internal */ componentSubscriptions: Map<ManagedStatefulComponent, Subscription> = new Map();
+		public /* @internal */ msc_zh7y_subcomponents: ManagedStatefulComponent[] = [];
+		public /* @internal */ msc_zh7y_componentSubscriptions: Map<ManagedStatefulComponent, Subscription> = new Map();
 
 		// Initialization and shutdown promises
-		public /* @internal */ initializationPromise?: Promise<void>;
-		public /* @internal */ shutdownPromise?: Promise<void>;
+		public /* @internal */ msc_zh7y_initializationPromise?: Promise<void>;
+		public /* @internal */ msc_zh7y_shutdownPromise?: Promise<void>;
 
 		// Default options for initialization and shutdown strategies
-		public /* @internal */ _options: ManagedStatefulComponentOptions = { // underscore to enable setter/getter naming
+		public /* @internal */ msc_zh7y_options: ManagedStatefulComponentOptions = { // no underscore, prefix does the job
 			initializationStrategy: 'parent-first',
 			shutDownStrategy: 'parent-first',
 			subcomponentStrategy: 'parallel'
@@ -128,7 +129,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 		public constructor(...args: any[]) {
 			super(...args); // Call parent constructor, passing any arguments
-			this.unshadowPrefix = unshadowPrefix; // Set the unshadow prefix for internal members
+			this.msc_zh7y_unshadowPrefix = unshadowPrefix; // Set the unshadow prefix for internal members
 		}		
 
 		//------------------------------------- PUBLIC API --------------------------------------//
@@ -141,14 +142,14 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 */
 		public getState(): ComponentStateInfo {
 			// If no subcomponents, just return the current state
-			if (this.subcomponents.length === 0) {
-				return { ...this.stateSubject.value };
+			if (this. msc_zh7y_subcomponents.length === 0) {
+				return { ...this. msc_zh7y_stateSubject.value };
 			}
 			
 			// Get all component states including self
 			const states = [
-				{ ...this.stateSubject.value }, // Base state without components
-				...this.subcomponents.map(c => c.getState())
+				{ ...this. msc_zh7y_stateSubject.value }, // Base state without components
+				...this. msc_zh7y_subcomponents.map(c => c.getState())
 			];
 			
 			// Calculate worst state
@@ -160,7 +161,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				state: worstState.state,
 				reason: this[`${unshadowPrefix}createAggregatedReason`](states, worstState),
 				updatedOn: new Date(),
-				components: this.subcomponents.map(c => c.getState())
+				components: this. msc_zh7y_subcomponents.map(c => c.getState())
 			};
 		}
 
@@ -171,13 +172,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Options are not intended to be changed after the component is created, but this method allows for some flexibility
 		 */
 		public set options(options: Partial<ManagedStatefulComponentOptions>) {
-			this._options = {
-				...this._options,
+			this.msc_zh7y_options = {
+				...this.msc_zh7y_options,
 				...options
 			};
 		}		
 		public get options(): ManagedStatefulComponentOptions {
-			return {...this._options};
+			return {...this.msc_zh7y_options};
 		}
 	
 		/** Initialize the component and all of its subcomponents (if any) if it is not already initialized
@@ -192,26 +193,26 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 */
 		public async initialize(...args: any[]): Promise<void> {
 			// If already initialized, resolve immediately
-			if (this.stateSubject.value.state !== ComponentState.UNINITIALIZED) {
+			if (this. msc_zh7y_stateSubject.value.state !== ComponentState.UNINITIALIZED) {
 				return Promise.resolve();
 			}
 		
 			// If initialization is already in progress, return the existing promise
-			if (this.initializationPromise) {
-				return this.initializationPromise;
+			if (this.msc_zh7y_initializationPromise) {
+				return this.msc_zh7y_initializationPromise;
 			}			
 			
 			// Create a new initialization promise
-			this.initializationPromise = new Promise<void>(async (resolve, reject) => {
+			this.msc_zh7y_initializationPromise = new Promise<void>(async (resolve, reject) => {
 				try {
 					// Set own state and update the state subject with the new state
-					this.ownState = ({
+					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.INITIALIZING,
 						reason: 'Component initialization in progress',
 						updatedOn: new Date()
 					});
-					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
+					await this[`${unshadowPrefix}updateState`](this. msc_zh7y_ownState); // returns when state change is observed
 
 					// Call parent initialize method if found (preserving inheritance)
 					await this[`${unshadowPrefix}callParentMethod`](this.initialize, ...args);
@@ -226,33 +227,33 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					}
 					
 					// Set own state and update the state subject with the new state
-					this.ownState = ({
+					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.OK,
 						reason: 'Component initialized successfully',
 						updatedOn: new Date()
 					});
-					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
+					await this[`${unshadowPrefix}updateState`](this. msc_zh7y_ownState); // returns when state change is observed
 
 					resolve();
 				} 
 				catch (error) {
-					this.ownState = ({
+					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.FAILED,
 						reason: `Component initialization failed: ${error instanceof Error ? error.message : String(error)}`,
 						updatedOn: new Date()
 					});
-					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
+					await this[`${unshadowPrefix}updateState`](this. msc_zh7y_ownState); // returns when state change is observed
 										
 					reject(error);
 				}
 				finally {
-					this.initializationPromise = undefined;
+					this.msc_zh7y_initializationPromise = undefined;
 				}
 			});
 		
-			return this.initializationPromise;
+			return this.msc_zh7y_initializationPromise;
 		}		
 
 		/** Check if the component, including any subcomponents, is ready to serve requests
@@ -265,22 +266,22 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		public async isReady(): Promise<boolean> {
 			try {
 				// Check if this component is ready
-				if (this.stateSubject.value.state === ComponentState.UNINITIALIZED) {
+				if (this. msc_zh7y_stateSubject.value.state === ComponentState.UNINITIALIZED) {
 					await this.initialize();
 				}
 				
 				const isThisComponentReady = 
-					this.stateSubject.value.state === ComponentState.OK || 
-					this.stateSubject.value.state === ComponentState.DEGRADED;
+					this. msc_zh7y_stateSubject.value.state === ComponentState.OK || 
+					this. msc_zh7y_stateSubject.value.state === ComponentState.DEGRADED;
 				
 				// If no subcomponents or this component isn't ready, return the result
-				if (!this.subcomponents.length || !isThisComponentReady) {
+				if (!this. msc_zh7y_subcomponents.length || !isThisComponentReady) {
 					return isThisComponentReady;
 				}
 				
 				// Check if all subcomponents are ready
 				const subcomponentReadyStates = await Promise.all(
-					this.subcomponents.map(async component => {
+					this. msc_zh7y_subcomponents.map(async component => {
 						try {
 							return await component.isReady();
 						}
@@ -310,25 +311,25 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 */
 		public async shutdown(...args: any[]): Promise<void> {
 			// If already shut down, resolve immediately
-			if (this.stateSubject.value.state === ComponentState.SHUT_DOWN) {
+			if (this. msc_zh7y_stateSubject.value.state === ComponentState.SHUT_DOWN) {
 				return Promise.resolve();
 			}
 
 			// If shutdown is already in progress, return the existing promise
-			if (this.shutdownPromise) {
-				return this.shutdownPromise;
+			if (this.msc_zh7y_shutdownPromise) {
+				return this.msc_zh7y_shutdownPromise;
 			}
 
-			this.shutdownPromise = new Promise<void>(async (resolve, reject) => {
+			this.msc_zh7y_shutdownPromise = new Promise<void>(async (resolve, reject) => {
 				try {
 					// Set own state and update the state subject with the new state
-					this.ownState = ({
+					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.SHUTTING_DOWN,
 						reason: 'Component shutdown in progress',
 						updatedOn: new Date()
 					});
-					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
+					await this[`${unshadowPrefix}updateState`](this. msc_zh7y_ownState); // returns when state change is observed
 
 					// Call parent shutdown method if found (preserving inheritance)
 					await this[`${unshadowPrefix}callParentMethod`](this.shutdown, ...args);
@@ -343,34 +344,34 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					}
 
 					// Set own state and update the state subject with the new state
-					this.ownState = ({
+					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.SHUT_DOWN,
 						reason: 'Component shut down successfully',
 						updatedOn: new Date()
 					});
-					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
+					await this[`${unshadowPrefix}updateState`](this. msc_zh7y_ownState); // returns when state change is observed
 					
 					resolve();
 				} 
 				catch (error) {
 					// Update state to indicate shutdown failure
-					this.ownState = ({
+					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.FAILED,
 						reason: `Component shutdown failed: ${error instanceof Error ? error.message : String(error)}`,
 						updatedOn: new Date()
 					});
-					await this[`${unshadowPrefix}updateState`](this.ownState); // returns when state change is observed
+					await this[`${unshadowPrefix}updateState`](this. msc_zh7y_ownState); // returns when state change is observed
 					
 					reject(error);
 				}
 				finally {
-					this.shutdownPromise = undefined;
+					this.msc_zh7y_shutdownPromise = undefined;
 				}
 			});
 
-			return this.shutdownPromise;
+			return this.msc_zh7y_shutdownPromise;
 		}
 
 		//---------------------------------- TEMPLATE METHODS -----------------------------------//
@@ -599,13 +600,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Sequential initialization is slower but guarantees that subcomponents are initialized in the order they were registered
 		 */
 		public /* @internal */ async [`${unshadowPrefix}initializeSubcomponents`](): Promise<void> {
-			if (this.subcomponents.length === 0) return;
+			if (this. msc_zh7y_subcomponents.length === 0) return;
 			
 			if (this.options.subcomponentStrategy === 'parallel') { // fastest				
-				await Promise.all(this.subcomponents.map(component => component.initialize()));
+				await Promise.all(this. msc_zh7y_subcomponents.map(component => component.initialize()));
 			}
 			else { // sequential, slower but guaranteed to respect registration order
-				for (const component of this.subcomponents) {
+				for (const component of this. msc_zh7y_subcomponents) {
 					await component.initialize();
 				}
 			}
@@ -626,11 +627,11 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			else if (!(component instanceof ManagedStatefulComponentClass)) {
 				throw new Error('Component must be an instance of ManagedStatefulComponent');
 			}
-			else if (this.subcomponents.includes(component)) {
+			else if (this. msc_zh7y_subcomponents.includes(component)) {
 				throw new Error('Component is already registered as a subcomponent');
 			}
 			
-			this.subcomponents.push(component);
+			this. msc_zh7y_subcomponents.push(component);
 			
 			// Subscribe to component state changes
 			const subscription = component.state$.subscribe(state => {
@@ -638,7 +639,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				this.updateAggregatedState();
 			});
 			
-			this.componentSubscriptions.set(component, subscription);
+			this.msc_zh7y_componentSubscriptions.set(component, subscription);
 			
 			// Update the aggregated state to include the new component
 			this.updateAggregatedState();
@@ -651,13 +652,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Sequential shutdown is slower but guarantees that subcomponents are shut down in the reverse order they were registered
 		 */
 		public /* @internal */ async [`${unshadowPrefix}shutdownSubcomponents`](): Promise<void> {
-			if (this.subcomponents.length === 0) return;
+			if (this. msc_zh7y_subcomponents.length === 0) return;
 			
 			if (this.options.subcomponentStrategy === 'parallel') { // fastest
-				await Promise.all(this.subcomponents.map(component => component.shutdown()));
+				await Promise.all(this. msc_zh7y_subcomponents.map(component => component.shutdown()));
 			}
 			else { // sequential, slower but guaranteed to respect registration order
-				for (const component of this.subcomponents.reverse()) {
+				for (const component of this. msc_zh7y_subcomponents.reverse()) {
 					await component.shutdown();
 				}
 			}
@@ -668,26 +669,26 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark New code should possibly not rely on this method
 		 */
 		public /* @internal */ updateAggregatedState(): void {
-			if (this.subcomponents.length === 0) {
+			if (this. msc_zh7y_subcomponents.length === 0) {
 				return; // Nothing to aggregate
 			}
 			
 			// Get all component states including self
 			const states = [
-				{ ...this.stateSubject.value }, // Base state without components
-				...this.subcomponents.map(c => c.getState())
+				{ ...this. msc_zh7y_stateSubject.value }, // Base state without components
+				...this. msc_zh7y_subcomponents.map(c => c.getState())
 			];
 			
 			// Calculate worst state
 			const worstState = this[`${unshadowPrefix}calculateWorstState`](states);
 			
 			// Update the state
-			this.stateSubject.next({
+			this. msc_zh7y_stateSubject.next({
 				name: this.constructor.name,
 				state: worstState.state,
 				reason: this[`${unshadowPrefix}createAggregatedReason`](states, worstState),
 				updatedOn: new Date(),
-				components: this.subcomponents.map(c => c.getState())
+				components: this. msc_zh7y_subcomponents.map(c => c.getState())
 			});
 		}
 
@@ -699,23 +700,23 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		public /* @internal */ async [`${unshadowPrefix}updateState`](newState: Partial<ComponentStateInfo>): Promise<void> {
 			// Create updated state object
 			let updatedState: ComponentStateInfo = {
-				...this.stateSubject.value, // merge current aggregated state with...
+				...this. msc_zh7y_stateSubject.value, // merge current aggregated state with...
 				...newState, // ...new state values...
 				updatedOn: new Date() // ...and update the timestamp
 			};
 
 			// For components with subcomponents, recalculate the aggregated state
-			if (this.subcomponents?.length > 0) {
+			if (this. msc_zh7y_subcomponents?.length > 0) {
 				// We need to preserve the partial updates from newState
 				const baseState = {
-				...this.stateSubject.value,
+				...this. msc_zh7y_stateSubject.value,
 				...newState
 				};
 				
 				// Calculate the aggregated state with updated properties
 				const states = [
 					baseState,
-					...this.subcomponents.map((c: ManagedStatefulComponent) => c.getState())
+					...this. msc_zh7y_subcomponents.map((c: ManagedStatefulComponent) => c.getState())
 				];				
 				const worstState = this[`${unshadowPrefix}calculateWorstState`](states);
 				
@@ -725,7 +726,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					state: worstState.state,
 					reason: this[`${unshadowPrefix}createAggregatedReason`](states, worstState),
 					updatedOn: new Date(),
-					components: this.subcomponents.map(c => c.getState())
+					components: this. msc_zh7y_subcomponents.map(c => c.getState())
 				};
 			}			
 			
@@ -742,7 +743,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			);
 			
 			// Update the state
-			this.stateSubject.next(updatedState);
+			this. msc_zh7y_stateSubject.next(updatedState);
 			
 			// Wait for state update to propagate through the observable chain
 			await stateUpdatePromise;
@@ -759,20 +760,20 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark The component must be an instance of ManagedStatefulComponent.
 		 */
 		public /* @internal */ [`${unshadowPrefix}unregisterSubcomponent`](component: ManagedStatefulComponent): boolean {
-			const index = this.subcomponents.indexOf(component);
+			const index = this. msc_zh7y_subcomponents.indexOf(component);
 			if (index === -1) {
 				return false;
 			}
 			
 			// Clean up subscription
-			const subscription = this.componentSubscriptions.get(component);
+			const subscription = this.msc_zh7y_componentSubscriptions.get(component);
 			if (subscription) {
 				subscription.unsubscribe();
-				this.componentSubscriptions.delete(component);
+				this.msc_zh7y_componentSubscriptions.delete(component);
 			}
 			
 			// Remove component
-			this.subcomponents.splice(index, 1);
+			this. msc_zh7y_subcomponents.splice(index, 1);
 			
 			// Update the aggregated state
 			this.updateAggregatedState();

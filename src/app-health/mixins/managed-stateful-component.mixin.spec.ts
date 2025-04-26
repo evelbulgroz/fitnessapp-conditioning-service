@@ -52,7 +52,7 @@ describe('ManagedStatefulComponentMixin', () => {
 	let unshadowPrefix: string;
 	beforeEach(() => {
 		component = new TestComponent();
-		unshadowPrefix = component['unshadowPrefix'];
+		unshadowPrefix = component['msc_zh7y_unshadowPrefix'];
 		jest.clearAllMocks();
 	});
 
@@ -80,7 +80,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			it(`returns aggregated state if subcomponents are registered`, async () => {
 				const subcomponent1 = new TestComponent();
 				component[`${unshadowPrefix}registerSubcomponent`](subcomponent1);
-				subcomponent1.stateSubject.next({
+				subcomponent1. msc_zh7y_stateSubject.next({
 					name: 'Subcomponent1',
 					state: ComponentState.OK,
 					reason: 'All good',
@@ -89,7 +89,7 @@ describe('ManagedStatefulComponentMixin', () => {
 
 				const subComponent2 = new TestComponent();
 				component[`${unshadowPrefix}registerSubcomponent`](subComponent2);
-				subComponent2.stateSubject.next({
+				subComponent2. msc_zh7y_stateSubject.next({
 					name: 'Subcomponent2',
 					state: ComponentState.DEGRADED,
 					reason: 'Minor issue',
@@ -97,7 +97,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				});
 				
 				await component.initialize();
-				expect(component['ownState'].state).toBe(ComponentState.OK);
+				expect(component['msc_zh7y_ownState'].state).toBe(ComponentState.OK);
 				const aggregatedState = component.getState();
 				expect(aggregatedState.state).toBe(ComponentState.DEGRADED);
 				expect(aggregatedState.name).toBe('TestComponent');
@@ -194,7 +194,7 @@ describe('ManagedStatefulComponentMixin', () => {
 
 			it('resets initializationPromise after completion', async () => {
 				await component.initialize();
-				expect(component.initializationPromise).toBeUndefined();
+				expect(component.msc_zh7y_initializationPromise).toBeUndefined();
 			});
 			
 			it('resets initializationPromise after failure', async () => {
@@ -206,7 +206,7 @@ describe('ManagedStatefulComponentMixin', () => {
 					// Expected error
 				}
 				
-				expect(component.initializationPromise).toBeUndefined();
+				expect(component.msc_zh7y_initializationPromise).toBeUndefined();
 			});
 		});
 
@@ -233,7 +233,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				await component.initialize();
 				
 				// Manually set state to DEGRADED
-				component.stateSubject.next({
+				component. msc_zh7y_stateSubject.next({
 					name: component.constructor.name,
 					state: ComponentState.DEGRADED,
 					reason: 'Service is degraded',
@@ -305,7 +305,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			it('resets shutdownPromise after completion', async () => {
 				await component.initialize();
 				await component.shutdown();
-				expect(component.shutdownPromise).toBeUndefined();
+				expect(component.msc_zh7y_shutdownPromise).toBeUndefined();
 			});
 			
 			it('resets shutdownPromise after failure', async () => {
@@ -318,7 +318,7 @@ describe('ManagedStatefulComponentMixin', () => {
 					// Expected error
 				}
 				
-				expect(component.shutdownPromise).toBeUndefined();
+				expect(component.msc_zh7y_shutdownPromise).toBeUndefined();
 			});
 		});
 	});
@@ -600,7 +600,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			it('adds a subcomponent to the list', () => {
 				const subcomponent = new TestComponent();
 				component[`${unshadowPrefix}registerSubcomponent`](subcomponent);
-				expect(component.subcomponents).toContain(subcomponent);
+				expect(component. msc_zh7y_subcomponents).toContain(subcomponent);
 			});
 
 			it('does not allow null or undefined subcomponents', () => {
@@ -616,7 +616,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				const subcomponent = new TestComponent();
 				component[`${unshadowPrefix}registerSubcomponent`](subcomponent);
 				expect(() => component[`${unshadowPrefix}registerSubcomponent`](subcomponent)).toThrow(); // Register again
-				expect(component.subcomponents.length).toBe(1); // Should still be only one
+				expect(component. msc_zh7y_subcomponents.length).toBe(1); // Should still be only one
 			});
 
 			// todo: test subscription to subcomponent state changes when deciding to keep updateAggregatedState() or not
@@ -665,13 +665,13 @@ describe('ManagedStatefulComponentMixin', () => {
 				component[`${unshadowPrefix}registerSubcomponent`](subcomponent1);
 				component[`${unshadowPrefix}registerSubcomponent`](subcomponent2);
 
-				subcomponent1.stateSubject.next({
+				subcomponent1. msc_zh7y_stateSubject.next({
 					name: 'Subcomponent1',
 					state: ComponentState.OK,
 					reason: 'All good',
 					updatedOn: new Date()
 				});
-				subcomponent2.stateSubject.next({
+				subcomponent2. msc_zh7y_stateSubject.next({
 					name: 'Subcomponent2',
 					state: ComponentState.DEGRADED,
 					reason: 'Minor issue',
@@ -719,13 +719,13 @@ describe('ManagedStatefulComponentMixin', () => {
 				const subcomponent = new TestComponent();
 				component[`${unshadowPrefix}registerSubcomponent`](subcomponent);
 				component[`${unshadowPrefix}unregisterSubcomponent`](subcomponent);
-				expect(component.subcomponents).not.toContain(subcomponent);
+				expect(component. msc_zh7y_subcomponents).not.toContain(subcomponent);
 			});
 
 			it('does nothing if the subcomponent is not registered', () => {
 				const subcomponent = new TestComponent();
 				component[`${unshadowPrefix}unregisterSubcomponent`](subcomponent); // Not registered
-				expect(component.subcomponents.length).toBe(0); // Should still be empty
+				expect(component. msc_zh7y_subcomponents.length).toBe(0); // Should still be empty
 			});
 
 			// todo: test subscription to subcomponent state changes when deciding to keep updateAggregatedState() or not
