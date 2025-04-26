@@ -1,8 +1,8 @@
 import { take } from 'rxjs';
 
 import { ManagedStatefulComponentMixin } from './managed-stateful-component.mixin';
-import ComponentState from '../models/component-state';
-import ComponentStateInfo from '../models/component-state-info';
+import ComponentState from '../models/component-state.enum';
+import ComponentStateInfo from '../models/component-state-info.model';
 import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
 
 // NOTE: Future test enhancements:

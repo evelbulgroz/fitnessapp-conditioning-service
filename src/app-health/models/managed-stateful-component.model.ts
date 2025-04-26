@@ -1,4 +1,4 @@
-import { ManageableComponent } from "./manageable-component";
+import { ManageableComponent } from "./manageable-component.model";
 import { StatefulComponent } from "./stateful-component";
 
 /** Interface for components with both lifecycle management and state tracking capabilities.

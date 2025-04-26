@@ -1,8 +1,8 @@
 import { filter, firstValueFrom, Observable, Subscription, take, timeout, TimeoutError } from 'rxjs';
 
-import ComponentState from '../models/component-state';
-import ComponentStateInfo from '../models/component-state-info';
-import ManagedStatefulComponent from '../models/managed-stateful-component';
+import ComponentState from '../models/component-state.enum';
+import ComponentStateInfo from '../models/component-state-info.model';
+import ManagedStatefulComponent from '../models/managed-stateful-component.model';
 
 /** A mixin that adds support for aggregated state management across multiple subcomponents.
  * @param Parent The immediate parent class - must implement ManagedStatefulComponent interface

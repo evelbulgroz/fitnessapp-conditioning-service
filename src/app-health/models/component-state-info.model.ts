@@ -1,4 +1,4 @@
-import { ComponentState } from "./component-state";
+import { ComponentState } from "./component-state.enum";
 
 /** Specifies the contents of a component state entry.
  * @remarks The component state is used to determine if the application is lively, and/or healthy, and ready to serve requests.

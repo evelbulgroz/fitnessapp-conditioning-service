@@ -12,7 +12,7 @@ import { Query } from '@evelbulgroz/query-fns';
 import AggregationQueryDTO from '../../dtos/aggregation-query.dto';
 import AggregatorService from '../aggregator/aggregator.service';
 import BooleanDTO from '../../../shared/dtos/responses/boolean.dto';
-import ComponentStateInfo from '../../../app-health/models/component-state-info';
+import ComponentStateInfo from '../../../app-health/models/component-state-info.model';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import ConditioningLogDTO from '../../dtos/conditioning-log.dto';

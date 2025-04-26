@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 
 import { Logger } from '@evelbulgroz/logger';
 
-import AppState from '../../models/app-state';
-import AppStateInfo from '../../models/app-state-info';
-import ComponentState from '../../models/component-state';
-import ComponentStateInfo from '../../models/component-state-info';
-import ManagedStatefulComponent from '../../models/managed-stateful-component';
+import AppState from '../../models/app-state.model';
+import AppStateInfo from '../../models/app-state-info.model';
+import ComponentState from '../../models/component-state.enum';
+import ComponentStateInfo from '../../models/component-state-info.model';
+import ManagedStatefulComponent from '../../models/managed-stateful-component.model';
 
 /** This service is used to manage the application state and health check status.
  * @remark It keeps the application's current state in memory and provides methods to set and get the state.

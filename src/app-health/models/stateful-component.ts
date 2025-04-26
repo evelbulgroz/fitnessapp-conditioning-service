@@ -1,5 +1,5 @@
 import { Observable } from "rxjs";
-import { ComponentStateInfo } from "./component-state-info";
+import { ComponentStateInfo } from "./component-state-info.model";
 
 /** Interface for observable component health state tracking.
  * @remark Provides access to the current health state and a stream of state changes.

@@ -1,8 +1,8 @@
 import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
-import ComponentState from '../models/component-state';
-import ComponentStateInfo from '../models/component-state-info';
-import ManagedStatefulComponent from '../models/managed-stateful-component';
+import ComponentState from '../models/component-state.enum';
+import ComponentStateInfo from '../models/component-state-info.model';
+import ManagedStatefulComponent from '../models/managed-stateful-component.model';
 import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
 
 /** A mixin that provides a standard implementation of the ManagedStatefulComponent interface.
@@ -12,7 +12,9 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * @param unshadowPrefix The prefix to use for internal members to avoid shadowing parent members of the same name. Default is "msc_".
  * @returns A class that implements ManagedStatefulComponent and extends the provided parent class (if any).
  * @remark This mixin inserts a standard implementation of the ManagedStatefulComponent interface into the existing class hierarchy.
- * @remark All public API method names are reserved for the mixin and will, in most cases, shadow any similarly named methods in the class hierarchy, breaking inheritance.
+ * @remark All public API method names are required by `ManagedStatefulComponent`, reserved for the mixin.
+ * - `initialize()` and `shutdown()` methods preserve inheritance and pass the call up the class hierarchy.
+ * - `isReady()` shadows any inherited method of the same name, as it is considered purely informational.
  * @remark Template methods `initializeStateFulComponent()` and `shutdownStateFulComponent()` are reserved for the mixin and will shadow any similarly named methods in the class hierarchy.
  * @remark Anonymous classes in TypeScript cannot have non-public members. Instead, members not intended for the public API are marked as `@internal`.
  * @remark All `@internal` member names are prefixed with `msc_*` to reduce the risk of shadowing parent members of the same name.
