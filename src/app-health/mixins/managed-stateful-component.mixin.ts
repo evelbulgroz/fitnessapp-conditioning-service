@@ -106,8 +106,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 		//------------------------------------- PUBLIC API --------------------------------------//
 		
-		// Standard getState implementation that supports components with subcomponents
-		
 		/** Observable stream of state changes for the component and its subcomponents (if any)
 		 * @returns Observable that emits the current state of the component and its subcomponents (if any) whenever the state changes
 		 * @remark The observable is a BehaviorSubject, so it will emit the current state immediately upon subscription
