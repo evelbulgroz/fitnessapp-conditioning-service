@@ -1,7 +1,5 @@
 import { take } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/logger';
-
 import { ManagedStatefulComponentMixin } from './managed-stateful-component.mixin';
 import ComponentState from '../models/component-state';
 import ComponentStateInfo from '../models/component-state-info';
@@ -9,41 +7,12 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
 
 // NOTE: Future test enhancements:
 	// - Error Propagation: More detailed tests for error handling scenarios.
-	// - Logger Usage: Tests to verify that the logger is used appropriately.
 	// - Observable Completion: Tests to verify that observables are completed when components are shut down.
 	// - Performance Tests: For measuring the overhead of the mixin.
-	// - Integration Tests: With actual components in your application.
-
-// Mock Logger class
-jest.mock('@evelbulgroz/logger', () => ({
-	Logger: jest.fn().mockImplementation(() => ({
-		log: jest.fn(),
-		error: jest.fn(),
-		warn: jest.fn(),
-		debug: jest.fn(),
-		info: jest.fn(),
-	})),
-}));
-
-class MockLogger extends Logger {
-	constructor() {
-	super();
-		this.appName = 'TestApp';
-		this.context = 'TestContext';
-		this.addLocalTimestamp = true;
-		this.logLevel = 'debug';
-	}
-	public log = jest.fn();
-	public error = jest.fn();
-	public warn = jest.fn();
-	public debug = jest.fn();
-	public info = jest.fn();
-	public verbose = jest.fn();
-}
+	// - Integration Tests: With actual components in the application.
 
 // Stand-alone component using the mixin
 class TestComponent extends ManagedStatefulComponentMixin(class {}) {
-	public readonly logger = new MockLogger();
 	public initCount = 0;
 	public shutdownCount = 0;
 	public shouldFailInit = false;
@@ -75,62 +44,6 @@ class TestComponent extends ManagedStatefulComponentMixin(class {}) {
 				}
 			}, this.shutdownDelay);
 		});
-	}
-}
-
-// Base class with its own initialization/shutdown
-class BaseWithLifecycle {
-	public baseInitCalled = false;
-	public baseShutdownCalled = false;
-
-	public async initialize(): Promise<void> {
-		this.baseInitCalled = true;
-		return Promise.resolve();
-	}
-
-	public async shutdown(): Promise<void> {
-		this.baseShutdownCalled = true;
-		return Promise.resolve();
-	}
-}
-
-// Component that extends another class
-class InheritingComponent extends ManagedStatefulComponentMixin(BaseWithLifecycle) {
-	public readonly logger = new MockLogger();
-
-	public async initializeComponent(): Promise<void> {
-		// Note: this doesn't call super.initialize() since the mixin shadows it
-		// In a real component, you might need to call the base method explicitly
-		return Promise.resolve();
-	}
-
-	public async shutdownComponent(): Promise<void> {
-		return Promise.resolve();
-	}
-}
-
-// Component that properly calls base methods
-class ProperInheritingComponent extends ManagedStatefulComponentMixin(BaseWithLifecycle) {
-	public readonly logger = new MockLogger();
-	// Access to base class for accessing its methods
-	private baseClass: BaseWithLifecycle;
-
-	constructor() {
-		super();
-		// Create an instance of the base class to call its methods
-		this.baseClass = new BaseWithLifecycle();
-	}
-
-	public async initializeComponent(): Promise<void> {
-		// Explicitly call the base class method via the instance
-		await this.baseClass.initialize();
-		return Promise.resolve();
-	}
-
-	public async shutdownComponent(): Promise<void> {
-		// Explicitly call the base class method via the instance
-		await this.baseClass.shutdown();
-		return Promise.resolve();
 	}
 }
 

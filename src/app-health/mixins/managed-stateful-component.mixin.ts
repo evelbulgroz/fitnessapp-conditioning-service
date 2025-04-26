@@ -1,4 +1,4 @@
-import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take, tap } from 'rxjs';
+import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
 import ComponentState from '../models/component-state';
 import ComponentStateInfo from '../models/component-state-info';
