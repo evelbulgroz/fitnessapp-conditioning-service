@@ -65,8 +65,7 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  *	 ```
  * 
  * CAUTIONS
- * - Properties `stateSubject`, `initializationPromise` and `shutdownPromise` are not intended for public access, 
- *	 but must be marked as public to be accessible to the mixin.
+ * - Members marked `@internal` are not intended for public access, but must be marked as `public` to be accessible to the mixin.
  * - The mixin's implementation of `initialize()` and `shutdown()` does NOT automatically call parent class methods 
  *	 with the same name.
  * - Avoid applying this mixin to classes that already implement the ManagedStatefulComponent interface (e.g. using this mixin), as this will introduce unnessesary complexity and potential conflicts.
