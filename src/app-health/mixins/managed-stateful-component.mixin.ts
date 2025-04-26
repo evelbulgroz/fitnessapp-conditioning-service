@@ -6,8 +6,9 @@ import ManagedStatefulComponent from '../models/managed-stateful-component';
 import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
 
 /** A mixin that provides a standard implementation of the ManagedStatefulComponent interface.
- * @param Parent The immediate parent class of the target class using this mixin, or `class {}` if the target class does not inherit from any other class.
  * @typeparam TParent The type of the parent class
+ * @param Parent The immediate parent class of the target class using this mixin, or `class {}` if the target class does not inherit from any other class.
+ * @param options Options to configure the mixin behavior, such as initialization and shutdown strategies.
  * @param unshadowPrefix The prefix to use for internal members to avoid shadowing parent members of the same name. Default is "msc_".
  * @returns A class that implements ManagedStatefulComponent and extends the provided parent class (if any).
  * @remark This mixin inserts a standard implementation of the ManagedStatefulComponent interface into the existing class hierarchy.
@@ -48,11 +49,14 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * ```typescript
  * interface MyClass extends ReturnType<typeof ManagedStatefulComponentMixin> {}
  * ```
-
-
  */
 export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(
 	Parent: TParent,
+	options: ManagedStatefulComponentOptions = {
+		initializationStrategy: 'parent-first',
+		shutDownStrategy: 'parent-first',
+		subcomponentStrategy: 'parallel'
+	},
 	unshadowPrefix: string = `msc_${Math.random().toString(36).substring(2, 6)}_` // Default prefix: "managed stateful component" + random string
 ) {
 	abstract class ManagedStatefulComponentClass extends Parent implements ManagedStatefulComponent {
@@ -102,6 +106,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 		public constructor(...args: any[]) {
 			super(...args); // Call parent constructor, passing any arguments
+			this.msc_zh7y_options = { ...this.msc_zh7y_options, ...options }; // Merge options with defaults
 			this.msc_zh7y_unshadowPrefix = unshadowPrefix; // Set the unshadow prefix for internal members
 		}		
 
@@ -114,22 +119,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 */
 		public readonly state$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
 		
-		/** Set or get component option defaults, e.g. to control component behavior during initialization and shutdown
-		 * @param options Options to optionally wholly or partially override defaults (if set)
-		 * @returns The current options (if get)
-		 * @remark Method exists mostly to avoid overcomplicating the constructor with too many parameters
-		 * @remark Options are not intended to be changed after the component is created, but this method allows for some flexibility
-		 */
-		public set options(options: Partial<ManagedStatefulComponentOptions>) {
-			this.msc_zh7y_options = {
-				...this.msc_zh7y_options,
-				...options
-			};
-		}		
-		public get options(): ManagedStatefulComponentOptions {
-			return {...this.msc_zh7y_options};
-		}
-	
 		/** Initialize the component and all of its subcomponents (if any) if it is not already initialized
 		 * @param args Optional arguments to pass to parent initialize methods 
 		 * @returns Promise that resolves when the component and all of its subcomponents are initialized
@@ -167,7 +156,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					await this[`${unshadowPrefix}callParentMethod`](this.initialize, ...args);
 
 					// Initialize main component and any subcomponents in the order specified in options
-					if (this.options.initializationStrategy === 'parent-first') {
+					if (this.msc_zh7y_options.initializationStrategy === 'parent-first') {
 						await this.initializeStateFulComponent();
 						await this[`${unshadowPrefix}initializeSubcomponents`]();
 					} else { // 'children-first'
@@ -284,7 +273,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					await this[`${unshadowPrefix}callParentMethod`](this.shutdown, ...args);
 
 					// Shut down main component and any subcomponents in the order specified in options
-					if (this.options.shutDownStrategy === 'parent-first') {
+					if (this.msc_zh7y_options.shutDownStrategy === 'parent-first') {
 						await this.shutdownStatefulComponent();
 						await this[`${unshadowPrefix}shutdownSubcomponents`];
 					} else { // 'children-first'
@@ -577,7 +566,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		/* @internal */ async [`${unshadowPrefix}initializeSubcomponents`](): Promise<void> {
 			if (this. msc_zh7y_subcomponents.length === 0) return;
 			
-			if (this.options.subcomponentStrategy === 'parallel') { // fastest				
+			if (this.msc_zh7y_options.subcomponentStrategy === 'parallel') { // fastest				
 				await Promise.all(this. msc_zh7y_subcomponents.map(component => component.initialize()));
 			}
 			else { // sequential, slower but guaranteed to respect registration order
@@ -629,7 +618,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		/* @internal */ async [`${unshadowPrefix}shutdownSubcomponents`](): Promise<void> {
 			if (this. msc_zh7y_subcomponents.length === 0) return;
 			
-			if (this.options.subcomponentStrategy === 'parallel') { // fastest
+			if (this.msc_zh7y_options.subcomponentStrategy === 'parallel') { // fastest
 				await Promise.all(this. msc_zh7y_subcomponents.map(component => component.shutdown()));
 			}
 			else { // sequential, slower but guaranteed to respect registration order

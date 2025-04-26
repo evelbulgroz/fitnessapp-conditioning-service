@@ -105,43 +105,6 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 		});
 
-		describe('options', () => {
-			it('gets the options of the component', () => {
-				const options: ManagedStatefulComponentOptions = component.options;
-				expect(options).toEqual({
-					initializationStrategy: 'parent-first',
-					shutDownStrategy: 'parent-first',
-					subcomponentStrategy: 'parallel'
-				});
-			});
-			
-			it('sets the options of the component', () => {
-				const newOptions: Partial<ManagedStatefulComponentOptions> = {
-					initializationStrategy: 'children-first',
-					shutDownStrategy: 'parent-first',
-					subcomponentStrategy: 'sequential',
-				};
-				component.options = newOptions;
-				expect(component.options).toEqual(newOptions);
-			});
-			
-			it('is immutable', () => {
-				const originalOptions = component.options;
-				const newOptions: Partial<ManagedStatefulComponentOptions> = {
-					...originalOptions,
-					initializationStrategy: 'children-first',
-					subcomponentStrategy: 'sequential',
-				};
-				component.options = newOptions;
-				expect(originalOptions).not.toEqual(newOptions);
-				expect(originalOptions).toEqual({
-					initializationStrategy: 'parent-first',
-					shutDownStrategy: 'parent-first',
-					subcomponentStrategy: 'parallel'
-				});
-			});
-		});
-		
 		describe('initialize', () => {
 			it('changes state to INITIALIZING then OK', async () => {
 				const stateChanges: ComponentStateInfo[] = [];
@@ -695,8 +658,8 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 		});
 
-		xdescribe('updateAggregatedState', () => {
-			it('updates the aggregated state based on subcomponents', () => {
+		describe('updateAggregatedState', () => {
+			xit('updates the aggregated state based on subcomponents', () => {
 				const subcomponent1 = new TestComponent();
 				const subcomponent2 = new TestComponent();
 				component[`${unshadowPrefix}registerSubcomponent`](subcomponent1);
@@ -717,13 +680,13 @@ describe('ManagedStatefulComponentMixin', () => {
 
 				component[`${unshadowPrefix}updateAggregatedState`]();
 
-				const state = component.getState();
+				const state = component[`${unshadowPrefix}calculateState`]();
 				expect(state.state).toBe(ComponentState.DEGRADED);
 			});
 
 			it('does not update the aggregated state if no subcomponents are registered', () => {
 				component[`${unshadowPrefix}updateAggregatedState`]();
-				const state = component.getState();
+				const state = component[`${unshadowPrefix}calculateState`]();
 				expect(state.state).toBe(ComponentState.UNINITIALIZED);
 			});
 		});
