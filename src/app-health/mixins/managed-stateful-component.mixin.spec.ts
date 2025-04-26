@@ -146,9 +146,15 @@ describe('ManagedStatefulComponentMixin', () => {
 		expect(component).toBeDefined();
 		expect(component).toBeInstanceOf(TestComponent);
 	});
+	
+	it('should start in UNINITIALIZED state', () => {
+		const state = component.getState();
+		expect(state.state).toBe(ComponentState.UNINITIALIZED);
+	});
+
 
 	describe('public API', () => {		
-		describe('getState()', () => {
+		describe('getState', () => {
 			it('returns the current state', () => {
 				const state = component.getState();
 				expect(state.state).toBe(ComponentState.UNINITIALIZED);
@@ -157,8 +163,45 @@ describe('ManagedStatefulComponentMixin', () => {
 				expect(state.updatedOn).toBeInstanceOf(Date);
 			});
 		});
+
+		describe('options', () => {
+			it('gets the options of the component', () => {
+				const options: ManagedStatefulComponentOptions = component.options;
+				expect(options).toEqual({
+					initializationStrategy: 'parent-first',
+					shutDownStrategy: 'parent-first',
+					subcomponentStrategy: 'parallel'
+				});
+			});
+			
+			it('sets the options of the component', () => {
+				const newOptions: Partial<ManagedStatefulComponentOptions> = {
+					initializationStrategy: 'children-first',
+					shutDownStrategy: 'parent-first',
+					subcomponentStrategy: 'sequential',
+				};
+				component.options = newOptions;
+				expect(component.options).toEqual(newOptions);
+			});
+			
+			it('is immutable', () => {
+				const originalOptions = component.options;
+				const newOptions: Partial<ManagedStatefulComponentOptions> = {
+					...originalOptions,
+					initializationStrategy: 'children-first',
+					subcomponentStrategy: 'sequential',
+				};
+				component.options = newOptions;
+				expect(originalOptions).not.toEqual(newOptions);
+				expect(originalOptions).toEqual({
+					initializationStrategy: 'parent-first',
+					shutDownStrategy: 'parent-first',
+					subcomponentStrategy: 'parallel'
+				});
+			});
+		});
 		
-		describe('initialize()', () => {
+		describe('initialize', () => {
 			it('changes state to INITIALIZING then OK', async () => {
 				const stateChanges: ComponentStateInfo[] = [];
 				component.state$.subscribe(state => stateChanges.push({ ...state }));
@@ -226,7 +269,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 		});
 
-		describe('isReady()', () => {
+		describe('isReady', () => {
 			it('returns true if component is in OK state', async () => {
 				await component.initialize();
 				const ready = await component.isReady();
@@ -261,44 +304,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 		});
 
-		describe('options', () => {
-			it('gets the options of the component', () => {
-				const options: ManagedStatefulComponentOptions = component.options;
-				expect(options).toEqual({
-					initializationStrategy: 'parent-first',
-					shutDownStrategy: 'parent-first',
-					subcomponentStrategy: 'parallel'
-				});
-			});
-			
-			it('sets the options of the component', () => {
-				const newOptions: Partial<ManagedStatefulComponentOptions> = {
-					initializationStrategy: 'children-first',
-					shutDownStrategy: 'parent-first',
-					subcomponentStrategy: 'sequential',
-				};
-				component.options = newOptions;
-				expect(component.options).toEqual(newOptions);
-			});
-			
-			it('is immutable', () => {
-				const originalOptions = component.options;
-				const newOptions: Partial<ManagedStatefulComponentOptions> = {
-					...originalOptions,
-					initializationStrategy: 'children-first',
-					subcomponentStrategy: 'sequential',
-				};
-				component.options = newOptions;
-				expect(originalOptions).not.toEqual(newOptions);
-				expect(originalOptions).toEqual({
-					initializationStrategy: 'parent-first',
-					shutDownStrategy: 'parent-first',
-					subcomponentStrategy: 'parallel'
-				});
-			});
-		});
-
-		describe('shutdown()', () => {
+		describe('shutdown', () => {
 			it('changes state to SHUTTING_DOWN then SHUT_DOWN', async () => {
 				await component.initialize();
 				component.shutdownDelay = 250; // Add delay to ensure state changes are observable
@@ -376,65 +382,412 @@ describe('ManagedStatefulComponentMixin', () => {
 		});
 	});
 
-	describe('Internals', () => {			
-		describe('initial state', () => {
-			it('should start in UNINITIALIZED state', () => {
+	describe('Protected methods', () => {
+		describe('calculateWorstState', () => {
+			it('returns the worst state from the list of states', () => {
+				const states: ComponentStateInfo[] = [
+					{state: ComponentState.OK, name: 'Component1', updatedOn: new Date()},
+					{state: ComponentState.DEGRADED, name: 'Component2', updatedOn: new Date()},
+					{state: ComponentState.FAILED, name: 'Component3', updatedOn: new Date()},
+					{state: ComponentState.UNINITIALIZED, name: 'Component4', updatedOn: new Date()}
+				];
+				const worstState = component.calculateWorstState(states);
+				expect(worstState.state).toBe(ComponentState.FAILED);
+			});
+
+			it('returns the best state if all states are the same', () => {
+				const states: ComponentStateInfo[] = [
+					{state: ComponentState.OK, name: 'Component1', updatedOn: new Date()},
+					{state: ComponentState.OK, name: 'Component2', updatedOn: new Date()},
+					{state: ComponentState.OK, name: 'Component3', updatedOn: new Date()}
+				];
+				const worstState = component.calculateWorstState(states);
+				expect(worstState.state).toBe(ComponentState.OK);
+			});
+
+			it('returns the worst state if only one state is provided', () => {
+				const states: ComponentStateInfo[] = [
+					{state: ComponentState.OK, name: 'Component1', updatedOn: new Date()}
+				];
+				const worstState = component.calculateWorstState(states);
+				expect(worstState.state).toBe(ComponentState.OK);
+			});		
+			
+			it('logs a warning and falls back to DEGRADED all states are unknown', () => {
+				const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {}); // suppress console output
+				const states: ComponentStateInfo[] = [
+					{state: 'UNKNOWN' as any, name: 'Component1', updatedOn: new Date()},
+					{state: 'UNKNOWN' as any, name: 'Component2', updatedOn: new Date()}
+				];
+				
+				const worstState = component.calculateWorstState(states);
+				
+				expect(warnSpy).toHaveBeenCalledWith('Failed to determine component state, falling back to DEGRADED state', 'TestComponent.calculateWorstState()');
+				expect(worstState.state).toBe(ComponentState.DEGRADED);				
+			});
+
+			it('logs a warning and falls back to worst state if some but not all states are unknown', () => {
+				const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {}); // suppress console output
+				const states: ComponentStateInfo[] = [
+					{state: ComponentState.OK, name: 'Component1', updatedOn: new Date()},
+					{state: 'UNKNOWN' as any, name: 'Component2', updatedOn: new Date()}
+				];
+				const worstState = component.calculateWorstState(states);
+				expect(warnSpy).toHaveBeenCalledWith('Unknown states were encountered during state calculation, returning worst state, or DEGRADED if worse', 'TestComponent.calculateWorstState()');
+				expect(worstState.state).toBe(ComponentState.DEGRADED);
+			});
+
+			it('throws an error if no states are provided', () => {
+				expect(() => component.calculateWorstState([])).toThrow('Cannot calculate worst state from an empty array');
+			});
+		});
+
+		describe('createAggregatedReason', () => {
+			it('creates a human-readable reason string with components in multiple states', () => {
+				// Arrange
+				const states: ComponentStateInfo[] = [
+				{
+					state: ComponentState.OK,
+					name: 'Component1',
+					reason: 'Running normally',
+					updatedOn: new Date()
+				},
+				{
+					state: ComponentState.DEGRADED,
+					name: 'Component2',
+					reason: 'Performance issues',
+					updatedOn: new Date()
+				},
+				{
+					state: ComponentState.FAILED,
+					name: 'Component3',
+					reason: 'Connection error',
+					updatedOn: new Date()
+				}
+				];
+				
+				const worstState = states[2]; // FAILED component
+				
+				// Act
+				const reason = component.createAggregatedReason(states, worstState);
+				
+				// Assert
+				expect(reason).toContain('Aggregated state [');
+				expect(reason).toContain('OK: 1/3');
+				expect(reason).toContain('DEGRADED: 1/3');
+				expect(reason).toContain('FAILED: 1/3');
+				expect(reason).toContain('Worst: Component3 - Connection error');
+			});
+			
+			it('creates a reason string when all components are in the same state', () => {
+				// Arrange
+				const states: ComponentStateInfo[] = [
+				{
+					state: ComponentState.OK,
+					name: 'Component1',
+					reason: 'Running normally',
+					updatedOn: new Date()
+				},
+				{
+					state: ComponentState.OK,
+					name: 'Component2',
+					reason: 'Running normally',
+					updatedOn: new Date()
+				},
+				{
+					state: ComponentState.OK,
+					name: 'Component3',
+					reason: 'Running normally',
+					updatedOn: new Date()
+				}
+				];
+				
+				const worstState = states[0]; // OK component
+				
+				// Act
+				const reason = component.createAggregatedReason(states, worstState);
+				
+				// Assert
+				expect(reason).toContain('Aggregated state [OK: 3/3]');
+				expect(reason).toContain('Worst: Component1 - Running normally');
+			});
+			
+			it('handles a single component state', () => {
+				// Arrange
+				const states: ComponentStateInfo[] = [
+				{
+					state: ComponentState.INITIALIZING,
+					name: 'Component1',
+					reason: 'Starting up',
+					updatedOn: new Date()
+				}
+				];
+				
+				const worstState = states[0]; // INITIALIZING component
+				
+				// Act
+				const reason = component.createAggregatedReason(states, worstState);
+				
+				// Assert
+				expect(reason).toContain('Aggregated state [INITIALIZING: 1/1]');
+				expect(reason).toContain('Worst: Component1 - Starting up');
+			});
+			
+			it('includes unknown states in the count', () => {
+				// Arrange
+				const states: ComponentStateInfo[] = [
+				{
+					state: ComponentState.OK,
+					name: 'Component1',
+					reason: 'Running normally',
+					updatedOn: new Date()
+				},
+				{
+					state: 'UNKNOWN_STATE' as any,
+					name: 'Component2',
+					reason: 'Custom state',
+					updatedOn: new Date()
+				}
+				];
+				
+				const worstState = states[0]; // OK component (assuming calculateWorstState filtered unknown)
+				
+				// Act
+				const reason = component.createAggregatedReason(states, worstState);
+				
+				// Assert
+				expect(reason).toContain('Aggregated state [');
+				expect(reason).toContain('OK: 1/2');
+				expect(reason).toContain('UNKNOWN_STATE: 1/2');
+				expect(reason).toContain('Worst: Component1 - Running normally');
+			});
+			
+			it('handles components with missing reason fields', () => {
+				// Arrange
+				const states: ComponentStateInfo[] = [
+				{
+					state: ComponentState.OK,
+					name: 'Component1',
+					updatedOn: new Date()
+				} as ComponentStateInfo,
+				{
+					state: ComponentState.DEGRADED,
+					name: 'Component2',
+					reason: 'Performance issues',
+					updatedOn: new Date()
+				}
+				];
+				
+				const worstState = states[1]; // DEGRADED component
+				
+				// Act
+				const reason = component.createAggregatedReason(states, worstState);
+				
+				// Assert
+				expect(reason).toContain('Aggregated state [');
+				expect(reason).toContain('OK: 1/2');
+				expect(reason).toContain('DEGRADED: 1/2');
+				expect(reason).toContain('Worst: Component2 - Performance issues');
+			});
+			
+			it('handles worstState with missing fields gracefully', () => {
+				// Arrange
+				const states: ComponentStateInfo[] = [
+				{
+					state: ComponentState.OK,
+					name: 'Component1',
+					reason: 'Running normally',
+					updatedOn: new Date()
+				},
+				{
+					state: ComponentState.FAILED,
+					name: 'Component2',
+					updatedOn: new Date()
+				} as ComponentStateInfo
+				];
+				
+				const worstState = states[1]; // FAILED component with missing reason
+				
+				// Act
+				const reason = component.createAggregatedReason(states, worstState);
+				
+				// Assert
+				expect(reason).toContain('Aggregated state [');
+				expect(reason).toContain('OK: 1/2');
+				expect(reason).toContain('FAILED: 1/2');
+				expect(reason).toContain('Worst: Component2');
+				expect(reason).not.toContain('undefined');
+			});
+		});
+
+		describe('initializeComponent', () => {
+			it('is called during initialization', async () => {
+				await component.initialize();
+				expect(component.initCount).toBe(1);
+			});
+
+			it('is not called if already initialized', async () => {
+				await component.initialize();
+				component.initCount = 0; // Reset for clarity
+				
+				await component.initialize();
+				expect(component.initCount).toBe(0); // Should not be called again
+			});
+
+			it('by default returns a resolved promise', async () => {
+				const result = await component.initializeComponent();
+				expect(result).toBeUndefined();
+			});
+			
+			it('can be overridden to provide custom initialization logic', async () => {
+				component.initDelay = 100; // Simulate a delay
+				const startTime = Date.now();
+				await component.initializeComponent();
+				const endTime = Date.now();
+				expect(endTime - startTime).toBeGreaterThanOrEqual(100); // Should take at least 100ms
+
+				expect(component.initCount).toBe(1); // Should be called once
+				expect(component.shutdownCount).toBe(0); // Should not be called
+
+				// Reset for clarity
+				component.initCount = 0;
+				component.shutdownCount = 0;
+			});
+		});
+
+		describe('registerSubcomponent', () => {
+			it('adds a subcomponent to the list', () => {
+				const subcomponent = new TestComponent();
+				component.registerSubcomponent(subcomponent);
+				expect(component.subcomponents).toContain(subcomponent);
+			});
+
+			it('does not allow null or undefined subcomponents', () => {
+				expect(() => component.registerSubcomponent(null as any)).toThrow(); // Null
+				expect(() => component.registerSubcomponent(undefined as any)).toThrow(); // Undefined
+			});
+
+			it('does not allow non-component subcomponents', () => {
+				expect(() => component.registerSubcomponent({} as any)).toThrow(); // Non-component
+			});
+
+			it('does not allow duplicate subcomponents', () => {
+				const subcomponent = new TestComponent();
+				component.registerSubcomponent(subcomponent);
+				expect(() => component.registerSubcomponent(subcomponent)).toThrow(); // Register again
+				expect(component.subcomponents.length).toBe(1); // Should still be only one
+			});
+
+			// todo: test subscription to subcomponent state changes when deciding to keep updateAggregatedState() or not
+		});
+
+		describe('shutdownComponent', () => {
+			it('is called during shutdown', async () => {
+				await component.initialize();
+				await component.shutdown();
+				expect(component.shutdownCount).toBe(1);
+			});
+
+			it('is not called if already shut down', async () => {
+				await component.initialize();
+				await component.shutdown();
+				component.shutdownCount = 0; // Reset for clarity
+				
+				await component.shutdown();
+				expect(component.shutdownCount).toBe(0); // Should not be called again
+			});
+
+			it('by default returns a resolved promise', async () => {
+				const result = await component.shutdownComponent();
+				expect(result).toBeUndefined();
+			});
+			it('can be overridden to provide custom shutdown logic', async () => {
+				component.shutdownDelay = 100; // Simulate a delay
+				const startTime = Date.now();
+				await component.shutdownComponent();
+				const endTime = Date.now();
+				expect(endTime - startTime).toBeGreaterThanOrEqual(100); // Should take at least 100ms
+
+				expect(component.shutdownCount).toBe(1); // Should be called once
+				expect(component.initCount).toBe(0); // Should not be called
+
+				// Reset for clarity
+				component.initCount = 0;
+				component.shutdownCount = 0;
+			});
+		});
+
+		xdescribe('updateAggregatedState', () => {
+			it('updates the aggregated state based on subcomponents', () => {
+				const subcomponent1 = new TestComponent();
+				const subcomponent2 = new TestComponent();
+				component.registerSubcomponent(subcomponent1);
+				component.registerSubcomponent(subcomponent2);
+
+				subcomponent1.stateSubject.next({
+					name: 'Subcomponent1',
+					state: ComponentState.OK,
+					reason: 'All good',
+					updatedOn: new Date()
+				});
+				subcomponent2.stateSubject.next({
+					name: 'Subcomponent2',
+					state: ComponentState.DEGRADED,
+					reason: 'Minor issue',
+					updatedOn: new Date()
+				});
+
+				component.updateAggregatedState();
+
+				const state = component.getState();
+				expect(state.state).toBe(ComponentState.DEGRADED);
+			});
+
+			it('does not update the aggregated state if no subcomponents are registered', () => {
+				component.updateAggregatedState();
 				const state = component.getState();
 				expect(state.state).toBe(ComponentState.UNINITIALIZED);
 			});
+		});
 
-			it('has a state$ Observable', () => {
-				expect(component.state$).toBeDefined();
+		xdescribe('updateState', () => {
+			it('updates the state and emits the new state', () => {
+				const stateChanges: ComponentStateInfo[] = [];
+				component.state$.subscribe(state => stateChanges.push({ ...state }));
+
+				component.updateState({state: ComponentState.OK, reason: 'Test reason'});
+
+				expect(stateChanges.length).toBe(1);
+				expect(stateChanges[0].state).toBe(ComponentState.OK);
+				expect(stateChanges[0].reason).toBe('Test reason');
+			});
+
+			it('does not emit the same state again', () => {
+				const stateChanges: ComponentStateInfo[] = [];
+				component.state$.subscribe(state => stateChanges.push({ ...state }));
+
+				component.updateState({state: ComponentState.OK, reason: 'Test reason'});
+				component.updateState({state: ComponentState.OK, reason: 'Test reason'}); // Same state
+
+				expect(stateChanges.length).toBe(1); // Should only emit once
 			});
 		});
 		
-		describe('constructor name', () => {
-			it('uses the derived class name in state info', () => {
-				const state = component.getState();
-				expect(state.name).toBe('TestComponent');
-			});
-		});	
-
-		describe('inheritance', () => {
-			let inheritingComponent: InheritingComponent;
-			let properInheritingComponent: ProperInheritingComponent;
-
-			beforeEach(() => {
-				inheritingComponent = new InheritingComponent();
-				properInheritingComponent = new ProperInheritingComponent();
+		describe('unregisterSubcomponent', () => {
+			it('removes a subcomponent from the list', () => {
+				const subcomponent = new TestComponent();
+				component.registerSubcomponent(subcomponent);
+				component.unregisterSubcomponent(subcomponent);
+				expect(component.subcomponents).not.toContain(subcomponent);
 			});
 
-			it('shadows base class initialize method', async () => {
-				await inheritingComponent.initialize();
-				
-				expect(inheritingComponent.baseInitCalled).toBe(false);
-				expect(inheritingComponent.getState().state).toBe(ComponentState.OK);
+			it('does nothing if the subcomponent is not registered', () => {
+				const subcomponent = new TestComponent();
+				component.unregisterSubcomponent(subcomponent); // Not registered
+				expect(component.subcomponents.length).toBe(0); // Should still be empty
 			});
 
-			it('shadows base class shutdown method', async () => {
-				await inheritingComponent.initialize();
-				await inheritingComponent.shutdown();
-				
-				expect(inheritingComponent.baseShutdownCalled).toBe(false);
-				expect(inheritingComponent.getState().state).toBe(ComponentState.SHUT_DOWN);
-			});
-
-			it('allows executing base class methods explicitly', async () => {
-				await properInheritingComponent.initialize();
-				
-				// Access baseClass via private property, need to cast to access it in test
-				expect((properInheritingComponent as any).baseClass.baseInitCalled).toBe(true);
-				expect(properInheritingComponent.getState().state).toBe(ComponentState.OK);
-			});
-
-			it('allows executing base class shutdown methods explicitly', async () => {
-				await properInheritingComponent.initialize();
-				await properInheritingComponent.shutdown();
-				
-				// Access baseClass via private property, need to cast to access it in test
-				expect((properInheritingComponent as any).baseClass.baseShutdownCalled).toBe(true);
-				expect(properInheritingComponent.getState().state).toBe(ComponentState.SHUT_DOWN);
-			});
+			// todo: test subscription to subcomponent state changes when deciding to keep updateAggregatedState() or not
 		});
 	});
 });

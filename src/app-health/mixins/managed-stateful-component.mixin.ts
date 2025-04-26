@@ -124,6 +124,22 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return baseState;
 		}
 		
+		/** Set or get component option defaults, e.g. to control component behavior during initialization and shutdown
+		 * @param options Options to optionally wholly or partially override defaults (if set)
+		 * @returns The current options (if get)
+		 * @remark Method exists mostly to avoid overcomplicating the constructor with too many parameters
+		 * @remark Options are not intended to be changed after the component is created, but this method allows for some flexibility
+		 */
+		public set options(options: Partial<ManagedStatefulComponentOptions>) {
+			this._options = {
+				...this._options,
+				...options
+			};
+		}		
+		public get options(): ManagedStatefulComponentOptions {
+			return {...this._options};
+		}
+	
 		/** Initialize the component and all of its subcomponents (if any) if it is not already initialized
 		 * @returns Promise that resolves when the component and all of its subcomponents are initialized
 		 * @throws Error if initialization fails
@@ -300,22 +316,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return this.shutdownPromise;
 		}
 
-		/** Set or get component option defaults, e.g. to control component behavior during initialization and shutdown
-		 * @param options Options to optionally wholly or partially override defaults (if set)
-		 * @returns The current options (if get)
-		 * @remark Method exists mostly to avoid overcomplicating the constructor with too many parameters
-		 * @remark Options are not intended to be changed after the component is created, but this method allows for some flexibility
-		 */
-		public set options(options: Partial<ManagedStatefulComponentOptions>) {
-			this._options = {
-				...this._options,
-				...options
-			};
-		}		
-		public get options(): ManagedStatefulComponentOptions {
-			return {...this._options};
-		}
-	
 		//---------------------------------- TEMPLATE METHODS -----------------------------------//
 
 		// NOTE: TS does not support protected members in abstract classes, so we use public with @internal tag
@@ -343,10 +343,138 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		//--------------------------------- PROTECTED METHODS -----------------------------------//
 		
 		// NOTE: TS does not support protected members in abstract classes, so we use public with @internal tag
+		
+		/* Calculate the worst state from a collection of states
+		 * @param states Collection of component states
+		 * @returns The worst state from known states
+		 * @returns The worst of known states or either DEGRADED, if unknown states are present
+		 * @returns DEGRADED if no known states are present
+		 * @throws Error if states array is empty
+		 * @remark Logs a warning if unknown states are encountered
+		 */
+		public /* @internal */ calculateWorstState(states: ComponentStateInfo[]): ComponentStateInfo {
+			if (states.length === 0) {
+			throw new Error('Cannot calculate worst state from an empty array');
+			}
+		
+			const statePriority = [ // Priority order for states (highest/worst priority first)
+				ComponentState.FAILED,
+				ComponentState.SHUT_DOWN,
+				ComponentState.SHUTTING_DOWN,
+				ComponentState.INITIALIZING,
+				ComponentState.UNINITIALIZED,
+				ComponentState.DEGRADED,
+				ComponentState.OK
+			];
+			
+			// Track if we encounter any unknown states
+			let hasUnknownStates = false;
+			
+			// Find the highest priority (worst) state
+			let worstState: ComponentStateInfo | undefined;
+			let worstPriority = -1;
+			
+			// Iterate through the states and find the one with the highest priority
+			for (const state of states) {
+				const priority = statePriority.indexOf(state.state);
+				
+				if (priority === -1) {
+					// Track that we found an unknown state
+					hasUnknownStates = true;
+					//console.warn(`Unknown state encountered: ${state.state}`, state);
+					continue;
+				}
+				
+				if (worstState === undefined || priority < worstPriority) {
+					worstState = state;
+					worstPriority = priority;
+				}
+			}
+			
+			// If we only had unknown states or calculation failed for some other reason
+			if (!worstState) {
+				console.warn(
+					'Failed to determine component state, falling back to DEGRADED state',
+					`${this.constructor.name}.calculateWorstState()`,
+					//states
+				);
+				
+				return {
+					name: this.constructor.name,
+					state: ComponentState.DEGRADED,
+					reason: 'State calculation anomaly - unknown states encountered',
+					updatedOn: new Date()
+				};
+			}
+			
+			// If we found unknown states, return the worst of DEGRADED or the found worstState
+			if (hasUnknownStates) {
+				console.warn(
+					`Unknown states were encountered during state calculation, returning worst state, or DEGRADED if worse`,
+					`${this.constructor.name}.calculateWorstState()`,
+					//states
+				);
+				
+				// Get the priority of DEGRADED state
+				const degradedPriority = statePriority.indexOf(ComponentState.DEGRADED);
+				
+				// If DEGRADED is worse than the found worst state, return a DEGRADED state
+				if (degradedPriority < worstPriority) {
+					return {
+					name: this.constructor.name,
+					state: ComponentState.DEGRADED,
+					reason: 'Component degraded due to unknown states',
+					updatedOn: new Date()
+					};
+				}
+				
+				// Otherwise, return the found worst state (which is worse than DEGRADED)
+				return worstState;
+			}
+			
+			// If we have a valid worst state and no unknown states, return it
+			return worstState;
+		}
+		
+		/* Create a human-readable reason string for aggregated component states
+		 * @param states Collection of component states
+		 * @param worstState The worst state from the collection
+		 * @returns A human-readable reason string
+		 */
+		public /* @internal */ createAggregatedReason(states: ComponentStateInfo[], worstState: ComponentStateInfo): string {
+			// Count components in each state
+			const stateCounts: Record<string, number> = {};			
+			states.forEach(state => {
+				const stateValue = String(state.state);
+				stateCounts[stateValue] = (stateCounts[stateValue] || 0) + 1;
+			});
+			
+			// Create state summary string
+			const stateSummary = Object.entries(stateCounts)
+				.map(([state, count]) => `${state}: ${count}/${states.length}`)
+				.join(', ');
+			
+			// Create detailed reason based on worst state
+			let worstReason = '';
+			if (worstState) {
+				// Always include the name if available
+				worstReason = worstState.name || 'Unknown';
+				
+				// Only add reason if it exists and is not undefined
+				if (worstState.reason) {
+					worstReason += ` - ${worstState.reason}`;
+				}
+			}
+			
+			return `Aggregated state [${stateSummary}]. Worst: ${worstReason}`;
+		}
 
-		// Initialize subcomponents
-		  // Defaults to parallel initialization
-		  // Sequential initialization is slower but guarantees that subcomponents are initialized in the order they were registered
+		/* Initialize subcomponents
+		 * @returns Promise that resolves when all subcomponents are initialized
+		 * @throws Error if initialization fails
+		 * @remark defaults to parallel initialization
+		 * @remark Sequential initialization is slower but guarantees that subcomponents are initialized in the order they were registered
+		 */
 		public /* @internal */ async initializeSubcomponents(): Promise<void> {
 			if (this.subcomponents.length === 0) return;
 			
@@ -359,27 +487,24 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				}
 			}
 		}
-
-		// Shutdown subcomponents
-		  // Defaults to parallel shutdown
-		  // Sequential shutdown is slower but guarantees that subcomponents are shut down in the reverse order they were registered
-		public /* @internal */ async shutdownSubcomponents(): Promise<void> {
-			if (this.subcomponents.length === 0) return;
-			
-			if (this.options.subcomponentStrategy === 'parallel') { // fastest
-				await Promise.all(this.subcomponents.map(component => component.shutdown()));
-			}
-			else { // sequential, slower but guaranteed to respect registration order
-				for (const component of this.subcomponents.reverse()) {
-					await component.shutdown();
-				}
-			}
-		}
 		
-		// Component registration methods (optional, used only by composite components)
-		public /* @internal */ registerComponent(component: ManagedStatefulComponent): void {
+		/* Register a subcomponent to be managed by this component
+		 * @param component The subcomponent to register
+		 * @returns void
+		 * @throws Error if the component is null, undefined, or already registered
+		 * @remark This method is intended for internal use and should not be called directly by clients.
+		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
+		 * @remark The component must be an instance of ManagedStatefulComponent.
+		 */
+		public /* @internal */ registerSubcomponent(component: ManagedStatefulComponent): void {
 			if (!component) {
 				throw new Error('Component cannot be null or undefined');
+			}
+			else if (!(component instanceof ManagedStatefulComponentClass)) {
+				throw new Error('Component must be an instance of ManagedStatefulComponent');
+			}
+			else if (this.subcomponents.includes(component)) {
+				throw new Error('Component is already registered as a subcomponent');
 			}
 			
 			this.subcomponents.push(component);
@@ -395,32 +520,30 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			// Update the aggregated state to include the new component
 			this.updateAggregatedState();
 		}
-		
-		public /* @internal */ unregisterComponent(component: ManagedStatefulComponent): boolean {
-			const index = this.subcomponents.indexOf(component);
-			if (index === -1) {
-				return false;
+
+		/* Shut down subcomponents
+		 * @returns Promise that resolves when all subcomponents are shut down
+		 * @throws Error if shutdown fails
+		 * @remark defaults to parallel shutdown
+		 * @remark Sequential shutdown is slower but guarantees that subcomponents are shut down in the reverse order they were registered
+		 */
+		public /* @internal */ async shutdownSubcomponents(): Promise<void> {
+			if (this.subcomponents.length === 0) return;
+			
+			if (this.options.subcomponentStrategy === 'parallel') { // fastest
+				await Promise.all(this.subcomponents.map(component => component.shutdown()));
 			}
-			
-			// Clean up subscription
-			const subscription = this.componentSubscriptions.get(component);
-			if (subscription) {
-				subscription.unsubscribe();
-				this.componentSubscriptions.delete(component);
+			else { // sequential, slower but guaranteed to respect registration order
+				for (const component of this.subcomponents.reverse()) {
+					await component.shutdown();
+				}
 			}
-			
-			// Remove component
-			this.subcomponents.splice(index, 1);
-			
-			// Update the aggregated state
-			this.updateAggregatedState();
-			
-			return true;
 		}
 		
-		// DEPRECATED: Aggregated state calculation (used by composite components)
-		  // TODO: Refactor callers to use e.g. `updateState()` instead, if possible, then retire
-		  // NOTE New code should not rely on this method
+		/* DEPRECATED?: Aggregated state calculation (used by composite components)
+		 * @todo Refactor callers to use e.g. `updateState()` instead, if possible, then retire
+		 * @remark New code should possibly not rely on this method
+		 */
 		public /* @internal */ updateAggregatedState(): void {
 			if (this.subcomponents.length === 0) {
 				return; // Nothing to aggregate
@@ -445,7 +568,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			});
 		}
 
-		/** Update the state of the component and optionally its subcomponents, waiting for state changes to propagate
+		/* Update the state of the component and optionally its subcomponents, waiting for state changes to propagate
 		 * @param state The new state to set
 		 * @returns Promise that resolves when the state update has fully propagated
 		 * @remark Uses the "Wait for Your Own Events" pattern to ensure state consistency
@@ -482,59 +605,35 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			await stateUpdatePromise;
 		}
 		
-		/** Calculate the worst state from a collection of states
-				 * @param states Collection of component states
-				 * @returns The worst state found
-				 * @private
-				 */
-		public /* @internal */ calculateWorstState(states: ComponentStateInfo[]): ComponentStateInfo {
-			// Priority order for states (highest/worst priority first)
-			const statePriority = [
-				ComponentState.FAILED,
-				ComponentState.SHUT_DOWN,
-				ComponentState.SHUTTING_DOWN,
-				ComponentState.INITIALIZING,
-				ComponentState.UNINITIALIZED,
-				ComponentState.DEGRADED,
-				ComponentState.OK
-			];
-			
-			// Find the highest priority (worst) state
-			let worstState: ComponentStateInfo | undefined;
-			let worstPriority = -1;
-			
-			states.forEach(state => {
-				const priority = statePriority.indexOf(state.state);
-				if (priority >= 0 && (worstState === undefined || priority < worstPriority)) {
-					worstState = state;
-					worstPriority = priority;
-				}
-			});
-			
-			return worstState || states[0]; // Fallback to first state if calculation failed
-		}
-		
-		/** Create a human-readable reason for the aggregated state
-		 * @param states All component states
-		 * @param worstState The worst state found
-		 * @returns A descriptive reason string
-		 * @private
+		/* Unregister a subcomponent from this component
+		 * @param component The subcomponent to unregister
+		 * @returns true if the component was successfully unregistered, false otherwise
+		 * @throws Error if the component is null or undefined
+		 * @remark This method is intended for internal use and should not be called directly by clients.
+		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
+		 * @remark The component must be an instance of ManagedStatefulComponent.
 		 */
-		public /* @internal */ createAggregatedReason(states: ComponentStateInfo[], worstState: ComponentStateInfo): string {
-			// Count components in each state
-			const stateCounts = states.reduce((counts, state) => {
-				counts[state.state] = (counts[state.state] || 0) + 1;
-				return counts;
-			}, {} as Record<string, number>);
+		public /* @internal */ unregisterSubcomponent(component: ManagedStatefulComponent): boolean {
+			const index = this.subcomponents.indexOf(component);
+			if (index === -1) {
+				return false;
+			}
 			
-			// Format as a string
-			const totalComponents = states.length;
-			const countString = Object.entries(stateCounts)
-				.map(([state, count]) => `${state}: ${count}/${totalComponents}`)
-				.join(', ');
+			// Clean up subscription
+			const subscription = this.componentSubscriptions.get(component);
+			if (subscription) {
+				subscription.unsubscribe();
+				this.componentSubscriptions.delete(component);
+			}
 			
-			return `Aggregated state [${countString}]. Worst: ${worstState.name} - ${worstState.reason}`;
-		}		
+			// Remove component
+			this.subcomponents.splice(index, 1);
+			
+			// Update the aggregated state
+			this.updateAggregatedState();
+			
+			return true;
+		}
 	}
 	
 	return ManagedStatefulComponentClass;
