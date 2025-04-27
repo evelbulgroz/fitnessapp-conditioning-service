@@ -165,6 +165,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @returns Observable that emits the current state of the component and its subcomponents (if any) whenever the state changes
 		 * @remark The observable is a BehaviorSubject, so it will emit the current state immediately upon subscription
 		 * @remark The observable will emit the aggregated state if subcomponents are present, otherwise it will emit the component's own state
+		 * @remark required by {@link StatefulComponent} interface
 		 */
 		public readonly state$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
 		
@@ -177,6 +178,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Transitions state to `INITIALIZING` during the process and to `OK` when complete
 		 * @remark Handles concurrent calls by returning the same promise for all callers during initialization
 		 * @remark If the component is already initialized, resolves immediately
+		 * @remark Required by {@link ManageableComponent} interface
 		 */
 		public async initialize(...args: any[]): Promise<void> {
 			// If already initialized, resolve immediately
@@ -249,6 +251,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Ignores any inherited isReady() method, as isReady() is considered purely informational
 		 * @remark May trigger initialization if the component supports lazy initialization
 		 * @remark A component is typically ready when it and all of its subcomponents are in the `OK` or `DEGRADED` state
+		 * @remark Required by {@link ManageableComponent} interface
 		 */
 		public async isReady(): Promise<boolean> {
 			try {
@@ -286,39 +289,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 		}
 
-		/* Register a subcomponent to be managed by this component
-		 * @param component The subcomponent to register
-		 * @returns void
-		 * @throws Error if the component is null, undefined, or already registered
-		 * @remark This method is intended for internal use and should not be called directly by clients.
-		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
-		 * @remark The component must be an instance of ManagedStatefulComponent.
-		 */
-		public registerSubcomponent(component: ManagedStatefulComponent): void {
-			if (!component) {
-				throw new Error('Component cannot be null or undefined');
-			}
-			else if (!(component instanceof ManagedStatefulComponentClass)) {
-				throw new Error('Component must be an instance of ManagedStatefulComponent');
-			}
-			else if (this. msc_zh7y_subcomponents.includes(component)) {
-				throw new Error('Component is already registered as a subcomponent');
-			}
-			
-			this. msc_zh7y_subcomponents.push(component);
-			
-			// Subscribe to component state changes
-			const subscription = component.state$.subscribe(state => {
-				// Update the aggregated state when a subcomponent's state changes
-				this[`${unshadowPrefix}updateAggregatedState`]();
-			});
-			
-			this.msc_zh7y_componentSubscriptions.set(component, subscription);
-			
-			// Update the aggregated state to include the new component
-			this[`${unshadowPrefix}updateAggregatedState`]();
-		}
-		
 		/** Shutdown the component and all of its subcomponents (if any) if it is not already shut down
 		 * @param args Optional arguments to pass to parent shutdown methods
 		 * @returns Promise that resolves when the component and all of its subcomponents are shut down
@@ -328,6 +298,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Transitions state to `SHUTTING_DOWN` during the process and to `SHUT_DOWN` when complete
 		 * @remark Handles concurrent calls by returning the same promise for all callers during shutdown
 		 * @remark If the component is already shut down, resolves immediately
+		 * @remark Required by {@link ManageableComponent} interface
 		 */
 		public async shutdown(...args: any[]): Promise<void> {
 			// If already shut down, resolve immediately
@@ -394,13 +365,48 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return this.msc_zh7y_shutdownPromise;
 		}
 
-		/* Unregister a subcomponent from this component
+		/** Register a subcomponent to be managed by this component
+		 * @param component The subcomponent to register
+		 * @returns void
+		 * @throws Error if the component is null, undefined, or already registered
+		 * @remark This method is intended for internal use and should not be called directly by clients.
+		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
+		 * @remark The component must be an instance of ManagedStatefulComponent.
+		 * @required by {@link ComponentContainer} interface
+		 */
+		public registerSubcomponent(component: ManagedStatefulComponent): void {
+			if (!component) {
+				throw new Error('Component cannot be null or undefined');
+			}
+			else if (!(component instanceof ManagedStatefulComponentClass)) {
+				throw new Error('Component must be an instance of ManagedStatefulComponent');
+			}
+			else if (this. msc_zh7y_subcomponents.includes(component)) {
+				throw new Error('Component is already registered as a subcomponent');
+			}
+			
+			this. msc_zh7y_subcomponents.push(component);
+			
+			// Subscribe to component state changes
+			const subscription = component.state$.subscribe(state => {
+				// Update the aggregated state when a subcomponent's state changes
+				this[`${unshadowPrefix}updateAggregatedState`]();
+			});
+			
+			this.msc_zh7y_componentSubscriptions.set(component, subscription);
+			
+			// Update the aggregated state to include the new component
+			this[`${unshadowPrefix}updateAggregatedState`]();
+		}
+
+		/** Unregister a subcomponent from this component
 		 * @param component The subcomponent to unregister
 		 * @returns true if the component was successfully unregistered, false otherwise
 		 * @throws Error if the component is null or undefined
 		 * @remark This method is intended for internal use and should not be called directly by clients.
 		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
 		 * @remark The component must be an instance of ManagedStatefulComponent.
+		 * @required by {@link ComponentContainer} interface
 		 */
 		public unregisterSubcomponent(component: ManagedStatefulComponent): boolean {
 			const index = this. msc_zh7y_subcomponents.indexOf(component);
@@ -422,8 +428,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			this[`${unshadowPrefix}updateAggregatedState`]();
 			
 			return true;
-		}
-
+		}	
 		//---------------------------------- TEMPLATE METHODS -----------------------------------//
 
 		// NOTE: TS does not support protected members in abstract classes, so we use public with @internal tag
