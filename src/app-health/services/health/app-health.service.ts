@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import { firstValueFrom, take } from 'rxjs';
+
 import { Logger } from '@evelbulgroz/logger';
 
 import AppState from '../../models/app-state.model';
@@ -35,10 +37,11 @@ export class AppHealthService {
 	
 		for (const component of this.components) {
 			await component.initialize();
-			const stateInfo = component.getState();
+			const stateInfo = await firstValueFrom(component.state$.pipe(take(1))) as ComponentStateInfo;
+
 			const isHealthy = stateInfo.state === ComponentState.OK || stateInfo.state === ComponentState.DEGRADED;
 			if (!isHealthy) {
-				const stateInfo = component.getState();
+				const stateInfo = await firstValueFrom(component.state$.pipe(take(1))) as ComponentStateInfo;
 				unhealthyComponents.push(stateInfo);
 				this.logger.warn(`${this.constructor.name}.getState Component ${stateInfo.name} is ${stateInfo.state}: ${stateInfo.reason}`);
 			}

@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+
 import { Logger } from '@evelbulgroz/logger';
 
 import { MergedStreamLogger } from './merged-stream-logger.service';
@@ -34,7 +35,7 @@ interface MockMetric {
 class MockLogMapper implements StreamMapper<MockLogEntry> {
 	public readonly streamType = 'logs$';
 	
-	public mapToLogEvents(source$, context?) {
+	public mapToLogEvents(source$: Observable<any>, context?: any) {
 		return source$.pipe(
 			map((log: MockLogEntry): UnifiedLogEntry => ({
 				source: LogEventSource.LOG,
@@ -51,7 +52,7 @@ class MockLogMapper implements StreamMapper<MockLogEntry> {
 class MockStateMapper implements StreamMapper<MockState> {
 	public readonly streamType = 'state$';
 	
-	public mapToLogEvents(source$, context?) {
+	public mapToLogEvents(source$: Observable<any>, context?: any) {
 		return source$.pipe(
 			map((state: MockState): UnifiedLogEntry => ({
 				source: LogEventSource.STATE,
@@ -68,7 +69,7 @@ class MockStateMapper implements StreamMapper<MockState> {
 class MockMetricMapper implements StreamMapper<MockMetric> {
 	public readonly streamType = 'metrics$';
 	
-	public mapToLogEvents(source$, context?) {
+	public mapToLogEvents(source$: Observable<any>, context?: any) {
 		return source$.pipe(
 			map((metric: MockMetric): UnifiedLogEntry => ({
 				source: LogEventSource.CUSTOM,
