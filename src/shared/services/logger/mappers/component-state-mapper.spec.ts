@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 
 import ComponentState from '../../../../app-health/models/component-state.enum';
@@ -76,7 +76,7 @@ describe('ComponentStateMapper', () => {
 			const logEvents$ = mapper.mapToLogEvents(stateSubject.asObservable(), 'TestComponent');
 			
 			// Create a promise that will resolve with the next emitted value
-			const logEventPromise = logEvents$.pipe(take(1)).toPromise();
+			const logEventPromise = firstValueFrom(logEvents$.pipe(take(1)));
 			
 			// Wait for the mapped event
 			const logEvent = await logEventPromise;
@@ -88,7 +88,8 @@ describe('ComponentStateMapper', () => {
 				level: LogLevel.INFO, // INITIALIZING maps to INFO
 				message: `State changed to ${ComponentState.INITIALIZING}: Starting up`,
 				context: 'TestComponent',
-				data: {
+				data: { // Original state data
+					name: 'TestComponent',
 					state: ComponentState.INITIALIZING,
 					reason: 'Starting up',
 					updatedOn: now
