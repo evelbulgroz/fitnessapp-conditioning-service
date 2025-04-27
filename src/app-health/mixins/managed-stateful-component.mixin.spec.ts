@@ -790,7 +790,7 @@ describe('ManagedStatefulComponentMixin', () => {
 		});
 
 		describe('updateAggregatedState', () => {
-			xit('updates the aggregated state based on subcomponents', () => {
+			it('updates the aggregated state based on subcomponents', async () => {
 				const subcomponent1 = new TestComponent();
 				const subcomponent2 = new TestComponent();
 				component.registerSubcomponent(subcomponent1);
@@ -808,6 +808,9 @@ describe('ManagedStatefulComponentMixin', () => {
 					reason: 'Minor issue',
 					updatedOn: new Date()
 				});
+
+				await component.initialize();
+				expect(component['msc_zh7y_ownState'].state).toBe(ComponentState.OK);
 
 				component[`${unshadowPrefix}updateAggregatedState`]();
 
