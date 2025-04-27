@@ -29,7 +29,7 @@ export class ComponentStateMapper implements StreamMapper<ComponentStateInfo> {
 		);
 	}
 	
-	private mapStateToLogLevel(state: ComponentState): LogLevel {
+	protected mapStateToLogLevel(state: ComponentState): LogLevel {
 		switch (state) {
 			case ComponentState.FAILED:
 				return LogLevel.ERROR;

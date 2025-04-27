@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { LogEntry as RepoLogEntry } from '@evelbulgroz/ddd-base';
+import { LogEntry as RepoLogEntry, LogLevel as RepoLogLevel } from '@evelbulgroz/ddd-base';
 
 import LogEventSource from '../models/log-event-source.model';
+import LogLevel from '../models/log-level.enum';
 import StreamMapper from '../models/stream-mapper.model';
 import UnifiedLogEntry from '../models/unified-log-event.model';
 
@@ -19,11 +20,34 @@ export class RepoLogMapper implements StreamMapper<RepoLogEntry> {
 			map((log: RepoLogEntry): UnifiedLogEntry => ({
 				source: LogEventSource.LOG,
 				timestamp: new Date(),
-				level: log.level,
+				level: this.mapRepoLevelToLogLevel(log.level),
 				message: log.message,
 				context: log.context || context,
 				data: log.data
 			}))
 		);
+	}
+
+	/* This method maps the repository log level to the unified log level.
+	 * @param level - The log level from the repository.
+	 * @returns The corresponding unified log level, or LOG if the level is unknown.
+	 * @remark May seem redundant, but coupling repository repo log level tightly to the unified log level.
+	 * @remark This allows for future changes in the repository log level without affecting the unified log level.
+	 */
+	protected mapRepoLevelToLogLevel(level: RepoLogLevel): LogLevel {
+		switch (level) {
+			case RepoLogLevel.ERROR:
+				return LogLevel.ERROR;
+			case RepoLogLevel.WARN:
+				return LogLevel.WARN;
+			case RepoLogLevel.INFO:
+				return LogLevel.INFO;
+			case RepoLogLevel.DEBUG:
+				return LogLevel.DEBUG;
+			case RepoLogLevel.VERBOSE:
+				return LogLevel.VERBOSE;
+			default:
+				return LogLevel.LOG;
+		}
 	}
 }
