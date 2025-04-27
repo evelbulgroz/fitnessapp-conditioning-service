@@ -41,7 +41,7 @@ describe('RepoLogMapper', () => {
 					// Emit a log entry
 					logsSubject.next({
 							sequence: 1,
-							timestamp: fixedDate.toISOString(),
+							timestamp: fixedDate,
 							level: LogLevel.ERROR,
 							message: 'Database connection failed',
 							context: 'DbConnection',
@@ -79,7 +79,7 @@ describe('RepoLogMapper', () => {
 					// Emit a log entry without context
 					logsSubject.next({
 							sequence: 1,
-							timestamp: fixedDate.toISOString(),
+							timestamp: fixedDate,
 							level: LogLevel.INFO,
 							message: 'Operation completed',
 							// No context provided
@@ -110,42 +110,42 @@ describe('RepoLogMapper', () => {
 					// Emit logs with different levels
 					logsSubject.next({
 							sequence: 1,
-							timestamp: fixedDate.toISOString(),
+							timestamp: fixedDate,
 							level: LogLevel.ERROR,
 							message: 'Error log',
 					});
 					
 					logsSubject.next({
 							sequence: 2,
-							timestamp: fixedDate.toISOString(),
+							timestamp: fixedDate,
 							level: LogLevel.WARN,
 							message: 'Warning log',
 					});
 					
 					logsSubject.next({
 							sequence: 3,
-							timestamp: fixedDate.toISOString(),
+							timestamp: fixedDate,
 							level: LogLevel.INFO,
 							message: 'Info log',
 					});
 					
 					logsSubject.next({
 							sequence: 4,
-							timestamp: fixedDate.toISOString(),
+							timestamp: fixedDate,
 							level: LogLevel.DEBUG,
 							message: 'Debug log',
 					});
 					
 					logsSubject.next({
 							sequence: 5,
-							timestamp: fixedDate.toISOString(),
+							timestamp: fixedDate,
 							level: LogLevel.VERBOSE,
 							message: 'Verbose log',
 					});
 					
 					logsSubject.next({
 							sequence: 6,
-							timestamp: fixedDate.toISOString(),
+							timestamp: fixedDate,
 							level: LogLevel.LOG,
 							message: 'Regular log',
 					});
@@ -176,12 +176,12 @@ describe('RepoLogMapper', () => {
 					// Mock date
 					const fixedDate = new Date('2023-01-01T12:00:00Z');
 					jest.spyOn(global, 'Date').mockImplementation(() => fixedDate as any);
-					const isoTimestamp = fixedDate.toISOString();
+					const timestamp = fixedDate;
 					
 					// Emit logs with different field combinations
 					logsSubject.next({
 							sequence: 1,
-							timestamp: isoTimestamp,
+							timestamp: timestamp,
 							level: LogLevel.ERROR,
 							message: 'Complete entry',
 							context: 'CustomContext',
@@ -190,7 +190,7 @@ describe('RepoLogMapper', () => {
 					
 					logsSubject.next({
 							sequence: 2,
-							timestamp: isoTimestamp,
+							timestamp: timestamp,
 							level: LogLevel.WARN,
 							message: 'No data entry',
 							context: 'CustomContext'
@@ -199,7 +199,7 @@ describe('RepoLogMapper', () => {
 					
 					logsSubject.next({
 							sequence: 3,
-							timestamp: isoTimestamp,
+							timestamp: timestamp,
 							level: LogLevel.INFO,
 							message: 'No context entry',
 							// No context
@@ -208,7 +208,7 @@ describe('RepoLogMapper', () => {
 					
 					logsSubject.next({
 							sequence: 4,
-							timestamp: isoTimestamp,
+							timestamp: timestamp,
 							level: LogLevel.DEBUG,
 							message: 'Minimal entry'
 							// No context
@@ -268,7 +268,7 @@ describe('RepoLogMapper', () => {
 					for (let i = 0; i < 3; i++) {
 							logsSubject.next({
 									sequence: i + 1,
-									timestamp: dates[i].toISOString(),
+									timestamp: dates[i],
 									level: LogLevel.LOG,
 									message: `Log entry ${i + 1}`
 							});
@@ -302,7 +302,7 @@ describe('RepoLogMapper', () => {
 					// Emit a log entry with empty strings and null values
 					logsSubject.next({
 							sequence: 1,
-							timestamp: fixedDate.toISOString(),
+							timestamp: fixedDate,
 							level: LogLevel.INFO,
 							message: '',	// Empty message
 							context: '',	// Empty context

@@ -19,7 +19,7 @@ export class RepoLogMapper implements StreamMapper<RepoLogEntry> {
 		return source$.pipe(
 			map((log: RepoLogEntry): UnifiedLogEntry => ({
 				source: LogEventSource.LOG,
-				timestamp: new Date(),
+				timestamp: log.timestamp || new Date(),
 				level: this.mapRepoLevelToLogLevel(log.level),
 				message: log.message,
 				context: log.context || context,
