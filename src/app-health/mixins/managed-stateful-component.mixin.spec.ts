@@ -196,17 +196,22 @@ describe('ManagedStatefulComponentMixin', () => {
 				sub.unsubscribe();
 			});
 
-			xit('emits state changes', (done) => {
-				const sub = component.state$.subscribe(state => {
-					expect(state.state).toBe(ComponentState.OK);
-					expect(state.reason).toBe('Test reason');					
-					done();
-				});
-
-				component.initialize().then(() => {
-					component[`${unshadowPrefix}updateState`]({state: ComponentState.OK, reason: 'Test reason'});
-					sub.unsubscribe();
-				});
+			it('emits state changes', async () => {
+				const stateChanges: ComponentStateInfo[] = [];
+				const sub = component.state$.subscribe(state => stateChanges.push({ ...state }));
+				await new Promise(resolve => setTimeout(resolve, 100)); // Add some time before updating state, so we can detect the difference
+				
+				component[`${unshadowPrefix}updateState`]({ state: ComponentState.OK, reason: 'Test reason' });
+				
+				expect(stateChanges.length).toBe(2); // UNINITIALIZED -> OK
+				expect(stateChanges[0].state).toBe(ComponentState.UNINITIALIZED);
+				expect(stateChanges[1].state).toBe(ComponentState.OK);
+				expect(stateChanges[1].reason).toBe('Test reason');
+				expect(stateChanges[1].updatedOn).toBeInstanceOf(Date);
+				expect(stateChanges[1].name).toBe('TestComponent');
+				expect(stateChanges[0].updatedOn).not.toEqual(stateChanges[1].updatedOn); // UpdatedOn should be different
+				expect(stateChanges[0].updatedOn.getTime()).toBeLessThan(stateChanges[1].updatedOn.getTime()); // UNINITIALIZED should be before OK
+				sub.unsubscribe();				
 			});
 		});
 		
