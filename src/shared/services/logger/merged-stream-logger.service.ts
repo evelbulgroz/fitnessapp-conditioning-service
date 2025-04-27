@@ -1,5 +1,5 @@
 import { Injectable, Optional, Inject } from '@nestjs/common';
-import { Observable, Subscription, merge } from 'rxjs';
+import { EMPTY, Observable, Subscription, catchError, mergeMap, of } from 'rxjs';
 
 import { Logger } from '@evelbulgroz/logger';
 
@@ -27,14 +27,14 @@ import StreamMapper from './models/stream-mapper.model';
  * @Injectable()
  * export class UserRepository extends ManagedStatefulComponentMixin(Repository) {
  *   constructor(
- *     private readonly streamLogger: MergedStreamLogger,
+ *     protected readonly streamLogger: MergedStreamLogger,
  *     // other dependencies
  *   ) {
  *     super();
  *     this.setupLogging();
  *   }
  * 
- *   private setupLogging(): void {
+ *   protected setupLogging(): void {
  *     // Register both logs$ and state$ streams with the logger
  *     this.streamLogger.subscribeToStreams(
  *       {
@@ -65,13 +65,13 @@ import StreamMapper from './models/stream-mapper.model';
  *   public readonly state$ = new BehaviorSubject<ComponentStateInfo>({...});
  *   public readonly metrics$ = new Subject<MetricEvent>();
  *   
- *   private readonly subscriptionKey = `DataService-${Date.now()}`;
+ *   protected readonly subscriptionKey = `DataService-${Date.now()}`;
  * 
- *   constructor(private readonly streamLogger: MergedStreamLogger) {
+ *   constructor(protected readonly streamLogger: MergedStreamLogger) {
  *     this.initLogging();
  *   }
  * 
- *   private initLogging(): void {
+ *   protected initLogging(): void {
  *     // Register multiple stream types with a unique subscription key
  *     this.streamLogger.subscribeToStreams(
  *       {
@@ -135,11 +135,17 @@ import StreamMapper from './models/stream-mapper.model';
 @Injectable()
 export class MergedStreamLogger {
 	// Map components to their subscriptions
-	private componentSubscriptions: Map<string, Subscription[]> = new Map();
-	private mappers: Map<string, StreamMapper<any>> = new Map();
+	protected componentSubscriptions: Map<string, Subscription[]> = new Map();
+	protected mappers: Map<string, StreamMapper<any>> = new Map();
+
+	// Failure tracking properties
+	protected streamFailureCounts: Map<string, number> = new Map();
+	protected streamBackoffTimers: Map<string, any> = new Map();
+	protected readonly MAX_FAILURES = 5;
+	protected readonly BACKOFF_RESET_MS = 60000; // 1 minute
 
 	constructor(
-		private readonly logger: Logger,
+		protected readonly logger: Logger,
 		@Optional() @Inject('STREAM_MAPPERS') mappers?: StreamMapper<any>[]
 	) {
 		// Register all provided mappers
@@ -158,28 +164,92 @@ export class MergedStreamLogger {
 	}
 
 	/** Register component streams the logger should listen to
-	 * @param streams Object containing named observable streams to process
-	 * @param context Optional component name for context
-	 * @param subscriptionKey Optional key to identify this subscription group
-	 */
+ * @param streams Object containing named observable streams to process
+ * @param context Optional component name for context
+ * @param subscriptionKey Optional key to identify this subscription group
+ * @remark This method subscribes to the provided streams and processes their events using the registered mappers.
+ * @remark If a mapper is not found for a stream type, a warning is logged and the stream is ignored.
+ * @remark If an error occurs during mapping, it is logged and the stream continues to be monitored.
+ * @remark Streams with repeated failures will have reduced error logging to avoid log spamming.
+ */
 	public subscribeToStreams(
 		streams: Record<string, Observable<any>>,
 		context?: string,
 		subscriptionKey?: string
 	): void {
 		const key = subscriptionKey || context || `anonymous-${Date.now()}`;
-		const mappedStreams: Observable<UnifiedLogEntry>[] = [];
-
-		// Process each stream using its registered mapper
+		
+		// Subscribe to each stream individually
 		Object.entries(streams).forEach(([streamType, stream$]) => {
 			if (!stream$) return;
 
 			const mapper = this.mappers.get(streamType);
 			
 			if (mapper) {
-				// Map the stream using the registered mapper
-				const mappedStream$ = mapper.mapToLogEvents(stream$, context);
-				mappedStreams.push(mappedStream$);
+				// Track failures for this stream
+				const streamKey = `${key}:${streamType}`;
+				if (!this.streamFailureCounts.has(streamKey)) {
+					this.streamFailureCounts.set(streamKey, 0);
+				}
+
+				// Create a subscription for this specific stream
+				const subscription = stream$
+					.pipe(
+						// Use mergeMap to handle each event individually
+						mergeMap(event => {
+							try {
+								// Try to map the event
+								const result = mapper.mapToLogEvents(of(event), context);
+								
+								// Reset failure count on success
+								if (this.streamFailureCounts.get(streamKey)! > 0) {
+									this.handleStreamRecovery(streamKey, streamType);
+								}
+								
+								return result;
+							} catch (error) {
+								// Increment and track failure count
+								this.handleStreamError(streamKey, streamType, error);
+								
+								// Return empty observable for this event only
+								return EMPTY;
+							}
+						}),
+						// Also catch any errors that occur asynchronously in the mapper
+						catchError(error => {
+							// Increment and track failure count
+							this.handleStreamError(streamKey, streamType, error);
+							
+							// Re-subscribe to the source stream to continue processing
+							return stream$.pipe(
+								// Start processing from the next emitted value
+								mergeMap(event => {
+									try {
+										const result = mapper.mapToLogEvents(of(event), context);
+										
+										// Reset failure count on success
+										if (this.streamFailureCounts.get(streamKey)! > 0) {
+											this.handleStreamRecovery(streamKey, streamType);
+										}
+										
+										return result;
+									} catch (e) {
+										// Don't count this as another failure since we're in recovery
+										return EMPTY;
+									}
+								})
+							);
+						})
+					)
+					.subscribe(event => {
+						this.processLogEntry(event);
+					});
+				
+				// Store subscription with key for targeted cleanup
+				if (!this.componentSubscriptions.has(key)) {
+					this.componentSubscriptions.set(key, []);
+				}
+				this.componentSubscriptions.get(key)?.push(subscription);
 			} else {
 				// Log a warning if no mapper is found for this stream type
 				this.logger.warn(
@@ -188,18 +258,86 @@ export class MergedStreamLogger {
 				);
 			}
 		});
+	}
 
-		// Merge all streams and subscribe if we have any
-		if (mappedStreams.length > 0) {
-			const subscription = merge(...mappedStreams).subscribe(event => {
-				this.processLogEntry(event);
-			});
+	/** Handle stream error with failure counting and backoff
+	 * @param streamKey Unique key for the stream (component:streamType)
+	 * @param streamType Type of stream that failed
+	 * @param error The error that occurred
+	 */
+	protected handleStreamError(streamKey: string, streamType: string, error: any): void {
+		// Increment failure count
+		const failures = this.streamFailureCounts.get(streamKey)! + 1;
+		this.streamFailureCounts.set(streamKey, failures);
+		
+		// Set up automatic recovery timer if not already set
+		if (!this.streamBackoffTimers.has(streamKey)) {
+			this.streamBackoffTimers.set(streamKey, setTimeout(() => {
+				// Reset failure count after timeout period
+				if (this.streamFailureCounts.has(streamKey)) {
+					this.streamFailureCounts.set(streamKey, 0);
+					this.logger.debug(
+						`Failure count automatically reset for stream '${streamType}' after ${this.BACKOFF_RESET_MS}ms`,
+						this.constructor.name
+					);
+				}
+				this.streamBackoffTimers.delete(streamKey);
+			}, this.BACKOFF_RESET_MS));
+		}
+		
+		// Log based on failure count
+		if (failures <= this.MAX_FAILURES) {
+			// Log every error until we reach the threshold
+			this.logger.error(
+				`Error in stream mapper for '${streamType}' (failure ${failures}/${this.MAX_FAILURES}): ${error?.message || 'Unknown error'}`,
+				error,
+				this.constructor.name
+			);
 			
-			// Store subscription with key for targeted cleanup
-			if (!this.componentSubscriptions.has(key)) {
-				this.componentSubscriptions.set(key, []);
+			// Only log the continuation message for early failures to avoid spam
+			if (failures <= 2) {
+				this.logger.info(
+					`Monitoring for ${streamType} continues despite mapping error`,
+					this.constructor.name
+				);
 			}
-			this.componentSubscriptions.get(key)?.push(subscription);
+		} else if (failures === this.MAX_FAILURES + 1) {
+			// When we cross the threshold, log one warning about reduced logging
+			this.logger.warn(
+				`Stream "${streamType}" has failed ${failures} times, reducing error logging frequency`,
+				this.constructor.name
+			);
+		} else if (failures % 10 === 0) {
+			// Log only occasionally after that (every 10 failures)
+			this.logger.warn(
+				`Stream "${streamType}" continues to fail: ${failures} total failures`,
+				this.constructor.name
+			);
+		}
+	}
+
+	/** Handle recovery from stream errors
+	 * @param streamKey Unique key for the stream
+	 * @param streamType Type of stream that recovered
+	 */
+	protected handleStreamRecovery(streamKey: string, streamType: string): void {
+		const previousFailures = this.streamFailureCounts.get(streamKey) || 0;
+		
+		// Reset failure count
+		this.streamFailureCounts.set(streamKey, 0);
+		
+		// Clear any existing backoff timer
+		if (this.streamBackoffTimers.has(streamKey)) {
+			clearTimeout(this.streamBackoffTimers.get(streamKey));
+			this.streamBackoffTimers.delete(streamKey);
+		}
+		
+		// Log recovery if there were significant failures
+		if (previousFailures >= 3) {
+			this.logger.info(
+				`Stream "${streamType}" has recovered after ${previousFailures} failures`,
+				this.constructor.name
+			);
 		}
 	}
 

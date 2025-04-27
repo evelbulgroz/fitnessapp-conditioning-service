@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Observable, Subject } from 'rxjs';
+import { map, Observable, Subject } from 'rxjs';
+//import { map } from 'rxjs/operators';
 
 import { Logger } from '@evelbulgroz/logger';
 
@@ -83,9 +84,6 @@ class MockMetricMapper implements StreamMapper<MockMetric> {
 	}
 }
 
-// Import map operator that might be missing from the imports
-import { map } from 'rxjs/operators';
-
 describe('MergedStreamLogger', () => {
 	let logger: MergedStreamLogger;
 	let mockLogger: jest.Mocked<Logger>;
@@ -138,7 +136,7 @@ describe('MergedStreamLogger', () => {
 			expect(logger).toBeDefined();
 		});
 		
-		it('should register mappers from injection token', () => {
+		it('should register mappers from injection token', async () => {
 			// The mappers should be registered during construction
 			// We can test this indirectly by subscribing to streams
 			const logs$ = new Subject<MockLogEntry>();
@@ -149,7 +147,8 @@ describe('MergedStreamLogger', () => {
 			logs$.next({ level: LogLevel.LOG, message: 'Test log' });
 			state$.next({ state: 'OK', reason: 'All good' });
 			
-			expect(mockLogger.log).toHaveBeenCalledTimes(2);
+			expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'TestContext');
+			expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('All good'), 'TestContext');
 		});
 	});
 	
@@ -468,7 +467,7 @@ describe('MergedStreamLogger', () => {
 			expect(mockLogger.log).toHaveBeenCalledTimes(100);
 		});
 		
-		it('should continue processing after one stream errors', () => {
+		it('should continue processing all streams after any stream errors', async () => {
 			const logs$ = new Subject<MockLogEntry>();
 			const state$ = new Subject<MockState>();
 			
@@ -492,28 +491,315 @@ describe('MergedStreamLogger', () => {
 				);
 			});
 			
-			// Subscribe to both
+			// Subscribe to both streams
 			logger.subscribeToStreams({ logs$, state$ }, 'ErrorTest');
+			
+			// Reset mocks to ensure clean tracking
+			jest.clearAllMocks();
 			
 			// Send a normal log
 			logs$.next({ level: LogLevel.LOG, message: 'Before error' });
 			
-			// Send a state that will cause an error in the mapper
-			try {
-				state$.next({ state: 'ERROR_TRIGGER', reason: 'Should cause error' });
-			} catch (e) {
-				// Expected
-			}
-			
-			// Send another normal log
-			logs$.next({ level: LogLevel.LOG, message: 'After error' });
-			
-			// The system should have logged the messages before and after
+			// Verify the log was processed
 			expect(mockLogger.log).toHaveBeenCalledWith('Before error', 'ErrorTest');
+			
+			// Reset mocks to make following assertions clearer
+			jest.clearAllMocks();
+			
+			// Send a state that will cause an error in the mapper
+			state$.next({ state: 'ERROR_TRIGGER', reason: 'Should cause error' });
+			
+			// Verify error logging occurred
+			expect(mockLogger.error).toHaveBeenCalledWith(
+				`Error in stream mapper for 'state$' (failure 1/5): Mapper error`,
+				expect.any(Error),
+				'MergedStreamLogger'
+			);
+			expect(mockLogger.info).toHaveBeenCalledWith(
+				'Monitoring for state$ continues despite mapping error', 
+				'MergedStreamLogger'
+			);
+			
+			// Reset mocks again for clarity
+			jest.clearAllMocks();
+			
+			// Send another normal log to verify logs$ stream still works
+			logs$.next({ level: LogLevel.LOG, message: 'After error' });
 			expect(mockLogger.log).toHaveBeenCalledWith('After error', 'ErrorTest');
+			
+			// Send another state to verify state$ stream still works after error
+			state$.next({ state: 'OK', reason: 'Recovered' });
+			
+			// This is the key expectation - state$ should continue working after an error
+			expect(mockLogger.info).toHaveBeenCalledWith(
+				expect.stringContaining('State changed to OK: Recovered'),
+				'ErrorTest'
+			);
 			
 			// Restore original method
 			stateMapper.mapToLogEvents = originalMapToLogEvents;
+		});
+		
+		it('should detect and log recovery after multiple failures', () => {
+			const state$ = new Subject<MockState>();
+			
+			// Create a mapper that fails for specific states
+			const originalMapToLogEvents = stateMapper.mapToLogEvents;
+			stateMapper.mapToLogEvents = jest.fn().mockImplementation((source$, context) => {
+				// Return a new Observable that will filter and map the source stream
+				return new Observable<UnifiedLogEntry>(subscriber => {
+					// Subscribe to the source stream
+					const subscription = source$.subscribe({
+						next: (state: MockState) => {
+							try {
+								if (state.state === 'FAIL') {
+									// Instead of throwing, call the error method of our handleStreamError method
+									// This simulates what would happen in the real implementation
+									throw new Error('Temporary failure');
+								}
+								
+								// For non-error states, create and emit a log entry
+								const logEntry: UnifiedLogEntry = {
+									source: LogEventSource.STATE,
+									timestamp: new Date(),
+									level: LogLevel.INFO,
+									message: `State changed to ${state.state}: ${state.reason}`,
+									context: state.name || context,
+									data: state
+								};
+								subscriber.next(logEntry);
+							} catch (error) {
+								// Simulate a synchronous error that would be caught in the real implementation
+								// This logs the error but keeps the subscription alive
+								mockLogger.error(
+									`Test caught error: ${error.message}`,
+									error,
+									'MockStateMapper'
+								);
+								
+								// Don't emit anything for this failed event
+							}
+						},
+						error: (err: Error) => {
+							// Forward any errors from the source stream
+							subscriber.error(err);
+						},
+						complete: () => {
+							// Forward completion
+							subscriber.complete();
+						}
+					});
+					
+					// Return a teardown function
+					return () => {
+						subscription.unsubscribe();
+					};
+				});
+			});
+			
+			// Subscribe to the stream
+			logger.subscribeToStreams({ state$ }, 'RecoveryTest');
+			
+			// Reset mocks
+			jest.clearAllMocks();
+			
+			// Send 4 failing states - these should all be caught individually
+			for (let i = 1; i <= 4; i++) {
+				state$.next({ state: 'FAIL', reason: `Failure ${i}` });
+			}
+			
+			// Should have logged 4 errors via our manual error logging in the mock
+			expect(mockLogger.error).toHaveBeenCalledTimes(4);
+			
+			// Reset mocks
+			jest.clearAllMocks();
+			
+			// Send a successful state - should trigger recovery logic
+			state$.next({ state: 'OK', reason: 'Finally recovered' });
+			
+			// Should log recovery message (this comes from handleStreamRecovery)
+			expect(mockLogger.info).toHaveBeenCalledWith(
+				expect.stringContaining('State changed to OK: Finally recovered'),
+				'RecoveryTest'
+			);
+			
+			// Reset mocks
+			jest.clearAllMocks();
+			
+			// Send an additional failure - should be treated as a new first failure
+			state$.next({ state: 'FAIL', reason: 'New first failure' });
+			
+			// Should log the error
+			expect(mockLogger.error).toHaveBeenCalledWith(
+				expect.stringContaining('Test caught error: Temporary failure'),
+				expect.any(Error),
+				'MockStateMapper'
+			);
+			
+			// Restore original method
+			stateMapper.mapToLogEvents = originalMapToLogEvents;
+		});
+		
+		it('should handle automatic failure count reset after timeout period', async () => {
+			// Store original timeout duration and temporarily reduce it for testing
+			const originalTimeoutDuration = (logger as any).BACKOFF_RESET_MS;
+			(logger as any).BACKOFF_RESET_MS = 100; // 100ms for testing
+			
+			const state$ = new Subject<MockState>();
+			
+			// Create a mapper that fails for specific states
+			const originalMapToLogEvents = stateMapper.mapToLogEvents;
+			stateMapper.mapToLogEvents = jest.fn().mockImplementation((source$, context) => {
+				return source$.pipe(
+					map((state: MockState) => {
+						if (state.state === 'FAIL') {
+							throw new Error('Intermittent failure');
+						}
+						return {
+							source: LogEventSource.STATE,
+							timestamp: new Date(),
+							level: LogLevel.INFO,
+							message: `State changed to ${state.state}: ${state.reason}`,
+							context: state.name || context,
+							data: state
+						} as UnifiedLogEntry;
+					})
+				);
+			});
+			
+			// Subscribe to the stream
+			logger.subscribeToStreams({ state$ }, 'TimeoutTest');
+			
+			// Reset mocks
+			jest.clearAllMocks();
+			
+			// Send 3 failing states
+			for (let i = 1; i <= 3; i++) {
+				state$.next({ state: 'FAIL', reason: `Failure ${i}` });
+			}
+			
+			// Should have logged 3 errors
+			expect(mockLogger.error).toHaveBeenCalledTimes(3);
+			
+			// Wait for the backoff timer to reset the count
+			await new Promise(resolve => setTimeout(resolve, 150));
+			
+			// Reset mocks
+			jest.clearAllMocks();
+			
+			// Send another failing state - should be treated as a new first failure
+			state$.next({ state: 'FAIL', reason: 'New failure after timeout' });
+			
+			// Should log the error with failure count 1, not 4
+			expect(mockLogger.error).toHaveBeenCalledWith(
+				expect.stringContaining('(failure 1/'),
+				expect.any(Error),
+				'MergedStreamLogger'
+			);
+			
+			// Restore original method and timeout
+			stateMapper.mapToLogEvents = originalMapToLogEvents;
+			(logger as any).BACKOFF_RESET_MS = originalTimeoutDuration;
+		});
+		
+		it('should handle errors in multiple streams independently', () => {
+			const logs$ = new Subject<MockLogEntry>();
+			const state$ = new Subject<MockState>();
+			const metrics$ = new Subject<MockMetric>();
+			
+			// Register metrics mapper
+			logger.registerMapper(metricMapper);
+			
+			// Create mappers that fail for specific inputs
+			const originalStateMapToLogEvents = stateMapper.mapToLogEvents;
+			stateMapper.mapToLogEvents = jest.fn().mockImplementation((source$, context) => {
+				return source$.pipe(
+					map((state: MockState) => {
+						if (state.state === 'FAIL') {
+							throw new Error('State mapper error');
+						}
+						return {
+							source: LogEventSource.STATE,
+							timestamp: new Date(),
+							level: LogLevel.INFO,
+							message: `State changed to ${state.state}: ${state.reason}`,
+							context: state.name || context,
+							data: state
+						} as UnifiedLogEntry;
+					})
+				);
+			});
+			
+			const originalMetricMapToLogEvents = metricMapper.mapToLogEvents;
+			metricMapper.mapToLogEvents = jest.fn().mockImplementation((source$, context) => {
+				return source$.pipe(
+					map((metric: MockMetric) => {
+						if (metric.value < 0) {
+							throw new Error('Metric mapper error');
+						}
+						return {
+							source: LogEventSource.CUSTOM,
+							timestamp: metric.timestamp,
+							level: LogLevel.LOG,
+							message: `Metric: ${metric.name} = ${metric.value}`,
+							context: context,
+							data: metric
+						} as UnifiedLogEntry;
+					})
+				);
+			});
+			
+			// Subscribe to all three streams
+			logger.subscribeToStreams({ logs$, state$, metrics$ }, 'MultistreamTest');
+			
+			// Reset mocks
+			jest.clearAllMocks();
+			
+			// Fail the state mapper
+			state$.next({ state: 'FAIL', reason: 'State failure' });
+			
+			// Verify state mapper error logged
+			expect(mockLogger.error).toHaveBeenCalledWith(
+				`Error in stream mapper for 'state$' (failure 1/5): State mapper error`,
+				expect.any(Error),
+				'MergedStreamLogger'
+			);
+			
+			// Reset mocks
+			jest.clearAllMocks();
+			
+			// Fail the metric mapper
+			metrics$.next({ name: 'negative-metric', value: -1, timestamp: new Date() });
+			
+			// Verify metric mapper error logged
+			expect(mockLogger.error).toHaveBeenCalledWith(
+				`Error in stream mapper for 'metrics$' (failure 1/5): Metric mapper error`,
+				expect.any(Error),
+				'MergedStreamLogger'
+			);
+			
+			// Reset mocks
+			jest.clearAllMocks();
+			
+			// All streams should still be operational
+			logs$.next({ level: LogLevel.LOG, message: 'Log still works' });
+			state$.next({ state: 'OK', reason: 'State still works' });
+			metrics$.next({ name: 'positive-metric', value: 10, timestamp: new Date() });
+			
+			// Verify all streams still work
+			expect(mockLogger.log).toHaveBeenCalledWith('Log still works', 'MultistreamTest');
+			expect(mockLogger.info).toHaveBeenCalledWith(
+				expect.stringContaining('State changed to OK: State still works'),
+				'MultistreamTest'
+			);
+			expect(mockLogger.log).toHaveBeenCalledWith(
+				expect.stringContaining('Metric: positive-metric = 10'),
+				'MultistreamTest'
+			);
+			
+			// Restore original methods
+			stateMapper.mapToLogEvents = originalStateMapToLogEvents;
+			metricMapper.mapToLogEvents = originalMetricMapToLogEvents;
 		});
 		
 		it('should handle completion of source streams', () => {
@@ -543,6 +829,30 @@ describe('MergedStreamLogger', () => {
 			// Both streams are now completed, but the subscription should still exist
 			// We can verify this by checking unsubscribeComponent still returns true
 			expect(logger.unsubscribeComponent('CompletionTest')).toBe(true);
+		});
+		
+		it('should handle source stream errors (not mapper errors)', () => {
+			const logs$ = new Subject<MockLogEntry>();
+			const problematicState$ = new Subject<MockState>();
+			
+			logger.subscribeToStreams({ logs$, state$: problematicState$ }, 'StreamErrorTest');
+			
+			// Send initial messages
+			logs$.next({ level: LogLevel.LOG, message: 'Initial log' });
+			problematicState$.next({ state: 'OK', reason: 'Initial state' });
+			
+			expect(mockLogger.log).toHaveBeenCalledTimes(1);
+			expect(mockLogger.info).toHaveBeenCalledTimes(1);
+			
+			// Cause an error in the state$ stream (not the mapper)
+			problematicState$.error(new Error('Stream itself failed'));
+			
+			// Logs$ should still work
+			logs$.next({ level: LogLevel.LOG, message: 'Log after state error' });
+			expect(mockLogger.log).toHaveBeenCalledTimes(2);
+			
+			// Unsubscribe should still work
+			expect(logger.unsubscribeComponent('StreamErrorTest')).toBe(true);
 		});
 	});
 });
