@@ -45,3 +45,4 @@ export class ComponentStateMapper implements StreamMapper<ComponentStateInfo> {
 		}
 	}
 }
+export default ComponentStateMapper;

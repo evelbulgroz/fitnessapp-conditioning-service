@@ -2,12 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BehaviorSubject } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 
-import { ComponentStateMapper } from './component-state-mapper';
-import ComponentState from '../../../../app-health/models/component-state';
-import ComponentStateInfo from '../../../../app-health/models/component-state-info';
+import ComponentState from '../../../../app-health/models/component-state.enum';
+import ComponentStateInfo from '../../../../app-health/models/component-state-info.model';
+import ComponentStateMapper from './component-state-mapper';
 import LogEventSource from '../models/log-event-source.model';
 import LogLevel from '../models/log-level.enum';
-import UnifiedLogEntry from '../models/unified-log-event.model';
 
 describe('ComponentStateMapper', () => {
 	let mapper: ComponentStateMapper;
@@ -65,7 +64,7 @@ describe('ComponentStateMapper', () => {
 		
 		beforeEach(() => {
 			stateSubject = new BehaviorSubject<ComponentStateInfo>({
-		name: 'TestComponent',
+				name: 'TestComponent',
 				state: ComponentState.INITIALIZING,
 				reason: 'Starting up',
 				updatedOn: now
@@ -87,7 +86,7 @@ describe('ComponentStateMapper', () => {
 				source: LogEventSource.STATE,
 				timestamp: now,
 				level: LogLevel.INFO, // INITIALIZING maps to INFO
-				message: 'State changed to initializing: Starting up',
+				message: `State changed to ${ComponentState.INITIALIZING}: Starting up`,
 				context: 'TestComponent',
 				data: {
 					state: ComponentState.INITIALIZING,
@@ -113,13 +112,13 @@ describe('ComponentStateMapper', () => {
 			const logEvent = await logEvents$.pipe(take(1)).toPromise();
 			
 			// The context should be the name from the state, not the default
-			expect(logEvent.context).toBe('NamedComponent');
+			expect(logEvent?.context).toBe('NamedComponent');
 		});
 		
 		it('should use the provided context if state.name is not available', async () => {
 			// Update the subject with a state that doesn't include a name
 			stateSubject.next({
-		name: 'TestComponent',
+				name: undefined as any,
 				state: ComponentState.OK,
 				reason: 'All good',
 				updatedOn: now
@@ -132,7 +131,7 @@ describe('ComponentStateMapper', () => {
 			const logEvent = await logEvents$.pipe(take(1)).toPromise();
 			
 			// The context should be the default
-			expect(logEvent.context).toBe('DefaultContext');
+			expect(logEvent?.context).toBe('DefaultContext');
 		});
 		
 		it('should use current date if updatedOn is not provided', async () => {
@@ -155,7 +154,7 @@ describe('ComponentStateMapper', () => {
 			const logEvent = await logEvents$.pipe(take(1)).toPromise();
 			
 			// The timestamp should be the fixed date
-			expect(logEvent.timestamp).toBe(fixedDate);
+			expect(logEvent?.timestamp).toBe(fixedDate);
 			
 			// Restore Date
 			jest.restoreAllMocks();
@@ -187,19 +186,19 @@ describe('ComponentStateMapper', () => {
 			const logEvents = await logEventsPromise;
 			
 			// Verify we got 3 events with the correct mappings
-			expect(logEvents.length).toBe(3);
+			expect(logEvents?.length).toBe(3);
 			
 			// First event (from beforeEach)
-			expect(logEvents[0].message).toBe('State changed to initializing: Starting up');
-			expect(logEvents[0].level).toBe(LogLevel.INFO);
+			expect(logEvents![0].message).toBe(`State changed to ${ComponentState.INITIALIZING}: Starting up`);
+			expect(logEvents![0].level).toBe(LogLevel.INFO);
 			
 			// Second event
-			expect(logEvents[1].message).toBe('State changed to ok: Initialized successfully');
-			expect(logEvents[1].level).toBe(LogLevel.LOG);
+			expect(logEvents![1].message).toBe(`State changed to ${ComponentState.OK}: Initialized successfully`);
+			expect(logEvents![1].level).toBe(LogLevel.LOG);
 			
 			// Third event
-			expect(logEvents[2].message).toBe('State changed to degraded: Performance issue detected');
-			expect(logEvents[2].level).toBe(LogLevel.WARN);
+			expect(logEvents![2].message).toBe(`State changed to ${ComponentState.DEGRADED}: Performance issue detected`);
+			expect(logEvents![2].level).toBe(LogLevel.WARN);
 		});
 		
 		it('should map different component states to appropriate log levels', async () => {
