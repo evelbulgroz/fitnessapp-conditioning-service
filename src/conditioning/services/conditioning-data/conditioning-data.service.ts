@@ -56,6 +56,7 @@ export interface UserLogsCacheEntry {
  * @remark Admins can access all logs, other users can only access their own logs.
  * @remark Local cache is kept in sync with repository data via subscriptions to log and user repo events.
  * @remark Provides ManagedStatefulComponent API for lifecycle management and state tracking, using ManagedStatefulComponentMixin.
+ * @todo Try to get mixin decorators working, e.g. using declaration merging (broke the type system at last attempt); alternatively, look into using factory functions for mixins
  * @todo Break each public method out into separate service class, to make this class more manageable and testable by simply providing a facade to the new services.
  * @todo Use shared cache library when available
  */
