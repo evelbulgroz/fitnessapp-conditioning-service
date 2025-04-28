@@ -98,7 +98,6 @@ export class ConditioningLog<T extends ConditioningLog<T,U>, U extends Condition
 	public set laps(value: ConditioningLap[] | undefined) { this._laps = value ? [...value] : undefined; }	
 	public get laps(): ConditioningLap[] | undefined { return this._laps ? [...this._laps] : undefined 	}
 }
-
 export default ConditioningLog;
 
 TrainingLog.registerSubclass(ConditioningLog); // populate subclass map in superclass to enable deserialization

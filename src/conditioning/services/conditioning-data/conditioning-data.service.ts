@@ -14,7 +14,7 @@ import AggregatorService from '../aggregator/aggregator.service';
 import BooleanDTO from '../../../shared/dtos/responses/boolean.dto';
 import ComponentStateInfo from '../../../app-health/models/component-state-info.model';
 import { ConditioningData } from '../../domain/conditioning-data.model';
-import { ConditioningLog } from '../../domain/conditioning-log.entity';
+import ConditioningLog from '../../domain/conditioning-log.entity';
 import ConditioningLogDTO from '../../dtos/conditioning-log.dto';
 import ConditioningLogRepository from '../../repositories/conditioning-log.repo';
 import ConditioningLogSeries from '../../domain/conditioning-log-series.model';
