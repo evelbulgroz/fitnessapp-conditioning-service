@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import {  Logger } from '@evelbulgroz/logger';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { Query } from '@evelbulgroz/query-fns';
 
@@ -41,7 +41,6 @@ import { UserContext } from '../../../shared/domain/user-context.model';
 import { UserDTO } from '../../../user/dtos/user.dto';
 import { UserPersistenceDTO } from '../../../user/dtos/user-persistence.dto';
 import { UserRepository } from '../../../user/repositories/user.repo';
-import ComponentState from '../../../app-health/models/component-state';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);

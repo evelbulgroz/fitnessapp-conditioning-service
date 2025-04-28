@@ -3,7 +3,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { Observable, Subscription } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
-import { EntityId, LogEntry, LogLevel, PersistenceAdapter, Repository, Result } from "@evelbulgroz/ddd-base";
+import { EntityId, RepoLogEntry, RepoLogLevel, PersistenceAdapter, Repository, Result } from "@evelbulgroz/ddd-base";
 import { Logger } from "@evelbulgroz/logger";
 import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
 
@@ -87,24 +87,24 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	 */
 	protected initializeLogging(): void {
 		const logsSub = this.logs$.subscribe({
-			next: (log: LogEntry) => {
+			next: (log: RepoLogEntry) => {
 				switch (log.level) {
-					case LogLevel.LOG:
+					case RepoLogLevel.LOG:
 						this.logger.log(log.message, log.context);
 						break;
-					case LogLevel.WARN:
+					case RepoLogLevel.WARN:
 						this.logger.warn(log.message, log.context);
 						break;
-					case LogLevel.ERROR:
+					case RepoLogLevel.ERROR:
 						this.logger.error(log.message, log.data, log.context);
 						break;
-					case LogLevel.INFO:
+					case RepoLogLevel.INFO:
 						this.logger.info(log.message, log.context);
 						break;
-					case LogLevel.DEBUG:
+					case RepoLogLevel.DEBUG:
 						this.logger.debug(log.message, log.context);
 						break;
-					case LogLevel.VERBOSE:
+					case RepoLogLevel.VERBOSE:
 						this.logger.verbose(`${log.message}, ${log.data}`, log.context);
 						break;
 					default:
@@ -114,7 +114,7 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 			}
 		});
 		this.subscriptions.push(logsSub); // base class should complete the oberservable on shutdown, but add it to the list just in case
-		this.log(LogLevel.LOG, `Subscribed to logs`);
+		this.log(RepoLogLevel.LOG, `Subscribed to logs`);
 	}
 
 	/** Execute repository initialization (required by ManagedStatefulComponentMixin)
@@ -124,20 +124,20 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
      */
     protected async executeInitialization(): Promise<void> {
 		this.initializeLogging(); // initialize logging before anything else
-        this.log(LogLevel.LOG, `Executing initialization`);
+        this.log(RepoLogLevel.LOG, `Executing initialization`);
 		
 		// Repository.initialize() does most of the work, so we just need to call it and unwrap its result here
 		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
 		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
 		const initResult = await realSuper.initialize.call(this);
 		if (initResult.isFailure) {
-			this.log(LogLevel.ERROR, `Failed to execute initialization`, undefined, initResult.error);
+			this.log(RepoLogLevel.ERROR, `Failed to execute initialization`, undefined, initResult.error);
 			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${initResult.error}`);
 		}
 		
 		// If/when needed, add local initialization here
         
-		this.log(LogLevel.LOG, `Initialization executed successfully`);
+		this.log(RepoLogLevel.LOG, `Initialization executed successfully`);
         return Promise.resolve();
     }
     
@@ -147,14 +147,14 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	 * @remark Basically calls base class shutdown method and unwraps the result
      */
     protected async executeShutdown(): Promise<void> {
-        this.log(LogLevel.LOG, `Executing shutdown`);
+        this.log(RepoLogLevel.LOG, `Executing shutdown`);
 
 		// Repository.shutdown() does most of the work, so we just need to call it and unwrap its result here
 		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
 		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
 		const shutdownResult = await realSuper.shutdown.call(this);
 		if (shutdownResult.isFailure) {
-			this.log(LogLevel.ERROR, `Failed to execute shutdown`, undefined, shutdownResult.error);
+			this.log(RepoLogLevel.ERROR, `Failed to execute shutdown`, undefined, shutdownResult.error);
 			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${shutdownResult.error}`);
 		}
 		

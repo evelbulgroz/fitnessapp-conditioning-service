@@ -108,8 +108,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 	},
 	unshadowPrefix: string = `msc_${Math.random().toString(36).substring(2, 6)}_` // Default prefix: "managed stateful component" + random string
 ) {
-	abstract class ManagedStatefulComponentClass extends Parent implements ManagedStatefulComponent {
-		
+	abstract class ManagedStatefulComponentClass extends Parent implements ManagedStatefulComponent {		
 		//------------------------------------- PROPERTIES --------------------------------------//
 		
 		/* Prefix for internal method names to avoid shadowing parent methods of the same name

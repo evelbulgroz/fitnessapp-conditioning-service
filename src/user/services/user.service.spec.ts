@@ -452,9 +452,9 @@ describe('UserService', () => {
 		// Just do a few checks that things are hooked up correctly.
 			
 		describe('initialize', () => {	
-			it('calls executeInitialization', async () => {				
+			it('calls onInitialize', async () => {				
 				// arrange
-				const executeInitSpy = jest.spyOn(service, 'executeInitialization').mockReturnValue(Promise.resolve());
+				const executeInitSpy = jest.spyOn(service, 'onInitialize').mockReturnValue(Promise.resolve());
 	
 				// act
 				await service.initialize();
@@ -478,6 +478,19 @@ describe('UserService', () => {
 		});		
 
 		describe('shutdown', () => {
+			it('calls onShutdown', async () => {				
+				// arrange
+				const executeShutdownSpy = jest.spyOn(service, 'onShutdown').mockReturnValue(Promise.resolve());
+	
+				// act
+				await service.shutdown();
+	
+				// assert
+				expect(executeShutdownSpy).toHaveBeenCalledTimes(1);
+				expect(executeShutdownSpy).toHaveBeenCalledWith();
+				executeShutdownSpy.mockRestore();
+			});
+
 			it('unubscribes from all observables and clears subscriptions', async () => {
 				// arrange
 				
