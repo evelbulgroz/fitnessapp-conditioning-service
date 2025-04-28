@@ -21,7 +21,7 @@ describe('ComponentStateMapper', () => {
 	
 	describe('streamType', () => {
 		it('should have the correct stream type identifier', () => {
-			expect(mapper.streamType).toBe('state$');
+			expect(mapper.streamType).toBe('componentState$');
 		});
 	});
 	

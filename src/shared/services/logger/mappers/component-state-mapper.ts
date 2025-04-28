@@ -11,7 +11,7 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
 
 @Injectable()
 export class ComponentStateMapper implements StreamMapper<ComponentStateInfo> {
-	public readonly streamType = 'state$';
+public readonly streamType = 'componentState$';
 	
 	public mapToLogEvents(
 		source$: Observable<ComponentStateInfo>,
