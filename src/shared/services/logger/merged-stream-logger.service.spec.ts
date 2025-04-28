@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { map, Observable, Subject } from 'rxjs';
-//import { map } from 'rxjs/operators';
 
 import { Logger } from '@evelbulgroz/logger';
 
