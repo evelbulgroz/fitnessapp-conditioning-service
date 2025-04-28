@@ -10,7 +10,7 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
 
 @Injectable()
 export class RepoLogMapper implements StreamMapper<RepoLogEntry> {
-	public readonly streamType = 'logs$';
+	public readonly streamType = 'repoLog$';
 	
 	public mapToLogEvents(
 		source$: Observable<RepoLogEntry>,

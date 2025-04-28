@@ -5,7 +5,6 @@ import { LogEntry as RepoLogEntry, LogLevel } from '@evelbulgroz/ddd-base';
 
 import { RepoLogMapper } from './repo-log.mapper';
 import LogEventSource from '../models/log-event-source.model';
-import UnifiedLogEntry from '../models/unified-log-event.model';
 
 describe('RepoLogMapper', () => {
 	let mapper: RepoLogMapper;
@@ -22,7 +21,7 @@ describe('RepoLogMapper', () => {
 	
 	describe('streamType', () => {
 			it('should have the correct stream type identifier', () => {
-					expect(mapper.streamType).toBe('logs$');
+					expect(mapper.streamType).toBe('repoLog$');
 			});
 	});
 	
