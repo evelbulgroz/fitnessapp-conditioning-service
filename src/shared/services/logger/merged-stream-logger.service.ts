@@ -1,5 +1,5 @@
 import { Injectable, Optional, Inject } from '@nestjs/common';
-import { EMPTY, Observable, Subscription, catchError, mergeMap, of } from 'rxjs';
+import { EMPTY, Observable, Subscription, catchError, delay, mergeMap, of } from 'rxjs';
 
 import { Logger } from '@evelbulgroz/logger';
 
@@ -164,14 +164,14 @@ export class MergedStreamLogger {
 	}
 
 	/** Register component streams the logger should listen to
- * @param streams Object containing named observable streams to process
- * @param context Optional component name for context
- * @param subscriptionKey Optional key to identify this subscription group
- * @remark This method subscribes to the provided streams and processes their events using the registered mappers.
- * @remark If a mapper is not found for a stream type, a warning is logged and the stream is ignored.
- * @remark If an error occurs during mapping, it is logged and the stream continues to be monitored.
- * @remark Streams with repeated failures will have reduced error logging to avoid log spamming.
- */
+	 * @param streams Object containing named observable streams to process
+	 * @param context Optional component name for context
+	 * @param subscriptionKey Optional key to identify this subscription group
+	 * @remark This method subscribes to the provided streams and processes their events using the registered mappers.
+	 * @remark If a mapper is not found for a stream type, a warning is logged and the stream is ignored.
+	 * @remark If an error occurs during mapping, it is logged and the stream continues to be monitored.
+	 * @remark Streams with repeated failures will have reduced error logging to avoid log spamming.
+	 */
 	public subscribeToStreams(
 		streams: Record<string, Observable<any>>,
 		context?: string,
@@ -182,61 +182,57 @@ export class MergedStreamLogger {
 		// Subscribe to each stream individually
 		Object.entries(streams).forEach(([streamType, stream$]) => {
 			if (!stream$) return;
-
-			const mapper = this.mappers.get(streamType);
-			
+	
+			const mapper = this.mappers.get(streamType);			
 			if (mapper) {
 				// Track failures for this stream
 				const streamKey = `${key}:${streamType}`;
 				if (!this.streamFailureCounts.has(streamKey)) {
 					this.streamFailureCounts.set(streamKey, 0);
 				}
-
+	
+				// Define a function to handle mapping an event with built-in error handling
+				const processEvent = (event: any) => {
+					try {
+						// Try to map the event
+						const result = mapper.mapToLogEvents(of(event), context);
+						
+						// Reset failure count on success
+						if (this.streamFailureCounts.get(streamKey)! > 0) {
+							this.handleStreamRecovery(streamKey, streamType);
+						}
+						
+						return result;
+					} catch (error) {
+						// Increment and track failure count
+						this.handleStreamError(streamKey, streamType, error);
+						
+						// Return empty observable for this event only
+						return EMPTY;
+					}
+				};
+	
 				// Create a subscription for this specific stream
 				const subscription = stream$
 					.pipe(
-						// Use mergeMap to handle each event individually
-						mergeMap(event => {
-							try {
-								// Try to map the event
-								const result = mapper.mapToLogEvents(of(event), context);
-								
-								// Reset failure count on success
-								if (this.streamFailureCounts.get(streamKey)! > 0) {
-									this.handleStreamRecovery(streamKey, streamType);
-								}
-								
-								return result;
-							} catch (error) {
-								// Increment and track failure count
-								this.handleStreamError(streamKey, streamType, error);
-								
-								// Return empty observable for this event only
-								return EMPTY;
-							}
-						}),
-						// Also catch any errors that occur asynchronously in the mapper
+						// Handle source stream errors first
 						catchError(error => {
-							// Increment and track failure count
-							this.handleStreamError(streamKey, streamType, error);
+							this.logger.error(
+								`Stream "${streamType}" emitted an error: ${error.message}`, 
+								error, 
+								this.constructor.name
+							);
 							
-							// Re-subscribe to the source stream to continue processing
-							return stream$.pipe(
-								// Start processing from the next emitted value
-								mergeMap(event => {
-									try {
-										const result = mapper.mapToLogEvents(of(event), context);
-										
-										// Reset failure count on success
-										if (this.streamFailureCounts.get(streamKey)! > 0) {
-											this.handleStreamRecovery(streamKey, streamType);
-										}
-										
-										return result;
-									} catch (e) {
-										// Don't count this as another failure since we're in recovery
-										return EMPTY;
-									}
+							// Return empty to complete this stream but allow others to continue
+							return EMPTY;
+						}),
+						// For each event, properly handle errors at the event level
+						mergeMap(event => {
+							return processEvent(event).pipe(
+								// Catch errors at the individual mapped event level
+								catchError(error => {
+									this.handleStreamError(streamKey, streamType, error);
+									return EMPTY; // Skip just this event
 								})
 							);
 						})

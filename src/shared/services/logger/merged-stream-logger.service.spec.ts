@@ -650,21 +650,21 @@ describe('MergedStreamLogger', () => {
 			// Create a mapper that fails for specific states
 			const originalMapToLogEvents = stateMapper.mapToLogEvents;
 			stateMapper.mapToLogEvents = jest.fn().mockImplementation((source$, context) => {
-			  return source$.pipe(
-				map((state: MockState) => {
-				  if (state.state === 'FAIL') {
-					throw new Error('Intermittent failure');
-				  }
-				  return {
-					source: LogEventSource.STATE,
-					timestamp: new Date(),
-					level: LogLevel.INFO,
-					message: `State changed to ${state.state}: ${state.reason}`,
-					context: state.name || context,
-					data: state
-				  } as UnifiedLogEntry;
-				})
-			  );
+				return source$.pipe(
+					map((state: MockState) => {
+						if (state.state === 'FAIL') {
+							throw new Error('Intermittent failure');
+						}
+						return {
+							source: LogEventSource.STATE,
+							timestamp: new Date(),
+							level: LogLevel.INFO,
+							message: `State changed to ${state.state}: ${state.reason}`,
+							context: state.name || context,
+							data: state
+						} as UnifiedLogEntry;
+					})
+				);
 			});
 			
 			// Override the handleStreamError method to ensure it logs each error
@@ -690,8 +690,11 @@ describe('MergedStreamLogger', () => {
 			  state$.next({ state: 'FAIL', reason: `Failure ${i}` });
 			}
 			
+			await new Promise(resolve => setTimeout(resolve, 500));// debug: give time for events to propagate
+
+
 			// Should have logged 3 errors
-			expect(mockLogger.error).toHaveBeenCalledTimes(3);
+			expect(mockLogger.error).toHaveBeenCalledTimes(3); // bug: only called once
 			
 			// Wait for the backoff timer to reset the count
 			await new Promise(resolve => setTimeout(resolve, 150));
@@ -843,7 +846,7 @@ describe('MergedStreamLogger', () => {
 			expect(logger.unsubscribeComponent('CompletionTest')).toBe(true);
 		});
 		
-		it('should handle source stream errors (not mapper errors)', () => {
+		it('should handle source stream errors - not mapper errors', () => {
 			const logs$ = new Subject<MockLogEntry>();
 			const problematicState$ = new Subject<MockState>();
 			
@@ -856,12 +859,22 @@ describe('MergedStreamLogger', () => {
 			expect(mockLogger.log).toHaveBeenCalledTimes(1);
 			expect(mockLogger.info).toHaveBeenCalledTimes(1);
 			
+			// Reset mocks
+			jest.clearAllMocks();
+			
 			// Cause an error in the state$ stream (not the mapper)
 			problematicState$.error(new Error('Stream itself failed'));
 			
+			// Should have logged an error about the stream failure
+			expect(mockLogger.error).toHaveBeenCalledWith(
+				expect.stringContaining('Stream itself failed'),
+				expect.any(Error),
+				'MergedStreamLogger'
+			);
+			
 			// Logs$ should still work
 			logs$.next({ level: LogLevel.LOG, message: 'Log after state error' });
-			expect(mockLogger.log).toHaveBeenCalledTimes(2);
+			expect(mockLogger.log).toHaveBeenCalledTimes(1);
 			
 			// Unsubscribe should still work
 			expect(logger.unsubscribeComponent('StreamErrorTest')).toBe(true);
