@@ -41,6 +41,7 @@ import { UserContext } from '../../../shared/domain/user-context.model';
 import { UserDTO } from '../../../user/dtos/user.dto';
 import { UserPersistenceDTO } from '../../../user/dtos/user-persistence.dto';
 import { UserRepository } from '../../../user/repositories/user.repo';
+import ComponentState from '../../../app-health/models/component-state.enum';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -2179,6 +2180,19 @@ describe('ConditioningDataService', () => {
 				expect(logService['cache'].value.length).toBe(expectedLength);
 				expect(cachedIds).toEqual(expect.arrayContaining(expectedIds));
 			});
+
+			it('has state "OK" after initialization', async () => {
+				// arrange
+				expect(logService['cache']).toBeDefined(); // sanity checks			
+				expect(logService['cache'].value.length).toBe(users.length)
+	
+				// act
+				await logService.isReady();
+	
+				// assert
+				const state = await firstValueFrom(logService.componentState$.pipe(take(1)));
+				expect(state.state).toBe(ComponentState.OK);
+			});
 		});
 
 		describe('shutdown', () => {
@@ -2204,7 +2218,6 @@ describe('ConditioningDataService', () => {
 				subscription.unsubscribe();
 			});
 
-
 			it('unubscribes from all observables and clears subscriptions', async () => {
 				// arrange
 				expect(logService['cache']).toBeDefined(); // sanity checks			
@@ -2215,6 +2228,19 @@ describe('ConditioningDataService', () => {
 	
 				// assert
 				expect(logService['subscriptions'].length).toBe(0);
+			});
+
+			it('has state "SHUT_DOWN" after shutdown', async () => {
+				// arrange
+				expect(logService['cache']).toBeDefined(); // sanity checks			
+				expect(logService['cache'].value.length).toBe(users.length)
+	
+				// act
+				await logService.shutdown();
+	
+				// assert
+				const state = await firstValueFrom(logService.componentState$.pipe(take(1)));
+				expect(state.state).toBe(ComponentState.SHUT_DOWN);
 			});
 		});
 	});
