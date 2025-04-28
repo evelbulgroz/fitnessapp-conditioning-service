@@ -1,25 +1,25 @@
-import { Injectable, Optional, Inject } from '@nestjs/common';
 import { EMPTY, Observable, Subscription, catchError, mergeMap, of } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/logger';
-
+import MergedStreamLoggerOptions from './models/merged-stream-logger-options.model';
+import Logger from './models/logger.model';
 import LogLevel from './models/log-level.enum';
 import UnifiedLogEntry from './models/unified-log-event.model';
 import StreamMapper from './models/stream-mapper.model';
 
-/** MergedStreamLogger provides a centralized way to process multiple observable streams 
+/** Unified logger of multiple observable streams using registered stream mappers.
+ * @remark This class provides a centralized way to process multiple observable streams 
  * into a unified logging mechanism using registered stream mappers.
  * 
- * This service allows components to register their various event streams (logs$, state$, etc.)
+ * @remark It allows components to register their various event streams (logs$, state$, etc.)
  * and have them automatically mapped to appropriate log entries and sent to the application logger.
  * 
- * ## Features
+ * ## FEATURES
  * - Unified handling of different event types
  * - Stream transformation via specialized mappers
  * - Automatic subscription management
  * - Component-level isolation of subscriptions
  * 
- * ## Usage Examples
+ * ## USAGE EXAMPLES
  * 
  * ### Basic Repository Usage
  * ```typescript
@@ -130,27 +130,37 @@ import StreamMapper from './models/stream-mapper.model';
  * 
  * @see StreamMapper for information on creating custom stream mappers
  */
-@Injectable()
 export class MergedStreamLogger {
-	
 	//--------------------------------------- PROPERTIES ----------------------------------------//
 	
 	// Map components to their subscriptions
 	protected componentSubscriptions: Map<string, Subscription[]> = new Map();
 	protected mappers: Map<string, StreamMapper<any>> = new Map();
 
+	// Config options for the logger
+	protected readonly config: Required<MergedStreamLoggerOptions>;
+	// streamTypeConfigs?: Record<string, Partial<MergedStreamLoggerOptions>>; // TODO: Optional per-stream configs
+
 	// Failure tracking properties
 	protected streamFailureCounts: Map<string, number> = new Map();
 	protected streamBackoffTimers: Map<string, any> = new Map();
-	protected readonly MAX_FAILURES = 5;
-	protected readonly BACKOFF_RESET_MS = 60000; // 1 minute
-
+	
 	//-------------------------------------- CONSTRUCTOR ----------------------------------------//
 
 	constructor(
 		protected readonly logger: Logger,
-		@Optional() @Inject('STREAM_MAPPERS') mappers?: StreamMapper<any>[]
+		mappers?: StreamMapper<any>[],
+		options?: MergedStreamLoggerOptions
 	) {
+		// Merge default options with provided options after validation
+		this.config = {
+			maxFailures: 5,
+			backoffResetMs: 60000,
+			logRecoveryEvents: true,
+			warnOnMissingMappers: true,
+			...(this.validateOptions(options) || {})
+		};
+
 		// Register all provided mappers
 		if (mappers) {
 			mappers.forEach(mapper => this.registerMapper(mapper));
@@ -284,8 +294,6 @@ export class MergedStreamLogger {
 		return true;
 	}
 
-	//------------------------------------ PROTECTED METHODS ------------------------------------//
-
 	/** Clean up all subscriptions */
 	public unsubscribeAll(): void {
 		this.componentSubscriptions.forEach(subscriptions => {
@@ -293,6 +301,8 @@ export class MergedStreamLogger {
 		});
 		this.componentSubscriptions.clear();
 	}
+
+	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
 	/** Handle stream error with failure counting and backoff
 	 * @param streamKey Unique key for the stream (component:streamType)
@@ -311,19 +321,19 @@ export class MergedStreamLogger {
 				if (this.streamFailureCounts.has(streamKey)) {
 					this.streamFailureCounts.set(streamKey, 0);
 					this.logger.debug(
-						`Failure count automatically reset for stream '${streamType}' after ${this.BACKOFF_RESET_MS}ms`,
+						`Failure count automatically reset for stream '${streamType}' after ${this.config.backoffResetMs}ms`,
 						this.constructor.name
 					);
 				}
 				this.streamBackoffTimers.delete(streamKey);
-			}, this.BACKOFF_RESET_MS));
+			}, this.config.backoffResetMs));
 		}
 		
 		// Log based on failure count
-		if (failures <= this.MAX_FAILURES) {
+		if (failures <= this.config.maxFailures) {
 			// Log every error until we reach the threshold
 			this.logger.error(
-				`Error in stream mapper for '${streamType}' (failure ${failures}/${this.MAX_FAILURES}): ${error?.message || 'Unknown error'}`,
+				`Error in stream mapper for '${streamType}' (failure ${failures}/${this.config.maxFailures}): ${error?.message || 'Unknown error'}`,
 				error,
 				this.constructor.name
 			);
@@ -335,7 +345,7 @@ export class MergedStreamLogger {
 					this.constructor.name
 				);
 			}
-		} else if (failures === this.MAX_FAILURES + 1) {
+		} else if (failures === this.config.maxFailures + 1) {
 			// When we cross the threshold, log one warning about reduced logging
 			this.logger.warn(
 				`Stream "${streamType}" has failed ${failures} times, reducing error logging frequency`,
@@ -402,4 +412,41 @@ export class MergedStreamLogger {
 				break;
 		}
 	}
+
+	/** Validates logger options and returns sanitized options
+	 * @param options Raw options provided by user
+	 * @returns Validated options with any invalid values corrected
+	 */
+	protected validateOptions(options?: MergedStreamLoggerOptions): MergedStreamLoggerOptions {
+		const validatedOptions: MergedStreamLoggerOptions = { ...options };
+		
+		if (options) {
+		// Ensure maxFailures is at least 1
+		if (options.maxFailures !== undefined) {
+			if (options.maxFailures < 1) {
+				this.logger.warn(
+					`Invalid maxFailures value: ${options.maxFailures}. Must be at least 1. Using default.`,
+					this.constructor.name
+				);
+				delete validatedOptions.maxFailures;
+			}
+		}
+		
+		// Ensure backoffResetMs is reasonable (at least 100ms)
+		if (options.backoffResetMs !== undefined) {
+			if (options.backoffResetMs < 100) {
+				this.logger.warn(
+					`Invalid backoffResetMs value: ${options.backoffResetMs}. Must be at least 100ms. Using default.`,
+					this.constructor.name
+				);
+				delete validatedOptions.backoffResetMs;
+			}
+		}
+		
+		// No validation needed for boolean options
+		}
+		
+		return validatedOptions;
+	}
 }
+export default MergedStreamLogger;

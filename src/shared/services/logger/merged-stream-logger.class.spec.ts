@@ -1,13 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { map, Observable, Subject } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/logger';
-
-import { MergedStreamLogger } from './merged-stream-logger.service';
+import Logger from './models/logger.model';
 import LogLevel from './models/log-level.enum';
 import LogEventSource from './models/log-event-source.model';
-import UnifiedLogEntry from './models/unified-log-event.model';
+import MergedStreamLogger from './merged-stream-logger.class';
 import StreamMapper from './models/stream-mapper.model';
+import UnifiedLogEntry from './models/unified-log-event.model';
+import MergedStreamLoggerOptions from './models/merged-stream-logger-options.model';
 
 // Mock log entry type for testing
 interface MockLogEntry {
@@ -85,11 +84,10 @@ class MockMetricMapper implements StreamMapper<MockMetric> {
 
 describe('MergedStreamLogger', () => {
 	let logger: MergedStreamLogger;
-	let mockLogger: jest.Mocked<Logger>;
+	let mockLogger: Logger;
 	let logMapper: MockLogMapper;
 	let stateMapper: MockStateMapper;
-	let metricMapper: MockMetricMapper;
-	
+	let metricMapper: MockMetricMapper;	
 	beforeEach(async () => {
 		// Create mock logger with spied methods
 		mockLogger = {
@@ -99,29 +97,14 @@ describe('MergedStreamLogger', () => {
 			info: jest.fn(),
 			debug: jest.fn(),
 			verbose: jest.fn(),
-		} as unknown as jest.Mocked<Logger>;
+		} as unknown as Logger;
 		
 		// Create mappers
 		logMapper = new MockLogMapper();
 		stateMapper = new MockStateMapper();
 		metricMapper = new MockMetricMapper();
 		
-		// Create test module
-		const module: TestingModule = await Test.createTestingModule({
-			providers: [
-				{
-					provide: Logger,
-					useValue: mockLogger,
-				},
-				{
-					provide: 'STREAM_MAPPERS',
-					useValue: [logMapper, stateMapper],
-				},
-				MergedStreamLogger,
-			],
-		}).compile();
-		
-		logger = module.get<MergedStreamLogger>(MergedStreamLogger);
+		logger = new MergedStreamLogger(mockLogger, [logMapper, stateMapper]);
 	});
 	
 	afterEach(() => {
@@ -129,143 +112,194 @@ describe('MergedStreamLogger', () => {
 		logger.unsubscribeAll();
 		jest.clearAllMocks();
 	});
-	
-	describe('Constructor and initialization', () => {
-		it('should be defined', () => {
-			expect(logger).toBeDefined();
+
+	describe('Public API', () => {	
+		describe('Constructor', () => {
+			it('should be defined', () => {
+				expect(logger).toBeDefined();
+			});
+
+			it('should register logger', () => {
+				expect(logger['logger']).toBe(mockLogger);
+			});
+					
+			it('should register mappers', async () => {
+				// The mappers should be registered during construction
+				// We can test this indirectly by subscribing to streams
+				const logs$ = new Subject<MockLogEntry>();
+				const state$ = new Subject<MockState>();
+				
+				logger.subscribeToStreams({ logs$, state$ }, 'TestContext');
+				
+				logs$.next({ level: LogLevel.LOG, message: 'Test log' });
+				state$.next({ state: 'OK', reason: 'All good' });
+				
+				expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'TestContext');
+				expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('All good'), 'TestContext');
+			});
+
+			describe('constructor options', () => {
+				it('should use default options when none are provided', () => {
+					const basicLogger = new MergedStreamLogger(mockLogger);
+					
+					// Check default values using internal config
+					expect((basicLogger as any).config.maxFailures).toBe(5);
+					expect((basicLogger as any).config.backoffResetMs).toBe(60000);
+					expect((basicLogger as any).config.logRecoveryEvents).toBe(true);
+					expect((basicLogger as any).config.warnOnMissingMappers).toBe(true);
+				});
+				
+				it('should override defaults with provided options', () => {
+					const customOptions: MergedStreamLoggerOptions = {
+					maxFailures: 10,
+					backoffResetMs: 30000,
+					logRecoveryEvents: false,
+					warnOnMissingMappers: false
+					};
+					
+					const customLogger = new MergedStreamLogger(mockLogger, undefined, customOptions);
+					
+					// Verify overridden values
+					expect((customLogger as any).config.maxFailures).toBe(10);
+					expect((customLogger as any).config.backoffResetMs).toBe(30000);
+					expect((customLogger as any).config.logRecoveryEvents).toBe(false);
+					expect((customLogger as any).config.warnOnMissingMappers).toBe(false);
+				});
+				
+				it('should partially override defaults when only some options are provided', () => {
+					const partialOptions: MergedStreamLoggerOptions = {
+					maxFailures: 3,
+					backoffResetMs: 15000
+					};
+					
+					const partialLogger = new MergedStreamLogger(mockLogger, undefined, partialOptions);
+					
+					// Verify overridden values
+					expect((partialLogger as any).config.maxFailures).toBe(3);
+					expect((partialLogger as any).config.backoffResetMs).toBe(15000);
+					
+					// Default values should be used for unspecified options
+					expect((partialLogger as any).config.logRecoveryEvents).toBe(true);
+					expect((partialLogger as any).config.warnOnMissingMappers).toBe(true);
+				});
+			});
 		});
 		
-		it('should register mappers from injection token', async () => {
-			// The mappers should be registered during construction
-			// We can test this indirectly by subscribing to streams
-			const logs$ = new Subject<MockLogEntry>();
-			const state$ = new Subject<MockState>();
-			
-			logger.subscribeToStreams({ logs$, state$ }, 'TestContext');
-			
-			logs$.next({ level: LogLevel.LOG, message: 'Test log' });
-			state$.next({ state: 'OK', reason: 'All good' });
-			
-			expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'TestContext');
-			expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('All good'), 'TestContext');
+		describe('registerMapper', () => {
+			it('should register a new mapper', () => {
+				// Create a new stream
+				const metrics$ = new Subject<MockMetric>();
+				
+				// Try to subscribe without a mapper first - should log a warning
+				logger.subscribeToStreams({ metrics$ }, 'TestContext');
+				expect(mockLogger.warn).toHaveBeenCalledWith(
+					expect.stringContaining('No mapper registered for stream type "metrics$"'),
+					expect.any(String)
+				);
+				
+				// Now register the mapper
+				logger.registerMapper(metricMapper);
+				
+				// Try again
+				logger.subscribeToStreams({ metrics$ }, 'TestContext');
+				
+				// Send a metric
+				metrics$.next({ 
+					name: 'test-metric', 
+					value: 42, 
+					timestamp: new Date() 
+				});
+				
+				// Should be logged now
+				expect(mockLogger.log).toHaveBeenCalledWith(
+					expect.stringContaining('Metric: test-metric = 42'),
+					'TestContext'
+				);
+			});
 		});
-	});
-	
-	describe('registerMapper', () => {
-		it('should register a new mapper', () => {
-			// Create a new stream
-			const metrics$ = new Subject<MockMetric>();
+		
+		describe('subscribeToStreams', () => {
+			let logs$: Subject<MockLogEntry>;
+			let state$: Subject<MockState>;
 			
-			// Try to subscribe without a mapper first - should log a warning
-			logger.subscribeToStreams({ metrics$ }, 'TestContext');
-			expect(mockLogger.warn).toHaveBeenCalledWith(
-				expect.stringContaining('No mapper registered for stream type "metrics$"'),
-				expect.any(String)
-			);
-			
-			// Now register the mapper
-			logger.registerMapper(metricMapper);
-			
-			// Try again
-			logger.subscribeToStreams({ metrics$ }, 'TestContext');
-			
-			// Send a metric
-			metrics$.next({ 
-				name: 'test-metric', 
-				value: 42, 
-				timestamp: new Date() 
+			beforeEach(() => {
+				logs$ = new Subject<MockLogEntry>();
+				state$ = new Subject<MockState>();
 			});
 			
-			// Should be logged now
-			expect(mockLogger.log).toHaveBeenCalledWith(
-				expect.stringContaining('Metric: test-metric = 42'),
-				'TestContext'
-			);
-		});
-	});
-	
-	describe('subscribeToStreams', () => {
-		let logs$: Subject<MockLogEntry>;
-		let state$: Subject<MockState>;
-		
-		beforeEach(() => {
-			logs$ = new Subject<MockLogEntry>();
-			state$ = new Subject<MockState>();
-		});
-		
-		it('should subscribe to a single stream', () => {
-			// Subscribe to just logs$
-			logger.subscribeToStreams({ logs$ }, 'TestContext');
-			
-			// Send a log
-			logs$.next({ 
-				level: LogLevel.ERROR, 
-				message: 'Test error', 
-				data: { error: 'Something went wrong' } 
+			it('should subscribe to a single stream', () => {
+				// Subscribe to just logs$
+				logger.subscribeToStreams({ logs$ }, 'TestContext');
+				
+				// Send a log
+				logs$.next({ 
+					level: LogLevel.ERROR, 
+					message: 'Test error', 
+					data: { error: 'Something went wrong' } 
+				});
+				
+				// Should call the error method
+				expect(mockLogger.error).toHaveBeenCalledWith(
+					'Test error',
+					{ error: 'Something went wrong' },
+					'TestContext'
+				);
 			});
 			
-			// Should call the error method
-			expect(mockLogger.error).toHaveBeenCalledWith(
-				'Test error',
-				{ error: 'Something went wrong' },
-				'TestContext'
-			);
-		});
-		
-		it('should subscribe to multiple streams', () => {
-			// Subscribe to both logs$ and state$
-			logger.subscribeToStreams({ logs$, state$ }, 'TestContext');
-			
-			// Send a log and a state update
-			logs$.next({ level: LogLevel.LOG, message: 'Test log' });
-			state$.next({ state: 'DEGRADED', reason: 'Service slow' });
-			
-			// Should have logged both
-			expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'TestContext');
-			expect(mockLogger.info).toHaveBeenCalledWith(
-				expect.stringContaining('State changed to DEGRADED: Service slow'),
-				'TestContext'
-			);
-		});
-		
-		it('should use the provided context for all streams', () => {
-			logger.subscribeToStreams({ logs$, state$ }, 'CustomContext');
-			
-			logs$.next({ level: LogLevel.LOG, message: 'Test log' });
-			
-			expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'CustomContext');
-		});
-		
-		it('should respect context in log entry if provided', () => {
-			logger.subscribeToStreams({ logs$ }, 'DefaultContext');
-			
-			logs$.next({ 
-				level: LogLevel.LOG, 
-				message: 'Test log', 
-				context: 'OverrideContext' 
+			it('should subscribe to multiple streams', () => {
+				// Subscribe to both logs$ and state$
+				logger.subscribeToStreams({ logs$, state$ }, 'TestContext');
+				
+				// Send a log and a state update
+				logs$.next({ level: LogLevel.LOG, message: 'Test log' });
+				state$.next({ state: 'DEGRADED', reason: 'Service slow' });
+				
+				// Should have logged both
+				expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'TestContext');
+				expect(mockLogger.info).toHaveBeenCalledWith(
+					expect.stringContaining('State changed to DEGRADED: Service slow'),
+					'TestContext'
+				);
 			});
 			
-			expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'OverrideContext');
+			it('should use the provided context for all streams', () => {
+				logger.subscribeToStreams({ logs$, state$ }, 'CustomContext');
+				
+				logs$.next({ level: LogLevel.LOG, message: 'Test log' });
+				
+				expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'CustomContext');
+			});
+			
+			it('should respect context in log entry if provided', () => {
+				logger.subscribeToStreams({ logs$ }, 'DefaultContext');
+				
+				logs$.next({ 
+					level: LogLevel.LOG, 
+					message: 'Test log', 
+					context: 'OverrideContext' 
+				});
+				
+				expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'OverrideContext');
+			});
+			
+			it('should handle empty streams object gracefully', () => {
+				// This shouldn't throw or create any subscriptions
+				logger.subscribeToStreams({}, 'TestContext');
+				
+				// We can verify no subscriptions were created by checking if unsubscribeComponent returns false
+				expect(logger.unsubscribeComponent('TestContext')).toBe(false);
+			});
+			
+			it('should handle null/undefined streams gracefully', () => {
+				// @ts-ignore - Testing runtime behavior
+				logger.subscribeToStreams({ logs$: null, state$: undefined }, 'TestContext');
+				
+				// The method should complete without error, but no subscriptions should be created
+				expect(logger.unsubscribeComponent('TestContext')).toBe(false);
+			});
 		});
 		
-		it('should handle empty streams object gracefully', () => {
-			// This shouldn't throw or create any subscriptions
-			logger.subscribeToStreams({}, 'TestContext');
-			
-			// We can verify no subscriptions were created by checking if unsubscribeComponent returns false
-			expect(logger.unsubscribeComponent('TestContext')).toBe(false);
-		});
-		
-		it('should handle null/undefined streams gracefully', () => {
-			// @ts-ignore - Testing runtime behavior
-			logger.subscribeToStreams({ logs$: null, state$: undefined }, 'TestContext');
-			
-			// The method should complete without error, but no subscriptions should be created
-			expect(logger.unsubscribeComponent('TestContext')).toBe(false);
-		});
-	});
-	
-	describe('unsubscribeComponent', () => {
+		describe('unsubscribeComponent', () => {
 		let logs$: Subject<MockLogEntry>;
 		let state$: Subject<MockState>;
 		
@@ -326,43 +360,44 @@ describe('MergedStreamLogger', () => {
 			expect(mockLogger.log).toHaveBeenCalledTimes(3);
 			expect(mockLogger.log).toHaveBeenLastCalledWith('Log from B again', 'ComponentB');
 		});
-	});
-	
-	describe('unsubscribeAll', () => {
-		it('should unsubscribe all components', () => {
-			// Set up multiple components
-			const logsA$ = new Subject<MockLogEntry>();
-			const logsB$ = new Subject<MockLogEntry>();
-			const logsC$ = new Subject<MockLogEntry>();
-			
-			logger.subscribeToStreams({ logs$: logsA$ }, 'ComponentA', 'keyA');
-			logger.subscribeToStreams({ logs$: logsB$ }, 'ComponentB', 'keyB');
-			logger.subscribeToStreams({ logs$: logsC$ }, 'ComponentC', 'keyC');
-			
-			// Verify they work
-			logsA$.next({ level: LogLevel.LOG, message: 'Log from A' });
-			logsB$.next({ level: LogLevel.LOG, message: 'Log from B' });
-			logsC$.next({ level: LogLevel.LOG, message: 'Log from C' });
-			
-			expect(mockLogger.log).toHaveBeenCalledTimes(3);
-			
-			// Unsubscribe all
-			logger.unsubscribeAll();
-			
-			// None should work
-			logsA$.next({ level: LogLevel.LOG, message: 'Log from A again' });
-			logsB$.next({ level: LogLevel.LOG, message: 'Log from B again' });
-			logsC$.next({ level: LogLevel.LOG, message: 'Log from C again' });
-			
-			expect(mockLogger.log).toHaveBeenCalledTimes(3); // Still just 3
-			
-			// Should no longer have subscriptions for any component
-			expect(logger.unsubscribeComponent('keyA')).toBe(false);
-			expect(logger.unsubscribeComponent('keyB')).toBe(false);
-			expect(logger.unsubscribeComponent('keyC')).toBe(false);
+		});
+		
+		describe('unsubscribeAll', () => {
+			it('should unsubscribe all components', () => {
+				// Set up multiple components
+				const logsA$ = new Subject<MockLogEntry>();
+				const logsB$ = new Subject<MockLogEntry>();
+				const logsC$ = new Subject<MockLogEntry>();
+				
+				logger.subscribeToStreams({ logs$: logsA$ }, 'ComponentA', 'keyA');
+				logger.subscribeToStreams({ logs$: logsB$ }, 'ComponentB', 'keyB');
+				logger.subscribeToStreams({ logs$: logsC$ }, 'ComponentC', 'keyC');
+				
+				// Verify they work
+				logsA$.next({ level: LogLevel.LOG, message: 'Log from A' });
+				logsB$.next({ level: LogLevel.LOG, message: 'Log from B' });
+				logsC$.next({ level: LogLevel.LOG, message: 'Log from C' });
+				
+				expect(mockLogger.log).toHaveBeenCalledTimes(3);
+				
+				// Unsubscribe all
+				logger.unsubscribeAll();
+				
+				// None should work
+				logsA$.next({ level: LogLevel.LOG, message: 'Log from A again' });
+				logsB$.next({ level: LogLevel.LOG, message: 'Log from B again' });
+				logsC$.next({ level: LogLevel.LOG, message: 'Log from C again' });
+				
+				expect(mockLogger.log).toHaveBeenCalledTimes(3); // Still just 3
+				
+				// Should no longer have subscriptions for any component
+				expect(logger.unsubscribeComponent('keyA')).toBe(false);
+				expect(logger.unsubscribeComponent('keyB')).toBe(false);
+				expect(logger.unsubscribeComponent('keyC')).toBe(false);
+			});
 		});
 	});
-	
+		
 	describe('log level routing', () => {
 		let logs$: Subject<MockLogEntry>;
 		
@@ -480,125 +515,125 @@ describe('MergedStreamLogger', () => {
 			(logger as any).BACKOFF_RESET_MS = 50; // Use a short timeout for testing
 			
 			try {
-			  stateMapper.mapToLogEvents = jest.fn().mockImplementation((source$, context) => {
+				stateMapper.mapToLogEvents = jest.fn().mockImplementation((source$, context) => {
 				return source$.pipe(
-				  map((state: MockState): UnifiedLogEntry => {
+					map((state: MockState): UnifiedLogEntry => {
 					// Make the mapper throw an error for 'FAIL' states
 					if (state.state === 'FAIL') {
-					  throw new Error('State mapping error');
+						throw new Error('State mapping error');
 					}
 					
 					return {
-					  source: LogEventSource.STATE,
-					  timestamp: new Date(),
-					  level: LogLevel.INFO,
-					  message: `State changed to ${state.state}: ${state.reason}`,
-					  context: state.name || context,
-					  data: state
+						source: LogEventSource.STATE,
+						timestamp: new Date(),
+						level: LogLevel.INFO,
+						message: `State changed to ${state.state}: ${state.reason}`,
+						context: state.name || context,
+						data: state
 					};
-				  })
+					})
 				);
-			  });
-			  
-			  // Register both with their own contexts, but same stream type name
-			  logger.subscribeToStreams({ state$: userStateStream }, 'UserRepository');
-			  logger.subscribeToStreams({ state$: productStateStream }, 'ProductRepository');
-			  
-			  // Reset mock calls
-			  jest.clearAllMocks();
-			  
-			  // Emit events from both streams
-			  userStateStream.next({ state: 'ACTIVE', reason: 'User logged in' });
-			  
-			  // Should log user event with correct context
-			  expect(mockLogger.info).toHaveBeenCalledWith(
+				});
+				
+				// Register both with their own contexts, but same stream type name
+				logger.subscribeToStreams({ state$: userStateStream }, 'UserRepository');
+				logger.subscribeToStreams({ state$: productStateStream }, 'ProductRepository');
+				
+				// Reset mock calls
+				jest.clearAllMocks();
+				
+				// Emit events from both streams
+				userStateStream.next({ state: 'ACTIVE', reason: 'User logged in' });
+				
+				// Should log user event with correct context
+				expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining('State changed to ACTIVE: User logged in'),
 				'UserRepository'
-			  );
-			  
-			  // Reset mock calls
-			  jest.clearAllMocks();
-			  
-			  // Emit from product stream
-			  productStateStream.next({ state: 'AVAILABLE', reason: 'Product in stock' });
-			  
-			  // Should log product event with correct context
-			  expect(mockLogger.info).toHaveBeenCalledWith(
+				);
+				
+				// Reset mock calls
+				jest.clearAllMocks();
+				
+				// Emit from product stream
+				productStateStream.next({ state: 'AVAILABLE', reason: 'Product in stock' });
+				
+				// Should log product event with correct context
+				expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining('State changed to AVAILABLE: Product in stock'),
 				'ProductRepository'
-			  );
-			  
-			  // Test error handling is separate
-			  jest.clearAllMocks();
-			  
-			  // Cause errors in one stream - we need to wait a bit between these to ensure they're processed
-			  for (let i = 0; i < 3; i++) {
+				);
+				
+				// Test error handling is separate
+				jest.clearAllMocks();
+				
+				// Cause errors in one stream - we need to wait a bit between these to ensure they're processed
+				for (let i = 0; i < 3; i++) {
 				userStateStream.next({ state: 'FAIL', reason: `User failure ${i}` });
 				// Add a small delay between calls to ensure they're processed sequentially
 				await new Promise(resolve => setTimeout(resolve, 10));
-			  }
-			  
-			  // Allow time for error handling to complete
-			  await new Promise(resolve => setTimeout(resolve, 20));
-			  
-			  // Check error logs for user stream
-			  expect(mockLogger.error).toHaveBeenCalledTimes(3);
-			  expect(mockLogger.error).toHaveBeenCalledWith(
+				}
+				
+				// Allow time for error handling to complete
+				await new Promise(resolve => setTimeout(resolve, 20));
+				
+				// Check error logs for user stream
+				expect(mockLogger.error).toHaveBeenCalledTimes(3);
+				expect(mockLogger.error).toHaveBeenCalledWith(
 				expect.stringContaining('Error in stream mapper for \'state$\''),
 				expect.any(Error),
 				'MergedStreamLogger'
-			  );
-			  
-			  // Reset mock calls
-			  jest.clearAllMocks();
-			  
-			  // Product stream should still work normally
-			  productStateStream.next({ state: 'LOW_STOCK', reason: 'Running out' });
-			  
-			  // Should log product event without errors
-			  expect(mockLogger.info).toHaveBeenCalledWith(
+				);
+				
+				// Reset mock calls
+				jest.clearAllMocks();
+				
+				// Product stream should still work normally
+				productStateStream.next({ state: 'LOW_STOCK', reason: 'Running out' });
+				
+				// Should log product event without errors
+				expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining('State changed to LOW_STOCK: Running out'),
 				'ProductRepository'
-			  );
-			  expect(mockLogger.error).not.toHaveBeenCalled();
-			  
-			  // Test unsubscribing one component doesn't affect the other
-			  expect(logger.unsubscribeComponent('UserRepository')).toBe(true);
-			  
-			  // Reset mock calls
-			  jest.clearAllMocks();
-			  
-			  // User stream events should no longer be logged
-			  userStateStream.next({ state: 'ACTIVE', reason: 'Should be ignored' });
-			  expect(mockLogger.info).not.toHaveBeenCalled();
-			  
-			  // Product stream should still work
-			  productStateStream.next({ state: 'OUT_OF_STOCK', reason: 'None left' });
-			  expect(mockLogger.info).toHaveBeenCalledWith(
+				);
+				expect(mockLogger.error).not.toHaveBeenCalled();
+				
+				// Test unsubscribing one component doesn't affect the other
+				expect(logger.unsubscribeComponent('UserRepository')).toBe(true);
+				
+				// Reset mock calls
+				jest.clearAllMocks();
+				
+				// User stream events should no longer be logged
+				userStateStream.next({ state: 'ACTIVE', reason: 'Should be ignored' });
+				expect(mockLogger.info).not.toHaveBeenCalled();
+				
+				// Product stream should still work
+				productStateStream.next({ state: 'OUT_OF_STOCK', reason: 'None left' });
+				expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining('State changed to OUT_OF_STOCK: None left'),
 				'ProductRepository'
-			  );
-			  
-			  // Clean up remaining subscriptions
-			  logger.unsubscribeComponent('ProductRepository');
+				);
+				
+				// Clean up remaining subscriptions
+				logger.unsubscribeComponent('ProductRepository');
 			} finally {
-			  // Clean up timers
-			  (logger as any).streamBackoffTimers.forEach((timer: NodeJS.Timeout) => {
+				// Clean up timers
+				(logger as any).streamBackoffTimers.forEach((timer: NodeJS.Timeout) => {
 				clearTimeout(timer);
-			  });
-			  (logger as any).streamBackoffTimers.clear();
-			  
-			  // Clean up any tracked timers
-			  timersToCleanup.forEach(timer => clearTimeout(timer));
-			  
-			  // Restore the original mapper implementation and settings
-			  stateMapper.mapToLogEvents = originalMapToLogEvents;
-			  (logger as any).BACKOFF_RESET_MS = originalBackoffReset;
-			  
-			  // Ensure all subscriptions are cleaned up
-			  logger.unsubscribeAll();
+				});
+				(logger as any).streamBackoffTimers.clear();
+				
+				// Clean up any tracked timers
+				timersToCleanup.forEach(timer => clearTimeout(timer));
+				
+				// Restore the original mapper implementation and settings
+				stateMapper.mapToLogEvents = originalMapToLogEvents;
+				(logger as any).BACKOFF_RESET_MS = originalBackoffReset;
+				
+				// Ensure all subscriptions are cleaned up
+				logger.unsubscribeAll();
 			}
-		  });
+			});
 		
 		it('should continue processing all streams after any stream errors', async () => {
 			const logs$ = new Subject<MockLogEntry>();
@@ -804,12 +839,12 @@ describe('MergedStreamLogger', () => {
 			const originalHandleStreamError = (logger as any).handleStreamError;
 			(logger as any).handleStreamError = jest.fn().mockImplementation((streamKey, streamType, error) => {
 				void streamKey; // suppress unused variable warning
-			  // Call error logger each time to match the expectation in the test
-			  mockLogger.error(
+				// Call error logger each time to match the expectation in the test
+				mockLogger.error(
 				`Error in stream mapper for '${streamType}' (failure 1/5): ${error?.message || 'Unknown error'}`,
 				error,
 				'MergedStreamLogger'
-			  );
+				);
 			});
 			
 			// Subscribe to the stream
@@ -820,7 +855,7 @@ describe('MergedStreamLogger', () => {
 			
 			// Send 3 failing states
 			for (let i = 1; i <= 3; i++) {
-			  state$.next({ state: 'FAIL', reason: `Failure ${i}` });
+				state$.next({ state: 'FAIL', reason: `Failure ${i}` });
 			}
 			
 			await new Promise(resolve => setTimeout(resolve, 500));// debug: give time for events to propagate
@@ -840,9 +875,9 @@ describe('MergedStreamLogger', () => {
 			
 			// Should log the error with failure count 1, not 4
 			expect(mockLogger.error).toHaveBeenCalledWith(
-			  expect.stringContaining('(failure 1/'),
-			  expect.any(Error),
-			  'MergedStreamLogger'
+				expect.stringContaining('(failure 1/'),
+				expect.any(Error),
+				'MergedStreamLogger'
 			);
 			
 			// Restore original methods and timeout
@@ -1013,5 +1048,152 @@ describe('MergedStreamLogger', () => {
 			// Unsubscribe should still work
 			expect(logger.unsubscribeComponent('StreamErrorTest')).toBe(true);
 		});
+	});
+
+	describe('validateOptions', () => {
+			let mockLogger: Logger;
+			let logger: MergedStreamLogger;
+
+			beforeEach(() => {
+				mockLogger = {
+					log: jest.fn(),
+					error: jest.fn(),
+					warn: jest.fn(),
+					info: jest.fn(),
+					debug: jest.fn(),
+					verbose: jest.fn(),
+				} as unknown as Logger;
+				
+				logger = new MergedStreamLogger(mockLogger);
+			});
+
+			it('should return a copy of valid options', () => {
+				const options: MergedStreamLoggerOptions = {
+					maxFailures: 10,
+					backoffResetMs: 30000,
+					logRecoveryEvents: false,
+					warnOnMissingMappers: false
+				};
+				
+				const result = logger['validateOptions'](options);
+				
+				// Should return a new object with same values (not a reference)
+				expect(result).not.toBe(options);
+				expect(result).toEqual(options);
+			});
+			
+			it('should handle undefined options gracefully', () => {
+				const result = logger['validateOptions'](undefined);
+				
+				expect(result).toEqual({});
+			});
+			
+			it('should validate and correct invalid maxFailures values', () => {
+				const options: MergedStreamLoggerOptions = {
+					maxFailures: 0, // Invalid value
+					backoffResetMs: 30000
+				};
+				
+				const result = logger['validateOptions'](options);
+				
+				// maxFailures should be removed from the result
+				expect(result.maxFailures).toBeUndefined();
+				expect(result.backoffResetMs).toBe(30000);
+				
+				// Should log a warning
+				expect(mockLogger.warn).toHaveBeenCalledWith(
+					'Invalid maxFailures value: 0. Must be at least 1. Using default.',
+					'MergedStreamLogger'
+				);
+			});
+			
+			it('should validate and correct invalid negative maxFailures values', () => {
+				const options: MergedStreamLoggerOptions = {
+					maxFailures: -5, // Invalid negative value
+					backoffResetMs: 30000
+				};
+				
+				const result = logger['validateOptions'](options);
+				
+				// maxFailures should be removed from the result
+				expect(result.maxFailures).toBeUndefined();
+				expect(result.backoffResetMs).toBe(30000);
+				
+				// Should log a warning
+				expect(mockLogger.warn).toHaveBeenCalledWith(
+					'Invalid maxFailures value: -5. Must be at least 1. Using default.',
+					'MergedStreamLogger'
+				);
+			});
+			
+			it('should validate and correct invalid backoffResetMs values', () => {
+				const options: MergedStreamLoggerOptions = {
+					maxFailures: 10,
+					backoffResetMs: 50 // Invalid value (less than 100ms)
+				};
+				
+				const result = logger['validateOptions'](options);
+				
+				// backoffResetMs should be removed from the result
+				expect(result.maxFailures).toBe(10);
+				expect(result.backoffResetMs).toBeUndefined();
+				
+				// Should log a warning
+				expect(mockLogger.warn).toHaveBeenCalledWith(
+					'Invalid backoffResetMs value: 50. Must be at least 100ms. Using default.',
+					'MergedStreamLogger'
+				);
+			});
+			
+			it('should allow valid boolean options to pass through', () => {
+				const options: MergedStreamLoggerOptions = {
+					logRecoveryEvents: false,
+					warnOnMissingMappers: false
+				};
+				
+				const result = logger['validateOptions'](options);
+				
+				// Boolean values should pass through validation unchanged
+				expect(result.logRecoveryEvents).toBe(false);
+				expect(result.warnOnMissingMappers).toBe(false);
+			});
+			
+			it('should validate all fields independently', () => {
+				const options: MergedStreamLoggerOptions = {
+					maxFailures: 0,     // Invalid
+					backoffResetMs: 50, // Invalid
+					logRecoveryEvents: true,     // Valid
+					warnOnMissingMappers: false  // Valid
+				};
+				
+				const result = logger['validateOptions'](options);
+				
+				// Invalid values should be removed
+				expect(result.maxFailures).toBeUndefined();
+				expect(result.backoffResetMs).toBeUndefined();
+				
+				// Valid values should remain
+				expect(result.logRecoveryEvents).toBe(true);
+				expect(result.warnOnMissingMappers).toBe(false);
+				
+				// Should log warnings for each invalid value
+				expect(mockLogger.warn).toHaveBeenCalledTimes(2);
+			});
+			
+			it('should allow minimum valid values', () => {
+				const options: MergedStreamLoggerOptions = {
+					maxFailures: 1,     // Minimum valid
+					backoffResetMs: 100 // Minimum valid
+				};
+				
+				const result = logger['validateOptions'](options);
+				
+				// These values are at the minimum allowed, so should pass validation
+				expect(result.maxFailures).toBe(1);
+				expect(result.backoffResetMs).toBe(100);
+				
+				// No warnings should be logged
+				expect(mockLogger.warn).not.toHaveBeenCalled();
+			});
 	});
 });
