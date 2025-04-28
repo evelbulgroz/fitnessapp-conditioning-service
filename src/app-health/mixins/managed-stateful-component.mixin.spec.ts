@@ -751,6 +751,30 @@ describe('ManagedStatefulComponentMixin', () => {
 				component.initCount = 0;
 				component.shutdownCount = 0;
 			});
+
+			it('receives the result from super.onInitialize()', async () => {
+				// Create a parent class with initialize that returns a value
+				class ParentWithInitialize {
+				  public async initialize(): Promise<any> {
+					return Promise.resolve('parent initialized');
+				  }
+				}
+				
+				// Create a class that extends the parent with the mixin
+				class InheritingComponent extends ManagedStatefulComponentMixin(ParentWithInitialize) {
+				  public initValue: string | undefined;
+				  
+					public async onInitialize(superReturn: any): Promise<void> {
+						this.initValue = superReturn; // Store the value returned from super.onInitialize()
+					}
+				}
+				
+				const component = new InheritingComponent();
+				await component.initialize();
+				
+				// Verify super.initialize() result was passed to child
+				expect(component.initValue).toBe('parent initialized');
+			});
 		});
 
 		describe('onShutdown', () => {
@@ -773,6 +797,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				const result = await component.onShutdown();
 				expect(result).toBeUndefined();
 			});
+			
 			it('can be overridden to provide custom shutdown logic', async () => {
 				component.shutdownDelay = 100; // Simulate a delay
 				const startTime = Date.now();
@@ -786,6 +811,30 @@ describe('ManagedStatefulComponentMixin', () => {
 				// Reset for clarity
 				component.initCount = 0;
 				component.shutdownCount = 0;
+			});
+
+			it('receives the result from super.onShutdown()', async () => {
+				// Create a parent class with shutdown that returns a value
+				class ParentWithInitialize {
+				  public async shutdown(): Promise<any> {
+					return Promise.resolve('parent shut down');
+				  }
+				}
+				
+				// Create a class that extends the parent with the mixin
+				class InheritingComponent extends ManagedStatefulComponentMixin(ParentWithInitialize) {
+				  public shutdownValue: string | undefined;
+				  
+					public async onShutdown(superReturn: any): Promise<void> {
+						this.shutdownValue = superReturn; // Store the value returned from super.onInitialize()
+					}
+				}
+				
+				const component = new InheritingComponent();
+				await component.shutdown();
+				
+				// Verify super.shutdown() result was passed to child
+				expect(component.shutdownValue).toBe('parent shut down');
 			});
 		});
 
