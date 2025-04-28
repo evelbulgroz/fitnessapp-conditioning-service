@@ -739,6 +739,7 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 			return Promise.reject(error);
 		}
 	}
+	
 	protected subscriptions: Subscription[] = []; // array of subscriptions to be cleaned up on shutdown
 	
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
