@@ -153,7 +153,7 @@ export class UserService  extends ManagedStatefulComponentMixin(class {}) implem
 	 * @remark For now basically a placeholder, as Repository handles all initialization
 	 * @todo Refactor to use cache library, when available
 	 */
-	protected async executeInitialization(): Promise<void> {
+	public async onInitialize(): Promise<void> {
 		try {
 			this.logger.log(`Executing initialization...`, this.constructor.name);
 			
@@ -178,7 +178,7 @@ export class UserService  extends ManagedStatefulComponentMixin(class {}) implem
 	 * @todo ManagedStatefulComponentMixin.shutdown() caller already handles concurrency and updates state, so no need to replicate that here
 	 * @todo Refactor to use cache library, when available
 	 */
-	protected executeShutdown(): Promise<void> {		
+	public onShutdown(): Promise<void> {		
 		try {
 			this.logger.log(`Executing shutdown...`, this.constructor.name);
 			

@@ -454,15 +454,15 @@ describe('UserService', () => {
 		describe('initialize', () => {	
 			it('calls onInitialize', async () => {				
 				// arrange
-				const executeInitSpy = jest.spyOn(service, 'onInitialize').mockReturnValue(Promise.resolve());
+				const onInitializeSpy = jest.spyOn(service, 'onInitialize').mockReturnValue(Promise.resolve());
 	
 				// act
 				await service.initialize();
 	
 				// assert
-				expect(executeInitSpy).toHaveBeenCalledTimes(1);
-				expect(executeInitSpy).toHaveBeenCalledWith();
-				executeInitSpy.mockRestore();
+				expect(onInitializeSpy).toHaveBeenCalledTimes(1);
+				expect(onInitializeSpy).toHaveBeenCalledWith();
+				onInitializeSpy.mockRestore();
 			});			
 		});
 
@@ -480,15 +480,15 @@ describe('UserService', () => {
 		describe('shutdown', () => {
 			it('calls onShutdown', async () => {				
 				// arrange
-				const executeShutdownSpy = jest.spyOn(service, 'onShutdown').mockReturnValue(Promise.resolve());
+				const onShutdownSpy = jest.spyOn(service, 'onShutdown').mockReturnValue(Promise.resolve());
 	
 				// act
 				await service.shutdown();
 	
 				// assert
-				expect(executeShutdownSpy).toHaveBeenCalledTimes(1);
-				expect(executeShutdownSpy).toHaveBeenCalledWith();
-				executeShutdownSpy.mockRestore();
+				expect(onShutdownSpy).toHaveBeenCalledTimes(1);
+				expect(onShutdownSpy).toHaveBeenCalledWith();
+				onShutdownSpy.mockRestore();
 			});
 
 			it('unubscribes from all observables and clears subscriptions', async () => {
