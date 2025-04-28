@@ -1,4 +1,5 @@
 import LoggableMixin from '../mixins/loggable.mixin';
+import LoggableComponent from '../models/loggable-component.model';
 
 /** Decorator that applies the LoggableMixin to a class to add logging capabilities.
  * @see {@link LoggableMixin} for details on the mixin.
@@ -18,9 +19,8 @@ import LoggableMixin from '../mixins/loggable.mixin';
  * ```
  */
 export function WithLogging() {
-    return function <T extends new (...args: any[]) => any>(target: T): T {
-        return LoggableMixin(target);
-    };
+	return function <T extends new (...args: any[]) => any>(target: T): T & (new (...args: any[]) => LoggableComponent) {
+		return LoggableMixin(target) as T & (new (...args: any[]) => LoggableComponent);
+	};
 }
-
 export default WithLogging;

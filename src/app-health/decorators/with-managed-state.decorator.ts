@@ -1,3 +1,4 @@
+import ManagedStatefulComponent from "../models/managed-stateful-component.model";
 import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.mixin";
 
 /** Decorator that applies the ManagedStatefulComponentMixin to a class to add managed state functionality.
@@ -21,8 +22,8 @@ import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.
  * 
  */
 export function WithManagedState() {
-	return function <T extends new (...args: any[]) => any>(target: T): T {
-		return ManagedStatefulComponentMixin(target);
+	return function <T extends new (...args: any[]) => any>(target: T): T & (new (...args: any[]) => ManagedStatefulComponent) {
+		return ManagedStatefulComponentMixin(target) as T & (new (...args: any[]) => ManagedStatefulComponent);
 	};
 }
 export default WithManagedState;
