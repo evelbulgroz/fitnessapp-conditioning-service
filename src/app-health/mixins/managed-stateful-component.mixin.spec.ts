@@ -1,4 +1,4 @@
-import { take } from 'rxjs';
+import { Subject, take } from 'rxjs';
 
 import ManagedStatefulComponentMixin from './managed-stateful-component.mixin';
 import ComponentState from '../models/component-state.enum';

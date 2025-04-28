@@ -1,11 +1,9 @@
 import { Subject } from 'rxjs';
 
+import LoggableComponent from '../models/loggable-component.model';
 import LogEventSource from '../models/log-event-source.model';
 import LogLevel from '../models/log-level.enum';
 import UnifiedLogEntry from '../models/unified-log-event.model';
-
-/** Type for the constructor of any class that can be extended by the LoggableMixin */
-export type Constructor<T = {}> = new (...args: any[]) => T;
 
 /** Mixin that adds logging capabilities to any class via a log$ observable stream.
  * @param Base The class to extend with logging capabilities
@@ -27,24 +25,10 @@ export type Constructor<T = {}> = new (...args: any[]) => T;
  * ```
  * 
  */
-export function LoggableMixin<TBase extends Constructor>(Base: TBase) {
-	return class Loggable extends Base {
-		/** Observable stream of log entries */
+ export function LoggableMixin<TParent extends new (...args: any[]) => any>(Base: TParent) {
+	return class Loggable extends Base implements LoggableComponent {
 		public readonly log$ = new Subject<UnifiedLogEntry>();
 
-		/** Log a message with the specified level 
-		 * @param level The log level
-		 * @param message The message to log
-		 * @param data Optional data to include with the log
-		 * @param context Optional context for the log (defaults to class name)
-		 * @remark Use the logLevel param to specify the log level rather than using the info, warn, error methods directly.
-		 * @example
-		 * ```typescript
-		 * this.log(LogLevel.INFO, 'Info message', { data: 'example' });
-		 * this.log(LogLevel.WARN, 'Warning message', { data: 'example' });
-		 * this.log(LogLevel.ERROR, 'Error message', new Error('Test error'));
-		 * ```
-		 */
 		public log(level: LogLevel, message: string, data?: any, context?: string): void {
 			const entry: UnifiedLogEntry = {
 				source: LogEventSource.LOG,

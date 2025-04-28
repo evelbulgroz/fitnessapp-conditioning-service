@@ -21,6 +21,7 @@ import ConditioningLogSeries from '../../domain/conditioning-log-series.model';
 import DomainEventHandler from '../../../shared/handlers/domain-event.handler';
 import EntityIdDTO from '../../../shared/dtos/responses/entity-id.dto';
 import EventDispatcherService from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
+import LoggableMixin from '../../../shared/services/logger/mixins/loggable.mixin';
 import ManagedStatefulComponentMixin from '../../../app-health/mixins/managed-stateful-component.mixin';
 import NotFoundError from '../../../shared/domain/not-found.error';
 import PersistenceError from '../../../shared/domain/persistence.error';
@@ -59,7 +60,7 @@ export interface UserLogsCacheEntry {
  * @todo Use shared cache library when available
  */
 @Injectable()
-export class ConditioningDataService extends ManagedStatefulComponentMixin(class {}) implements OnModuleDestroy {
+export class ConditioningDataService extends LoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleDestroy {
 	
 	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
 	
