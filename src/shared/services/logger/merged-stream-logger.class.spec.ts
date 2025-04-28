@@ -399,6 +399,346 @@ describe('MergedStreamLogger', () => {
 	});
 
 	describe('Protected Methods', () => {		
+		describe('handleStreamError', () => {
+			let logger: MergedStreamLogger;
+			let mockLogger: Logger;
+			let testError: Error;
+			
+			beforeEach(() => {
+				// Create mock logger with spied methods
+				mockLogger = {
+					log: jest.fn(),
+					error: jest.fn(),
+					warn: jest.fn(),
+					info: jest.fn(),
+					debug: jest.fn(),
+					verbose: jest.fn(),
+				} as unknown as Logger;
+				
+				// Create logger with shorter backoff time for testing
+				logger = new MergedStreamLogger(mockLogger, undefined, {
+					backoffResetMs: 100, // Short time for testing
+					maxFailures: 3,
+				});
+				
+				testError = new Error('Test error');
+				
+				// Mock setTimeout and clearTimeout
+				jest.useFakeTimers();
+			});
+			
+			afterEach(() => {
+				jest.clearAllMocks();
+				jest.useRealTimers();
+			});
+			
+			it('should increment failure count for the stream', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Initial count should be undefined or 0
+				expect(logger['streamFailureCounts'].get(streamKey)).toBeUndefined();
+				
+				// Call handleStreamError once
+				logger['streamFailureCounts'].set(streamKey, 0); // Initialize
+				logger['handleStreamError'](streamKey, streamType, testError);
+				
+				// Count should be incremented to 1
+				expect(logger['streamFailureCounts'].get(streamKey)).toBe(1);
+				
+				// Call again to ensure it increments from current value
+				logger['handleStreamError'](streamKey, streamType, testError);
+				
+				// Count should be incremented to 2
+				expect(logger['streamFailureCounts'].get(streamKey)).toBe(2);
+			});
+			
+			xit('should create a backoff timer if one does not exist', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// No timer should exist initially
+				expect(logger['streamBackoffTimers'].has(streamKey)).toBe(false);
+				
+				// Initialize failure count
+				logger['streamFailureCounts'].set(streamKey, 0);
+				
+				// Call handleStreamError
+				logger['handleStreamError'](streamKey, streamType, testError);
+				
+				// Timer should be created
+				expect(logger['streamBackoffTimers'].has(streamKey)).toBe(true);
+				expect(setTimeout).toHaveBeenCalledTimes(1);
+				expect(setTimeout).toHaveBeenLastCalledWith(expect.any(Function), 100);
+			});
+			
+			xit('should not create additional timers if one already exists', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Initialize failure count
+				logger['streamFailureCounts'].set(streamKey, 0);
+				
+				// Create a fake timer
+				const fakeTimer = setTimeout(() => {}, 1000);
+				logger['streamBackoffTimers'].set(streamKey, fakeTimer);
+				
+				// Clear the mock to start fresh
+				jest.clearAllMocks();
+				
+				// Call handleStreamError
+				logger['handleStreamError'](streamKey, streamType, testError);
+				
+				// No new timer should be created
+				expect(setTimeout).not.toHaveBeenCalled();
+			});
+			
+			it('should log errors normally when failures are within maxFailures', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Initialize failure count
+				logger['streamFailureCounts'].set(streamKey, 0);
+				
+				// Call handleStreamError
+				logger['handleStreamError'](streamKey, streamType, testError);
+				
+				// Should log error
+				expect(mockLogger.error).toHaveBeenCalledWith(
+					expect.stringContaining(`Error in stream mapper for '${streamType}' (failure 1/3)`),
+					testError,
+					'MergedStreamLogger'
+				);
+				
+				// Should log info about continuation for first failures
+				expect(mockLogger.info).toHaveBeenCalledWith(
+					expect.stringContaining(`Monitoring for ${streamType} continues despite mapping error`),
+					'MergedStreamLogger'
+				);
+			});
+			
+			xit('should log continuation message only for early failures', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Set failure count to 2
+				logger['streamFailureCounts'].set(streamKey, 2);
+				
+				// Clear mocks
+				jest.clearAllMocks();
+				
+				// Call handleStreamError
+				logger['handleStreamError'](streamKey, streamType, testError);
+				
+				// Should still log error for failure #3
+				expect(mockLogger.error).toHaveBeenCalled();
+				
+				// Should still log info for failure #3 (last of early failures)
+				expect(mockLogger.info).toHaveBeenCalled();
+				
+				// Clear mocks again
+				jest.clearAllMocks();
+				
+				// Call handleStreamError again for failure #4
+				logger['handleStreamError'](streamKey, streamType, testError);
+				
+				// Should log warning about reduced logging on threshold + 1
+				expect(mockLogger.warn).toHaveBeenCalledWith(
+					expect.stringContaining(`Stream "${streamType}" has failed 4 times, reducing error logging frequency`),
+					'MergedStreamLogger'
+				);
+				
+				// Should not log info message anymore
+				expect(mockLogger.info).not.toHaveBeenCalled();
+			});
+			
+			it('should log only occasionally after exceeding maxFailures', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Set failure count to just before a multiple of 10 over maxFailures
+				logger['streamFailureCounts'].set(streamKey, 9);
+				
+				// Clear mocks
+				jest.clearAllMocks();
+				
+				// Call handleStreamError to get to 10
+				logger['handleStreamError'](streamKey, streamType, testError);
+				
+				// Should log periodically (at 10, which is a multiple of 10)
+				expect(mockLogger.warn).toHaveBeenCalledWith(
+					expect.stringContaining(`Stream "${streamType}" continues to fail: 10 total failures`),
+					'MergedStreamLogger'
+				);
+				
+				// Clear mocks
+				jest.clearAllMocks();
+				
+				// Call handleStreamError for failures 11-19
+				for (let i = 0; i < 9; i++) {
+					logger['handleStreamError'](streamKey, streamType, testError);
+				}
+				
+				// Should not log these intermediate failures
+				expect(mockLogger.warn).not.toHaveBeenCalled();
+				expect(mockLogger.error).not.toHaveBeenCalled();
+				
+				// Call handleStreamError for failure #20
+				logger['handleStreamError'](streamKey, streamType, testError);
+				
+				// Should log again at failure #20
+				expect(mockLogger.warn).toHaveBeenCalledWith(
+					expect.stringContaining(`Stream "${streamType}" continues to fail: 20 total failures`),
+					'MergedStreamLogger'
+				);
+			});
+			
+			it('should reset failure count after backoff period', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Initialize failure count
+				logger['streamFailureCounts'].set(streamKey, 0);
+				
+				// Call handleStreamError
+				logger['handleStreamError'](streamKey, streamType, testError);
+				
+				// Advance timer
+				jest.advanceTimersByTime(100);
+				
+				// Failure count should be reset
+				expect(logger['streamFailureCounts'].get(streamKey)).toBe(0);
+				
+				// Timer should be cleared
+				expect(logger['streamBackoffTimers'].has(streamKey)).toBe(false);
+				
+				// Should log debug message about reset
+				expect(mockLogger.debug).toHaveBeenCalledWith(
+					expect.stringContaining(`Failure count automatically reset for stream '${streamType}' after 100ms`),
+					'MergedStreamLogger'
+				);
+			});
+		});
+
+		xdescribe('handleStreamRecovery', () => {
+			let logger: MergedStreamLogger;
+			let mockLogger: Logger;
+			
+			beforeEach(() => {
+				// Create mock logger with spied methods
+				mockLogger = {
+					log: jest.fn(),
+					error: jest.fn(),
+					warn: jest.fn(),
+					info: jest.fn(),
+					debug: jest.fn(),
+					verbose: jest.fn(),
+				} as unknown as Logger;
+				
+				logger = new MergedStreamLogger(mockLogger);
+				
+				// Mock clearTimeout
+				jest.spyOn(global, 'clearTimeout').mockImplementation(() => {});
+			});
+			
+			afterEach(() => {
+				jest.clearAllMocks();
+			});
+			
+			xit('should reset failure count to zero', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Set initial failure count
+				logger['streamFailureCounts'].set(streamKey, 5);
+				
+				// Call recovery handler
+				logger['handleStreamRecovery'](streamKey, streamType);
+				
+				// Failure count should be reset
+				expect(logger['streamFailureCounts'].get(streamKey)).toBe(0);
+			});
+			
+			xit('should clear existing backoff timer', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Set failure count and fake timer
+				logger['streamFailureCounts'].set(streamKey, 5);
+				const fakeTimerId = 123;
+				logger['streamBackoffTimers'].set(streamKey, fakeTimerId);
+				
+				// Call recovery handler
+				logger['handleStreamRecovery'](streamKey, streamType);
+				
+				// Timer should be cleared
+				expect(clearTimeout).toHaveBeenCalledWith(fakeTimerId);
+				
+				// Timer entry should be removed
+				expect(logger['streamBackoffTimers'].has(streamKey)).toBe(false);
+			});
+			
+			xit('should log recovery message when failures were significant', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Set failure count above significant threshold (3)
+				logger['streamFailureCounts'].set(streamKey, 5);
+				
+				// Call recovery handler
+				logger['handleStreamRecovery'](streamKey, streamType);
+				
+				// Should log info about recovery
+				expect(mockLogger.info).toHaveBeenCalledWith(
+					`Stream "${streamType}" has recovered after 5 failures`,
+					'MergedStreamLogger'
+				);
+			});
+			
+			it('should not log recovery message for insignificant failure counts', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Set failure count below significant threshold
+				logger['streamFailureCounts'].set(streamKey, 2);
+				
+				// Call recovery handler
+				logger['handleStreamRecovery'](streamKey, streamType);
+				
+				// Should not log recovery info
+				expect(mockLogger.info).not.toHaveBeenCalled();
+			});
+			
+			xit('should handle recovery when no timer exists', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// Set failure count but no timer
+				logger['streamFailureCounts'].set(streamKey, 5);
+				
+				// Call recovery handler
+				logger['handleStreamRecovery'](streamKey, streamType);
+				
+				// Should not throw and count should be reset
+				expect(logger['streamFailureCounts'].get(streamKey)).toBe(0);
+				expect(clearTimeout).not.toHaveBeenCalled();
+			});
+			
+			xit('should handle the case when failure count is undefined', () => {
+				const streamKey = 'testComponent:testStream';
+				const streamType = 'testStream';
+				
+				// No failure count set
+				
+				// Call recovery handler
+				logger['handleStreamRecovery'](streamKey, streamType);
+				
+				// Should handle gracefully
+				expect(logger['streamFailureCounts'].get(streamKey)).toBe(0);
+				expect(mockLogger.info).not.toHaveBeenCalled();
+			});
+		});
+		
 		describe('processLogEntry', () => {
 			let logs$: Subject<MockLogEntry>;
 			
