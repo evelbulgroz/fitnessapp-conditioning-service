@@ -397,91 +397,240 @@ describe('MergedStreamLogger', () => {
 			});
 		});
 	});
-		
-	describe('log level routing', () => {
-		let logs$: Subject<MockLogEntry>;
-		
-		beforeEach(() => {
-			logs$ = new Subject<MockLogEntry>();
-			logger.subscribeToStreams({ logs$ }, 'TestContext');
-		});
-		
-		it('should route ERROR level to logger.error', () => {
-			logs$.next({ 
-				level: LogLevel.ERROR, 
-				message: 'Error message', 
-				data: { error: 'test' } 
+
+	describe('Protected Methods', () => {		
+		describe('processLogEntry', () => {
+			let logs$: Subject<MockLogEntry>;
+			
+			beforeEach(() => {
+				logs$ = new Subject<MockLogEntry>();
+				logger.subscribeToStreams({ logs$ }, 'TestContext');
 			});
 			
-			expect(mockLogger.error).toHaveBeenCalledWith(
-				'Error message', 
-				{ error: 'test' }, 
-				'TestContext'
-			);
-		});
-		
-		it('should route WARN level to logger.warn', () => {
-			logs$.next({ level: LogLevel.WARN, message: 'Warning message' });
-			
-			expect(mockLogger.warn).toHaveBeenCalledWith(
-				'Warning message', 
-				'TestContext'
-			);
-		});
-		
-		it('should route INFO level to logger.info', () => {
-			logs$.next({ level: LogLevel.INFO, message: 'Info message' });
-			
-			expect(mockLogger.info).toHaveBeenCalledWith(
-				'Info message', 
-				'TestContext'
-			);
-		});
-		
-		it('should route DEBUG level to logger.debug', () => {
-			logs$.next({ level: LogLevel.DEBUG, message: 'Debug message' });
-			
-			expect(mockLogger.debug).toHaveBeenCalledWith(
-				'Debug message', 
-				'TestContext'
-			);
-		});
-		
-		it('should route VERBOSE level to logger.verbose', () => {
-			logs$.next({ 
-				level: LogLevel.VERBOSE, 
-				message: 'Verbose message', 
-				data: { detail: 'Extra info' } 
+			it('should route ERROR level to logger.error', () => {
+				logs$.next({ 
+					level: LogLevel.ERROR, 
+					message: 'Error message', 
+					data: { error: 'test' } 
+				});
+				
+				expect(mockLogger.error).toHaveBeenCalledWith(
+					'Error message', 
+					{ error: 'test' }, 
+					'TestContext'
+				);
 			});
 			
-			expect(mockLogger.verbose).toHaveBeenCalledWith(
-				expect.stringContaining('Verbose message'),
-				'TestContext'
-			);
-			// The call should include JSON-stringified data
-			expect(mockLogger.verbose).toHaveBeenCalledWith(
-				expect.stringContaining('{"detail":"Extra info"}'),
-				'TestContext'
-			);
-		});
-		
-		it('should route LOG level to logger.log', () => {
-			logs$.next({ level: LogLevel.LOG, message: 'Log message' });
+			it('should route WARN level to logger.warn', () => {
+				logs$.next({ level: LogLevel.WARN, message: 'Warning message' });
+				
+				expect(mockLogger.warn).toHaveBeenCalledWith(
+					'Warning message', 
+					'TestContext'
+				);
+			});
 			
-			expect(mockLogger.log).toHaveBeenCalledWith(
-				'Log message', 
-				'TestContext'
-			);
-		});
-		
-		it('should default to logger.log for unknown levels', () => {
-			// @ts-ignore - Testing runtime behavior
-			logs$.next({ level: 999, message: 'Unknown level' });
+			it('should route INFO level to logger.info', () => {
+				logs$.next({ level: LogLevel.INFO, message: 'Info message' });
+				
+				expect(mockLogger.info).toHaveBeenCalledWith(
+					'Info message', 
+					'TestContext'
+				);
+			});
 			
-			expect(mockLogger.log).toHaveBeenCalledWith(
-				'Unknown level', 
-				'TestContext'
-			);
+			it('should route DEBUG level to logger.debug', () => {
+				logs$.next({ level: LogLevel.DEBUG, message: 'Debug message' });
+				
+				expect(mockLogger.debug).toHaveBeenCalledWith(
+					'Debug message', 
+					'TestContext'
+				);
+			});
+			
+			it('should route VERBOSE level to logger.verbose', () => {
+				logs$.next({ 
+					level: LogLevel.VERBOSE, 
+					message: 'Verbose message', 
+					data: { detail: 'Extra info' } 
+				});
+				
+				expect(mockLogger.verbose).toHaveBeenCalledWith(
+					expect.stringContaining('Verbose message'),
+					'TestContext'
+				);
+				// The call should include JSON-stringified data
+				expect(mockLogger.verbose).toHaveBeenCalledWith(
+					expect.stringContaining('{"detail":"Extra info"}'),
+					'TestContext'
+				);
+			});
+			
+			it('should route LOG level to logger.log', () => {
+				logs$.next({ level: LogLevel.LOG, message: 'Log message' });
+				
+				expect(mockLogger.log).toHaveBeenCalledWith(
+					'Log message', 
+					'TestContext'
+				);
+			});
+			
+			it('should default to logger.log for unknown levels', () => {
+				// @ts-ignore - Testing runtime behavior
+				logs$.next({ level: 999, message: 'Unknown level' });
+				
+				expect(mockLogger.log).toHaveBeenCalledWith(
+					'Unknown level', 
+					'TestContext'
+				);
+			});
+		});
+
+		describe('validateOptions', () => {
+				let mockLogger: Logger;
+				let logger: MergedStreamLogger;
+
+				beforeEach(() => {
+					mockLogger = {
+						log: jest.fn(),
+						error: jest.fn(),
+						warn: jest.fn(),
+						info: jest.fn(),
+						debug: jest.fn(),
+						verbose: jest.fn(),
+					} as unknown as Logger;
+					
+					logger = new MergedStreamLogger(mockLogger);
+				});
+
+				it('should return a copy of valid options', () => {
+					const options: MergedStreamLoggerOptions = {
+						maxFailures: 10,
+						backoffResetMs: 30000,
+						logRecoveryEvents: false,
+						warnOnMissingMappers: false
+					};
+					
+					const result = logger['validateOptions'](options);
+					
+					// Should return a new object with same values (not a reference)
+					expect(result).not.toBe(options);
+					expect(result).toEqual(options);
+				});
+				
+				it('should handle undefined options gracefully', () => {
+					const result = logger['validateOptions'](undefined);
+					
+					expect(result).toEqual({});
+				});
+				
+				it('should validate and correct invalid maxFailures values', () => {
+					const options: MergedStreamLoggerOptions = {
+						maxFailures: 0, // Invalid value
+						backoffResetMs: 30000
+					};
+					
+					const result = logger['validateOptions'](options);
+					
+					// maxFailures should be removed from the result
+					expect(result.maxFailures).toBeUndefined();
+					expect(result.backoffResetMs).toBe(30000);
+					
+					// Should log a warning
+					expect(mockLogger.warn).toHaveBeenCalledWith(
+						'Invalid maxFailures value: 0. Must be at least 1. Using default.',
+						'MergedStreamLogger'
+					);
+				});
+				
+				it('should validate and correct invalid negative maxFailures values', () => {
+					const options: MergedStreamLoggerOptions = {
+						maxFailures: -5, // Invalid negative value
+						backoffResetMs: 30000
+					};
+					
+					const result = logger['validateOptions'](options);
+					
+					// maxFailures should be removed from the result
+					expect(result.maxFailures).toBeUndefined();
+					expect(result.backoffResetMs).toBe(30000);
+					
+					// Should log a warning
+					expect(mockLogger.warn).toHaveBeenCalledWith(
+						'Invalid maxFailures value: -5. Must be at least 1. Using default.',
+						'MergedStreamLogger'
+					);
+				});
+				
+				it('should validate and correct invalid backoffResetMs values', () => {
+					const options: MergedStreamLoggerOptions = {
+						maxFailures: 10,
+						backoffResetMs: 50 // Invalid value (less than 100ms)
+					};
+					
+					const result = logger['validateOptions'](options);
+					
+					// backoffResetMs should be removed from the result
+					expect(result.maxFailures).toBe(10);
+					expect(result.backoffResetMs).toBeUndefined();
+					
+					// Should log a warning
+					expect(mockLogger.warn).toHaveBeenCalledWith(
+						'Invalid backoffResetMs value: 50. Must be at least 100ms. Using default.',
+						'MergedStreamLogger'
+					);
+				});
+				
+				it('should allow valid boolean options to pass through', () => {
+					const options: MergedStreamLoggerOptions = {
+						logRecoveryEvents: false,
+						warnOnMissingMappers: false
+					};
+					
+					const result = logger['validateOptions'](options);
+					
+					// Boolean values should pass through validation unchanged
+					expect(result.logRecoveryEvents).toBe(false);
+					expect(result.warnOnMissingMappers).toBe(false);
+				});
+				
+				it('should validate all fields independently', () => {
+					const options: MergedStreamLoggerOptions = {
+						maxFailures: 0,     // Invalid
+						backoffResetMs: 50, // Invalid
+						logRecoveryEvents: true,     // Valid
+						warnOnMissingMappers: false  // Valid
+					};
+					
+					const result = logger['validateOptions'](options);
+					
+					// Invalid values should be removed
+					expect(result.maxFailures).toBeUndefined();
+					expect(result.backoffResetMs).toBeUndefined();
+					
+					// Valid values should remain
+					expect(result.logRecoveryEvents).toBe(true);
+					expect(result.warnOnMissingMappers).toBe(false);
+					
+					// Should log warnings for each invalid value
+					expect(mockLogger.warn).toHaveBeenCalledTimes(2);
+				});
+				
+				it('should allow minimum valid values', () => {
+					const options: MergedStreamLoggerOptions = {
+						maxFailures: 1,     // Minimum valid
+						backoffResetMs: 100 // Minimum valid
+					};
+					
+					const result = logger['validateOptions'](options);
+					
+					// These values are at the minimum allowed, so should pass validation
+					expect(result.maxFailures).toBe(1);
+					expect(result.backoffResetMs).toBe(100);
+					
+					// No warnings should be logged
+					expect(mockLogger.warn).not.toHaveBeenCalled();
+				});
 		});
 	});
 	
@@ -1048,152 +1197,5 @@ describe('MergedStreamLogger', () => {
 			// Unsubscribe should still work
 			expect(logger.unsubscribeComponent('StreamErrorTest')).toBe(true);
 		});
-	});
-
-	describe('validateOptions', () => {
-			let mockLogger: Logger;
-			let logger: MergedStreamLogger;
-
-			beforeEach(() => {
-				mockLogger = {
-					log: jest.fn(),
-					error: jest.fn(),
-					warn: jest.fn(),
-					info: jest.fn(),
-					debug: jest.fn(),
-					verbose: jest.fn(),
-				} as unknown as Logger;
-				
-				logger = new MergedStreamLogger(mockLogger);
-			});
-
-			it('should return a copy of valid options', () => {
-				const options: MergedStreamLoggerOptions = {
-					maxFailures: 10,
-					backoffResetMs: 30000,
-					logRecoveryEvents: false,
-					warnOnMissingMappers: false
-				};
-				
-				const result = logger['validateOptions'](options);
-				
-				// Should return a new object with same values (not a reference)
-				expect(result).not.toBe(options);
-				expect(result).toEqual(options);
-			});
-			
-			it('should handle undefined options gracefully', () => {
-				const result = logger['validateOptions'](undefined);
-				
-				expect(result).toEqual({});
-			});
-			
-			it('should validate and correct invalid maxFailures values', () => {
-				const options: MergedStreamLoggerOptions = {
-					maxFailures: 0, // Invalid value
-					backoffResetMs: 30000
-				};
-				
-				const result = logger['validateOptions'](options);
-				
-				// maxFailures should be removed from the result
-				expect(result.maxFailures).toBeUndefined();
-				expect(result.backoffResetMs).toBe(30000);
-				
-				// Should log a warning
-				expect(mockLogger.warn).toHaveBeenCalledWith(
-					'Invalid maxFailures value: 0. Must be at least 1. Using default.',
-					'MergedStreamLogger'
-				);
-			});
-			
-			it('should validate and correct invalid negative maxFailures values', () => {
-				const options: MergedStreamLoggerOptions = {
-					maxFailures: -5, // Invalid negative value
-					backoffResetMs: 30000
-				};
-				
-				const result = logger['validateOptions'](options);
-				
-				// maxFailures should be removed from the result
-				expect(result.maxFailures).toBeUndefined();
-				expect(result.backoffResetMs).toBe(30000);
-				
-				// Should log a warning
-				expect(mockLogger.warn).toHaveBeenCalledWith(
-					'Invalid maxFailures value: -5. Must be at least 1. Using default.',
-					'MergedStreamLogger'
-				);
-			});
-			
-			it('should validate and correct invalid backoffResetMs values', () => {
-				const options: MergedStreamLoggerOptions = {
-					maxFailures: 10,
-					backoffResetMs: 50 // Invalid value (less than 100ms)
-				};
-				
-				const result = logger['validateOptions'](options);
-				
-				// backoffResetMs should be removed from the result
-				expect(result.maxFailures).toBe(10);
-				expect(result.backoffResetMs).toBeUndefined();
-				
-				// Should log a warning
-				expect(mockLogger.warn).toHaveBeenCalledWith(
-					'Invalid backoffResetMs value: 50. Must be at least 100ms. Using default.',
-					'MergedStreamLogger'
-				);
-			});
-			
-			it('should allow valid boolean options to pass through', () => {
-				const options: MergedStreamLoggerOptions = {
-					logRecoveryEvents: false,
-					warnOnMissingMappers: false
-				};
-				
-				const result = logger['validateOptions'](options);
-				
-				// Boolean values should pass through validation unchanged
-				expect(result.logRecoveryEvents).toBe(false);
-				expect(result.warnOnMissingMappers).toBe(false);
-			});
-			
-			it('should validate all fields independently', () => {
-				const options: MergedStreamLoggerOptions = {
-					maxFailures: 0,     // Invalid
-					backoffResetMs: 50, // Invalid
-					logRecoveryEvents: true,     // Valid
-					warnOnMissingMappers: false  // Valid
-				};
-				
-				const result = logger['validateOptions'](options);
-				
-				// Invalid values should be removed
-				expect(result.maxFailures).toBeUndefined();
-				expect(result.backoffResetMs).toBeUndefined();
-				
-				// Valid values should remain
-				expect(result.logRecoveryEvents).toBe(true);
-				expect(result.warnOnMissingMappers).toBe(false);
-				
-				// Should log warnings for each invalid value
-				expect(mockLogger.warn).toHaveBeenCalledTimes(2);
-			});
-			
-			it('should allow minimum valid values', () => {
-				const options: MergedStreamLoggerOptions = {
-					maxFailures: 1,     // Minimum valid
-					backoffResetMs: 100 // Minimum valid
-				};
-				
-				const result = logger['validateOptions'](options);
-				
-				// These values are at the minimum allowed, so should pass validation
-				expect(result.maxFailures).toBe(1);
-				expect(result.backoffResetMs).toBe(100);
-				
-				// No warnings should be logged
-				expect(mockLogger.warn).not.toHaveBeenCalled();
-			});
 	});
 });
