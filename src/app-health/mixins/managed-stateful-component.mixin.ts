@@ -203,15 +203,15 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					await this[`${unshadowPrefix}updateState`](this. msc_zh7y_ownState); // returns when state change is observed
 
 					// Call parent initialize method if found (preserving inheritance)
-					await this[`${unshadowPrefix}callParentMethod`](this.initialize, ...args);
+					const superResult = await this[`${unshadowPrefix}callParentMethod`](this.initialize, ...args);
 
 					// Initialize main component and any subcomponents in the order specified in options
 					if (this.msc_zh7y_options.initializationStrategy === 'parent-first') {
-						await this.onInitialize();
+						await this.onInitialize(superResult);
 						await this[`${unshadowPrefix}initializeSubcomponents`]();
 					} else { // 'children-first'
 						await this[`${unshadowPrefix}initializeSubcomponents`]();
-						await this.onInitialize();
+						await this.onInitialize(superResult);
 					}
 					
 					// Set own state and update the state subject with the new componentState$
@@ -299,7 +299,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark If the component is already shut down, resolves immediately
 		 * @remark Required by {@link ManageableComponent} interface
 		 */
-		public async shutdown(...args: any[]): Promise<void> {
+		public async shutdown(...args: any[]): Promise<any> {
 			// If already shut down, resolve immediately
 			if (this. msc_zh7y_stateSubject.value.state === ComponentState.SHUT_DOWN) {
 				return Promise.resolve();
@@ -322,15 +322,16 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					await this[`${unshadowPrefix}updateState`](this. msc_zh7y_ownState); // returns when state change is observed
 
 					// Call parent shutdown method if found (preserving inheritance)
-					await this[`${unshadowPrefix}callParentMethod`](this.shutdown, ...args);
+					const superResult = await this[`${unshadowPrefix}callParentMethod`](this.shutdown, ...args);
 
 					// Shut down main component and any subcomponents in the order specified in options
 					if (this.msc_zh7y_options.shutDownStrategy === 'parent-first') {
-						await this.onShutdown();
+						await this.onShutdown(superResult);
 						await this[`${unshadowPrefix}shutdownSubcomponents`];
-					} else { // 'children-first'
+					}
+					else { // 'children-first'
 						await this[`${unshadowPrefix}shutdownSubcomponents`];
-						await this.onShutdown();
+						await this.onShutdown(superResult);
 					}
 
 					// Set own state and update the state subject with the new componentState$
@@ -432,7 +433,8 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 		// NOTE: TS does not support protected members in abstract classes, so we use public with @internal tag
 
-		/** Execute component-specific initialization
+		/** Execute component-specific 
+		 * @param args Result of parent class initialize() call (if any, passed in from initialize())
 		 * @returns Promise that resolves when initialization is complete
 		 * @throws Error if initialization fails
 		 * @remark This method can be overridden by subclasses that have specific initialization needs.
@@ -440,9 +442,10 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It should leave it to initialize() to handle the state management and observable emissions.
 		 * @remark A default implementation is provided that simply resolves the promise.
 		 */
-		/* @internal */ onInitialize(): Promise<void> { return Promise.resolve(); }
+		/* @internal */ onInitialize(...args: any[]): Promise<void> { void args; return Promise.resolve(); }
 		
 		/** Execute component-specific shutdown
+		 * @param args Result of parent class shutdown() call (if any, passed in from shutdown())
 		 * @returns Promise that resolves when shutdown is complete
 		 * @throws Error if shutdown fails
 		 * @remark This method can be overridden by subclasses that have specific shutdown needs.
@@ -450,7 +453,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It should leave it to shutdown() to handle the state management and observable emissions.
 		 * @remark A default implementation is provided that simply resolves the promise.
 		 */
-		/* @internal */ onShutdown(): Promise<void> { return Promise.resolve(); }
+		/* @internal */ onShutdown(...args: any[]): Promise<void> { void args; return Promise.resolve(); }
 
 		//--------------------------------- PROTECTED METHODS -----------------------------------//
 		

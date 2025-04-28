@@ -656,7 +656,7 @@ export class ConditioningDataService extends ManagedStatefulComponentMixin(class
 	 * use initialize() instead for public API
 	 * @todo Refactor to use cache library, when available
 	 */
-	public async onInitialize(): Promise<void> {
+	public override async onInitialize(): Promise<void> {
 		// if cache is already populated, return immediately
 		if (this.cache.value.length > 0) {
 			return Promise.resolve();
@@ -718,7 +718,7 @@ export class ConditioningDataService extends ManagedStatefulComponentMixin(class
 	 * use shutdown() instead for public API
 	 * @todo Refactor to use cache library, when available
 	 */
-	public onShutdown(): Promise<void> {		
+	public override onShutdown(): Promise<void> {		
 		try {
 			this.logger.log(`Executing shutdown...`, this.constructor.name);
 			

@@ -49,13 +49,61 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	
 	/** @see ManagedStatefulComponentMixin for public management API methods */
 
-	/* Subscribe to log events and log them using the logger (helper for executeInitialization)
+	/** Execute repository initialization (required by ManagedStatefulComponentMixin)
+	 * @param initializeResult Result from the base class initialize method, if any
+	 * @returns Promise that resolves when initialization is complete
+	 * @throws Error if initialization fails
+	 * @remark Basically calls base class initialize method and unwraps the result
+	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
+	 * use initialize() instead for public API
+     */
+    public override async onInitialize(initResult: Result<void>): Promise<void> {
+		this.initializeLogging(); // initialize logging before anything else
+        this.log(RepoLogLevel.LOG, `Executing initialization`);
+		
+		// Repository.initialize() does most of the work, so we just need to check result from base class here
+		if (initResult.isFailure) {
+			this.log(RepoLogLevel.ERROR, `Failed to execute initialization`, undefined, initResult.error.toString());
+			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${initResult.error}`);
+		}
+		
+		// If/when needed, add local initialization here
+        
+		this.log(RepoLogLevel.LOG, `Initialization executed successfully`);
+        return Promise.resolve();
+    }
+    
+    /** Execute repository shutdown (required by ManagedStatefulComponentMixin)
+	 * @param shutdownResult Result from the base class shutdown method, if any
+	 * @returns Promise that resolves when shutdown is complete
+	 * @throws Error if shutdown fails
+	 * @remark Basically calls base class shutdown method and unwraps the result
+	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
+	 * use shutdown() instead for public API
+     */
+    public override async onShutdown(shutdownResult: Result<void>): Promise<void> {
+		this.log(RepoLogLevel.LOG, `Executing shutdown`);
+
+		// Repository.shutdown() does most of the work, so we just need to check result from base class here
+		if (shutdownResult.isFailure) {
+			this.log(RepoLogLevel.ERROR, `Failed to execute shutdown`, undefined, shutdownResult.error.toString());
+			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${shutdownResult.error}`);
+		}
+
+		// Clean up subscriptions
+		this.subscriptions.forEach((sub: Subscription) => sub?.unsubscribe()); // clean up subscriptions to avoid memory leaks
+		
+		this.logger.log(`Shutdown executed successfully`); // log to the logger, repo log stream is closed at this point
+        return Promise.resolve();
+    }
+
+	/* Subscribe to log events and log them using the logger (helper for onInitialize())	
 	 * @returns void
 	 * @throws Error if subscription fails
-	 * @remark This method is called by the mixin during initialization, and should not be called directly
+	 * @remark This method is called from onInitialize(), and should not be called directly
 	 */
 	protected initializeLogging(): void {
-		const logsSub = this.logs$.subscribe({
+		const logsSub = this.repoLog$.subscribe({
 			next: (log: RepoLogEntry) => {
 				switch (log.level) {
 					case RepoLogLevel.LOG:
@@ -85,54 +133,6 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		this.subscriptions.push(logsSub); // base class should complete the oberservable on shutdown, but add it to the list just in case
 		this.log(RepoLogLevel.LOG, `Subscribed to logs`);
 	}
-
-	/** Execute repository initialization (required by ManagedStatefulComponentMixin)
-	 * @returns Promise that resolves when initialization is complete
-	 * @throws Error if initialization fails
-	 * @remark Basically calls base class initialize method and unwraps the result
-     */
-    protected async executeInitialization(): Promise<void> {
-		this.initializeLogging(); // initialize logging before anything else
-        this.log(RepoLogLevel.LOG, `Executing initialization`);
-		
-		// Repository.initialize() does most of the work, so we just need to call it and unwrap its result here
-		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
-		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
-		const initResult = await realSuper.initialize.call(this);
-		if (initResult.isFailure) {
-			this.log(RepoLogLevel.ERROR, `Failed to execute initialization`, undefined, initResult.error);
-			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${initResult.error}`);
-		}
-		
-		// If/when needed, add local initialization here
-        
-		this.log(RepoLogLevel.LOG, `Initialization executed successfully`);
-        return Promise.resolve();
-    }
-    
-    /** Execute repository shutdown (required by ManagedStatefulComponentMixin)
-	 * @returns Promise that resolves when shutdown is complete
-	 * @throws Error if shutdown fails
-	 * @remark Basically calls base class shutdown method and unwraps the result
-     */
-    protected async executeShutdown(): Promise<void> {
-        this.log(RepoLogLevel.LOG, `Executing shutdown`);
-
-		// Repository.shutdown() does most of the work, so we just need to call it and unwrap its result here
-		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
-		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
-		const shutdownResult = await realSuper.shutdown.call(this);
-		if (shutdownResult.isFailure) {
-			this.log(RepoLogLevel.ERROR, `Failed to execute shutdown`, undefined, shutdownResult.error);
-			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${shutdownResult.error}`);
-		}
-
-		// Clean up subscriptions
-		this.subscriptions.forEach((sub: Subscription) => sub?.unsubscribe()); // clean up subscriptions to avoid memory leaks
-		
-		this.logger.log(`Shutdown executed successfully`); // log to the logger, repo log stream is closed at this point
-        return Promise.resolve();
-    }
 
 	// NOTE: Repository.isReady() is basically a call to initialize(), so no need to override or call it here. The mixin is sufficient.
 
