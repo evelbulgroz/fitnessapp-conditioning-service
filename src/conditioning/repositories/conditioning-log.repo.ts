@@ -58,8 +58,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	 * use initialize() instead for public API
      */
     public override async onInitialize(initResult: Result<void>): Promise<void> {
-		this.initializeLogging(); // initialize logging before anything else
-        this.log(RepoLogLevel.LOG, `Executing initialization`);
+		this.log(RepoLogLevel.LOG, `Executing initialization`);
 		
 		// Repository.initialize() does most of the work, so we just need to check result from base class here
 		if (initResult.isFailure) {
@@ -95,44 +94,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		
 		this.logger.log(`Shutdown executed successfully`); // log to the logger, repo log stream is closed at this point
         return Promise.resolve();
-    }
-
-	/* Subscribe to log events and log them using the logger (helper for onInitialize())	
-	 * @returns void
-	 * @throws Error if subscription fails
-	 * @remark This method is called from onInitialize(), and should not be called directly
-	 */
-	protected initializeLogging(): void {
-		const logsSub = this.repoLog$.subscribe({
-			next: (log: RepoLogEntry) => {
-				switch (log.level) {
-					case RepoLogLevel.LOG:
-						this.logger.log(log.message, log.context);
-						break;
-					case RepoLogLevel.WARN:
-						this.logger.warn(log.message, log.context);
-						break;
-					case RepoLogLevel.ERROR:
-						this.logger.error(log.message, log.data, log.context);
-						break;
-					case RepoLogLevel.INFO:
-						this.logger.info(log.message, log.context);
-						break;
-					case RepoLogLevel.DEBUG:
-						this.logger.debug(log.message, log.context);
-						break;
-					case RepoLogLevel.VERBOSE:
-						this.logger.verbose(`${log.message}, ${log.data}`, log.context);
-						break;
-					default:
-						this.logger.log(log.message, log.context);
-						break;
-				}
-			}
-		});
-		this.subscriptions.push(logsSub); // base class should complete the oberservable on shutdown, but add it to the list just in case
-		this.log(RepoLogLevel.LOG, `Subscribed to logs`);
-	}
+    }	
 
 	// NOTE: Repository.isReady() is basically a call to initialize(), so no need to override or call it here. The mixin is sufficient.
 
