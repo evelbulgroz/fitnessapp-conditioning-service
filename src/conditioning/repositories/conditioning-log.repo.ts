@@ -3,8 +3,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { Subscription } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
-import { EntityId, EntityMetadataDTO, RepoLogEntry, RepoLogLevel, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
-import { Logger } from '@evelbulgroz/logger';
+import { EntityId, EntityMetadataDTO, RepoLogLevel, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
 import ConditioningLog from "../domain/conditioning-log.entity";
@@ -35,7 +34,6 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 
 	public constructor(
 		protected readonly adapter: PersistenceAdapter<ConditioningLogPersistenceDTO<any, EntityMetadataDTO>>,
-		protected readonly logger: Logger,
 		@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
 	) {
 		super(adapter, throttleTime);
@@ -92,7 +90,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		// Clean up subscriptions
 		this.subscriptions.forEach((sub: Subscription) => sub?.unsubscribe()); // clean up subscriptions to avoid memory leaks
 		
-		this.logger.log(`Shutdown executed successfully`); // log to the logger, repo log stream is closed at this point
+		console.log(`Shutdown executed successfully`); // log directly to the console, repo log stream is closed at this point
         return Promise.resolve();
     }	
 
