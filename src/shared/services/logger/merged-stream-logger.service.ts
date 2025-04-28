@@ -132,6 +132,9 @@ import StreamMapper from './models/stream-mapper.model';
  */
 @Injectable()
 export class MergedStreamLogger {
+	
+	//--------------------------------------- PROPERTIES ----------------------------------------//
+	
 	// Map components to their subscriptions
 	protected componentSubscriptions: Map<string, Subscription[]> = new Map();
 	protected mappers: Map<string, StreamMapper<any>> = new Map();
@@ -142,6 +145,8 @@ export class MergedStreamLogger {
 	protected readonly MAX_FAILURES = 5;
 	protected readonly BACKOFF_RESET_MS = 60000; // 1 minute
 
+	//-------------------------------------- CONSTRUCTOR ----------------------------------------//
+
 	constructor(
 		protected readonly logger: Logger,
 		@Optional() @Inject('STREAM_MAPPERS') mappers?: StreamMapper<any>[]
@@ -151,6 +156,8 @@ export class MergedStreamLogger {
 			mappers.forEach(mapper => this.registerMapper(mapper));
 		}
 	}
+
+	//--------------------------------------- PUBLIC API ----------------------------------------//
 
 	/** Manually register a stream mapper for a specific stream type
 	 * @param mapper The mapper to register for a named stream type
@@ -254,6 +261,39 @@ export class MergedStreamLogger {
 		});
 	}
 
+	/** Unsubscribe all subscriptions for a specific component
+	 * @param key The subscription key or context to unsubscribe
+	 * @returns true if subscriptions were found and unsubscribed, false otherwise
+	 * @remark This is useful for properly cleaning up subscriptions when a component is destroyed or no longer needs logging.
+	 */
+	public unsubscribeComponent(key: string): boolean {
+		const subscriptions = this.componentSubscriptions.get(key);
+		
+		if (!subscriptions || subscriptions.length === 0) {
+			return false;
+		}
+		
+		// Unsubscribe all subscriptions for this component
+		subscriptions.forEach(subscription => {
+			subscription.unsubscribe();
+		});
+		
+		// Clear the component's subscriptions
+		this.componentSubscriptions.delete(key);
+		
+		return true;
+	}
+
+	//------------------------------------ PROTECTED METHODS ------------------------------------//
+
+	/** Clean up all subscriptions */
+	public unsubscribeAll(): void {
+		this.componentSubscriptions.forEach(subscriptions => {
+			subscriptions.forEach(sub => sub?.unsubscribe());
+		});
+		this.componentSubscriptions.clear();
+	}
+
 	/** Handle stream error with failure counting and backoff
 	 * @param streamKey Unique key for the stream (component:streamType)
 	 * @param streamType Type of stream that failed
@@ -333,37 +373,6 @@ export class MergedStreamLogger {
 				this.constructor.name
 			);
 		}
-	}
-
-	/** Unsubscribe all subscriptions for a specific component
-	 * @param key The subscription key or context to unsubscribe
-	 * @returns true if subscriptions were found and unsubscribed, false otherwise
-	 * @remark This is useful for properly cleaning up subscriptions when a component is destroyed or no longer needs logging.
-	 */
-	public unsubscribeComponent(key: string): boolean {
-		const subscriptions = this.componentSubscriptions.get(key);
-		
-		if (!subscriptions || subscriptions.length === 0) {
-			return false;
-		}
-		
-		// Unsubscribe all subscriptions for this component
-		subscriptions.forEach(subscription => {
-			subscription.unsubscribe();
-		});
-		
-		// Clear the component's subscriptions
-		this.componentSubscriptions.delete(key);
-		
-		return true;
-	}
-
-	/** Clean up all subscriptions */
-	public unsubscribeAll(): void {
-		this.componentSubscriptions.forEach(subscriptions => {
-			subscriptions.forEach(sub => sub?.unsubscribe());
-		});
-		this.componentSubscriptions.clear();
 	}
 
 	/** Log unified log event using the concrete logger set at construction */
