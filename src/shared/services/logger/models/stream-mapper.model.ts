@@ -29,7 +29,7 @@ export interface StreamMapper<T> {
 	 * @remark Generally the variable name of the stream this mapper supports.
 	 * @remark This is used to match the stream to the correct mapper in the stream logger.
 	 * @remark Clients should chooen a name that is descriptive and unique to the stream being mapped.
-	 * @example 'repoLog$', 'state$', 'myStream$'
+	 * @example 'repoLog$', 'componentState$', 'myStream$'
 	*/
 	readonly streamType: string;
 

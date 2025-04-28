@@ -1,5 +1,6 @@
 import { Observable } from "rxjs";
-import { ComponentStateInfo } from "./component-state-info.model";
+
+import ComponentStateInfo from "./component-state-info.model";
 
 /** Interface for observable component health state tracking.
  * @remark Provides access to the current health state and a stream of state changes.
@@ -10,7 +11,7 @@ export interface StatefulComponent {
 	 * @returns Observable that emits when the component's state changes.
 	 * @remark Subscribers should receive a consistent view of the component's state transitions.
 	 */
-	state$: Observable<ComponentStateInfo>;
+	componentState$: Observable<ComponentStateInfo>;
 }
 
 export default StatefulComponent;

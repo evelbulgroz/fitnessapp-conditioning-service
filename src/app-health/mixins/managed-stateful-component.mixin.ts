@@ -25,7 +25,7 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * @remark STATE MANAGEMENT
  * - Component's own state is tracked in `msc_zh7y_ownState`
  * - All internal properties use the fixed prefix `msc_zh7y_` to avoid name collisions
- * - Component state changes are observable through the `state$` Observable
+ * - Component state changes are observable through the `componentState$` Observable
  * - Aggregated state includes all subcomponents, with the "worst" state propagating upward
  * - The mixin uses the "Wait for Your Own Events" pattern to ensure state changes are propagated before resolving promises
  * 
@@ -41,7 +41,7 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * - `onShutdown()` - Template method for component-specific shutdown logic, called by `shutdown()`, shadows any parent method 
  * 
  * {@link StatefulComponent} members:
- * - `state$` - Observable that emits state changes, shadows any parent property
+ * - `componentState$` - Observable that emits state changes, shadows any parent property
  * 
  * {@link ComponentContainer} members:
  * - `registerSubcomponent()` - Registers a subcomponent for lifecycle management and subscribes to its state changes
@@ -163,10 +163,10 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		/** Observable stream of state changes for the component and its subcomponents (if any)
 		 * @returns Observable that emits the current state of the component and its subcomponents (if any) whenever the state changes
 		 * @remark The observable is a BehaviorSubject, so it will emit the current state immediately upon subscription
-		 * @remark The observable will emit the aggregated state if subcomponents are present, otherwise it will emit the component's own state
+		 * @remark The observable will emit the aggregated state if subcomponents are present, otherwise it will emit the component's own componentState$
 		 * @remark required by {@link StatefulComponent} interface
 		 */
-		public readonly state$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
+		public readonly componentState$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
 		
 		/** Initialize the component and all of its subcomponents (if any) if it is not already initialized
 		 * @param args Optional arguments to pass to parent initialize methods 
@@ -193,7 +193,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			// Create a new initialization promise
 			this.msc_zh7y_initializationPromise = new Promise<void>(async (resolve, reject) => {
 				try {
-					// Set own state and update the state subject with the new state
+					// Set own state and update the state subject with the new componentState$
 					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.INITIALIZING,
@@ -214,7 +214,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 						await this.onInitialize();
 					}
 					
-					// Set own state and update the state subject with the new state
+					// Set own state and update the state subject with the new componentState$
 					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.OK,
@@ -249,7 +249,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @throws Error if the component or any of its subcomponents is not ready
 		 * @remark Ignores any inherited isReady() method, as isReady() is considered purely informational
 		 * @remark May trigger initialization if the component supports lazy initialization
-		 * @remark A component is typically ready when it and all of its subcomponents are in the `OK` or `DEGRADED` state
+		 * @remark A component is typically ready when it and all of its subcomponents are in the `OK` or `DEGRADED` componentState$
 		 * @remark Required by {@link ManageableComponent} interface
 		 */
 		public async isReady(): Promise<boolean> {
@@ -312,7 +312,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 			this.msc_zh7y_shutdownPromise = new Promise<void>(async (resolve, reject) => {
 				try {
-					// Set own state and update the state subject with the new state
+					// Set own state and update the state subject with the new componentState$
 					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.SHUTTING_DOWN,
@@ -333,7 +333,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 						await this.onShutdown();
 					}
 
-					// Set own state and update the state subject with the new state
+					// Set own state and update the state subject with the new componentState$
 					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.SHUT_DOWN,
@@ -387,7 +387,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			this. msc_zh7y_subcomponents.push(component);
 			
 			// Subscribe to component state changes
-			const subscription = component.state$.subscribe(state => {
+			const subscription = component.componentState$.subscribe(state => {
 				// Update the aggregated state when a subcomponent's state changes
 				this[`${unshadowPrefix}updateAggregatedState`]();
 			});
@@ -423,7 +423,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			// Remove component
 			this. msc_zh7y_subcomponents.splice(index, 1);
 			
-			// Update the aggregated state
+			// Update the aggregated componentState$
 			this[`${unshadowPrefix}updateAggregatedState`]();
 			
 			return true;
@@ -458,7 +458,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		
 		/* Calculate the current aggregated component state */
 		/* @internal */ [`${unshadowPrefix}calculateState`](): ComponentStateInfo {
-			// If no subcomponents, just return the current state
+			// If no subcomponents, just return the current componentState$
 			if (this.msc_zh7y_subcomponents.length === 0) {
 				return { ...this.msc_zh7y_stateSubject.value };
 			}
@@ -469,7 +469,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				...this.msc_zh7y_subcomponents.map((c: any) => c[`${unshadowPrefix}calculateState`]())
 			];
 			
-			// Calculate worst state
+			// Calculate worst componentState$
 			const worstState = this[`${unshadowPrefix}calculateWorstState`](states);
 			
 			// Return the aggregated state without updating the subject
@@ -540,7 +540,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			// Track if we encounter any unknown states
 			let hasUnknownStates = false;
 			
-			// Find the highest priority (worst) state
+			// Find the highest priority (worst) componentState$
 			let worstState: ComponentStateInfo | undefined;
 			let worstPriority = -1;
 			
@@ -549,7 +549,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				const priority = statePriority.indexOf(state.state);
 				
 				if (priority === -1) {
-					// Track that we found an unknown state
+					// Track that we found an unknown componentState$
 					hasUnknownStates = true;
 					//console.warn(`Unknown state encountered: ${state.state}`, state);
 					continue;
@@ -585,10 +585,10 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					//states
 				);
 				
-				// Get the priority of DEGRADED state
+				// Get the priority of DEGRADED componentState$
 				const degradedPriority = statePriority.indexOf(ComponentState.DEGRADED);
 				
-				// If DEGRADED is worse than the found worst state, return a DEGRADED state
+				// If DEGRADED is worse than the found worst state, return a DEGRADED componentState$
 				if (degradedPriority < worstPriority) {
 					return {
 					name: this.constructor.name,
@@ -612,7 +612,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @returns A human-readable reason string
 		 */
 		/* @internal */ [`${unshadowPrefix}createAggregatedReason`](states: ComponentStateInfo[], worstState: ComponentStateInfo): string {
-			// Count components in each state
+			// Count components in each componentState$
 			const stateCounts: Record<string, number> = {};			
 			states.forEach(state => {
 				const stateValue = String(state.state);
@@ -624,7 +624,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				.map(([state, count]) => `${state}: ${count}/${states.length}`)
 				.join(', ');
 			
-			// Create detailed reason based on worst state
+			// Create detailed reason based on worst componentState$
 			let worstReason = '';
 			if (worstState) {
 				// Always include the name if available
@@ -721,7 +721,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				return; // Nothing to aggregate
 			}
 			
-			// Calculate the aggregated state
+			// Calculate the aggregated componentState$
 			const aggregatedState = this[`${unshadowPrefix}calculateState`]();
 			
 			// Update the state subject directly (no partial updates to merge)
@@ -734,14 +734,14 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Waits for state change to propagate before resolving (i.e. "Wait for Your Own Events" pattern to ensure consistency)
 		 */
 		/* @internal */ async [`${unshadowPrefix}updateState`](newState: Partial<ComponentStateInfo>): Promise<void> {
-			// Create base updated state by merging with current state
+			// Create base updated state by merging with current componentState$
 			let baseState: ComponentStateInfo = {
 				...this.msc_zh7y_stateSubject.value,
 				...newState,
 				updatedOn: new Date()
 			};
 			
-			// For components with subcomponents, recalculate the aggregated state
+			// For components with subcomponents, recalculate the aggregated componentState$
 			let updatedState: ComponentStateInfo;			
 			if (this.msc_zh7y_subcomponents.length > 0) {
 				// Update own state with new values
@@ -754,13 +754,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				// Calculate the full aggregated state (will include subcomponents)
 				updatedState = this[`${unshadowPrefix}calculateState`]();
 			} else {
-				// No subcomponents, just use the merged state
+				// No subcomponents, just use the merged componentState$
 				updatedState = baseState;
 			}
 			
 			// Create a promise that resolves when this state change is observed
 			const updateStatePromise = firstValueFrom(
-				this.state$.pipe(
+				this.componentState$.pipe(
 					filter(state => 
 						// Match on state value and timestamp to ensure we're waiting for this specific update
 						state.state === updatedState.state && 
@@ -770,7 +770,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				)
 			);
 			
-			// Update the state
+			// Update the componentState$
 			this. msc_zh7y_stateSubject.next(updatedState);
 			
 			// Wait for state update to propagate through the observable chain

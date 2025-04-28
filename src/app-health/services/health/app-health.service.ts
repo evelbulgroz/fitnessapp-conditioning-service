@@ -37,11 +37,11 @@ export class AppHealthService {
 	
 		for (const component of this.components) {
 			await component.initialize();
-			const stateInfo = await firstValueFrom(component.state$.pipe(take(1))) as ComponentStateInfo;
+			const stateInfo = await firstValueFrom(component.componentState$.pipe(take(1))) as ComponentStateInfo;
 
 			const isHealthy = stateInfo.state === ComponentState.OK || stateInfo.state === ComponentState.DEGRADED;
 			if (!isHealthy) {
-				const stateInfo = await firstValueFrom(component.state$.pipe(take(1))) as ComponentStateInfo;
+				const stateInfo = await firstValueFrom(component.componentState$.pipe(take(1))) as ComponentStateInfo;
 				unhealthyComponents.push(stateInfo);
 				this.logger.warn(`${this.constructor.name}.getState Component ${stateInfo.name} is ${stateInfo.state}: ${stateInfo.reason}`);
 			}

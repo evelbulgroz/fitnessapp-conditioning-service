@@ -10,7 +10,7 @@ import StreamMapper from './models/stream-mapper.model';
  * @remark This class provides a centralized way to process multiple observable streams 
  * into a unified logging mechanism using registered stream mappers.
  * 
- * @remark It allows components to register their various event streams (logs$, state$, etc.)
+ * @remark It allows components to register their various event streams (logs$, componentState$, etc.)
  * and have them automatically mapped to appropriate log entries and sent to the application logger.
  * 
  * ## FEATURES
@@ -34,11 +34,11 @@ import StreamMapper from './models/stream-mapper.model';
  *   }
  * 
  *   protected setupLogging(): void {
- *     // Register both logs$ and state$ streams with the logger
+ *     // Register both logs$ and componentState$ streams with the logger
  *     this.streamLogger.subscribeToStreams(
  *       {
  *         logs$: this.logs$,
- *         state$: this.state$
+ *         componentState$: this.componentState$
  *       },
  *       this.constructor.name // Used as context in logs
  *     );
@@ -61,7 +61,7 @@ import StreamMapper from './models/stream-mapper.model';
  * @Injectable()
  * export class DataService implements OnDestroy {
  *   public readonly logs$ = new Subject<LogEntry>();
- *   public readonly state$ = new BehaviorSubject<ComponentStateInfo>({...});
+ *   public readonly componentState$ = new BehaviorSubject<ComponentStateInfo>({...});
  *   public readonly metrics$ = new Subject<MetricEvent>();
  *   
  *   protected readonly subscriptionKey = `DataService-${Date.now()}`;
@@ -75,7 +75,7 @@ import StreamMapper from './models/stream-mapper.model';
  *     this.streamLogger.subscribeToStreams(
  *       {
  *         logs$: this.logs$,
- *         state$: this.state$,
+ *         componentState$: this.componentState$,
  *         metrics$: this.metrics$ // Requires a MetricsMapper to be registered
  *       },
  *       'DataService',     // Context for logs
@@ -87,7 +87,7 @@ import StreamMapper from './models/stream-mapper.model';
  *   ngOnDestroy(): void {
  *     this.streamLogger.unsubscribeComponent(this.subscriptionKey);
  *     this.logs$.complete();
- *     this.state$.complete();
+ *     this.componentState$.complete();
  *     this.metrics$.complete();
  *   }
  * }

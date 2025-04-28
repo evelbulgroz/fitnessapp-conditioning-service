@@ -739,7 +739,7 @@ export class ConditioningDataService extends ManagedStatefulComponentMixin(class
 	 * @remark Currently logs state changes only, but can be extended to log cache and repo updates as well
 	 */
 	protected logChanges(): void {
-		this.state$.subscribe((state) => {
+		this.componentState$.subscribe((state) => {
 			this.logger.log(`State changed: ${state}`, this.constructor.name);
 		});
 		// later, optionally add cache and repo updates to log changes

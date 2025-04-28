@@ -184,9 +184,9 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 		});
 
-		describe('state$', () => { // TODO: Breaks other tests, investigate
+		describe('componentState$', () => { // TODO: Breaks other tests, investigate
 			it('emits the current state', (done) => {
-				const sub = component.state$.subscribe(state => {
+				const sub = component.componentState$.subscribe(state => {
 					expect(state.state).toBe(ComponentState.UNINITIALIZED);
 					expect(state.name).toBe('TestComponent');
 					expect(state.reason).toBe('Component created');
@@ -198,7 +198,7 @@ describe('ManagedStatefulComponentMixin', () => {
 
 			it('emits state changes', async () => {
 				const stateChanges: ComponentStateInfo[] = [];
-				const sub = component.state$.subscribe(state => stateChanges.push({ ...state }));
+				const sub = component.componentState$.subscribe(state => stateChanges.push({ ...state }));
 				await new Promise(resolve => setTimeout(resolve, 100)); // Add some time before updating state, so we can detect the difference
 				
 				component[`${unshadowPrefix}updateState`]({ state: ComponentState.OK, reason: 'Test reason' });
@@ -218,7 +218,7 @@ describe('ManagedStatefulComponentMixin', () => {
 		describe('initialize', () => {
 			it('changes state to INITIALIZING then OK', async () => {
 				const stateChanges: ComponentStateInfo[] = [];
-				const sub = component.state$.subscribe(state => stateChanges.push({ ...state }));
+				const sub = component.componentState$.subscribe(state => stateChanges.push({ ...state }));
 
 				await component.initialize();
 
@@ -326,7 +326,7 @@ describe('ManagedStatefulComponentMixin', () => {
 				component.shutdownDelay = 250; // Add delay to ensure state changes are observable
 				
 				const stateChanges: ComponentStateInfo[] = [];
-				const sub = component.state$.pipe(take(3)).subscribe(state => stateChanges.push({ ...state }));
+				const sub = component.componentState$.pipe(take(3)).subscribe(state => stateChanges.push({ ...state }));
 				
 				await component.shutdown();
 				
@@ -828,7 +828,7 @@ describe('ManagedStatefulComponentMixin', () => {
 		describe('updateState', () => {
 			it('updates the state and emits the new state', async () => {
 				const stateChanges: ComponentStateInfo[] = [];
-				const sub = component.state$.subscribe(state => stateChanges.push({ ...state }));
+				const sub = component.componentState$.subscribe(state => stateChanges.push({ ...state }));
 
 				await new Promise(resolve => setTimeout(resolve, 100)); // Add some time before updating state, so we can detect the difference
 				component[`${unshadowPrefix}updateState`]({state: ComponentState.OK, reason: 'Test reason'});
@@ -854,7 +854,7 @@ describe('ManagedStatefulComponentMixin', () => {
 			/* Not sure if this should be a requirement
 			it('does not emit the same state again', () => {
 				const stateChanges: ComponentStateInfo[] = [];
-				const sub = component.state$.subscribe(state => stateChanges.push({ ...state }));
+				const sub = component.componentState$.subscribe(state => stateChanges.push({ ...state }));
 
 				component[`${unshadowPrefix}updateState`]({state: ComponentState.OK, reason: 'Test reason'});
 				component[`${unshadowPrefix}updateState`]({state: ComponentState.OK, reason: 'Test reason'}); // Same state again
