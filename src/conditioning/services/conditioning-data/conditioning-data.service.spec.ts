@@ -47,6 +47,8 @@ const originalTimeout = 5000;
 //jest.setTimeout(15000);
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
+// TODO: Mock more dependencies to isolate the test to only the ConditioningDataService
+
 describe('ConditioningDataService', () => {
 	// set up test environment and dependencies/mocks, and initialize the module
 	let aggregatorService: AggregatorService;
