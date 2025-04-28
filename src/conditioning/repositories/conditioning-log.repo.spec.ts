@@ -503,10 +503,10 @@ describe('ConditioningLogRepository', () => {
 	});
 
 	afterEach(() => {
-		fetchAllSpy && fetchAllSpy.mockRestore();
-		fetchByIdSpy && fetchByIdSpy.mockRestore();
-		initSpy && initSpy.mockRestore();
-		logSpy && logSpy.mockRestore();
+		fetchAllSpy?.mockRestore();
+		fetchByIdSpy?.mockRestore();
+		initSpy?.mockRestore();
+		logSpy?.mockRestore();
 		jest.clearAllMocks();
 	});
 

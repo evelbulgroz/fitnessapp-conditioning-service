@@ -51,7 +51,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	 * @param initializeResult Result from the base class initialize method, if any
 	 * @returns Promise that resolves when initialization is complete
 	 * @throws Error if initialization fails
-	 * @remark Basically calls base class initialize method and unwraps the result
+	 * @remark Called from {@link ManagedStatefulComponentMixin}.initialize() method
 	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
 	 * use initialize() instead for public API
      */
@@ -74,7 +74,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	 * @param shutdownResult Result from the base class shutdown method, if any
 	 * @returns Promise that resolves when shutdown is complete
 	 * @throws Error if shutdown fails
-	 * @remark Basically calls base class shutdown method and unwraps the result
+	 * @remark Called from {@link ManagedStatefulComponentMixin}.shutdown() method
 	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
 	 * use shutdown() instead for public API
      */

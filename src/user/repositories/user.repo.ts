@@ -3,8 +3,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { Observable, Subscription } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
-import { EntityId, RepoLogEntry, RepoLogLevel, PersistenceAdapter, Repository, Result } from "@evelbulgroz/ddd-base";
-import { Logger } from "@evelbulgroz/logger";
+import { EntityId, RepoLogLevel, PersistenceAdapter, Repository, Result } from "@evelbulgroz/ddd-base";
 import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
 
 import ManagedStatefulComponentMixin from "../../app-health/mixins/managed-stateful-component.mixin";
@@ -29,8 +28,7 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 	
 		public constructor(
-			protected readonly adapter: PersistenceAdapter<UserPersistenceDTO>,
-			protected readonly logger: Logger,
+			protected readonly adapter: PersistenceAdapter<UserPersistenceDTO>, // the adapter to use for persistence
 			@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
 		) {
 			super(adapter, throttleTime);
@@ -80,59 +78,21 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	
 	/** @see ManagedStatefulComponentMixin for public management API methods */
 
-	/* Subscribe to log events and log them using the logger (helper for executeInitialization)
-	 * @returns void
-	 * @throws Error if subscription fails
-	 * @remark This method is called by the mixin during initialization, and should not be called directly
-	 */
-	protected initializeLogging(): void {
-		const logsSub = this.logs$.subscribe({
-			next: (log: RepoLogEntry) => {
-				switch (log.level) {
-					case RepoLogLevel.LOG:
-						this.logger.log(log.message, log.context);
-						break;
-					case RepoLogLevel.WARN:
-						this.logger.warn(log.message, log.context);
-						break;
-					case RepoLogLevel.ERROR:
-						this.logger.error(log.message, log.data, log.context);
-						break;
-					case RepoLogLevel.INFO:
-						this.logger.info(log.message, log.context);
-						break;
-					case RepoLogLevel.DEBUG:
-						this.logger.debug(log.message, log.context);
-						break;
-					case RepoLogLevel.VERBOSE:
-						this.logger.verbose(`${log.message}, ${log.data}`, log.context);
-						break;
-					default:
-						this.logger.log(log.message, log.context);
-						break;
-				}
-			}
-		});
-		this.subscriptions.push(logsSub); // base class should complete the oberservable on shutdown, but add it to the list just in case
-		this.log(RepoLogLevel.LOG, `Subscribed to logs`);
-	}
-
 	/** Execute repository initialization (required by ManagedStatefulComponentMixin)
+	 * @param superResult The result of the base class initialization
 	 * @returns Promise that resolves when initialization is complete
 	 * @throws Error if initialization fails
-	 * @remark Basically calls base class initialize method and unwraps the result
+	 * @remark Called from {@link ManagedStatefulComponentMixin}.initialize() method
+	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
+	 * use initialize() instead for public API
      */
-    protected async executeInitialization(): Promise<void> {
-		this.initializeLogging(); // initialize logging before anything else
-        this.log(RepoLogLevel.LOG, `Executing initialization`);
+    public async onInitialize(superResult: Result<void>): Promise<void> {
+		this.log(RepoLogLevel.LOG, `Executing initialization`);
 		
-		// Repository.initialize() does most of the work, so we just need to call it and unwrap its result here
-		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
-		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
-		const initResult = await realSuper.initialize.call(this);
-		if (initResult.isFailure) {
-			this.log(RepoLogLevel.ERROR, `Failed to execute initialization`, undefined, initResult.error);
-			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${initResult.error}`);
+		// Repository.initialize() does most of the work, so we just need to check result from base class here
+		if (superResult.isFailure) {
+			this.log(RepoLogLevel.ERROR, `Failed to execute initialization`, superResult.error);
+			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${superResult.error}`);
 		}
 		
 		// If/when needed, add local initialization here
@@ -144,24 +104,23 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
     /** Execute repository shutdown (required by ManagedStatefulComponentMixin)
 	 * @returns Promise that resolves when shutdown is complete
 	 * @throws Error if shutdown fails
-	 * @remark Basically calls base class shutdown method and unwraps the result
+	 * @remark Called from {@link ManagedStatefulComponentMixin}.shutdown() method
+	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
+	 * use shutdown() instead for public API
      */
-    protected async executeShutdown(): Promise<void> {
+    public async onShutdown(superResult: Result<void>): Promise<void> {
         this.log(RepoLogLevel.LOG, `Executing shutdown`);
 
-		// Repository.shutdown() does most of the work, so we just need to call it and unwrap its result here
-		const mixinProto = Object.getPrototypeOf(Object.getPrototypeOf(this)); // jump past the mixin
-		const realSuper = Object.getPrototypeOf(mixinProto); // get reference to TrainingLogRepo
-		const shutdownResult = await realSuper.shutdown.call(this);
-		if (shutdownResult.isFailure) {
-			this.log(RepoLogLevel.ERROR, `Failed to execute shutdown`, undefined, shutdownResult.error);
-			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${shutdownResult.error}`);
+		// Repository.shutdown() does most of the work, so we just need to check result from base class here
+		if (superResult.isFailure) {
+			this.log(RepoLogLevel.ERROR, `Failed to execute shutdown`, superResult.error);
+			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${superResult.error}`);
 		}
 		
 		// Clean up subscriptions
 		this.subscriptions.forEach((sub: Subscription) => sub?.unsubscribe());
 		
-		this.logger.log(`Shutdown executed successfully`); // log to the logger, repo log stream is closed at this point
+		console.log(`Shutdown executed successfully`); // log to the console, repo log stream is closed at this point
         return Promise.resolve();
     }
 

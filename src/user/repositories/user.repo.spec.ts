@@ -2,8 +2,6 @@ import { TestingModule } from '@nestjs/testing';
 
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom, Observable, take } from 'rxjs';
-
-import { ConsoleLogger, Logger } from "@evelbulgroz/logger";
 import { PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 
 import { createTestingModule } from '../../test/test-utils';
@@ -36,16 +34,6 @@ describe('UserRepo', () => {
 				{
 					provide: PersistenceAdapter,
 					useClass: PersistenceAdapterMock,
-				},
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
 				},
 				{
 					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
@@ -88,10 +76,12 @@ describe('UserRepo', () => {
 	let adapterFetchAllSpy: jest.SpyInstance;
 	let adapterFetchByQuerySpy: jest.SpyInstance;
 	let adapterInitSpy: jest.SpyInstance;
+	let logSpy: jest.SpyInstance;
 	beforeEach(() => {
 		adapterDeleteSpy = jest.spyOn(adapter, 'delete').mockResolvedValue(Promise.resolve(Result.ok()));
 		adapterFetchAllSpy = jest.spyOn(adapter, 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
-		adapterInitSpy = jest.spyOn(adapter, 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));		
+		adapterInitSpy = jest.spyOn(adapter, 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));
+		logSpy = jest.spyOn(console, 'log').mockImplementation(() => {}); // suppress console.log output in tests
 	});
 
 	beforeEach(async () => {
@@ -102,6 +92,7 @@ describe('UserRepo', () => {
 		adapterDeleteSpy?.mockRestore();
 		adapterFetchAllSpy?.mockRestore();
 		adapterInitSpy?.mockRestore();
+		logSpy?.mockRestore();
 		jest.clearAllMocks();
 	});
 	
