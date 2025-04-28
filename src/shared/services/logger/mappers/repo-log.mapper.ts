@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { LogEntry as RepoLogEntry, LogLevel as RepoLogLevel } from '@evelbulgroz/ddd-base';
+import { RepoLogEntry, RepoLogLevel } from '@evelbulgroz/ddd-base';
 
 import LogEventSource from '../models/log-event-source.model';
 import LogLevel from '../models/log-level.enum';

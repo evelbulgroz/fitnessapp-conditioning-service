@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Subject } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
-import { LogEntry as RepoLogEntry, LogLevel } from '@evelbulgroz/ddd-base';
+import { RepoLogEntry, RepoLogLevel } from '@evelbulgroz/ddd-base';
 
 import { RepoLogMapper } from './repo-log.mapper';
 import LogEventSource from '../models/log-event-source.model';
@@ -41,7 +41,7 @@ describe('RepoLogMapper', () => {
 					logsSubject.next({
 							sequence: 1,
 							timestamp: fixedDate,
-							level: LogLevel.ERROR,
+							level: RepoLogLevel.ERROR,
 							message: 'Database connection failed',
 							context: 'DbConnection',
 							data: { error: 'Connection timeout' }
@@ -54,7 +54,7 @@ describe('RepoLogMapper', () => {
 					expect(logEvent).toEqual({
 							source: LogEventSource.LOG,
 							timestamp: fixedDate,
-							level: LogLevel.ERROR,
+							level: RepoLogLevel.ERROR,
 							message: 'Database connection failed',
 							context: 'DbConnection',
 							data: { error: 'Connection timeout' }
@@ -79,7 +79,7 @@ describe('RepoLogMapper', () => {
 					logsSubject.next({
 							sequence: 1,
 							timestamp: fixedDate,
-							level: LogLevel.INFO,
+							level: RepoLogLevel.INFO,
 							message: 'Operation completed',
 							// No context provided
 							data: { status: 'success' }
@@ -110,42 +110,42 @@ describe('RepoLogMapper', () => {
 					logsSubject.next({
 							sequence: 1,
 							timestamp: fixedDate,
-							level: LogLevel.ERROR,
+							level: RepoLogLevel.ERROR,
 							message: 'Error log',
 					});
 					
 					logsSubject.next({
 							sequence: 2,
 							timestamp: fixedDate,
-							level: LogLevel.WARN,
+							level: RepoLogLevel.WARN,
 							message: 'Warning log',
 					});
 					
 					logsSubject.next({
 							sequence: 3,
 							timestamp: fixedDate,
-							level: LogLevel.INFO,
+							level: RepoLogLevel.INFO,
 							message: 'Info log',
 					});
 					
 					logsSubject.next({
 							sequence: 4,
 							timestamp: fixedDate,
-							level: LogLevel.DEBUG,
+							level: RepoLogLevel.DEBUG,
 							message: 'Debug log',
 					});
 					
 					logsSubject.next({
 							sequence: 5,
 							timestamp: fixedDate,
-							level: LogLevel.VERBOSE,
+							level: RepoLogLevel.VERBOSE,
 							message: 'Verbose log',
 					});
 					
 					logsSubject.next({
 							sequence: 6,
 							timestamp: fixedDate,
-							level: LogLevel.LOG,
+							level: RepoLogLevel.LOG,
 							message: 'Regular log',
 					});
 					
@@ -154,12 +154,12 @@ describe('RepoLogMapper', () => {
 					
 					// Verify we got 6 events with the correct log levels
 					expect(logEvents?.length).toBe(6);
-					expect(logEvents![0].level).toBe(LogLevel.ERROR);
-					expect(logEvents![1].level).toBe(LogLevel.WARN);
-					expect(logEvents![2].level).toBe(LogLevel.INFO);
-					expect(logEvents![3].level).toBe(LogLevel.DEBUG);
-					expect(logEvents![4].level).toBe(LogLevel.VERBOSE);
-					expect(logEvents![5].level).toBe(LogLevel.LOG);
+					expect(logEvents![0].level).toBe(RepoLogLevel.ERROR);
+					expect(logEvents![1].level).toBe(RepoLogLevel.WARN);
+					expect(logEvents![2].level).toBe(RepoLogLevel.INFO);
+					expect(logEvents![3].level).toBe(RepoLogLevel.DEBUG);
+					expect(logEvents![4].level).toBe(RepoLogLevel.VERBOSE);
+					expect(logEvents![5].level).toBe(RepoLogLevel.LOG);
 					
 					// Restore Date
 					jest.restoreAllMocks();
@@ -181,7 +181,7 @@ describe('RepoLogMapper', () => {
 					logsSubject.next({
 							sequence: 1,
 							timestamp: timestamp,
-							level: LogLevel.ERROR,
+							level: RepoLogLevel.ERROR,
 							message: 'Complete entry',
 							context: 'CustomContext',
 							data: { details: 'Full data' }
@@ -190,7 +190,7 @@ describe('RepoLogMapper', () => {
 					logsSubject.next({
 							sequence: 2,
 							timestamp: timestamp,
-							level: LogLevel.WARN,
+							level: RepoLogLevel.WARN,
 							message: 'No data entry',
 							context: 'CustomContext'
 							// No data
@@ -199,7 +199,7 @@ describe('RepoLogMapper', () => {
 					logsSubject.next({
 							sequence: 3,
 							timestamp: timestamp,
-							level: LogLevel.INFO,
+							level: RepoLogLevel.INFO,
 							message: 'No context entry',
 							// No context
 							data: { info: 'Some data' }
@@ -208,7 +208,7 @@ describe('RepoLogMapper', () => {
 					logsSubject.next({
 							sequence: 4,
 							timestamp: timestamp,
-							level: LogLevel.DEBUG,
+							level: RepoLogLevel.DEBUG,
 							message: 'Minimal entry'
 							// No context
 							// No data
@@ -268,7 +268,7 @@ describe('RepoLogMapper', () => {
 							logsSubject.next({
 									sequence: i + 1,
 									timestamp: dates[i],
-									level: LogLevel.LOG,
+									level: RepoLogLevel.LOG,
 									message: `Log entry ${i + 1}`
 							});
 					}
@@ -302,7 +302,7 @@ describe('RepoLogMapper', () => {
 					logsSubject.next({
 							sequence: 1,
 							timestamp: fixedDate,
-							level: LogLevel.INFO,
+							level: RepoLogLevel.INFO,
 							message: '',	// Empty message
 							context: '',	// Empty context
 							data: null		// Null data
