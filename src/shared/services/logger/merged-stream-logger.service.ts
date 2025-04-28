@@ -1,5 +1,5 @@
 import { Injectable, Optional, Inject } from '@nestjs/common';
-import { EMPTY, Observable, Subscription, catchError, delay, mergeMap, of } from 'rxjs';
+import { EMPTY, Observable, Subscription, catchError, mergeMap, of } from 'rxjs';
 
 import { Logger } from '@evelbulgroz/logger';
 
@@ -7,8 +7,7 @@ import LogLevel from './models/log-level.enum';
 import UnifiedLogEntry from './models/unified-log-event.model';
 import StreamMapper from './models/stream-mapper.model';
 
-/**
- * MergedStreamLogger provides a centralized way to process multiple observable streams 
+/** MergedStreamLogger provides a centralized way to process multiple observable streams 
  * into a unified logging mechanism using registered stream mappers.
  * 
  * This service allows components to register their various event streams (logs$, state$, etc.)
@@ -131,7 +130,6 @@ import StreamMapper from './models/stream-mapper.model';
  * 
  * @see StreamMapper for information on creating custom stream mappers
  */
-
 @Injectable()
 export class MergedStreamLogger {
 	// Map components to their subscriptions

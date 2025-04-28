@@ -466,6 +466,140 @@ describe('MergedStreamLogger', () => {
 			
 			expect(mockLogger.log).toHaveBeenCalledTimes(100);
 		});
+
+		it('should handle multiple components with identically named streams', async () => {
+			// Create multiple test subjects with the same names
+			const userStateStream = new Subject<MockState>();
+			const productStateStream = new Subject<MockState>();
+			
+			// First, update the state mapper to fail for specific states
+			const originalMapToLogEvents = stateMapper.mapToLogEvents;
+			
+			// Track timers created during the test
+			const timersToCleanup: NodeJS.Timeout[] = [];
+			const originalBackoffReset = (logger as any).BACKOFF_RESET_MS;
+			(logger as any).BACKOFF_RESET_MS = 50; // Use a short timeout for testing
+			
+			try {
+			  stateMapper.mapToLogEvents = jest.fn().mockImplementation((source$, context) => {
+				return source$.pipe(
+				  map((state: MockState): UnifiedLogEntry => {
+					// Make the mapper throw an error for 'FAIL' states
+					if (state.state === 'FAIL') {
+					  throw new Error('State mapping error');
+					}
+					
+					return {
+					  source: LogEventSource.STATE,
+					  timestamp: new Date(),
+					  level: LogLevel.INFO,
+					  message: `State changed to ${state.state}: ${state.reason}`,
+					  context: state.name || context,
+					  data: state
+					};
+				  })
+				);
+			  });
+			  
+			  // Register both with their own contexts, but same stream type name
+			  logger.subscribeToStreams({ state$: userStateStream }, 'UserRepository');
+			  logger.subscribeToStreams({ state$: productStateStream }, 'ProductRepository');
+			  
+			  // Reset mock calls
+			  jest.clearAllMocks();
+			  
+			  // Emit events from both streams
+			  userStateStream.next({ state: 'ACTIVE', reason: 'User logged in' });
+			  
+			  // Should log user event with correct context
+			  expect(mockLogger.info).toHaveBeenCalledWith(
+				expect.stringContaining('State changed to ACTIVE: User logged in'),
+				'UserRepository'
+			  );
+			  
+			  // Reset mock calls
+			  jest.clearAllMocks();
+			  
+			  // Emit from product stream
+			  productStateStream.next({ state: 'AVAILABLE', reason: 'Product in stock' });
+			  
+			  // Should log product event with correct context
+			  expect(mockLogger.info).toHaveBeenCalledWith(
+				expect.stringContaining('State changed to AVAILABLE: Product in stock'),
+				'ProductRepository'
+			  );
+			  
+			  // Test error handling is separate
+			  jest.clearAllMocks();
+			  
+			  // Cause errors in one stream - we need to wait a bit between these to ensure they're processed
+			  for (let i = 0; i < 3; i++) {
+				userStateStream.next({ state: 'FAIL', reason: `User failure ${i}` });
+				// Add a small delay between calls to ensure they're processed sequentially
+				await new Promise(resolve => setTimeout(resolve, 10));
+			  }
+			  
+			  // Allow time for error handling to complete
+			  await new Promise(resolve => setTimeout(resolve, 20));
+			  
+			  // Check error logs for user stream
+			  expect(mockLogger.error).toHaveBeenCalledTimes(3);
+			  expect(mockLogger.error).toHaveBeenCalledWith(
+				expect.stringContaining('Error in stream mapper for \'state$\''),
+				expect.any(Error),
+				'MergedStreamLogger'
+			  );
+			  
+			  // Reset mock calls
+			  jest.clearAllMocks();
+			  
+			  // Product stream should still work normally
+			  productStateStream.next({ state: 'LOW_STOCK', reason: 'Running out' });
+			  
+			  // Should log product event without errors
+			  expect(mockLogger.info).toHaveBeenCalledWith(
+				expect.stringContaining('State changed to LOW_STOCK: Running out'),
+				'ProductRepository'
+			  );
+			  expect(mockLogger.error).not.toHaveBeenCalled();
+			  
+			  // Test unsubscribing one component doesn't affect the other
+			  expect(logger.unsubscribeComponent('UserRepository')).toBe(true);
+			  
+			  // Reset mock calls
+			  jest.clearAllMocks();
+			  
+			  // User stream events should no longer be logged
+			  userStateStream.next({ state: 'ACTIVE', reason: 'Should be ignored' });
+			  expect(mockLogger.info).not.toHaveBeenCalled();
+			  
+			  // Product stream should still work
+			  productStateStream.next({ state: 'OUT_OF_STOCK', reason: 'None left' });
+			  expect(mockLogger.info).toHaveBeenCalledWith(
+				expect.stringContaining('State changed to OUT_OF_STOCK: None left'),
+				'ProductRepository'
+			  );
+			  
+			  // Clean up remaining subscriptions
+			  logger.unsubscribeComponent('ProductRepository');
+			} finally {
+			  // Clean up timers
+			  (logger as any).streamBackoffTimers.forEach((timer: NodeJS.Timeout) => {
+				clearTimeout(timer);
+			  });
+			  (logger as any).streamBackoffTimers.clear();
+			  
+			  // Clean up any tracked timers
+			  timersToCleanup.forEach(timer => clearTimeout(timer));
+			  
+			  // Restore the original mapper implementation and settings
+			  stateMapper.mapToLogEvents = originalMapToLogEvents;
+			  (logger as any).BACKOFF_RESET_MS = originalBackoffReset;
+			  
+			  // Ensure all subscriptions are cleaned up
+			  logger.unsubscribeAll();
+			}
+		  });
 		
 		it('should continue processing all streams after any stream errors', async () => {
 			const logs$ = new Subject<MockLogEntry>();
@@ -717,6 +851,7 @@ describe('MergedStreamLogger', () => {
 			(logger as any).handleStreamError = originalHandleStreamError;
 			(logger as any).BACKOFF_RESET_MS = originalTimeoutDuration;
 		});
+
 		it('should handle errors in multiple streams independently', () => {
 			const logs$ = new Subject<MockLogEntry>();
 			const state$ = new Subject<MockState>();
