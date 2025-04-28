@@ -67,7 +67,7 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * - All asynchronous methods follow the async/await pattern
  * - Concurrent calls to initialization/shutdown methods share a promise
  * - State changes are observable and wait for propagation to complete
- * - TypeScript limitations: protected members are marked with @internal annotation
+ * - TypeScript limitations: members intended to not be public are marked with @internal annotation, but are public in reality
  * 
  * @remark USAGE AND EXAMPLES
  * - Target class should extend the mixin to gain {@link ManagedStatefulComponent} functionality

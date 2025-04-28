@@ -644,16 +644,19 @@ export class ConditioningDataService extends ManagedStatefulComponentMixin(class
 	
 	/** @see ManagedStatefulComponentMixin for management API methods */
 	
-	/* Execute component initialization (required by ManagedStatefulComponentMixin)
+	/** Execute component specific initialization (required by {@link ManagedStatefulComponentMixin})
 	 * @returns Promise that resolves when the component is initialized
 	 * @throws Error if initialization fails
 	 * @remark Initializes the cache with all conditioning logs and users from the respective repositories
 	 * @remark Cache is initialized lazily on first access to avoid unnecessary overhead
 	 * @remark Cache is populated with all logs from conditioning log repo and all users from user repo
-	 * @remark ManagedStatefulComponentMixin.initialize() caller already handles concurrency and updates state, so no need to replicate that here
+	 * @remark ManagedStatefulComponentMixin.initialize() caller already handles concurrency and updates state,
+	 * so no need to replicate that here
+	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
+	 * use initialize() instead for public API
 	 * @todo Refactor to use cache library, when available
 	 */
-	protected async executeInitialization(): Promise<void> {
+	public async onInitialize(): Promise<void> {
 		// if cache is already populated, return immediately
 		if (this.cache.value.length > 0) {
 			return Promise.resolve();
@@ -710,10 +713,12 @@ export class ConditioningDataService extends ManagedStatefulComponentMixin(class
 	 * @remark Completes the cache observable to release resources
 	 * @remark Unsubscribes from all subscriptions to avoid memory leaks
 	 * @remark Sets the state to SHUT_DOWN to indicate that the component is no longer active
-	 * @todo ManagedStatefulComponentMixin.shutdown() caller already handles concurrency and updates state, so no need to replicate that here
+	 * @remark ManagedStatefulComponentMixin.shutdown() caller already handles concurrency and updates state, so no need to replicate that here
+	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
+	 * use shutdown() instead for public API
 	 * @todo Refactor to use cache library, when available
 	 */
-	protected executeShutdown(): Promise<void> {		
+	public onShutdown(): Promise<void> {		
 		try {
 			this.logger.log(`Executing shutdown...`, this.constructor.name);
 			

@@ -636,7 +636,7 @@ describe('ConditioningDataService', () => {
 	let userContext: UserContext;
 	beforeEach(async () => {
 		// arrange
-		void await logService.isReady();			
+		void await logService.initialize();			
 		
 		const users$ = (await userRepo.fetchAll()).value as Observable<User[]>;		
 		users = await firstValueFrom(users$);
