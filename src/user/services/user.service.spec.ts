@@ -1,7 +1,7 @@
 import { TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 
-import { firstValueFrom, of, pipe, Subject, take } from 'rxjs';
+import { firstValueFrom, Observable, of, pipe, Subject, take } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
@@ -453,63 +453,83 @@ describe('UserService', () => {
 		// NOTE: no need to retest ManagedStatefulComponentMixin methods, as they are already tested in the base class.
 		// Just do a few checks that things are hooked up correctly.
 		
-		it('has inherited the public API from ManagedStatefulComponentMixin', () => {
-			// NOTE cannot currently that component is an instance of the inner class of the mixin, as it is not exported.
-			expect(service).toHaveProperty('componentState$');
-			expect(service).toHaveProperty('initialize');
-			expect(service).toHaveProperty('shutdown');
-			expect(service).toHaveProperty('isReady');
-		});
-
-		it('is has correct state before initialization', async () => {
-			// arrange
-			const state = await firstValueFrom(service.componentState$.pipe(take (1)));
-
-			// act
-			
-			// assert
-			expect(state).toBeDefined();
-			expect(state.state).toBe(ComponentState.UNINITIALIZED);
-		});
-
-		it('is has correct state after initialization', async () => {
-			// arrange
-			let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
-			const sub = service.componentState$.subscribe((s) => {
-				state = s.state;
+		describe('Members Inherited from ManagedStatefulComponentMixin', () => {
+			it('Inherits componentState$ ', () => {
+				expect(service).toHaveProperty('componentState$');
+				expect(service.componentState$).toBeDefined();
+				expect(service.componentState$).toBeInstanceOf(Observable);
 			});
 
-			expect(state).toBe(ComponentState.UNINITIALIZED); // sanity check
+			it('Inherits initialize method', () => {
+				expect(service).toHaveProperty('initialize');
+				expect(service.initialize).toBeDefined();
+				expect(service.initialize).toBeInstanceOf(Function);
+			});
 
-			// act
-			await service.initialize();
+			it('Inherits shutdown method', () => {
+				expect(service).toHaveProperty('shutdown');
+				expect(service.shutdown).toBeDefined();
+				expect(service.shutdown).toBeInstanceOf(Function);
+			});
 
-			// assert
-			expect(state).toBe(ComponentState.OK);
-
-			// clean up
-			sub.unsubscribe();
+			it('Inherits isReady method', () => {
+				expect(service).toHaveProperty('isReady');
+				expect(service.isReady).toBeDefined();
+				expect(service.isReady).toBeInstanceOf(Function);
+			});
 		});
 
-		it('is has correct state after shutdown', async () => {
-			// arrange
-			let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
-			const sub = service.componentState$.subscribe((s) => {
-				state = s.state;
+		describe('state transitions', () => {
+			it('is in UNINITIALIZED state before initialization', async () => {
+				// arrange
+				const state = await firstValueFrom(service.componentState$.pipe(take (1)));
+
+				// act
+				
+				// assert
+				expect(state).toBeDefined();
+				expect(state.state).toBe(ComponentState.UNINITIALIZED);
 			});
-			expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
-			
-			await service.initialize();
-			expect(state).toBe(ComponentState.OK); // sanity check
-			
-			// act			
-			await service.shutdown();
 
-			// assert
-			expect(state).toBe(ComponentState.SHUT_DOWN);
+			it('is in OK state after initialization', async () => {
+				// arrange
+				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+				const sub = service.componentState$.subscribe((s) => {
+					state = s.state;
+				});
 
-			// clean up
-			sub.unsubscribe();
+				expect(state).toBe(ComponentState.UNINITIALIZED); // sanity check
+
+				// act
+				await service.initialize();
+
+				// assert
+				expect(state).toBe(ComponentState.OK);
+
+				// clean up
+				sub.unsubscribe();
+			});
+
+			it('is in SHUT_DOWN state after shutdown', async () => {
+				// arrange
+				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+				const sub = service.componentState$.subscribe((s) => {
+					state = s.state;
+				});
+				expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
+				
+				await service.initialize();
+				expect(state).toBe(ComponentState.OK); // sanity check
+				
+				// act			
+				await service.shutdown();
+
+				// assert
+				expect(state).toBe(ComponentState.SHUT_DOWN);
+
+				// clean up
+				sub.unsubscribe();
+			});
 		});
 		
 		describe('initialize', () => {	
