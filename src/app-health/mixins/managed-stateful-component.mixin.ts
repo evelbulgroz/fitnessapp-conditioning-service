@@ -14,6 +14,7 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * @param options Configuration options for initialization, shutdown, and subcomponent strategies
  * @param unshadowPrefix Prefix for internal methods to avoid name collisions. Defaults to "msc_" + random string
  * @returns A class that implements {@link ManagedStatefulComponent} and extends the provided parent
+ * @todo If/when TypeScript supports it, add a decorator to apply this mixin to a class (see below).
  * 
  * @remark COMPONENT STATES
  * Components move through the following states:
@@ -786,3 +787,32 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 	return ManagedStatefulComponentClass;
 }
 export default ManagedStatefulComponentMixin;
+
+/* Decorator that applies the ManagedStatefulComponentMixin to a class to add managed state functionality.
+ * @see {@link ManagedStatefulComponentMixin} for details on the mixin.
+ * @param target The class to decorate (expects a constructor function).
+ * @template T The type of the class to decorate
+ * @returns The class with the mixin applied
+ * @remark This decorator is a shorthand for applying the ManagedStatefulComponentMixin to a class.
+ * @remark Any inheritance of the decorated class is preserved with no changes to the class hierarchy or 'extends' syntax.
+ * @remark It may be useful to add {@link ManagedStatefulComponent} to the list of implemented interfaces in the decorated class.
+ * 
+ * @example
+ * ```typescript
+ * import { WithManagedState } from './with-managed-state.decorator';
+ * 
+ * @WithManagedState()
+ * class MyComponent {
+ * 	// Component logic here
+ * }
+ * ```
+ * 
+ */
+/*
+export function WithManagedState() {
+	return function <T extends new (...args: any[]) => any>(target: T): T & (new (...args: any[]) => ManagedStatefulComponent) {
+		return ManagedStatefulComponentMixin(target) as T & (new (...args: any[]) => ManagedStatefulComponent);
+	};
+}
+export default WithManagedState;
+*/

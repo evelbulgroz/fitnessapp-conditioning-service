@@ -8,6 +8,7 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
 /** Mixin that adds logging capabilities to any class via a log$ observable stream.
  * @param Base The class to extend with logging capabilities
  * @returns A new class with logging capabilities
+ * @todo If/when TypeScript supports it, add a decorator to apply this mixin to a class (see below).
  * 
  * @example
  * ```typescript
@@ -45,3 +46,28 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
 }
 
 export default LoggableMixin;
+
+/* Decorator that applies the LoggableMixin to a class to add logging capabilities.
+ * @see {@link LoggableMixin} for details on the mixin.
+ * @returns A decorator function that applies the LoggableMixin to the decorated class
+ * @remark This decorator is a shorthand for applying the LoggableMixin to a class.
+ * @remark Any inheritance of the decorated class is preserved with no changes to the class hierarchy or 'extends' syntax.
+ * @remark It may be useful to add {@link LoggableComponent} to the list of implemented interfaces in the decorated class.
+ * 
+ * @example
+ * ```typescript
+ * import { WithLogging } from './with-logging.decorator';
+ * 
+ * @WithLogging()
+ * class MyService {
+ *   // Service implementation
+ * }
+ * ```
+ */
+/*export function WithLogging() {
+	return function <T extends new (...args: any[]) => any>(target: T): T & (new (...args: any[]) => LoggableComponent) {
+		return LoggableMixin(target) as T & (new (...args: any[]) => LoggableComponent);
+	};
+}
+export default WithLogging;
+*/
