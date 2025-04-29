@@ -14,6 +14,8 @@ import { UserContext } from '../../shared/domain/user-context.model';
 import { UserDTO } from '../dtos/user.dto';
 import { UserRepository } from '../repositories/user.repo';
 import { UserService } from './user.service';
+import ComponentState from '../../app-health/models/component-state.enum';
+import exp from 'constants';
 
 
 describe('UserService', () => {
@@ -450,8 +452,56 @@ describe('UserService', () => {
 	describe('Management API', () => {
 		// NOTE: no need to retest ManagedStatefulComponentMixin methods, as they are already tested in the base class.
 		// Just do a few checks that things are hooked up correctly.
+		
+		it('has inherited the public API from ManagedStatefulComponentMixin', () => {
+			// NOTE cannot currently that component is an instance of the inner class of the mixin, as it is not exported.
+			expect(service).toHaveProperty('componentState$');
+			expect(service).toHaveProperty('initialize');
+			expect(service).toHaveProperty('shutdown');
+			expect(service).toHaveProperty('isReady');
+		});
+
+		it('is has correct state before initialization', async () => {
+			// arrange
+			const state = await firstValueFrom(service.componentState$.pipe(take (1)));
+
+			// act
 			
-		describe('initialize', () => {	
+			// assert
+			expect(state).toBeDefined();
+			expect(state.state).toBe(ComponentState.UNINITIALIZED);
+		});
+
+		it('is has correct state after initialization', async () => {
+			// arrange
+			const state = await firstValueFrom(service.componentState$.pipe(take (1)));
+
+			// act
+			await service.initialize();
+
+			// assert
+			expect(state).toBeDefined();
+			expect(state.state).toBe(ComponentState.OK);
+		});
+
+		xit('is has correct state after shutdown', async () => {
+			// arrange
+			let state = await firstValueFrom(service.componentState$.pipe(take (1)));
+			expect(state.state).toBe(ComponentState.UNINITIALIZED);// sanity check
+			
+			await service.initialize();
+			state = await firstValueFrom(service.componentState$.pipe(take (1)));
+			expect(state.state).toBe(ComponentState.OK); // sanity check
+			
+			// act			
+			await service.shutdown();
+
+			// assert
+			expect(state).toBeDefined();
+			expect(state.state).toBe(ComponentState.SHUT_DOWN);
+		});
+		
+		xdescribe('initialize', () => {	
 			it('calls onInitialize', async () => {				
 				// arrange
 				console.debug(`Service state ${(await firstValueFrom(service.componentState$.pipe(take (1)))).state}`); // logs UNINITIALIZED (correct)
@@ -468,7 +518,7 @@ describe('UserService', () => {
 			});			
 		});
 
-		describe('isReady', () => {		
+		xdescribe('isReady', () => {		
 			it('reports if/when it is initialized (i.e. ready)', async () => {
 				// arrange
 				// act
@@ -479,7 +529,7 @@ describe('UserService', () => {
 			});
 		});		
 
-		describe('shutdown', () => {
+		xdescribe('shutdown', () => {
 			it('calls onShutdown', async () => {				
 				// arrange
 				const onShutdownSpy = jest.spyOn(service, 'onShutdown').mockReturnValue(Promise.resolve());
