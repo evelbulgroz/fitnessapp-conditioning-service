@@ -507,28 +507,41 @@ describe('UserService', () => {
 
 			// assert
 			expect(state).toBe(ComponentState.SHUT_DOWN);
+
+			// clean up
+			sub.unsubscribe();
 		});
 		
-		xdescribe('initialize', () => {	
+		describe('initialize', () => {	
 			it('calls onInitialize', async () => {				
 				// arrange
-				console.debug(`Service state ${(await firstValueFrom(service.componentState$.pipe(take (1)))).state}`); // logs UNINITIALIZED (correct)
+				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+				const sub = service.componentState$.subscribe((s) => {
+					state = s.state;
+				});
+				expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
+				
 				const onInitializeSpy = jest.spyOn(service, 'onInitialize').mockReturnValue(Promise.resolve());
 	
 				// act
 				await service.initialize();
-				console.debug(`Service state ${(await firstValueFrom(service.componentState$.pipe(take (1)))).state}`); // logs OK (correct)
+				expect(state).toBe(ComponentState.OK); // sanity check
 	
 				// assert
 				expect(onInitializeSpy).toHaveBeenCalledTimes(1);
-				expect(onInitializeSpy).toHaveBeenCalledWith();
+				expect(onInitializeSpy).toHaveBeenCalledWith(undefined);
+
+				// clean up
+				sub.unsubscribe();
 				onInitializeSpy.mockRestore();
 			});			
 		});
 
-		xdescribe('isReady', () => {		
+		describe('isReady', () => {		
 			it('reports if/when it is initialized (i.e. ready)', async () => {
 				// arrange
+				await service.initialize(); // initialize the service
+
 				// act
 				const result = await service.isReady();
 
@@ -537,7 +550,7 @@ describe('UserService', () => {
 			});
 		});		
 
-		xdescribe('shutdown', () => {
+		describe('shutdown', () => {
 			it('calls onShutdown', async () => {				
 				// arrange
 				const onShutdownSpy = jest.spyOn(service, 'onShutdown').mockReturnValue(Promise.resolve());
@@ -547,13 +560,19 @@ describe('UserService', () => {
 	
 				// assert
 				expect(onShutdownSpy).toHaveBeenCalledTimes(1);
-				expect(onShutdownSpy).toHaveBeenCalledWith();
+				expect(onShutdownSpy).toHaveBeenCalledWith(undefined);
+
+				// clean up
 				onShutdownSpy.mockRestore();
 			});
 
-			it('unubscribes from all observables and clears subscriptions', async () => {
+			it('Unsubscribes from all observables and clears subscriptions', async () => {
 				// arrange
-				
+				await service.initialize(); // initialize the service
+				 // todo: add a subscription to the service to test that it is unsubscribed later
+				expect(service['subscriptions'].length).toBe(0); // sanity check
+				expect(service['subscriptions'].length).toBeGreaterThan(0); // sanity check
+
 				// act
 				await service.shutdown();
 	

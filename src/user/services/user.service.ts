@@ -155,7 +155,6 @@ export class UserService  extends ManagedStatefulComponentMixin(class {}) implem
 	 */
 	public async onInitialize(): Promise<void> {
 		try {
-			console.debug(`onInitialize ${this.constructor.name}...`);
 			this.logger.log(`Executing initialization...`, this.constructor.name);
 			
 			// initialize the cache with all conditioning logs and users from the respective repositories
