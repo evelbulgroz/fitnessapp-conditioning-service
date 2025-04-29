@@ -474,31 +474,39 @@ describe('UserService', () => {
 
 		it('is has correct state after initialization', async () => {
 			// arrange
-			const state = await firstValueFrom(service.componentState$.pipe(take (1)));
+			let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+			const sub = service.componentState$.subscribe((s) => {
+				state = s.state;
+			});
+
+			expect(state).toBe(ComponentState.UNINITIALIZED); // sanity check
 
 			// act
 			await service.initialize();
 
 			// assert
-			expect(state).toBeDefined();
-			expect(state.state).toBe(ComponentState.OK);
+			expect(state).toBe(ComponentState.OK);
+
+			// clean up
+			sub.unsubscribe();
 		});
 
-		xit('is has correct state after shutdown', async () => {
+		it('is has correct state after shutdown', async () => {
 			// arrange
-			let state = await firstValueFrom(service.componentState$.pipe(take (1)));
-			expect(state.state).toBe(ComponentState.UNINITIALIZED);// sanity check
+			let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+			const sub = service.componentState$.subscribe((s) => {
+				state = s.state;
+			});
+			expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
 			
 			await service.initialize();
-			state = await firstValueFrom(service.componentState$.pipe(take (1)));
-			expect(state.state).toBe(ComponentState.OK); // sanity check
+			expect(state).toBe(ComponentState.OK); // sanity check
 			
 			// act			
 			await service.shutdown();
 
 			// assert
-			expect(state).toBeDefined();
-			expect(state.state).toBe(ComponentState.SHUT_DOWN);
+			expect(state).toBe(ComponentState.SHUT_DOWN);
 		});
 		
 		xdescribe('initialize', () => {	
