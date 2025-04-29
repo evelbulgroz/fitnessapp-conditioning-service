@@ -1,7 +1,7 @@
 import { TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 
-import { of, Subject } from 'rxjs';
+import { firstValueFrom, of, pipe, Subject, take } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
@@ -454,10 +454,12 @@ describe('UserService', () => {
 		describe('initialize', () => {	
 			it('calls onInitialize', async () => {				
 				// arrange
+				console.debug(`Service state ${(await firstValueFrom(service.componentState$.pipe(take (1)))).state}`); // logs UNINITIALIZED (correct)
 				const onInitializeSpy = jest.spyOn(service, 'onInitialize').mockReturnValue(Promise.resolve());
 	
 				// act
 				await service.initialize();
+				console.debug(`Service state ${(await firstValueFrom(service.componentState$.pipe(take (1)))).state}`); // logs OK (correct)
 	
 				// assert
 				expect(onInitializeSpy).toHaveBeenCalledTimes(1);
