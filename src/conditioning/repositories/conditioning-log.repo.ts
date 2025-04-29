@@ -43,7 +43,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 
 	// NOTE: Currently, base class data API is fully sufficient for this class
 		
-	//------------------------------------- MANAGEMENT API --------------------------------------//
+	//---------------------------------- STATE MANAGEMENT API -----------------------------------//
 	
 	/** @see ManagedStatefulComponentMixin for public management API methods */
 

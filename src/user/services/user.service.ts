@@ -142,7 +142,7 @@ export class UserService  extends ManagedStatefulComponentMixin(class {}) implem
 		return Promise.resolve();
 	}
 
-	//------------------------------------- MANAGEMENT API --------------------------------------//
+	//---------------------------------- STATE MANAGEMENT API -----------------------------------//
 	
 	/** @see ManagedStatefulComponentMixin for management API methods */
 

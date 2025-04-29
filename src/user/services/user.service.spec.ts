@@ -16,6 +16,7 @@ import { UserRepository } from '../repositories/user.repo';
 import { UserService } from './user.service';
 import ComponentState from '../../app-health/models/component-state.enum';
 import exp from 'constants';
+import ComponentStateInfo from '../../app-health/models/component-state-info.model';
 
 
 describe('UserService', () => {
@@ -138,7 +139,7 @@ describe('UserService', () => {
 		expect(service).toBeDefined();
 	});
 
-	describe('Public API', () => {
+	describe('Data API', () => {
 		describe('createUser', () => {
 			let newUserIdDTO: EntityIdDTO;
 			let newUser: User;
@@ -449,9 +450,14 @@ describe('UserService', () => {
 		});
 	});
 
-	describe('Management API', () => {
+	describe('State Management API', () => {
 		// NOTE: no need to retest ManagedStatefulComponentMixin methods, as they are already tested in the base class.
 		// Just do a few checks that things are hooked up correctly.
+		beforeEach(async () => {
+			// reset the service before each test
+			await service.shutdown(); // clear subscriptions and cache, and set state to SHUT_DOWN
+			service['msc_zh7y_stateSubject'].next({name: 'ConditioningDataService', state: ComponentState.UNINITIALIZED, updatedOn: new Date()}); // set state to UNINITIALIZED
+		});
 		
 		describe('ManagedStatefulComponentMixin Members', () => {
 			it('Inherits componentState$ ', () => {
@@ -482,13 +488,13 @@ describe('UserService', () => {
 		describe('State Transitions', () => {
 			it('is in UNINITIALIZED state before initialization', async () => {
 				// arrange
-				const state = await firstValueFrom(service.componentState$.pipe(take (1)));
+				const stateInfo = await firstValueFrom(service.componentState$.pipe(take (1))) as ComponentStateInfo; // get the initial state
 
 				// act
 				
 				// assert
-				expect(state).toBeDefined();
-				expect(state.state).toBe(ComponentState.UNINITIALIZED);
+				expect(stateInfo).toBeDefined();
+				expect(stateInfo.state).toBe(ComponentState.UNINITIALIZED);
 			});
 
 			it('is in OK state after initialization', async () => {
@@ -513,7 +519,7 @@ describe('UserService', () => {
 			it('is in SHUT_DOWN state after shutdown', async () => {
 				// arrange
 				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
-				const sub = service.componentState$.subscribe((s) => {
+				const sub = service.componentState$.subscribe((s: ComponentStateInfo) => {
 					state = s.state;
 				});
 				expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
@@ -536,7 +542,7 @@ describe('UserService', () => {
 			it('Calls onInitialize', async () => {				
 				// arrange
 				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
-				const sub = service.componentState$.subscribe((s) => {
+				const sub = service.componentState$.subscribe((s: ComponentStateInfo) => {
 					state = s.state;
 				});
 				expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check

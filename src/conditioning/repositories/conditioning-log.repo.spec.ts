@@ -12,6 +12,7 @@ import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogPersistenceDTO } from '../dtos/conditioning-log-persistence.dto';
 import { createTestingModule } from '../../test/test-utils';
 import ComponentState from '../../app-health/models/component-state.enum';
+import ComponentStateInfo from '../../app-health/models/component-state-info.model';
 
 class PersistenceAdapterMock<T extends ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>> extends PersistenceAdapter<T> {
 	// cannot get generics to work with jest.fn(), so skipping for now
@@ -556,25 +557,18 @@ describe('ConditioningLogRepository', () => {
 			});
 		});
 
-		describe('Management API', () => {
+		describe('State Management API', () => {
 			// NOTE: no need to retest ManagedStatefulComponentMixin methods, as they are already tested in the base class.
 			// Just do a few checks that things are hooked up correctly.
 			
 			beforeEach(async () => {
-				// reset repo to uninitialized state
-				repo['cache'].next([]); // clear the cache
-				expect(repo['cache'].getValue()).toHaveLength(0); // sanity check
-
-				repo['msc_zh7y_stateSubject'].next({ name:'ConditioningLogRepository', state: ComponentState.UNINITIALIZED, updatedOn: new Date() }); // reset state to UNINITIALIZED
-				expect((await firstValueFrom(repo.componentState$.pipe(take(1)))).state).toEqual(ComponentState.UNINITIALIZED); // sanity check
-
-				repo['subscriptions'].forEach((s) => s.unsubscribe()); // unsubscribe from all subscriptions
-				(repo['subscriptions'] as any) = []; // clear the subscriptions array
-				expect(repo['subscriptions'].length).toBe(0); // sanity check
-			});
+				// reset the repo before each test
+				await repo.shutdown(); // clear subscriptions and cache, and set state to SHUT_DOWN
+				repo['msc_zh7y_stateSubject'].next({name: 'ConditioningDataService', state: ComponentState.UNINITIALIZED, updatedOn: new Date()}); // set state to UNINITIALIZED
+			});		
 			
 			describe('ManagedStatefulComponentMixin Members', () => {
-				it('Inherits componentState$', () => {
+				it('Inherits componentState$ ', () => {
 					expect(repo).toHaveProperty('componentState$');
 					expect(repo.componentState$).toBeDefined();
 					expect(repo.componentState$).toBeInstanceOf(Observable);
@@ -602,13 +596,13 @@ describe('ConditioningLogRepository', () => {
 			describe('State Transitions', () => {
 				it('is in UNINITIALIZED state before initialization', async () => {
 					// arrange
-					const state = await firstValueFrom(repo.componentState$.pipe(take (1)));
+					const stateInfo = await firstValueFrom(repo.componentState$.pipe(take (1))) as ComponentStateInfo; // get the initial state
 	
 					// act
 					
 					// assert
-					expect(state).toBeDefined();
-					expect(state.state).toBe(ComponentState.UNINITIALIZED);
+					expect(stateInfo).toBeDefined();
+					expect(stateInfo.state).toBe(ComponentState.UNINITIALIZED);
 				});
 	
 				it('is in OK state after initialization', async () => {
@@ -633,7 +627,7 @@ describe('ConditioningLogRepository', () => {
 				it('is in SHUT_DOWN state after shutdown', async () => {
 					// arrange
 					let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
-					const sub = repo.componentState$.subscribe((s) => {
+					const sub = repo.componentState$.subscribe((s: ComponentStateInfo) => {
 						state = s.state;
 					});
 					expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
@@ -656,7 +650,7 @@ describe('ConditioningLogRepository', () => {
 				it('Calls onInitialize', async () => {				
 					// arrange
 					let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
-					const sub = repo.componentState$.subscribe((s) => {
+					const sub = repo.componentState$.subscribe((s: ComponentStateInfo) => {
 						state = s.state;
 					});
 					expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
@@ -669,7 +663,7 @@ describe('ConditioningLogRepository', () => {
 		
 					// assert
 					expect(onInitializeSpy).toHaveBeenCalledTimes(1);
-					expect(onInitializeSpy).toHaveBeenCalledWith(expect.objectContaining({ isSuccess: true }));
+					expect(onInitializeSpy).toHaveBeenCalledWith(undefined);
 	
 					// clean up
 					sub.unsubscribe();
@@ -700,13 +694,13 @@ describe('ConditioningLogRepository', () => {
 		
 					// assert
 					expect(onShutdownSpy).toHaveBeenCalledTimes(1);
-					expect(onShutdownSpy).toHaveBeenCalledWith(expect.objectContaining({ isSuccess: true }));
+					expect(onShutdownSpy).toHaveBeenCalledWith(undefined);
 	
 					// clean up
 					onShutdownSpy.mockRestore();
 				});
 	
-				xit('Unsubscribes from all observables and clears subscriptions', async () => {
+				it('Unsubscribes from all observables and clears subscriptions', async () => {
 					// arrange
 					const dummySubscription = new Observable((subscriber) => {
 						subscriber.next('dummy');
