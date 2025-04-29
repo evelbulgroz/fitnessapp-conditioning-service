@@ -453,7 +453,7 @@ describe('UserService', () => {
 		// NOTE: no need to retest ManagedStatefulComponentMixin methods, as they are already tested in the base class.
 		// Just do a few checks that things are hooked up correctly.
 		
-		describe('Members Inherited from ManagedStatefulComponentMixin', () => {
+		describe('ManagedStatefulComponentMixin Members', () => {
 			it('Inherits componentState$ ', () => {
 				expect(service).toHaveProperty('componentState$');
 				expect(service.componentState$).toBeDefined();
@@ -479,7 +479,7 @@ describe('UserService', () => {
 			});
 		});
 
-		describe('state transitions', () => {
+		describe('State Transitions', () => {
 			it('is in UNINITIALIZED state before initialization', async () => {
 				// arrange
 				const state = await firstValueFrom(service.componentState$.pipe(take (1)));
@@ -533,7 +533,7 @@ describe('UserService', () => {
 		});
 		
 		describe('initialize', () => {	
-			it('calls onInitialize', async () => {				
+			it('Calls onInitialize', async () => {				
 				// arrange
 				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
 				const sub = service.componentState$.subscribe((s) => {
@@ -571,10 +571,10 @@ describe('UserService', () => {
 		});		
 
 		describe('shutdown', () => {
-			it('calls onShutdown', async () => {				
+			it('Calls onShutdown', async () => {				
 				// arrange
 				const onShutdownSpy = jest.spyOn(service, 'onShutdown').mockReturnValue(Promise.resolve());
-	
+				
 				// act
 				await service.shutdown();
 	
@@ -588,16 +588,20 @@ describe('UserService', () => {
 
 			it('Unsubscribes from all observables and clears subscriptions', async () => {
 				// arrange
+				const dummySubscription = new Observable((subscriber) => {
+					subscriber.next('dummy');
+					subscriber.complete();
+				});
+				service['subscriptions'].push(dummySubscription.subscribe());
+				expect(service['subscriptions'].length).toBe(1); // sanity check	
+				
 				await service.initialize(); // initialize the service
-				 // todo: add a subscription to the service to test that it is unsubscribed later
-				expect(service['subscriptions'].length).toBe(0); // sanity check
-				expect(service['subscriptions'].length).toBeGreaterThan(0); // sanity check
-
+				
 				// act
 				await service.shutdown();
 	
 				// assert
-				expect(service['subscriptions'].length).toBe(0);
+				expect(service['subscriptions'].length).toBe(0); // all subscriptions should be cleared
 			});
 		});
 	});

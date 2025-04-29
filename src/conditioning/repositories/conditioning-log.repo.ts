@@ -82,7 +82,9 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		this.log(RepoLogLevel.LOG, `Executing shutdown`);
 
 		// Repository.shutdown() does most of the work, so we just need to check result from base class here
+		console.debug(`Shutdown result: ${shutdownResult}`);
 		if (shutdownResult.isFailure) {
+			console.debug(`Failed to execute shutdown`, shutdownResult);
 			this.log(RepoLogLevel.ERROR, `Failed to execute shutdown`, undefined, shutdownResult.error.toString());
 			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${shutdownResult.error}`);
 		}

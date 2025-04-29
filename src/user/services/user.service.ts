@@ -157,9 +157,7 @@ export class UserService  extends ManagedStatefulComponentMixin(class {}) implem
 		try {
 			this.logger.log(`Executing initialization...`, this.constructor.name);
 			
-			// initialize the cache with all conditioning logs and users from the respective repositories
-			//this.cache = new BehaviorSubject<User[]>([]); // initialize cache observable
-			//this.cache.next(await this.userRepo.fetchAll()); // populate cache with all users from user repo
+			// Placeholder, Repository handles all initialization of persistence, cache etc.
 			
 			this.logger.log(`Initialization complete.`, this.constructor.name);
 			return Promise.resolve();

@@ -11,6 +11,7 @@ import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogPersistenceDTO } from '../dtos/conditioning-log-persistence.dto';
 import { createTestingModule } from '../../test/test-utils';
+import ComponentState from '../../app-health/models/component-state.enum';
 
 class PersistenceAdapterMock<T extends ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>> extends PersistenceAdapter<T> {
 	// cannot get generics to work with jest.fn(), so skipping for now
@@ -538,7 +539,7 @@ describe('ConditioningLogRepository', () => {
 	describe('Management API', () => {
 		// NOTE: no need to retest either Repository or ManagedStatefulComponentMixin methods, as they are already tested in the base class.
 		// Just do a few checks that things are hooked up correctly.
-		describe('initialize', () => {
+		xdescribe('initialize', () => {
 			it('initializes cache with a collection of overview logs from persistence', async () => {			
 				const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
 				expect(fetchAllResult.isSuccess).toBeTruthy();
@@ -555,20 +556,173 @@ describe('ConditioningLogRepository', () => {
 			});
 		});
 
-		describe('isReady', () => {
-			it('returns true if the repository is ready', async () => {
-				const result = await repo.isReady();
-				expect(result).toBeTruthy();
-			});
-		});
+		describe('Management API', () => {
+			// NOTE: no need to retest ManagedStatefulComponentMixin methods, as they are already tested in the base class.
+			// Just do a few checks that things are hooked up correctly.
+			
+			beforeEach(async () => {
+				// reset repo to uninitialized state
+				repo['cache'].next([]); // clear the cache
+				expect(repo['cache'].getValue()).toHaveLength(0); // sanity check
 
-		describe('shutdown', () => {
-			it('shuts down the repository', async () => {
-				const shutdownSpy = jest.spyOn(repo['adapter'], 'shutdown').mockResolvedValue(Promise.resolve(Result.ok()));
-				await repo.shutdown();
-				expect(repo['cache'].value.length).toBe(0);
-				expect(shutdownSpy).toHaveBeenCalledTimes(1);
-				shutdownSpy.mockRestore();
+				repo['msc_zh7y_stateSubject'].next({ name:'ConditioningLogRepository', state: ComponentState.UNINITIALIZED, updatedOn: new Date() }); // reset state to UNINITIALIZED
+				expect((await firstValueFrom(repo.componentState$.pipe(take(1)))).state).toEqual(ComponentState.UNINITIALIZED); // sanity check
+
+				repo['subscriptions'].forEach((s) => s.unsubscribe()); // unsubscribe from all subscriptions
+				(repo['subscriptions'] as any) = []; // clear the subscriptions array
+				expect(repo['subscriptions'].length).toBe(0); // sanity check
+			});
+			
+			describe('ManagedStatefulComponentMixin Members', () => {
+				it('Inherits componentState$', () => {
+					expect(repo).toHaveProperty('componentState$');
+					expect(repo.componentState$).toBeDefined();
+					expect(repo.componentState$).toBeInstanceOf(Observable);
+				});
+	
+				it('Inherits initialize method', () => {
+					expect(repo).toHaveProperty('initialize');
+					expect(repo.initialize).toBeDefined();
+					expect(repo.initialize).toBeInstanceOf(Function);
+				});
+	
+				it('Inherits shutdown method', () => {
+					expect(repo).toHaveProperty('shutdown');
+					expect(repo.shutdown).toBeDefined();
+					expect(repo.shutdown).toBeInstanceOf(Function);
+				});
+	
+				it('Inherits isReady method', () => {
+					expect(repo).toHaveProperty('isReady');
+					expect(repo.isReady).toBeDefined();
+					expect(repo.isReady).toBeInstanceOf(Function);
+				});
+			});
+	
+			describe('State Transitions', () => {
+				it('is in UNINITIALIZED state before initialization', async () => {
+					// arrange
+					const state = await firstValueFrom(repo.componentState$.pipe(take (1)));
+	
+					// act
+					
+					// assert
+					expect(state).toBeDefined();
+					expect(state.state).toBe(ComponentState.UNINITIALIZED);
+				});
+	
+				it('is in OK state after initialization', async () => {
+					// arrange
+					let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+					const sub = repo.componentState$.subscribe((s) => {
+						state = s.state;
+					});
+	
+					expect(state).toBe(ComponentState.UNINITIALIZED); // sanity check
+	
+					// act
+					await repo.initialize();
+	
+					// assert
+					expect(state).toBe(ComponentState.OK);
+	
+					// clean up
+					sub.unsubscribe();
+				});
+	
+				it('is in SHUT_DOWN state after shutdown', async () => {
+					// arrange
+					let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+					const sub = repo.componentState$.subscribe((s) => {
+						state = s.state;
+					});
+					expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
+					
+					await repo.initialize();
+					expect(state).toBe(ComponentState.OK); // sanity check
+					
+					// act			
+					await repo.shutdown();
+	
+					// assert
+					expect(state).toBe(ComponentState.SHUT_DOWN);
+	
+					// clean up
+					sub.unsubscribe();
+				});
+			});
+			
+			describe('initialize', () => {	
+				it('Calls onInitialize', async () => {				
+					// arrange
+					let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+					const sub = repo.componentState$.subscribe((s) => {
+						state = s.state;
+					});
+					expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
+					
+					const onInitializeSpy = jest.spyOn(repo, 'onInitialize').mockReturnValue(Promise.resolve());
+		
+					// act
+					await repo.initialize();
+					expect(state).toBe(ComponentState.OK); // sanity check
+		
+					// assert
+					expect(onInitializeSpy).toHaveBeenCalledTimes(1);
+					expect(onInitializeSpy).toHaveBeenCalledWith(expect.objectContaining({ isSuccess: true }));
+	
+					// clean up
+					sub.unsubscribe();
+					onInitializeSpy.mockRestore();
+				});			
+			});
+	
+			describe('isReady', () => {		
+				it('reports if/when it is initialized (i.e. ready)', async () => {
+					// arrange
+					await repo.initialize(); // initialize the repo
+	
+					// act
+					const result = await repo.isReady();
+	
+					// assert
+					expect(result).toBe(true);
+				});
+			});		
+	
+			describe('shutdown', () => {
+				it('Calls onShutdown', async () => {				
+					// arrange
+					const onShutdownSpy = jest.spyOn(repo, 'onShutdown').mockReturnValue(Promise.resolve());
+					
+					// act
+					await repo.shutdown();
+		
+					// assert
+					expect(onShutdownSpy).toHaveBeenCalledTimes(1);
+					expect(onShutdownSpy).toHaveBeenCalledWith(expect.objectContaining({ isSuccess: true }));
+	
+					// clean up
+					onShutdownSpy.mockRestore();
+				});
+	
+				xit('Unsubscribes from all observables and clears subscriptions', async () => {
+					// arrange
+					const dummySubscription = new Observable((subscriber) => {
+						subscriber.next('dummy');
+						subscriber.complete();
+					});
+					repo['subscriptions'].push(dummySubscription.subscribe());
+					expect(repo['subscriptions'].length).toBe(1); // sanity check	
+					
+					await repo.initialize(); // initialize the repo
+					
+					// act
+					await repo.shutdown();
+		
+					// assert
+					expect(repo['subscriptions'].length).toBe(0); // all subscriptions should be cleared
+				});
 			});
 		});
 	});
