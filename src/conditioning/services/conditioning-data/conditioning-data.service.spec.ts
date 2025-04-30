@@ -2641,6 +2641,8 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
+		//todo: subscribeToRepoEvents
+
 		describe('toConditioningLogSeries', () => {
 			let userIdDTO: EntityIdDTO;
 			beforeEach(() => {

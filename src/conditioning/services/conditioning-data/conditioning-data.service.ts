@@ -751,16 +751,6 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 	
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
-	/* Subscribe to changes and log them using the logger
-	 * @remark Currently logs state changes only, but can be extended to log cache and repo updates as well
-	 */
-	protected logChanges(): void {
-		this.componentState$.subscribe((state) => {
-			this.logger.log(`State changed: ${state}`, this.constructor.name);
-		});
-		// later, optionally add cache and repo updates to log changes
-	}
-
 	/* Purge log from log repo that has been orphaned by failed user update (log creation helper)
 	 * @param logId Entity id of the log to purge from the log repo
 	 * @param softDelete Flag to indicate whether to soft delete the log (default: false since log is orphaned by other CRUD error)
