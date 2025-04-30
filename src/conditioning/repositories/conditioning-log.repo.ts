@@ -82,9 +82,6 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 			this.log(RepoLogLevel.ERROR, `Failed to execute shutdown`, undefined, shutdownResult.error.toString());
 			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${shutdownResult.error}`);
 		}
-
-		// Clean up subscriptions
-		//this.subscriptions.forEach((sub: Subscription) => sub?.unsubscribe()); // clean up subscriptions to avoid memory leaks
 		
 		console.log(`Shutdown executed successfully`); // log directly to the console, repo log stream is closed at this point
         return Promise.resolve();
