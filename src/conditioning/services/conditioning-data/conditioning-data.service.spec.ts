@@ -44,6 +44,8 @@ import { UserRepository } from '../../../user/repositories/user.repo';
 import ComponentState from '../../../app-health/models/component-state.enum';
 import ComponentStateInfo from '../../../app-health/models/component-state-info.model';
 import { UserLogsCacheEntry } from './conditioning-data.service';
+import UnifiedLogEntry from '../../../shared/services/logger/models/unified-log-event.model';
+import LogLevel from '../../../shared/services/logger/models/log-level.enum';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -790,7 +792,7 @@ describe('ConditioningDataService', () => {
 		});
 		
 		afterEach(() => {
-			aggregatorSpy && aggregatorSpy.mockRestore();
+			aggregatorSpy && aggregatorSpy?.mockRestore();
 		});
 
 		describe('conditioningData', () => {
@@ -952,7 +954,7 @@ describe('ConditioningDataService', () => {
 					payload: randomUserDTO,
 				});
 
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async (id: EntityId) => {
 					const newLog = ConditioningLog.create(newLogDTO, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(newLog)));
@@ -977,8 +979,8 @@ describe('ConditioningDataService', () => {
 				expect(addedLog).toBeDefined();
 
 				// clean up
-				logRepoFetchByIdSpy && logRepoFetchByIdSpy.mockRestore();
-				userUpdateSpy && userUpdateSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
+				userUpdateSpy && userUpdateSpy?.mockRestore();
 			});
 
 			it(`succeeds if admin user tries to create a log for another user`, async () => {
@@ -1006,7 +1008,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws NotFoundError if user does not exist in persistence layer', async () => {
 				// arrange
-				logRepoCreateSpy.mockRestore();
+				logRepoCreateSpy?.mockRestore();
 				logRepoCreateSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() => {
 					return Promise.resolve(Result.fail(new NotFoundError('Test Error')));
 				});
@@ -1017,7 +1019,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws PersistenceError if log creation fails in persistence layer', async () => {
 				// arrange
-				logRepoCreateSpy.mockRestore();
+				logRepoCreateSpy?.mockRestore();
 				logRepoCreateSpy = jest.spyOn(logRepo, 'create').mockImplementation(() => {
 					return Promise.resolve(Result.fail(new PersistenceError('Test Error')));
 				});
@@ -1030,7 +1032,7 @@ describe('ConditioningDataService', () => {
 				// NOTE: Details of rollback tested in rollbackLogCreation() tests
 				
 				// arrange
-				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy?.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() => {
 					return Promise.resolve(Result.fail(new PersistenceError('Test Error')));
 				});
@@ -1172,7 +1174,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws NotFoundError if user matching provided ID does not exist in persistence layer', async () => {
 				// arrange
-				userRepoFetchByIdSpy.mockRestore();
+				userRepoFetchByIdSpy?.mockRestore();
 				userRepoFetchByIdSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() => {
 					return Promise.resolve(Result.fail(new NotFoundError('Test Error')));
 				});
@@ -1188,7 +1190,7 @@ describe('ConditioningDataService', () => {
 				expect(error).toBeInstanceOf(NotFoundError);
 
 				// clean up
-				userRepoFetchByIdSpy.mockRestore();
+				userRepoFetchByIdSpy?.mockRestore();
 			});
 		});
 
@@ -1289,7 +1291,7 @@ describe('ConditioningDataService', () => {
 		describe('fetchLog', () => {
 			it('provides details for a conditioning log owned by a user', async () => {
 				// arrange
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					randomLog.sensorLogs = []; // if sensorLogs is not undefined, isOverview will be false
 					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(randomLog)))
@@ -1311,7 +1313,7 @@ describe('ConditioningDataService', () => {
 				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					randomOtherUserLog!.sensorLogs = []; // if sensorLogs is not undefined, isOverview will be false
 					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(randomOtherUserLog!)))
@@ -1355,7 +1357,7 @@ describe('ConditioningDataService', () => {
 			it('returns log directly from cache if already detailed', async () => {
 				// arrange
 					// reset spy to avoid side effects
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById'); // should not be called
 				
 					// replace random log in cache with detailed log
@@ -1380,7 +1382,7 @@ describe('ConditioningDataService', () => {
 
 			it('retrieves detailed log from persistence if cached log is overview', async () => {
 				// arrange
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					//  logs are initialized in cache as overviews, so any random cached log should be an overview
 					const randomLogId = randomLog!.entityId!;
@@ -1418,7 +1420,7 @@ describe('ConditioningDataService', () => {
 				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
 				const detailedLog = ConditioningLog.create(dto, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					//  logs are initialized in cache as overviews, so any random cached log should be an overview
 					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
@@ -1438,7 +1440,7 @@ describe('ConditioningDataService', () => {
 				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
 				const detailedLog = ConditioningLog.create(dto, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
 				
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					// logs are initialized in cache as overviews, so any random cached log should be an overview
 					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLog!)))
@@ -1483,7 +1485,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws PersistenceError if retrieving detailed log from persistence fails', async () => {
 				// arrange
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					// console.debug('fetchById mock called'); this gets called, despite toHaveBeenCalled() failing
 					return Promise.resolve(Result.fail<Observable<ConditioningLog<any, ConditioningLogDTO>>>('test error'))
@@ -1496,7 +1498,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws NotFoundError if no log matching entity id is found in persistence', async () => {
 				// arrange
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					return Promise.resolve(Result.ok<any>(of(undefined)));
 				});
@@ -1739,7 +1741,7 @@ describe('ConditioningDataService', () => {
 					return Promise.resolve(Result.ok<ConditioningLog<any, ConditioningLogDTO>>(updatedLog))
 				});
 
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(updatedLog)))
 				});
@@ -1834,11 +1836,11 @@ describe('ConditioningDataService', () => {
 
 			it('throws NotFoundError if log does not exist in persistence layer', async () => {
 				// arrange
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => 
 					Promise.resolve(Result.fail('test error'))
 				);
-				logRepoUpdateSpy.mockRestore();
+				logRepoUpdateSpy?.mockRestore();
 				logRepoUpdateSpy = jest.spyOn(logRepo, 'update').mockImplementation(() => 
 					Promise.resolve(Result.fail<ConditioningLog<any, ConditioningLogDTO>>('test error'))
 				);
@@ -1862,7 +1864,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws PersistenceError if updating log in persistence layer fails', async () => {
 				// arrange
-				logRepoUpdateSpy.mockRestore();
+				logRepoUpdateSpy?.mockRestore();
 				logRepoUpdateSpy = jest.spyOn(logRepo, 'update').mockImplementation(() => {
 					return Promise.resolve(Result.fail('test error'))
 				});
@@ -2012,7 +2014,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws NotFoundError if no log is found in persistence layer matching provided log entity id', async () => {
 				// arrange
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					return Promise.resolve(Result.fail<void>('test error')) as any;
 				});
@@ -2035,7 +2037,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws PersistenceError if updating user in user repo fails (hard delete)', async () => {
 				// arrange
-				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy?.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.fail('test error'))
 				);
@@ -2068,7 +2070,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws PersistenceError if deleting log in log repo fails', async () => {
 				// arrange
-				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy?.mockRestore();
 				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
 					return Promise.resolve(Result.fail<void>('test error'));
 				});
@@ -2181,7 +2183,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws NotFoundError if no log is found in persistence layer matching provided log entity id', async () => {
 				// arrange
-				logRepoFetchByIdSpy.mockRestore();
+				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					return Promise.resolve(Result.fail<void>('test error')) as any;
 				});
@@ -2204,7 +2206,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws PersistenceError if undeleting log in log repo fails', async () => {
 				// arrange
-				logRepoUndeleteSpy.mockRestore();
+				logRepoUndeleteSpy?.mockRestore();
 				logRepoUndeleteSpy = jest.spyOn(logRepo, 'undelete').mockImplementation(() => {
 					return Promise.resolve(Result.fail<void>('test error'));
 				});
@@ -2327,7 +2329,7 @@ describe('ConditioningDataService', () => {
 
 				// clean up
 				sub.unsubscribe();
-				onInitializeSpy.mockRestore();
+				onInitializeSpy?.mockRestore();
 			});			
 		});
 
@@ -2357,7 +2359,7 @@ describe('ConditioningDataService', () => {
 				expect(onShutdownSpy).toHaveBeenCalledWith(undefined);
 
 				// clean up
-				onShutdownSpy.mockRestore();
+				onShutdownSpy?.mockRestore();
 			});
 		});
 	});
@@ -2368,9 +2370,9 @@ describe('ConditioningDataService', () => {
 			expect(service.log$).toBeInstanceOf(Subject);
 		});
 
-		it('has a log method', () => {
-			expect(service.log).toBeDefined();
-			expect(typeof service.log).toBe('function');
+		it('has a logToStream method', () => {
+			expect(service.logToStream).toBeDefined();
+			expect(typeof service.logToStream).toBe('function');
 		});
 	});
 
@@ -2429,7 +2431,7 @@ describe('ConditioningDataService', () => {
 			it('by default retries deleting an orphaned log 4 times if initial attempt fails', async () => {
 				// arrange
 				const orphanedLogId = randomLog!.entityId!;
-				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy?.mockRestore();
 				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
 					return Promise.resolve(Result.fail<void>('test error'));
 				});
@@ -2447,7 +2449,7 @@ describe('ConditioningDataService', () => {
 			it('optionally can retry deleting an orphaned log a specified number of times if initial attempt fails', async () => {
 				// arrange
 				const orphanedLogId = randomLog!.entityId!;
-				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy?.mockRestore();
 				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
 					return Promise.resolve(Result.fail<void>('test error'));
 				});
@@ -2465,7 +2467,7 @@ describe('ConditioningDataService', () => {
 			it('by default waits 500ms between retries when deleting an orphaned log', async () => {
 				// arrange
 				const orphanedLogId = randomLog!.entityId!;
-				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy?.mockRestore();
 				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
 					return Promise.resolve(Result.fail<void>('test error'));
 				});
@@ -2486,7 +2488,7 @@ describe('ConditioningDataService', () => {
 			it('optionally can specify wait time between retries when deleting an orphaned log', async () => {
 				// arrange
 				const orphanedLogId = randomLog!.entityId!;
-				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy?.mockRestore();
 				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
 					return Promise.resolve(Result.fail<void>('test error'));
 				});
@@ -2507,19 +2509,22 @@ describe('ConditioningDataService', () => {
 			it('logs error if deleting an orphaned log fails', async () => {
 				// arrange
 				const orphanedLogId = randomLog!.entityId!;
-				logRepoDeleteSpy.mockRestore();
+				logRepoDeleteSpy?.mockRestore();
 				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
 					return Promise.resolve(Result.fail<void>('test error'));
 				});
-				const errorSpy = jest.spyOn(service['logger'], 'error').mockImplementation(() => { }); // do nothing
+				const logToStreamSpy = jest.spyOn(service, 'logToStream').mockImplementation(() => { }); // do nothing
 
 				// act
 				void await service['rollbackLogCreation'](orphanedLogId);
 
 				// assert
-				expect(errorSpy).toHaveBeenCalled();
-				expect(errorSpy).toHaveBeenCalledWith(`Error rolling back log creation for ${orphanedLogId}`, 'test error', service.constructor.name);
-				errorSpy.mockRestore();
+				expect(logToStreamSpy).toHaveBeenCalled();
+				expect(logToStreamSpy).toHaveBeenCalledWith("error", expect.stringContaining(`Error rolling back log creation for ${orphanedLogId}`), "test error");
+				
+				// clean up
+				logRepoDeleteSpy?.mockRestore();
+				logToStreamSpy?.mockRestore();
 			});
 		});
 
@@ -2550,7 +2555,7 @@ describe('ConditioningDataService', () => {
 
 			it('by default retries updating user 4 times if initial attempt fails', async () => {
 				// arrange
-				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy?.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.fail('test error'))
 				);
@@ -2567,7 +2572,7 @@ describe('ConditioningDataService', () => {
 
 			it('optionally can retry updating user a specified number of times if initial attempt fails', async () => {
 				// arrange
-				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy?.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.fail('test error'))
 				);
@@ -2584,7 +2589,7 @@ describe('ConditioningDataService', () => {
 
 			it('by default waits 500ms between retries when updating user', async () => {
 				// arrange
-				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy?.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.fail('test error'))
 				);
@@ -2604,7 +2609,7 @@ describe('ConditioningDataService', () => {
 
 			it('optionally can specify wait time between retries when updating user', async () => {
 				// arrange
-				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy?.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.fail('test error'))
 				);				
@@ -2625,19 +2630,22 @@ describe('ConditioningDataService', () => {
 			it('logs error if user update fails', async () => {
 				// arrange
 				const error = new Error('test error');
-				userRepoUpdateSpy.mockRestore();
+				userRepoUpdateSpy?.mockRestore();
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.fail(error))
 				);
-				const errorSpy = jest.spyOn(service['logger'], 'error').mockImplementation(() => { }); // do nothing
+				const logToStreamSpy = jest.spyOn(service, 'logToStream').mockImplementation(() => { }); // do nothing
 
 				// act
 				void await service['rollBackUserUpdate'](originalPersistenceDTO);
 
 				// assert
-				expect(errorSpy).toHaveBeenCalled();
-				expect(errorSpy).toHaveBeenCalledWith(`Error rolling back user update for ${originalPersistenceDTO.userId}`, `Error: ${error.message}`, service.constructor.name);
-				errorSpy.mockRestore();
+				expect(logToStreamSpy).toHaveBeenCalled();
+				expect(logToStreamSpy).toHaveBeenCalledWith("error", expect.stringContaining("Error rolling back user update for testuser"), "Error: test error");
+				
+				// clean up
+				userRepoUpdateSpy?.mockRestore();
+				logToStreamSpy?.mockRestore();
 			});
 		});
 
@@ -2707,15 +2715,17 @@ describe('ConditioningDataService', () => {
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
-				const warnSpy = jest.spyOn(service['logger'], 'warn').mockImplementation(() => { }); // do nothing
+				const logToStreamSpy = jest.spyOn(service, 'logToStream').mockImplementation(() => { }); // do nothing
 				
 				// act
-				const series = service['toConditioningLogSeries'](logs);
+				void service['toConditioningLogSeries'](logs);
 
 				// assert
-				expect(warnSpy).toHaveBeenCalled();
-				expect(warnSpy).toHaveBeenCalledWith(`Conditioning log ${logWithoutStart.entityId} has no start date, excluding from ConditioningLogSeries.`, service.constructor.name);
-				warnSpy.mockRestore();
+				expect(logToStreamSpy).toHaveBeenCalled();
+				expect(logToStreamSpy).toHaveBeenCalledWith('warn', `Conditioning log ${logWithoutStart.entityId} has no start date, excluding from ConditioningLogSeries.`);
+				
+				// clean up
+				logToStreamSpy?.mockRestore();
 			});			
 		});
 	});

@@ -21,6 +21,6 @@ export interface LoggableComponent {
 	 * this.log(LogLevel.ERROR, 'Error message', new Error('Test error'));
 	 * ```
 	 */
-	log(level: LogLevel, message: string, data?: any, context?: string): void;
+	logToStream(level: LogLevel, message: string, data?: any, context?: string): void;
 };
 export default LoggableComponent;

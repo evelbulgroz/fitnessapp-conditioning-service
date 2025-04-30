@@ -22,6 +22,7 @@ import DomainEventHandler from '../../../shared/handlers/domain-event.handler';
 import EntityIdDTO from '../../../shared/dtos/responses/entity-id.dto';
 import EventDispatcherService from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
 import LoggableMixin from '../../../shared/services/logger/mixins/loggable.mixin';
+import LogLevel from '../../../shared/services/logger/models/log-level.enum';
 import ManagedStatefulComponentMixin from '../../../app-health/mixins/managed-stateful-component.mixin';
 import NotFoundError from '../../../shared/domain/not-found.error';
 import PersistenceError from '../../../shared/domain/persistence.error';
@@ -92,7 +93,7 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
 	onModuleDestroy() {
-		this.logger.log(`Shutting down...`, this.constructor.name);
+		this.logToStream(LogLevel.LOG, `Shutting down...`);
 		this.shutdown(); // call shutdown method from mixin
 	}
 	
@@ -671,8 +672,8 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 
 		// execute initialization
 		try {
-			this.logger.log(`Executing initialization...`, this.constructor.name);
-
+			this.logToStream(LogLevel.LOG, 'Executing initialization...');
+			
 			// fetch all logs from conditioning log repo
 			let allLogs: ConditioningLog<any, ConditioningLogDTO>[] = [];
 			const logsResult = await this.logRepo.fetchAll();
@@ -704,11 +705,11 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 			});
 			this.cache.next(userLogs);
 			
-			this.logger.log(`Initialization execution complete: Cached ${allLogs.length} logs for ${users.length} users.`, this.constructor.name);
+			this.logToStream(LogLevel.LOG, `Initialization execution complete: Cached ${allLogs.length} logs for ${users.length} users.`);
 			return Promise.resolve();
 		}
 		catch (error) {
-			this.logger.error(`Cache initialization failed:`, error instanceof Error ? error.message : String(error), this.constructor.name);
+			this.logToStream(LogLevel.ERROR, `Cache initialization failed:`, error instanceof Error ? error.message : String(error));
 			return Promise.reject(error);
 		}
 	}
@@ -727,7 +728,7 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 	 */
 	public override onShutdown(): Promise<void> {		
 		try {
-			this.logger.log(`Executing shutdown...`, this.constructor.name);
+			this.logToStream(LogLevel.LOG, `Executing shutdown...`);
 			
 			// clean up resources
 			while (this.subscriptions.length > 0) { // unsubscribe all subscriptions
@@ -740,11 +741,11 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 			this.cache.complete(); // complete the cache observable to release resources
 			this.cache.next([]); // emit empty array to clear cache
 			
-			this.logger.log(`Shutdown execution complete.`, this.constructor.name);
+			this.logToStream(LogLevel.LOG, 'Shutdown execution complete.');
 			return Promise.resolve();
 		} 
 		catch (error) {
-			this.logger.error(`Shutdown execution failed:`, error instanceof Error ? error.message : String(error), this.constructor.name);
+			this.logToStream(LogLevel.ERROR, `Shutdown execution failed:`, error instanceof Error ? error.message : String(error));
 			return Promise.reject(error);
 		}
 	}
@@ -765,7 +766,7 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 				await this.rollbackLogCreation(logId, softDelete, retries - 1, delay);
 			}
 			else {
-				this.logger.error(`Error rolling back log creation for ${logId}`,deleteResult.error.toString(), this.constructor.name);
+				this.logToStream(LogLevel.ERROR, `Error rolling back log creation for ${logId}`, deleteResult.error.toString());
 			}
 		}
 
@@ -785,7 +786,7 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 				await this.rollBackUserUpdate(originalPersistenceDTO, retries - 1, delay);
 			}
 			else {
-				this.logger.error(`Error rolling back user update for ${originalPersistenceDTO.userId}`,result.error.toString(), this.constructor.name);
+				this.logToStream(LogLevel.ERROR, `Error rolling back user update for ${originalPersistenceDTO.userId}`, result.error.toString());
 			}
 		}
 	}
@@ -811,7 +812,7 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 		// filter out any logs that do not have a start date, log id of logs missing start date
 		const logsWithDates = logs.filter(log => {
 			if (log.start !== undefined) return true;
-			this.logger.warn(`Conditioning log ${log.entityId} has no start date, excluding from ConditioningLogSeries.`, this.constructor.name);
+			this.logToStream(LogLevel.WARN, `Conditioning log ${log.entityId} has no start date, excluding from ConditioningLogSeries.`);
 			return false;
 		});
 		

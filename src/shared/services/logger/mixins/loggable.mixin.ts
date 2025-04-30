@@ -30,7 +30,7 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
 	return class Loggable extends Base implements LoggableComponent {
 		public readonly log$ = new Subject<UnifiedLogEntry>();
 
-		public log(level: LogLevel, message: string, data?: any, context?: string): void {
+		public logToStream(level: LogLevel, message: string, data?: any, context?: string): void {
 			const entry: UnifiedLogEntry = {
 				source: LogEventSource.LOG,
 				level,
