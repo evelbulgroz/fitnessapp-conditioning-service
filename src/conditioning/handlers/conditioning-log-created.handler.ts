@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { Logger } from '@evelbulgroz/logger';
+//import { Logger } from '@evelbulgroz/logger';
 
 import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogCreatedEvent } from '../events/conditioning-log-created.event';
@@ -14,7 +14,7 @@ import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
 export class ConditioningLogCreatedHandler extends DomainEventHandler<ConditioningLogCreatedEvent> {
 	constructor(
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		private readonly logger: Logger
+		//private readonly logger: Logger
 	) {
 		super();
 		void this.logRepo; // avoid unused variable warning
@@ -22,9 +22,9 @@ export class ConditioningLogCreatedHandler extends DomainEventHandler<Conditioni
 
 	public async handle(event: ConditioningLogCreatedEvent): Promise<void> {
 		throw new Error('Method not implemented.');
-		const logDTO = event.payload;
+		//const logDTO = event.payload;
 		// Handle the log update event
-		this.logger.log(`Log ${logDTO.entityId} created.`);
+		//this.logger.log(`Log ${logDTO.entityId} created.`);
 	}
 }
 

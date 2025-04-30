@@ -2,7 +2,7 @@ import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../test/test-utils';
 //import { jest } from '@jest/globals';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+//import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
@@ -29,17 +29,7 @@ describe('LogUpdatedHandler', () => {
 						// add other methods as needed
 					}
 				},
-				ConditioningLogUpdateHandler,
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},			
+				ConditioningLogUpdateHandler,							
 			],
 		}))
 		.compile();

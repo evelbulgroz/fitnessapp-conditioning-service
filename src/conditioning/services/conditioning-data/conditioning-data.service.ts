@@ -5,7 +5,7 @@ import { BehaviorSubject, firstValueFrom, Observable, Subscription, take } from 
 import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
-import { Logger } from '@evelbulgroz/logger';
+//import { Logger } from '@evelbulgroz/logger';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
 
@@ -71,7 +71,7 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 	protected readonly cache = new BehaviorSubject<UserLogsCacheEntry[]>([]);
 	
 	// Inject separately to keep constructor signature clean
-	@Inject(Logger) protected readonly logger: Logger;
+	//@Inject(Logger) protected readonly logger: Logger;
 	@Inject(QueryMapper) protected readonly queryMapper: QueryMapper<QueryType, QueryDTO>;
 
 	 // Array of subscriptions to be cleaned up on shutdown

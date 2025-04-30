@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 import { firstValueFrom, Observable } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/logger';
+//import { Logger } from '@evelbulgroz/logger';
 
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../domain/conditioning-log.entity';
@@ -19,7 +19,7 @@ export class ConditioningLogUpdateHandler extends DomainEventHandler<Conditionin
 	constructor(
 		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService, // forwardRef to avoid circular dependency
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		private readonly logger: Logger
+		//private readonly logger: Logger
 	) {
 		super();
 	}
@@ -34,7 +34,7 @@ export class ConditioningLogUpdateHandler extends DomainEventHandler<Conditionin
 		const logDTO = event.payload;
 		const logResult = await this.logRepo.fetchById(logDTO.entityId!);
 		if (logResult.isFailure) {
-			this.logger.warn(`LogUpdatedHandler: Error fetching log from repo: ${logResult.error}`);
+			//this.logger.warn(`LogUpdatedHandler: Error fetching log from repo: ${logResult.error}`); // todo: refactor to use mixin
 			return;
 		}
 		const log$ = logResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>>;
@@ -49,7 +49,7 @@ export class ConditioningLogUpdateHandler extends DomainEventHandler<Conditionin
 			this.logService.updateCache([...snapshot], this);
 		}
 		else {
-			this.logger.warn(`LogUpdatedHandler: Log ${logDTO.entityId} not found in cache`);
+			//this.logger.warn(`LogUpdatedHandler: Log ${logDTO.entityId} not found in cache`); // todo: refactor to use mixin
 		}
 	}
 }

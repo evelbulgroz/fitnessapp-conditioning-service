@@ -1,7 +1,7 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../test/test-utils';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+//import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 
 //import { jest } from '@jest/globals';
 
@@ -24,16 +24,7 @@ describe('ConditioningLogCreatedHandler', () => {
 					}
 				},
 				ConditioningLogCreatedHandler,
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},
+				
 			],
 		}))
 		.compile();

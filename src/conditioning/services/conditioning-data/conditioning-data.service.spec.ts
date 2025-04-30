@@ -1,6 +1,6 @@
-import { TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { createTestingModule } from '../../../test/test-utils';
+//import { Logger } from '@nestjs/common';
+import { TestingModule } from '@nestjs/testing';
 
 import { jest } from '@jest/globals';
 
@@ -20,6 +20,7 @@ import { ConditioningDataService } from './conditioning-data.service';
 import { ConditioningLog } from '../../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../dtos/conditioning-log.dto';
 import { ConditioningLogRepository } from '../../repositories/conditioning-log.repo';
+import { createTestingModule } from '../../../test/test-utils';
 import { EntityIdDTO } from '../../../shared/dtos/responses/entity-id.dto';
 import { EventDispatcherService } from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
 import { ConditioningLogCreatedHandler } from '../../handlers/conditioning-log-created.handler';
@@ -1681,7 +1682,7 @@ describe('ConditioningDataService', () => {
 			it('can provide a domain event handler with a snapshot of the cache', async () => {
 				// arrange
 				const expectedCache = service['cache'].value;
-				const handler = new ConditioningLogCreatedHandler(logRepo, logger);
+				const handler = new ConditioningLogCreatedHandler(logRepo);
 				
 				// act
 				const snapshot = service.getCacheSnapshot(handler);
@@ -1706,7 +1707,7 @@ describe('ConditioningDataService', () => {
 			it('can update the cache with a new snapshot', async () => {
 				// arrange
 				const newCache = [...service['cache'].value];
-				const handler = new ConditioningLogCreatedHandler(logRepo, logger);
+				const handler = new ConditioningLogCreatedHandler(logRepo);
 				
 				// act
 				service.updateCache(newCache, handler);
