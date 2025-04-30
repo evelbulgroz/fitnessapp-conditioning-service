@@ -1,5 +1,4 @@
 import { ConfigService } from '@nestjs/config';
-//import { Logger } from '@nestjs/common';
 import { TestingModule } from '@nestjs/testing';
 
 import { jest } from '@jest/globals';
@@ -9,7 +8,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
-//import {  Logger } from '@evelbulgroz/logger';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { Query } from '@evelbulgroz/query-fns';
 
@@ -79,14 +77,49 @@ describe('ConditioningDataService', () => {
 					}
 				},
 				ConfigService,
-				EventDispatcherService,
-				ConditioningLogCreatedHandler,
-				ConditioningLogDeletedHandler,
-				ConditioningLogUpdateHandler,
-				ConditioningLogUndeletedHandler,
-				UserCreatedHandler,
-				UserDeletedHandler,
-				UserUpdatedHandler,
+				EventDispatcherService,				
+				{ // ConditioningLogCreatedHandler
+					provide: ConditioningLogCreatedHandler,
+					useValue: {
+						handle: () => Promise.resolve(undefined)
+					}
+				},
+				{ // ConditioningLogUpdatedHandler
+					provide: ConditioningLogUpdateHandler,
+					useValue: {
+						handle: () => Promise.resolve(undefined)
+					}
+				},
+				{ // ConditioningLogDeletedHandler
+					provide: ConditioningLogDeletedHandler,
+					useValue: {
+						handle: () => Promise.resolve(undefined)
+					}
+				},
+				{ // ConditioningLogUndeletedHandler
+					provide: ConditioningLogUndeletedHandler,
+					useValue: {
+						handle: () => Promise.resolve(undefined)
+					}
+				},
+				{ // UserCreatedHandler
+					provide: UserCreatedHandler,
+					useValue: {
+						handle: () => Promise.resolve(undefined)
+					}
+				},
+				{ // UserUpdatedHandler
+					provide: UserUpdatedHandler,
+					useValue: {
+						handle: () => Promise.resolve(undefined)
+					}
+				},
+				{ // UserDeletedHandler
+					provide: UserDeletedHandler,
+					useValue: {
+						handle: () => Promise.resolve(undefined)
+					}
+				},
 				ConditioningDataService,
 				{ // ConditioningLogRepository
 					provide: ConditioningLogRepository,
@@ -100,16 +133,6 @@ describe('ConditioningDataService', () => {
 						undelete: jest.fn(),
 					}
 				},
-				/*{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},*/
 				QueryMapper,
 				{ // REPOSITORY_THROTTLETIME
 					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
@@ -962,8 +985,7 @@ describe('ConditioningDataService', () => {
 				const userUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() => {
 					userRepoUpdatesSubject.next(createEvent); // simulate event from userRepo.updates$
 					return Promise.resolve(Result.ok(randomUser))
-				});
-				
+				});				
 				
 				// act
 				void await service.createLog(userContext, randomUserIdDTO, newLog);
