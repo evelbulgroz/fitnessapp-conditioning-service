@@ -965,6 +965,8 @@ describe('ConditioningDataService', () => {
 			it('adds new log to cache entry', async () => {
 				// arrange
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
+
+				//todo : add spy to ConditioningLogUpdateHandler.handle to replicate adding log to cache entry
 				
 				const randomUserDTO = randomUser.toDTO();
 				randomUserDTO.logs!.push(newLogId);
