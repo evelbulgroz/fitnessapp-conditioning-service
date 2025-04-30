@@ -2419,7 +2419,7 @@ describe('ConditioningDataService', () => {
 				const orphanedLogId = randomLog!.entityId!;
 				
 				// act
-				void await service['rollbackLogCreation'](orphanedLogId);
+				void await service['rollbackLogCreation'](orphanedLogId, undefined, 1, 10); // 1 retry, 10ms wait
 				
 
 				// assert
@@ -2432,7 +2432,7 @@ describe('ConditioningDataService', () => {
 				const orphanedLogId = randomLog!.entityId!;
 				
 				// act
-				void await service['rollbackLogCreation'](orphanedLogId);
+				void await service['rollbackLogCreation'](orphanedLogId, undefined, 1, 10); // 1 retry, 10ms wait
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -2444,7 +2444,7 @@ describe('ConditioningDataService', () => {
 				const orphanedLogId = randomLog!.entityId!;
 				
 				// act
-				void await service['rollbackLogCreation'](orphanedLogId, true); // soft delete
+				void await service['rollbackLogCreation'](orphanedLogId, true, 1, 10); // 1 retry, 10ms wait
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -2460,7 +2460,7 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act
-				void await service['rollbackLogCreation'](orphanedLogId);
+				void await service['rollbackLogCreation'](orphanedLogId, undefined, undefined, 10); // default retries, 10ms wait
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(6); // initial attempt + 5 retries (default)
@@ -2478,7 +2478,7 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act
-				void await service['rollbackLogCreation'](orphanedLogId, false, 2); // 2 retries
+				void await service['rollbackLogCreation'](orphanedLogId, undefined, 2, 10); // 2 retries, 10ms wait
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(3); // initial attempt + 2 retries
@@ -2497,7 +2497,7 @@ describe('ConditioningDataService', () => {
 
 				const start = Date.now();
 				// act
-				void await service['rollbackLogCreation'](orphanedLogId, false, ); // 1 retry
+				void await service['rollbackLogCreation'](orphanedLogId, undefined, 1); // 1 retry, default wait time
 
 				// assert
 				const end = Date.now();
@@ -2518,12 +2518,12 @@ describe('ConditioningDataService', () => {
 
 				const start = Date.now();
 				// act
-				void await service['rollbackLogCreation'](orphanedLogId, false, 1, 100); // 1 retry, 100ms wait
+				void await service['rollbackLogCreation'](orphanedLogId, false, 1, 50); // 1 retry, 100ms wait
 
 				// assert
 				const end = Date.now();
 				const elapsed = end - start;
-				expect(elapsed).toBeGreaterThanOrEqual(100); // specified wait time
+				expect(elapsed).toBeGreaterThanOrEqual(50); // specified wait time
 
 				// clean up
 				logRepoDeleteSpy?.mockRestore();
@@ -2539,7 +2539,7 @@ describe('ConditioningDataService', () => {
 				const logToStreamSpy = jest.spyOn(service, 'logToStream').mockImplementation(() => { }); // do nothing
 
 				// act
-				void await service['rollbackLogCreation'](orphanedLogId);
+				void await service['rollbackLogCreation'](orphanedLogId, undefined, 1, 10); // 1 retry, 10ms wait
 
 				// assert
 				expect(logToStreamSpy).toHaveBeenCalled();
@@ -2570,7 +2570,7 @@ describe('ConditioningDataService', () => {
 				// arrange
 				
 				// act
-				void await service['rollBackUserUpdate'](originalPersistenceDTO);
+				void await service['rollBackUserUpdate'](originalPersistenceDTO, 1, 10); // 1 retry, 10ms wait
 
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledWith(originalPersistenceDTO);
@@ -2584,7 +2584,7 @@ describe('ConditioningDataService', () => {
 				);
 
 				// act
-				void await service['rollBackUserUpdate'](originalPersistenceDTO);
+				void await service['rollBackUserUpdate'](originalPersistenceDTO, undefined, 10); // default retries, 10ms wait
 
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(6); // initial attempt + 5 retries (default)
@@ -2601,7 +2601,7 @@ describe('ConditioningDataService', () => {
 				);
 
 				// act
-				void await service['rollBackUserUpdate'](originalPersistenceDTO, 2); // 2 retries
+				void await service['rollBackUserUpdate'](originalPersistenceDTO, 2, 10); // 2 retries, 10ms wait
 
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(3); // initial attempt + 2 retries
@@ -2639,12 +2639,12 @@ describe('ConditioningDataService', () => {
 				const start = Date.now();
 
 				// act
-				void await service['rollBackUserUpdate'](originalPersistenceDTO, 1, 100); // 1 retry, 100ms wait
+				void await service['rollBackUserUpdate'](originalPersistenceDTO, 1, 50); // 1 retry, 100ms wait
 
 				// assert
 				const end = Date.now();
 				const elapsed = end - start;
-				expect(elapsed).toBeGreaterThanOrEqual(100); // specified wait time
+				expect(elapsed).toBeGreaterThanOrEqual(50); // specified wait time
 
 				// clean up
 				userRepoUpdateSpy?.mockRestore();
@@ -2660,7 +2660,7 @@ describe('ConditioningDataService', () => {
 				const logToStreamSpy = jest.spyOn(service, 'logToStream').mockImplementation(() => { }); // do nothing
 
 				// act
-				void await service['rollBackUserUpdate'](originalPersistenceDTO);
+				void await service['rollBackUserUpdate'](originalPersistenceDTO, 1, 10); // 1 retry, 10ms wait
 
 				// assert
 				expect(logToStreamSpy).toHaveBeenCalled();

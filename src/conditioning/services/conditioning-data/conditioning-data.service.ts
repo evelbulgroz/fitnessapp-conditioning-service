@@ -58,7 +58,6 @@ export interface UserLogsCacheEntry {
  * @remark Local cache is kept in sync with repository data via subscriptions to log and user repo events.
  * @remark Provides {@link LoggableComponent} API via {@link LoggableMixin}, compatible with streaming Logger service.
  * @remark Provides {@link ManagedStatefulComponent} API for lifecycle management and state tracking, using {@link ManagedStatefulComponentMixin}.
- * @todo Try to get mixin decorators working, e.g. using declaration merging (broke the type system at last attempt); alternatively, look into using factory functions for mixins
  * @todo Break each public method out into separate service class, to make this class more manageable and testable by simply providing a facade to the new sub-services.
  * @todo Use shared cache library when available
  */
