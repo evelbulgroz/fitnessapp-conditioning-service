@@ -10,6 +10,7 @@ import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
 
 /** Handler for entity deleted event from ConditioningLog repository
  * @remark Placeholder: logs are removed from log service cache when removed from user, so this handler may not be necessary
+ * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
 export class ConditioningLogDeletedHandler extends DomainEventHandler<ConditioningLogDeletedEvent> {

@@ -8,6 +8,7 @@ import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
 
 /** Handler for entity undeleted event from ConditioningLog repository
  * @remark Marks log as undeleted in data service cache
+ * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
 export class ConditioningLogUndeletedHandler extends DomainEventHandler<ConditioningLogUndeletedEvent> {

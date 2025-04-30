@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { Logger } from '@evelbulgroz/logger';
+// import { Logger } from '@evelbulgroz/logger';
 
 import { ConditioningLog } from '../../conditioning/domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../../conditioning/dtos/conditioning-log.dto';
@@ -11,13 +11,14 @@ import { UserRepository } from '../repositories/user.repo';;
 
 /** Handler for entity deleted event from User repository
  * @remark Placeholder: implement user deletion event handling when user deletion is implemented
+ * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
 export class UserDeletedHandler extends DomainEventHandler<UserDeletedEvent> {
 	constructor(
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly userRepo: UserRepository,
-		private readonly logger: Logger
+		//private readonly logger: Logger
 	) {
 		super();
 		void this.logRepo, this.userRepo; // avoid unused variable warning
@@ -25,9 +26,9 @@ export class UserDeletedHandler extends DomainEventHandler<UserDeletedEvent> {
 
 	public async handle(event: UserDeletedEvent): Promise<void> {
 		throw new Error('Method not implemented.');
-		const logDTO = event.payload;
+		//const logDTO = event.payload;
 		// Handle the log update event
-		this.logger.log(`User ${logDTO.entityId} deleted.`);
+		//this.logger.log(`User ${logDTO.entityId} deleted.`);
 	}
 }
 

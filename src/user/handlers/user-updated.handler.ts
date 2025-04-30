@@ -2,7 +2,7 @@ import { Inject, Injectable, forwardRef } from '@nestjs/common';
 
 import { firstValueFrom, Observable } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/logger';
+//import { Logger } from '@evelbulgroz/logger';
 
 import { ConditioningDataService } from '../../conditioning/services/conditioning-data/conditioning-data.service';
 import { ConditioningLog } from '../../conditioning/domain/conditioning-log.entity';
@@ -17,17 +17,18 @@ import { UserRepository } from '../repositories/user.repo';
  * @remark Handles addition and removal of logs from log service cache entry for user, triggered by update events from user repository
  * @remark Users hold log ids, not logs themselves, so this handler does not handle log content updates
  * @remark Users currently hold no other state that would require cache updates, so this handler only updates logs
+ * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
 export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 	constructor(
 		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService, // forwardRef to avoid circular dependency
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		private readonly logger: Logger,
+		//private readonly logger: Logger,
 		private readonly userRepo: UserRepository,		
 	) {
 		super();
-		void this.logService, this.logRepo, this.userRepo, this.logger; // avoid unused variable warning
+		//void this.logService, this.logRepo, this.userRepo, this.logger; // avoid unused variable warning
 	}
 
 	public async handle(event: UserUpdatedEvent): Promise<void> {
@@ -47,7 +48,7 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 			for (const logId of addedLogIds) {
 				const result = await this.logRepo.fetchById(logId);
 				if (result.isFailure) {
-					this.logger.error(`${this.constructor.name}: Error fetching log ${logId} for user ${userDTO.userId}: ${result.error}`);
+					//this.logger.error(`${this.constructor.name}: Error fetching log ${logId} for user ${userDTO.userId}: ${result.error}`);
 				}
 				else {
 					const log = await firstValueFrom(result.value as Observable<ConditioningLog<any, ConditioningLogDTO>>);
@@ -65,10 +66,10 @@ export class UserUpdatedHandler extends DomainEventHandler<UserUpdatedEvent> {
 			this.logService.updateCache([...snapshot], this);
 
 			// log update
-			this.logger.log(`${this.constructor.name}: User ${userDTO.userId} logs updated in cache.`);
+			//this.logger.log(`${this.constructor.name}: User ${userDTO.userId} logs updated in cache.`);
 		}
 		else {
-			this.logger.error(`${this.constructor.name}: User ${userDTO.userId} not found in cache.`);
+			//this.logger.error(`${this.constructor.name}: User ${userDTO.userId} not found in cache.`);
 		}
 
 		// implicitly return Promise.resolve(void)

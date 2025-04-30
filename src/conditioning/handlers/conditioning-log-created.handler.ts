@@ -9,6 +9,7 @@ import { ConditioningLogRepository } from '../repositories/conditioning-log.repo
 import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
 /** Handler for entity created event from ConditioningLog repository
  * @remark Placeholder: logs are added to to log service cache when added to user, so this handler may not be necessary
+ * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
 export class ConditioningLogCreatedHandler extends DomainEventHandler<ConditioningLogCreatedEvent> {

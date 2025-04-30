@@ -13,6 +13,7 @@ import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
 
 /** Handler for entity updated event from ConditioningLog repository
  * @remark Updates logs in log service cache
+ * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
 export class ConditioningLogUpdateHandler extends DomainEventHandler<ConditioningLogUpdatedEvent> {

@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
-import {  Logger } from '@evelbulgroz/logger';
+//import {  Logger } from '@evelbulgroz/logger';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { Query } from '@evelbulgroz/query-fns';
 
@@ -57,7 +57,7 @@ describe('ConditioningDataService', () => {
 	let aggregatorService: AggregatorService;
 	let app: TestingModule;
 	let service: ConditioningDataService;
-	let logger: Logger;
+	//let logger: Logger;
 	let logRepo: ConditioningLogRepository<any, ConditioningLogDTO>;
 	let logRepoUpdatesSubject: Subject<any>;
 	let queryMapper: QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>;
@@ -100,7 +100,7 @@ describe('ConditioningDataService', () => {
 						undelete: jest.fn(),
 					}
 				},
-				{ // Logger (suppress console output)
+				/*{ // Logger (suppress console output)
 					provide: Logger,
 					useValue: {
 						log: jest.fn(),
@@ -109,7 +109,7 @@ describe('ConditioningDataService', () => {
 						debug: jest.fn(),
 						verbose: jest.fn(),
 					},
-				},
+				},*/
 				QueryMapper,
 				{ // REPOSITORY_THROTTLETIME
 					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
@@ -131,7 +131,7 @@ describe('ConditioningDataService', () => {
 
 		aggregatorService = app.get<AggregatorService>(AggregatorService);
 		service = app.get<ConditioningDataService>(ConditioningDataService);
-		logger = app.get<Logger>(Logger);
+		//logger = app.get<Logger>(Logger);
 		logRepo = app.get<ConditioningLogRepository<any, ConditioningLogDTO>>(ConditioningLogRepository);
 		queryMapper = app.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
 		userRepo = app.get<UserRepository>(UserRepository);
