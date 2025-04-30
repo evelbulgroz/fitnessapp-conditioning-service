@@ -2,7 +2,6 @@ import { firstValueFrom, take, toArray } from 'rxjs';
 
 import LoggableMixin from './loggable.mixin';
 import LogLevel from '../models/log-level.enum';
-import UnifiedLogEntry from '../models/unified-log-event.model';
 
 describe('LoggableMixin', () => {
 	// Base class to apply the mixin to
@@ -43,9 +42,9 @@ describe('LoggableMixin', () => {
 		const logsPromise = firstValueFrom(instance.log$.pipe(take(3), toArray()));
 		
 		// Emit some logs using the log method with different levels
-		instance.log(LogLevel.INFO, 'Info message');
-		instance.log(LogLevel.WARN, 'Warning message');
-		instance.log(LogLevel.ERROR, 'Error message', new Error('Test error'));
+		instance.logToStream(LogLevel.INFO, 'Info message');
+		instance.logToStream(LogLevel.WARN, 'Warning message');
+		instance.logToStream(LogLevel.ERROR, 'Error message', new Error('Test error'));
 		
 		// Get the collected logs
 		const logs = await logsPromise;
@@ -68,7 +67,7 @@ describe('LoggableMixin', () => {
 	it('should allow custom context in logs', async () => {
 		const logsPromise = firstValueFrom(instance.log$.pipe(take(1)));
 		
-		instance.log(LogLevel.DEBUG, 'Custom context log', null, 'CustomContext');
+		instance.logToStream(LogLevel.DEBUG, 'Custom context log', null, 'CustomContext');
 		
 		const log = await logsPromise;
 		expect(log.context).toBe('CustomContext');
@@ -77,7 +76,7 @@ describe('LoggableMixin', () => {
 	it('should include timestamp in logs', async () => {
 		const logsPromise = firstValueFrom(instance.log$.pipe(take(1)));
 		
-		instance.log(LogLevel.DEBUG, 'Debug with timestamp');
+		instance.logToStream(LogLevel.DEBUG, 'Debug with timestamp');
 		
 		const log = await logsPromise;
 		expect(log.timestamp).toBeInstanceOf(Date);
@@ -87,7 +86,7 @@ describe('LoggableMixin', () => {
 		const testData = { key: 'value', nested: { prop: 42 } };
 		const logsPromise = firstValueFrom(instance.log$.pipe(take(1)));
 		
-		instance.log(LogLevel.VERBOSE, 'Data log', testData);
+		instance.logToStream(LogLevel.VERBOSE, 'Data log', testData);
 		
 		const log = await logsPromise;
 		expect(log.data).toEqual(testData);
@@ -98,11 +97,11 @@ describe('LoggableMixin', () => {
 		const logsPromise = firstValueFrom(instance.log$.pipe(take(5), toArray()));
 		
 		// Use convenience methods
-		instance.log(LogLevel.DEBUG, 'Debug message');
-		instance.log(LogLevel.INFO, 'Info message');
-		instance.log(LogLevel.WARN, 'Warning message');
-		instance.log(LogLevel.ERROR, 'Error message');
-		instance.log(LogLevel.VERBOSE, 'Verbose message');
+		instance.logToStream(LogLevel.DEBUG, 'Debug message');
+		instance.logToStream(LogLevel.INFO, 'Info message');
+		instance.logToStream(LogLevel.WARN, 'Warning message');
+		instance.logToStream(LogLevel.ERROR, 'Error message');
+		instance.logToStream(LogLevel.VERBOSE, 'Verbose message');
 		
 		// Get collected logs
 		const logs = await logsPromise;
