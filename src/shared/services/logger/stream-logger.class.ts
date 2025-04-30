@@ -6,6 +6,7 @@ import Logger from "./models/logger.model";
  * @remark Intended to be composed into {@link LoggableMixin} to provide a standard logging interface.
  * @see {@link LoggableComponent} for details on the log$ observable stream.
  * @see {@link LoggableMixin} for details on the mixin that adds logging capabilities to any class.
+ * @todo Consider adding log level filtering to the logger to control which messages are logged based on the log level.
 */
 export class StreamLogger extends Logger {
 	/* The {@link LoggableComponent} log source from which to stream log messages. */
