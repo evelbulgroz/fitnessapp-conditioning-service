@@ -1,4 +1,4 @@
-import { Global, forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 import { DomainEvent, DomainEventDTO } from '@evelbulgroz/ddd-base';
 
