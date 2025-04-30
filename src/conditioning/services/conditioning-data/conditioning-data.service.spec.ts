@@ -2148,10 +2148,12 @@ describe('ConditioningDataService', () => {
 		});
 	});
 
-	describe('State Management API', () => {
-		// NOTE: no need to retest ManagedStatefulComponentMixin methods, as they are already tested in the base class.
-		// Just do a few checks that things are hooked up correctly.
-		
+	describe('Management API', () => {
+		// NOTE: no need to fully retest ManagedStatefulComponentMixin methods,
+		 // as they are already tested in the mixin.
+		 // Just do a few checks that things are hooked up correctly,
+		 // and that local implementations work correctly.									
+			
 		beforeEach(async () => {
 			// reset the service before each test
 			await service.shutdown(); // clear subscriptions and cache, and set state to SHUT_DOWN

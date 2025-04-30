@@ -35,11 +35,11 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		super(adapter, throttleTime);
 	}
 	
-	//---------------------------------------- DATA API ---------------------------------------//
+	//----------------------------------------- DATA API ----------------------------------------//
 
 	// NOTE: Currently, base class data API is fully sufficient for this class
 		
-	//---------------------------------- STATE MANAGEMENT API -----------------------------------//
+	//------------------------------------- MANAGEMENT API --------------------------------------//
 	
 	/** @see ManagedStatefulComponentMixin for public management API methods */
 

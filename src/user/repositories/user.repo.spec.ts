@@ -231,9 +231,12 @@ describe('UserRepo', () => {
 	});
 
 	describe('Management API', () => {
-			// NOTE: no need to retest either Repository or ManagedStatefulComponentMixin methods, as they are already tested in the base class.
-			// Just do a few checks that things are hooked up correctly.
-			describe('initialize', () => {
+		// NOTE: no need to fully retest ManagedStatefulComponentMixin methods,
+		 // as they are already tested in the mixin.
+		 // Just do a few checks that things are hooked up correctly,
+			// and that local implementations work correctly.			
+		
+		describe('initialize', () => {
 				it('initializes cache with a collection of overview logs from persistence', async () => {			
 					const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
 					expect(fetchAllResult.isSuccess).toBeTruthy();
