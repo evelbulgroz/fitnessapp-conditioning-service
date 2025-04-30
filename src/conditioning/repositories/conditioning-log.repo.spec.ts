@@ -510,8 +510,66 @@ describe('ConditioningLogRepository', () => {
 		jest.clearAllMocks();
 	});
 
-	it('can be created', () => {
-		expect(repo).toBeDefined();
+	describe('Component Lifecycle', () => {
+		// NOTE: Repository is fully tested in the base class, so only the User specific methods are tested here.
+		// Also testing that the lifecycle method calls are effectively routed to the base clase by the mixin.		
+
+		it('can be created', () => {
+			expect(repo).toBeDefined();
+			expect(repo).toBeInstanceOf(ConditioningLogRepository);
+		});
+
+		describe('Initialization', () => {
+			it('can be initialized', async () => {
+				// arrange
+				// act/assert
+				expect(async () => await repo.initialize()).not.toThrow(); // just check that it doesn't throw
+			});
+
+			it('initializes cache with a collection of overview logs from persistence', async () => {			
+				const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
+				expect(fetchAllResult.isSuccess).toBeTruthy();
+				const logs$ = fetchAllResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
+				const logs = await firstValueFrom(logs$);
+				expect(logs).toHaveLength(testDTOs.length);
+				logs.forEach((log, index) => {
+					expect(log).toBeInstanceOf(ConditioningLog);
+					const dto = testDTOs.find(dto => dto.entityId === log.entityId);
+					expect(dto).toBeDefined();
+					expect(log.entityId).toBe(dto!.entityId);
+					expect(log.isOverview).toBe(true);
+				});
+			});
+		});
+	
+		describe('Shutdown', () => {
+				it('can be shut down', async () => {
+					// arrange
+					await repo.initialize(); // initialize the repo
+					
+					// act/assert
+					expect(async () => await repo.shutdown()).not.toThrow(); // just check that it doesn't throw
+				});			
+	
+				
+
+			it('unsubscribes from all observables and clears subscriptions', async () => {
+				// arrange
+				await repo.initialize(); // initialize the repo
+				const dummySubscription = new Observable((subscriber) => {
+					subscriber.next('dummy');
+					subscriber.complete();
+				});
+				repo['subscriptions'].push(dummySubscription.subscribe());
+				expect(repo['subscriptions'].length).toBe(2); // base repo already added one subscription (id cache to main cache)
+				
+				// act
+				await repo.shutdown();
+	
+				// assert
+				expect(repo['subscriptions'].length).toBe(0); // all subscriptions should be cleared
+			});
+		});	
 	});
 
 	describe('Data API', () => {
@@ -622,7 +680,7 @@ describe('ConditioningLogRepository', () => {
 		});
 		
 		describe('initialize', () => {	
-			it('Calls onInitialize', async () => {				
+			it('calls onInitialize', async () => {				
 				// arrange
 				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
 				const sub = repo.componentState$.subscribe((s: ComponentStateInfo) => {
@@ -644,21 +702,6 @@ describe('ConditioningLogRepository', () => {
 				sub.unsubscribe();
 				onInitializeSpy.mockRestore();
 			});
-
-			it('initializes cache with a collection of overview logs from persistence', async () => {			
-				const fetchAllResult = await repo.fetchAll(); // implicitly calls isReady()
-				expect(fetchAllResult.isSuccess).toBeTruthy();
-				const logs$ = fetchAllResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>[]>;
-				const logs = await firstValueFrom(logs$);
-				expect(logs).toHaveLength(testDTOs.length);
-				logs.forEach((log, index) => {
-					expect(log).toBeInstanceOf(ConditioningLog);
-					const dto = testDTOs.find(dto => dto.entityId === log.entityId);
-					expect(dto).toBeDefined();
-					expect(log.entityId).toBe(dto!.entityId);
-					expect(log.isOverview).toBe(true);
-				});
-			});
 		});
 
 		describe('isReady', () => {		
@@ -675,7 +718,7 @@ describe('ConditioningLogRepository', () => {
 		});		
 
 		describe('shutdown', () => {
-			it('Calls onShutdown', async () => {				
+			it('calls onShutdown', async () => {				
 				// arrange
 				const onShutdownSpy = jest.spyOn(repo, 'onShutdown').mockReturnValue(Promise.resolve());
 				await repo.initialize(); // initialize the repo
@@ -689,23 +732,6 @@ describe('ConditioningLogRepository', () => {
 
 				// clean up
 				onShutdownSpy.mockRestore();
-			});
-
-			it('Unsubscribes from all observables and clears subscriptions', async () => {
-				// arrange
-				await repo.initialize(); // initialize the repo
-				const dummySubscription = new Observable((subscriber) => {
-					subscriber.next('dummy');
-					subscriber.complete();
-				});
-				repo['subscriptions'].push(dummySubscription.subscribe());
-				expect(repo['subscriptions'].length).toBe(2); // base repo already added one subscription (id cache to main cache)
-				
-				// act
-				await repo.shutdown();
-	
-				// assert
-				expect(repo['subscriptions'].length).toBe(0); // all subscriptions should be cleared
 			});
 		});
 	});

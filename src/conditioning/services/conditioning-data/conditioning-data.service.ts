@@ -64,13 +64,17 @@ export interface UserLogsCacheEntry {
 @Injectable()
 export class ConditioningDataService extends LoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleDestroy {
 	
-	//----------------------------------- PRIVATE PROPERTIES ------------------------------------//
+	//----------------------------------- PROPERTIES ------------------------------------//
 	
-	protected readonly cache = new BehaviorSubject<UserLogsCacheEntry[]>([]); // local cache of logs by user id in user microservice
+	 // Local cache of logs by user id in user microservice
+	protected readonly cache = new BehaviorSubject<UserLogsCacheEntry[]>([]);
 	
 	// Inject separately to keep constructor signature clean
 	@Inject(Logger) protected readonly logger: Logger;
 	@Inject(QueryMapper) protected readonly queryMapper: QueryMapper<QueryType, QueryDTO>;
+
+	 // Array of subscriptions to be cleaned up on shutdown
+	protected readonly subscriptions: Subscription[] = [];
 	
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
@@ -726,8 +730,13 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 			this.logger.log(`Executing shutdown...`, this.constructor.name);
 			
 			// clean up resources
-			this.subscriptions.forEach((subscription) => subscription?.unsubscribe()); // unsubscribe all subscriptions
-			this.subscriptions = []; // clear subscriptions array
+			while (this.subscriptions.length > 0) { // unsubscribe all subscriptions
+				const subscription = this.subscriptions.shift(); // remove in FIFO order
+				if (subscription) {
+					subscription.unsubscribe();
+				}
+			}
+			
 			this.cache.complete(); // complete the cache observable to release resources
 			this.cache.next([]); // emit empty array to clear cache
 			
@@ -739,8 +748,6 @@ export class ConditioningDataService extends LoggableMixin(ManagedStatefulCompon
 			return Promise.reject(error);
 		}
 	}
-	
-	protected subscriptions: Subscription[] = []; // array of subscriptions to be cleaned up on shutdown
 	
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 

@@ -94,11 +94,68 @@ describe('UserRepo', () => {
 		adapterInitSpy?.mockRestore();
 		logSpy?.mockRestore();
 		jest.clearAllMocks();
-	});
+	});	
+
+	describe('Component Lifecycle', () => {
+		it('can be created', () => {
+			expect(repo).toBeDefined();
+			expect(repo).toBeInstanceOf(UserRepository);
+		});
+
+		// NOTE: Repository is fully tested in the base class, so only the User specific methods are tested here.
+		// Also testing that the lifecycle method calls are effectively routed to the base clase by the mixin.		
+
+		describe('Initialization', () => {
+			it('can be initialized', async () => {
+				// arrange
+				// act/assert
+				expect(async () => await repo.initialize()).not.toThrow(); // just check that it doesn't throw
+			});
+
+			it('populates the cache with a collection of Users', async () => {
+				// arrange
+				// act
+				await repo.initialize();
+				
+				// assert
+				const cache = repo['cache'];
+				
+				expect(cache).toBeDefined();
+				expect(cache.value).toHaveLength(testDTOs.length);
+				
+				cache.value.forEach((item, index) => {
+					expect(item).toBeInstanceOf(User); // check if item is an instance of User
+					expect(item.toDTO()).toEqual(testDTOs[index]); // check if item data matches the test data
+				});
+			});
+		});
+
+		describe('Shutdown', () => {
+			it('can be shut down', async () => {
+				// arrange
+				await repo.initialize(); // initialize the repo
+				
+				// act/assert
+				expect(async () => await repo.shutdown()).not.toThrow(); // just check that it doesn't throw
+			});			
+
+			it('unsubscribes from all observables and clears subscriptions', async () => {
+				// arrange
+				await repo.initialize(); // initialize the repo
+				const dummySubscription = new Observable((subscriber) => {
+					subscriber.next('dummy');
+					subscriber.complete();
+				});
+				repo['subscriptions'].push(dummySubscription.subscribe());
+				expect(repo['subscriptions'].length).toBe(2); // base repo already added one subscription (id cache to main cache)
+				
+				// act
+				await repo.shutdown();
 	
-	it('can be created', () => {
-		expect(repo).toBeDefined();
-		expect(repo).toBeInstanceOf(UserRepository);
+				// assert
+				expect(repo['subscriptions'].length).toBe(0); // all subscriptions should be cleared
+			});
+		});
 	});
 
 	describe('Data API', () => {
@@ -234,9 +291,9 @@ describe('UserRepo', () => {
 
 	describe('Management API', () => {
 		// NOTE: no need to fully retest ManagedStatefulComponentMixin methods,
-			// as they are already tested in the mixin.
-			// Just do a few checks that things are hooked up correctly,
-			// and that local implementations work correctly.			
+		 // as they are already tested in the mixin.
+		 // Just do a few checks that things are hooked up correctly,
+		 // and that local implementations work correctly.			
 					
 		describe('ManagedStatefulComponentMixin Members', () => {
 			it('Inherits componentState$ ', () => {
@@ -318,7 +375,7 @@ describe('UserRepo', () => {
 		});
 		
 		describe('initialize', () => {	
-			it('Calls onInitialize', async () => {				
+			it('calls onInitialize', async () => {				
 				// arrange
 				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
 				const sub = repo.componentState$.subscribe((s: ComponentStateInfo) => {
@@ -340,8 +397,6 @@ describe('UserRepo', () => {
 				sub.unsubscribe();
 				onInitializeSpy.mockRestore();
 			});
-
-			// todo: check initialization of the cache and subscriptions
 		});
 
 		describe('isReady', () => {		
@@ -358,7 +413,7 @@ describe('UserRepo', () => {
 		});		
 
 		describe('shutdown', () => {
-			it('Calls onShutdown', async () => {				
+			it('calls onShutdown', async () => {				
 				// arrange
 				const onShutdownSpy = jest.spyOn(repo, 'onShutdown').mockReturnValue(Promise.resolve());
 				await repo.initialize(); // initialize the repo
@@ -372,23 +427,6 @@ describe('UserRepo', () => {
 
 				// clean up
 				onShutdownSpy.mockRestore();
-			});
-
-			it('Unsubscribes from all observables and clears subscriptions', async () => {
-				// arrange
-				await repo.initialize(); // initialize the repo
-				const dummySubscription = new Observable((subscriber) => {
-					subscriber.next('dummy');
-					subscriber.complete();
-				});
-				repo['subscriptions'].push(dummySubscription.subscribe());
-				expect(repo['subscriptions'].length).toBe(2); // base repo already added one subscription (id cache to main cache)
-				
-				// act
-				await repo.shutdown();
-	
-				// assert
-				expect(repo['subscriptions'].length).toBe(0); // all subscriptions should be cleared
 			});
 		});
 	});	
@@ -432,7 +470,7 @@ describe('UserRepo', () => {
 		});
 	});
 
-	describe('Protected Method Overrides', () => {
+	describe('Protected Methods', () => {
 		describe('createEntityCreatedEvent', () => {
 			it('returns a UserCreatedEvent', () => {
 				// arrange

@@ -698,6 +698,73 @@ describe('ConditioningDataService', () => {
 		expect(service).toBeTruthy();
 	});
 
+	describe('Component Lifecycle', () => {
+		it('can be created', () => {
+			expect(service).toBeDefined();
+			expect(service).toBeInstanceOf(ConditioningDataService);
+		});
+
+		// NOTE: Mostly just testing that the lifecycle method calls are effectively routed to the base clase by the mixin.
+
+		describe('Initialization', () => {
+			it('can be initialized', async () => {
+				// arrange
+				// act/assert
+				expect(async () => await service.initialize()).not.toThrow(); // just check that it doesn't throw
+			});
+
+			it('initializes cache with a collection of overview logs', async () => {			
+				// arrange
+				await service.initialize(); // initialize the repo
+				const cache = service['cache'].value;
+				expect(cache).toBeDefined();
+				expect(Array.isArray(cache)).toBe(true);
+				expect(cache.length).toBe(users.length); // one entry for each user in the repo
+				cache.forEach(entry => {
+					expect(entry.userId).toBeDefined();
+					expect(entry.logs).toBeDefined();
+					expect(Array.isArray(entry.logs)).toBe(true);
+					//expect(entry.logs.length).toBe(2); // todo: use a calculated value to make it more robust against changes to test data
+					entry.logs.forEach(log => {
+						expect(log).toBeInstanceOf(ConditioningLog);
+						const dto = testDTOs.find(dto => dto.entityId === log.entityId);
+						expect(dto).toBeDefined();
+						expect(log.entityId).toBe(dto!.entityId);
+						expect(log.isOverview).toBe(true);
+					});
+				});
+			});
+		});
+
+		describe('Shutdown', () => {
+			it('can be shut down', async () => {
+				// arrange
+				await service.initialize(); // initialize the repo
+				
+				// act/assert
+				expect(async () => await service.shutdown()).not.toThrow(); // just check that it doesn't throw
+			});
+
+			it('unsubscribes from all observables and clears subscriptions', async () => {
+				// arrange
+				const dummySubscription = new Observable((subscriber) => {
+					subscriber.next('dummy');
+					subscriber.complete();
+				});
+				service['subscriptions'].push(dummySubscription.subscribe());
+				expect(service['subscriptions'].length).toBe(3); // sanity check	
+				
+				await service.initialize(); // initialize the service
+				
+				// act
+				await service.shutdown();
+
+				// assert
+				expect(service['subscriptions'].length).toBe(0); // all subscriptions should be cleared
+			});
+		});	
+	});
+
 	describe('Data API', () => {
 		let aggregationQueryDTO: AggregationQueryDTO;
 		let aggregatorSpy: any;
@@ -2240,7 +2307,7 @@ describe('ConditioningDataService', () => {
 		});
 		
 		describe('initialize', () => {	
-			it('Calls onInitialize', async () => {				
+			it('calls onInitialize', async () => {				
 				// arrange
 				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
 				const sub = service.componentState$.subscribe((s: ComponentStateInfo) => {
@@ -2278,7 +2345,7 @@ describe('ConditioningDataService', () => {
 		});		
 
 		describe('shutdown', () => {
-			it('Calls onShutdown', async () => {				
+			it('calls onShutdown', async () => {				
 				// arrange
 				const onShutdownSpy = jest.spyOn(service, 'onShutdown').mockReturnValue(Promise.resolve());
 				
@@ -2291,24 +2358,6 @@ describe('ConditioningDataService', () => {
 
 				// clean up
 				onShutdownSpy.mockRestore();
-			});
-
-			it('Unsubscribes from all observables and clears subscriptions', async () => {
-				// arrange
-				const dummySubscription = new Observable((subscriber) => {
-					subscriber.next('dummy');
-					subscriber.complete();
-				});
-				service['subscriptions'].push(dummySubscription.subscribe());
-				expect(service['subscriptions'].length).toBe(1); // sanity check	
-				
-				await service.initialize(); // initialize the service
-				
-				// act
-				await service.shutdown();
-	
-				// assert
-				expect(service['subscriptions'].length).toBe(0); // all subscriptions should be cleared
 			});
 		});
 	});

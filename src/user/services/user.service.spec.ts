@@ -15,9 +15,7 @@ import { UserDTO } from '../dtos/user.dto';
 import { UserRepository } from '../repositories/user.repo';
 import { UserService } from './user.service';
 import ComponentState from '../../app-health/models/component-state.enum';
-import exp from 'constants';
 import ComponentStateInfo from '../../app-health/models/component-state-info.model';
-
 
 describe('UserService', () => {
 	// set up test environment and dependencies/mocks, and initialize the module
@@ -135,9 +133,52 @@ describe('UserService', () => {
 		await app.close();
 	});
 
-	it('can be created', () => {
-		expect(service).toBeDefined();
-	});
+	describe('Component Lifecycle', () => {
+		it('can be created', () => {
+			expect(service).toBeDefined();
+			expect(service).toBeInstanceOf(UserService);
+		});
+
+		// NOTE: Mostly just testing that the lifecycle method calls are effectively routed to the base clase by the mixin.
+
+		describe('Initialization', () => {
+			it('can be initialized', async () => {
+				// arrange
+				// act/assert
+				expect(async () => await service.initialize()).not.toThrow(); // just check that it doesn't throw
+			});
+
+			// NOTE: UserService does not currently have any specific initialization logic, so no need to test it here.
+		});
+
+		describe('Shutdown', () => {
+			it('can be shut down', async () => {
+				// arrange
+				await service.initialize(); // initialize the repo
+				
+				// act/assert
+				expect(async () => await service.shutdown()).not.toThrow(); // just check that it doesn't throw
+			});
+
+			it('unsubscribes from all observables and clears subscriptions', async () => {
+				// arrange
+				const dummySubscription = new Observable((subscriber) => {
+					subscriber.next('dummy');
+					subscriber.complete();
+				});
+				service['subscriptions'].push(dummySubscription.subscribe());
+				expect(service['subscriptions'].length).toBe(1); // sanity check	
+				
+				await service.initialize(); // initialize the service
+				
+				// act
+				await service.shutdown();
+
+				// assert
+				expect(service['subscriptions'].length).toBe(0); // all subscriptions should be cleared
+			});
+		});	
+	});	
 
 	describe('Data API', () => {
 		describe('createUser', () => {
@@ -456,12 +497,6 @@ describe('UserService', () => {
 			 // Just do a few checks that things are hooked up correctly,
 			 // and that local implementations work correctly.			
 			 
-		beforeEach(async () => {
-			// reset the service before each test
-			await service.shutdown(); // clear subscriptions and cache, and set state to SHUT_DOWN
-			service['msc_zh7y_stateSubject'].next({name: 'ConditioningDataService', state: ComponentState.UNINITIALIZED, updatedOn: new Date()}); // set state to UNINITIALIZED
-		});
-
 		describe('ManagedStatefulComponentMixin Members', () => {
 			it('Inherits componentState$ ', () => {
 				expect(service).toHaveProperty('componentState$');
@@ -542,7 +577,7 @@ describe('UserService', () => {
 		});
 		
 		describe('initialize', () => {	
-			it('Calls onInitialize', async () => {				
+			it('calls onInitialize', async () => {				
 				// arrange
 				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
 				const sub = service.componentState$.subscribe((s: ComponentStateInfo) => {
@@ -580,7 +615,7 @@ describe('UserService', () => {
 		});		
 
 		describe('shutdown', () => {
-			it('Calls onShutdown', async () => {				
+			it('calls onShutdown', async () => {				
 				// arrange
 				const onShutdownSpy = jest.spyOn(service, 'onShutdown').mockReturnValue(Promise.resolve());
 				
@@ -595,7 +630,7 @@ describe('UserService', () => {
 				onShutdownSpy.mockRestore();
 			});
 
-			it('Unsubscribes from all observables and clears subscriptions', async () => {
+			it('unsubscribes from all observables and clears subscriptions', async () => {
 				// arrange
 				const dummySubscription = new Observable((subscriber) => {
 					subscriber.next('dummy');
