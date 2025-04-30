@@ -44,8 +44,6 @@ import { UserRepository } from '../../../user/repositories/user.repo';
 import ComponentState from '../../../app-health/models/component-state.enum';
 import ComponentStateInfo from '../../../app-health/models/component-state-info.model';
 import { UserLogsCacheEntry } from './conditioning-data.service';
-import UnifiedLogEntry from '../../../shared/services/logger/models/unified-log-event.model';
-import LogLevel from '../../../shared/services/logger/models/log-level.enum';
 
 const originalTimeout = 5000;
 //jest.setTimeout(15000);
