@@ -1,12 +1,18 @@
 import { Subject } from "rxjs";
 
 import LogLevel from "./log-level.enum";
+import StreamLogger from "../stream-logger.class";
 import UnifiedLogEntry from "./unified-log-event.model";
 
 /** Specifies the interface for a loggable component. */
 export interface LoggableComponent {
 	/** Observable stream of log entries */
 	readonly log$: Subject<UnifiedLogEntry>;
+
+	/** Logger instance for the component.
+	 * @remark This logger provides a standard interface for logging messages to the log$ observable stream.
+	 */
+	readonly logger: StreamLogger;
 
 	/** Log a message with the specified level to the log stream.
 	 * @param level The log level
