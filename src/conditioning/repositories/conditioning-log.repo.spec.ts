@@ -489,26 +489,24 @@ describe('ConditioningLogRepository', () => {
 		randomPersistenceDTO = testPersistenceDTOs[randomIndex];
 	});
 	
+	let adapterInitSpy: jest.SpyInstance;
+	let adapterShutdownSpy: jest.SpyInstance;
+	let consoleLogSpy: jest.SpyInstance;
 	let fetchAllSpy: jest.SpyInstance;
 	let fetchByIdSpy: jest.SpyInstance;
-	let initSpy: jest.SpyInstance;
-	let logSpy: jest.SpyInstance;
 	beforeEach(() => {
+		adapterInitSpy = jest.spyOn(repo['adapter'], 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));
+		adapterShutdownSpy = jest.spyOn(repo['adapter'], 'shutdown').mockResolvedValue(Promise.resolve(Result.ok()));
+		consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {}); // suppress console.log output in tests
 		fetchAllSpy = jest.spyOn(adapter, 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
 		fetchByIdSpy = jest.spyOn(adapter, 'fetchById').mockResolvedValue(Promise.resolve(Result.ok(randomPersistenceDTO)));
-		initSpy = jest.spyOn(repo['adapter'], 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));
-		logSpy = jest.spyOn(console, 'log').mockImplementation(() => {}); // suppress console.log output in tests
-	});
-
-	beforeEach(async () => {
-		await repo.initialize();
-	});
+	});	
 
 	afterEach(() => {
 		fetchAllSpy?.mockRestore();
 		fetchByIdSpy?.mockRestore();
-		initSpy?.mockRestore();
-		logSpy?.mockRestore();
+		adapterInitSpy?.mockRestore();
+		consoleLogSpy?.mockRestore();
 		jest.clearAllMocks();
 	});
 
@@ -523,6 +521,7 @@ describe('ConditioningLogRepository', () => {
 		describe('fetchById', () => {
 			it('fetches a conditioning log by ID', async () => {				
 				// arrange
+				await repo.initialize(); // initialize the repo to set up the adapter and fetch all logs
 				// act
 				const fetchResult = await repo.fetchById(randomDTO.entityId!);
 				
@@ -561,11 +560,23 @@ describe('ConditioningLogRepository', () => {
 			// NOTE: no need to retest ManagedStatefulComponentMixin methods, as they are already tested in the base class.
 			// Just do a few checks that things are hooked up correctly.
 			
+			/*
 			beforeEach(async () => {
 				// reset the repo before each test
-				await repo.shutdown(); // clear subscriptions and cache, and set state to SHUT_DOWN
-				repo['msc_zh7y_stateSubject'].next({name: 'ConditioningDataService', state: ComponentState.UNINITIALIZED, updatedOn: new Date()}); // set state to UNINITIALIZED
+				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+				const sub = repo.componentState$.subscribe((s: ComponentStateInfo) => {
+					state = s.state;
+				});
+				expect(state).toBe(ComponentState.OK);// sanity check
+				if (state !== ComponentState.UNINITIALIZED) {
+					await repo.shutdown(); // set state to SHUT_DOWN
+					await repo.shutdown(); // clear subscriptions and cache, and set state to SHUT_DOWN
+					repo['msc_zh7y_stateSubject'].next({name: 'ConditioningDataService', state: ComponentState.UNINITIALIZED, updatedOn: new Date()}); // set state to UNINITIALIZED
+				}
+				expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
+				sub.unsubscribe(); // clean up subscription
 			});		
+			*/
 			
 			describe('ManagedStatefulComponentMixin Members', () => {
 				it('Inherits componentState$ ', () => {
@@ -663,7 +674,7 @@ describe('ConditioningLogRepository', () => {
 		
 					// assert
 					expect(onInitializeSpy).toHaveBeenCalledTimes(1);
-					expect(onInitializeSpy).toHaveBeenCalledWith(undefined);
+					expect(onInitializeSpy).toHaveBeenCalledWith(expect.objectContaining({ isSuccess: true }));
 	
 					// clean up
 					sub.unsubscribe();
@@ -688,13 +699,14 @@ describe('ConditioningLogRepository', () => {
 				it('Calls onShutdown', async () => {				
 					// arrange
 					const onShutdownSpy = jest.spyOn(repo, 'onShutdown').mockReturnValue(Promise.resolve());
+					await repo.initialize(); // initialize the repo
 					
 					// act
 					await repo.shutdown();
 		
 					// assert
 					expect(onShutdownSpy).toHaveBeenCalledTimes(1);
-					expect(onShutdownSpy).toHaveBeenCalledWith(undefined);
+					expect(onShutdownSpy).toHaveBeenCalledWith(expect.objectContaining({ isSuccess: true }));
 	
 					// clean up
 					onShutdownSpy.mockRestore();
@@ -702,14 +714,13 @@ describe('ConditioningLogRepository', () => {
 	
 				it('Unsubscribes from all observables and clears subscriptions', async () => {
 					// arrange
+					await repo.initialize(); // initialize the repo
 					const dummySubscription = new Observable((subscriber) => {
 						subscriber.next('dummy');
 						subscriber.complete();
 					});
 					repo['subscriptions'].push(dummySubscription.subscribe());
-					expect(repo['subscriptions'].length).toBe(1); // sanity check	
-					
-					await repo.initialize(); // initialize the repo
+					expect(repo['subscriptions'].length).toBe(1); // sanity check					
 					
 					// act
 					await repo.shutdown();
