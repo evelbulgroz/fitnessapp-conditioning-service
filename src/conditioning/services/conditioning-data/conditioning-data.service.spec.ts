@@ -26,6 +26,7 @@ import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-d
 import { ConditioningLogUndeletedHandler } from '../../handlers/conditioning-log-undeleted.handler';
 import { ConditioningLogUpdatedEvent } from '../../events/conditioning-log-updated.event';
 import { ConditioningLogUpdateHandler } from '../../handlers/conditioning-log-updated.handler';
+import Logger from '../../../shared/services/logger/models/logger.model';
 import { UserCreatedHandler } from '../../../user/handlers/user-created.handler';
 import { UserDeletedHandler } from '../../../user/handlers/user-deleted.handler';
 import { UserUpdatedEvent } from '../../../user/events/user-updated.event';
@@ -2253,25 +2254,25 @@ describe('ConditioningDataService', () => {
 		});		
 		
 		describe('ManagedStatefulComponentMixin Members', () => {
-			it('Inherits componentState$ ', () => {
+			it('inherits componentState$ ', () => {
 				expect(service).toHaveProperty('componentState$');
 				expect(service.componentState$).toBeDefined();
 				expect(service.componentState$).toBeInstanceOf(Observable);
 			});
 
-			it('Inherits initialize method', () => {
+			it('inherits initialize method', () => {
 				expect(service).toHaveProperty('initialize');
 				expect(service.initialize).toBeDefined();
 				expect(service.initialize).toBeInstanceOf(Function);
 			});
 
-			it('Inherits shutdown method', () => {
+			it('inherits shutdown method', () => {
 				expect(service).toHaveProperty('shutdown');
 				expect(service.shutdown).toBeDefined();
 				expect(service.shutdown).toBeInstanceOf(Function);
 			});
 
-			it('Inherits isReady method', () => {
+			it('inherits isReady method', () => {
 				expect(service).toHaveProperty('isReady');
 				expect(service.isReady).toBeDefined();
 				expect(service.isReady).toBeInstanceOf(Function);
@@ -2388,14 +2389,21 @@ describe('ConditioningDataService', () => {
 	});
 	
 	describe('Logging API', () => {
-		it('has a log$ observable', () => {
-			expect(service.log$).toBeDefined();
-			expect(service.log$).toBeInstanceOf(Subject);
-		});
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(service.log$).toBeDefined();
+				expect(service.log$).toBeInstanceOf(Subject);
+			});
 
-		it('has a logToStream method', () => {
-			expect(service.logToStream).toBeDefined();
-			expect(typeof service.logToStream).toBe('function');
+			it('inherits logger', () => {
+				expect(service.logger).toBeDefined();
+				expect(service.logger).toBeInstanceOf(Logger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(service.logToStream).toBeDefined();
+				expect(typeof service.logToStream).toBe('function');
+			});
 		});
 	});
 
