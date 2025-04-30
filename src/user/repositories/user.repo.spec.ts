@@ -76,11 +76,13 @@ describe('UserRepo', () => {
 	let adapterFetchAllSpy: jest.SpyInstance;
 	let adapterFetchByQuerySpy: jest.SpyInstance;
 	let adapterInitSpy: jest.SpyInstance;
+	let adapterShutdownSpy: jest.SpyInstance;
 	let logSpy: jest.SpyInstance;
 	beforeEach(() => {
 		adapterDeleteSpy = jest.spyOn(adapter, 'delete').mockResolvedValue(Promise.resolve(Result.ok()));
 		adapterFetchAllSpy = jest.spyOn(adapter, 'fetchAll').mockResolvedValue(Promise.resolve(Result.ok(testPersistenceDTOs)));
 		adapterInitSpy = jest.spyOn(adapter, 'initialize').mockResolvedValue(Promise.resolve(Result.ok()));
+		adapterShutdownSpy = jest.spyOn(adapter, 'shutdown').mockResolvedValue(Promise.resolve(Result.ok()));
 		logSpy = jest.spyOn(console, 'log').mockImplementation(() => {}); // suppress console.log output in tests
 	});
 

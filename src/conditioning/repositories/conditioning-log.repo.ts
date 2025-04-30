@@ -26,10 +26,6 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	extends ManagedStatefulComponentMixin(TrainingLogRepo)<ConditioningLog<T,U>, U> {
 	// implements OnModuleInit, OnModuleDestroy {
 
-	//---------------------------------------- PROPERTIES ---------------------------------------//
-
-	protected readonly subscriptions: Subscription[] = []; // array of subscriptions to be cleaned up on shutdown
-
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 
 	public constructor(
@@ -88,7 +84,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		}
 
 		// Clean up subscriptions
-		this.subscriptions.forEach((sub: Subscription) => sub?.unsubscribe()); // clean up subscriptions to avoid memory leaks
+		//this.subscriptions.forEach((sub: Subscription) => sub?.unsubscribe()); // clean up subscriptions to avoid memory leaks
 		
 		console.log(`Shutdown executed successfully`); // log directly to the console, repo log stream is closed at this point
         return Promise.resolve();
