@@ -1,10 +1,10 @@
 import { TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 
-import { firstValueFrom, Observable, of, pipe, Subject, take } from 'rxjs';
+import { firstValueFrom, Observable, of,  Subject, take } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { Logger } from '@evelbulgroz/logger';
 import { Result } from '@evelbulgroz/ddd-base';
 
 import { createTestingModule } from '../../test/test-utils';
@@ -13,15 +13,15 @@ import { User } from '../domain/user.entity';
 import { UserContext } from '../../shared/domain/user-context.model';
 import { UserDTO } from '../dtos/user.dto';
 import { UserRepository } from '../repositories/user.repo';
-import { UserService } from './user.service';
+import { UserDataService } from './user-data.service';
 import ComponentState from '../../app-health/models/component-state.enum';
 import ComponentStateInfo from '../../app-health/models/component-state-info.model';
 
-describe('UserService', () => {
+describe('UserDataService', () => {
 	// set up test environment and dependencies/mocks, and initialize the module
 	let app: TestingModule;
 	let config: ConfigService;
-	let service: UserService;
+	let service: UserDataService;
 	let userRepo: UserRepository;
 	let userRepoUpdatesSubject: Subject<any>;
 	beforeEach(async () => {
@@ -59,13 +59,13 @@ describe('UserService', () => {
 						updates$: userRepoUpdatesSubject.asObservable(),
 					}
 				},
-				UserService
+				UserDataService
 			],
 		}))
 		.compile();
 
 		config = app.get<ConfigService>(ConfigService);
-		service = app.get<UserService>(UserService);
+		service = app.get<UserDataService>(UserDataService);
 		userRepo = app.get<UserRepository>(UserRepository);
 	});
 
@@ -136,7 +136,7 @@ describe('UserService', () => {
 	describe('Component Lifecycle', () => {
 		it('can be created', () => {
 			expect(service).toBeDefined();
-			expect(service).toBeInstanceOf(UserService);
+			expect(service).toBeInstanceOf(UserDataService);
 		});
 
 		// NOTE: Mostly just testing that the lifecycle method calls are effectively routed to the base clase by the mixin.
@@ -148,7 +148,7 @@ describe('UserService', () => {
 				expect(async () => await service.initialize()).not.toThrow(); // just check that it doesn't throw
 			});
 
-			// NOTE: UserService does not currently have any specific initialization logic, so no need to test it here.
+			// NOTE: UserDataService does not currently have any specific initialization logic, so no need to test it here.
 		});
 
 		describe('Shutdown', () => {
@@ -233,7 +233,7 @@ describe('UserService', () => {
 				const result = service.createUser(invalidContext, newUserIdDTO);
 
 				// assert
-				await expect(result).rejects.toThrow('User invalid not authorized to access UserService.createUser');
+				await expect(result).rejects.toThrow('User invalid not authorized to access UserDataService.createUser');
 			});
 
 			it('throws error if caller is not admin', async () => {
@@ -249,7 +249,7 @@ describe('UserService', () => {
 				const result = service.createUser(invalidContext, newUserIdDTO);
 
 				// assert
-				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserService.createUser');
+				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserDataService.createUser');
 			});
 
 			it('throws error if user id is invalid', async () => {
@@ -260,7 +260,7 @@ describe('UserService', () => {
 				const result = service.createUser(userContext, randomUserId);
 
 				// assert
-				await expect(result).rejects.toThrow("UserService.createUser requires a valid user id, got: null");
+				await expect(result).rejects.toThrow("UserDataService.createUser requires a valid user id, got: null");
 			});
 
 			it('throws error if user with same microservice user id already exists', async () => {
@@ -352,7 +352,7 @@ describe('UserService', () => {
 				const result = service.deleteUser(invalidContext, randomUserId);
 
 				// assert
-				await expect(result).rejects.toThrow('User invalid not authorized to access UserService.delete');
+				await expect(result).rejects.toThrow('User invalid not authorized to access UserDataService.delete');
 			});
 
 			it('throws error if caller is not admin', async () => {
@@ -368,7 +368,7 @@ describe('UserService', () => {
 				const result = service.deleteUser(invalidContext, randomUserId);
 
 				// assert
-				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserService.delete');
+				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserDataService.delete');
 			});
 
 			it('throws error if user id is invalid', async () => {
@@ -379,7 +379,7 @@ describe('UserService', () => {
 				const result = service.deleteUser(userContext, randomUserId);
 
 				// assert
-				await expect(result).rejects.toThrow("UserService.delete requires a valid user id, got: null");
+				await expect(result).rejects.toThrow("UserDataService.delete requires a valid user id, got: null");
 			});
 
 			it('throws error if user does not exist', async () => {
@@ -447,7 +447,7 @@ describe('UserService', () => {
 				const result = service.undeleteUser(invalidContext, randomUserId);
 
 				// assert
-				await expect(result).rejects.toThrow('User invalid not authorized to access UserService.undelete');
+				await expect(result).rejects.toThrow('User invalid not authorized to access UserDataService.undelete');
 			});
 
 			it('throws error if caller is not admin', async () => {
@@ -463,7 +463,7 @@ describe('UserService', () => {
 				const result = service.undeleteUser(invalidContext, randomUserId);
 
 				// assert
-				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserService.undelete');
+				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserDataService.undelete');
 			});
 
 			it('throws error if user id is invalid', async () => {
@@ -474,7 +474,7 @@ describe('UserService', () => {
 				const result = service.undeleteUser(userContext, randomUserId);
 
 				// assert
-				await expect(result).rejects.toThrow("UserService.undelete requires a valid user id, got: null");
+				await expect(result).rejects.toThrow("UserDataService.undelete requires a valid user id, got: null");
 			});
 
 			it('throws error if user does not exist', async () => {

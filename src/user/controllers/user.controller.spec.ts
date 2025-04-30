@@ -22,7 +22,7 @@ import { UserContext } from '../../shared/domain/user-context.model';
 import { UserController } from '../../user/controllers/user.controller';
 import { UserJwtPayload } from '../../authentication/services/jwt/domain/user-jwt-payload.model';
 import { UserRepository } from '../../user/repositories/user.repo';
-import { UserService } from '../../user/services/user.service';
+import { UserDataService } from '../services/user-data.service';
 import { ValidationPipe } from '../../infrastructure//pipes/validation.pipe';
 
 // NOTE:
@@ -33,7 +33,7 @@ import { ValidationPipe } from '../../infrastructure//pipes/validation.pipe';
 describe('UserController', () => {
   	let app: INestApplication;
 	let controller: UserController;
-	let userDataService: UserService;
+	let userDataService: UserDataService;
 	let config: ConfigService;
 	let crypto: CryptoService;
 	let http: HttpService;
@@ -86,7 +86,7 @@ describe('UserController', () => {
 					},
 				},
 				{ // Data service
-					provide: UserService,
+					provide: UserDataService,
 					useValue: {
 						createUser: jest.fn(),
 						deleteUser: jest.fn(),
@@ -114,7 +114,7 @@ describe('UserController', () => {
 		
 		app = module.createNestApplication();
 		controller = module.get<UserController>(UserController);
-		userDataService = module.get<UserService>(UserService);
+		userDataService = module.get<UserDataService>(UserDataService);
 		config = module.get<ConfigService>(ConfigService);
 		crypto = module.get<CryptoService>(CryptoService);
 		http = module.get<HttpService>(HttpService);
@@ -201,16 +201,16 @@ describe('UserController', () => {
 			let requestConfig: any;
 			let url: string;
 			let userId: string;
-			let userServiceCreateSpy: any;
+			let UserDataServiceCreateSpy: any;
 			beforeEach(() => {
 				requestConfig = { };
 				userId = uuid();
 				url = `${baseUrl}/${userId}`;
-				userServiceCreateSpy = jest.spyOn(userDataService, 'createUser').mockImplementation(() => Promise.resolve(userId));
+				UserDataServiceCreateSpy = jest.spyOn(userDataService, 'createUser').mockImplementation(() => Promise.resolve(userId));
 			});
 
 			afterEach(() => {
-				userServiceCreateSpy?.mockRestore();
+				UserDataServiceCreateSpy?.mockRestore();
 			});
 
 			it('creates a new user and returns an empty success message', async () => {
@@ -291,7 +291,7 @@ describe('UserController', () => {
 			it('throws error if data service throws', async () => {
 				// arrange
 				const errorMessage = 'Request failed with status code 400';
-				const userServiceSpy = jest.spyOn(userDataService, 'createUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
+				const UserDataServiceSpy = jest.spyOn(userDataService, 'createUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
 				const response$ = http.post(url, requestConfig, { headers });
 
 				// act/assert
@@ -306,22 +306,22 @@ describe('UserController', () => {
 				expect(error.message).toBe(errorMessage);
 
 				// clean up
-				userServiceSpy.mockRestore();
+				UserDataServiceSpy.mockRestore();
 			});
 		});
 
 		describe('deleteUser', () => {
 			let url: string;
 			let userId: string;
-			let userServiceDeleteSpy: any;
+			let UserDataServiceDeleteSpy: any;
 			beforeEach(() => {
 				userId = uuid();
 				url = `${baseUrl}/${userId}`;
-				userServiceDeleteSpy = jest.spyOn(userDataService, 'deleteUser').mockImplementation(() => Promise.resolve());
+				UserDataServiceDeleteSpy = jest.spyOn(userDataService, 'deleteUser').mockImplementation(() => Promise.resolve());
 			});
 
 			afterEach(() => {
-				userServiceDeleteSpy?.mockRestore();
+				UserDataServiceDeleteSpy?.mockRestore();
 			});
 
 			it('deletes a user and returns an empty success message', async () => {
@@ -330,8 +330,8 @@ describe('UserController', () => {
 				const response = await lastValueFrom(http.delete(url, { headers }));
 				
 				// assert
-				expect(userServiceDeleteSpy).toHaveBeenCalledTimes(1);
-				expect(userServiceDeleteSpy).toHaveBeenCalledWith(adminContext, new EntityIdDTO(userId), true);
+				expect(UserDataServiceDeleteSpy).toHaveBeenCalledTimes(1);
+				expect(UserDataServiceDeleteSpy).toHaveBeenCalledWith(adminContext, new EntityIdDTO(userId), true);
 				expect(response.status).toBe(204);
 				expect(response.data).toBe('');
 			});
@@ -352,7 +352,7 @@ describe('UserController', () => {
 				// act
 				expect(response.status).toBe(204);
 				expect(response.data).toBe('');
-				expect(userServiceDeleteSpy).toHaveBeenCalledWith(adminContext, new EntityIdDTO(userId), true);
+				expect(UserDataServiceDeleteSpy).toHaveBeenCalledWith(adminContext, new EntityIdDTO(userId), true);
 			});
 
 			it('throws a BadRequestException if access token is missing', async () => {
@@ -423,7 +423,7 @@ describe('UserController', () => {
 			it('throws error if data service throws', async () => {
 				// arrange
 				const errorMessage = 'Request failed with status code 400';
-				const userServiceSpy = jest.spyOn(userDataService, 'deleteUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
+				const UserDataServiceSpy = jest.spyOn(userDataService, 'deleteUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
 				const response$ = http.delete(url, { headers });
 
 				// act/assert
@@ -438,7 +438,7 @@ describe('UserController', () => {
 				expect(error.message).toBe(errorMessage);
 
 				// clean up
-				userServiceSpy.mockRestore();
+				UserDataServiceSpy.mockRestore();
 			});
 		});
 
@@ -446,16 +446,16 @@ describe('UserController', () => {
 			let requestConfig: any;
 			let url: string;
 			let userId: string;
-			let userServiceUndeleteSpy: any;
+			let UserDataServiceUndeleteSpy: any;
 			beforeEach(() => {
 				requestConfig = { };
 				userId = uuid();
 				url = `${baseUrl}/${userId}/undelete`;
-				userServiceUndeleteSpy = jest.spyOn(userDataService, 'undeleteUser').mockImplementation(() => Promise.resolve());
+				UserDataServiceUndeleteSpy = jest.spyOn(userDataService, 'undeleteUser').mockImplementation(() => Promise.resolve());
 			});
 
 			afterEach(() => {
-				userServiceUndeleteSpy?.mockRestore();
+				UserDataServiceUndeleteSpy?.mockRestore();
 			});
 
 			it('undeletes a user and returns an empty success message', async () => {
@@ -464,8 +464,8 @@ describe('UserController', () => {
 				const response = await lastValueFrom(http.patch(url, requestConfig, { headers }));
 				
 				// assert
-				expect(userServiceUndeleteSpy).toHaveBeenCalledTimes(1);
-				expect(userServiceUndeleteSpy).toHaveBeenCalledWith(adminContext, new EntityIdDTO(userId));
+				expect(UserDataServiceUndeleteSpy).toHaveBeenCalledTimes(1);
+				expect(UserDataServiceUndeleteSpy).toHaveBeenCalledWith(adminContext, new EntityIdDTO(userId));
 				expect(response.status).toBe(204);
 				expect(response.data).toBe('');
 			});
@@ -538,7 +538,7 @@ describe('UserController', () => {
 			it('throws error if data service throws', async () => {
 				// arrange
 				const errorMessage = 'Request failed with status code 400';
-				const userServiceSpy = jest.spyOn(userDataService, 'undeleteUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
+				const UserDataServiceSpy = jest.spyOn(userDataService, 'undeleteUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
 				const response$ = http.patch(url, requestConfig, { headers });
 
 				// act/assert
@@ -553,7 +553,7 @@ describe('UserController', () => {
 				expect(error.message).toBe(errorMessage);
 
 				// clean up
-				userServiceSpy.mockRestore();
+				UserDataServiceSpy.mockRestore();
 			});
 		});
 	});

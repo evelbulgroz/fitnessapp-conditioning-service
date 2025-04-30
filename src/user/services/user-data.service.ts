@@ -25,7 +25,7 @@ import UserRepository from '../repositories/user.repo';
  * @remark Depends on the User repository for caching and persistence of user entities.
  */
 @Injectable()
-export class UserService  extends ManagedStatefulComponentMixin(class {}) implements OnModuleDestroy {
+export class UserDataService  extends ManagedStatefulComponentMixin(class {}) implements OnModuleDestroy {
 
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
@@ -277,4 +277,4 @@ export class UserService  extends ManagedStatefulComponentMixin(class {}) implem
 	}
 }
 
-export default UserService;
+export default UserDataService;

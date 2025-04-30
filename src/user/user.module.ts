@@ -7,7 +7,7 @@ import UserController from './controllers/user.controller';
 import UserCreatedHandler from './handlers/user-created.handler';
 import UserDeletedHandler from './handlers/user-deleted.handler';
 import UserRepository from './repositories/user.repo';
-import UserService from './services/user.service';
+import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
 
 @Module({
@@ -29,14 +29,14 @@ import UserUpdatedHandler from './handlers/user-updated.handler';
 		UserCreatedHandler,
 		UserDeletedHandler,
 		UserRepository,
-		UserService,
+		UserDataService,
 		UserUpdatedHandler,
 	],
 	exports: [
 		UserCreatedHandler,
 		UserDeletedHandler,
 		UserRepository,
-		UserService,
+		UserDataService,
 		UserUpdatedHandler,
 	],
 })

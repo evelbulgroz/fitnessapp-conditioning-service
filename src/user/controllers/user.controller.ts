@@ -12,7 +12,7 @@ import { RolesGuard } from '../../infrastructure/guards/roles.guard';
 import { Roles } from '../../infrastructure/decorators/roles.decorator';
 import { ServiceNameDTO } from '../../shared/dtos/responses/service-name.dto';
 import { UnauthorizedAccessError } from '../../shared/domain/unauthorized-access.error';
-import { UserService } from '../services/user.service';
+import { UserDataService } from '../services/user-data.service';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
 import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 
@@ -38,7 +38,7 @@ export class UserController {
 	constructor(
 		private readonly config: ConfigService,
 		private readonly logger: Logger,
-		private readonly userService: UserService,		
+		private readonly userService: UserDataService,		
 	) { }
 
 	//---------------------------------------- PUBLIC API ---------------------------------------//
