@@ -1,24 +1,24 @@
 import { Subject } from 'rxjs';
 
 import LogLevel from '../../models/log-level.enum';
-import LoggableComponent from '../../models/loggable-component.model';
+import StreamLoggable from "../../models/stream-loggable.model";
 import StreamLogger from './stream-logger.class';
 import UnifiedLogEntry from '../../models/unified-log-event.model';
 
 describe('StreamLogger', () => {
-	// Create a mock LoggableComponent implementation
-	class MockLoggableComponent implements LoggableComponent {
+	// Create a mock StreamLoggable implementation
+	class MockStreamLoggable implements StreamLoggable {
 		public readonly log$ = new Subject<UnifiedLogEntry>();
 		public readonly logger: StreamLogger = new StreamLogger(this);
 		public logToStream = jest.fn();
 	}
 
-	let mockLogSource: MockLoggableComponent;
+	let mockLogSource: MockStreamLoggable;
 	let streamLogger: StreamLogger;
 
 	beforeEach(() => {
 		// Reset mocks before each test
-		mockLogSource = new MockLoggableComponent();
+		mockLogSource = new MockStreamLoggable();
 		streamLogger = mockLogSource.logger;
 	});
 

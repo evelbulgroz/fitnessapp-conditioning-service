@@ -1,23 +1,23 @@
 import LogLevel from "../../models/log-level.enum";
-import LoggableComponent from "../../models/loggable-component.model";
+import StreamLoggable from "../../models/stream-loggable.model";
 import Logger from "../../models/logger.model";
 
-/** Logger that logs messages to the `log$` observable stream of a {@link LoggableComponent} instance.
- * @remark Syntax sugar providing a familiar interface to the `logToStream()` method of the {@link LoggableComponent} class.
+/** Logger that logs messages to the `log$` observable stream of a {@link StreamLoggable} instance.
+ * @remark Syntax sugar providing a familiar interface to the `logToStream()` method of the {@link StreamLoggable} class.
  * @remark Intended for composition into {@link LoggableMixin}. Not intended for direct use by other classes.
- * @see {@link LoggableComponent} for details on the `log$` observable stream.
+ * @see {@link StreamLoggable} for details on the `log$` observable stream.
  * @see {@link LoggableMixin} for details on the mixin that adds logging capabilities to any class.
  * @todo Consider adding log level filtering to the logger to control which messages are logged based on the log level.
 */
 export class StreamLogger extends Logger {
-	/* The {@link LoggableComponent} log source from which to stream log messages. */
-	protected readonly logSource: LoggableComponent;
+	/* The {@link StreamLoggable} log source from which to stream log messages. */
+	protected readonly logSource: StreamLoggable;
 	
 	/** Constructor for the StreamLogger class.
-	 * @param logSource The {@link LoggableComponent} instance to log messages to.
-	 * @remarks The log source must implement the {@link LoggableComponent} interface.
+	 * @param logSource The {@link StreamLoggable} instance to log messages to.
+	 * @remarks The log source must implement the {@link StreamLoggable} interface.
 	 */
-	public constructor(logSource: LoggableComponent) {
+	public constructor(logSource: StreamLoggable) {
 		super();
 		this.logSource = logSource;
 	}
