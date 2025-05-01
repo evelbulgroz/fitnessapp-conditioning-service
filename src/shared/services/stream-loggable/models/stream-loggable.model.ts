@@ -5,7 +5,7 @@ import StreamLogger from "../mixins/helpers/stream-logger.class";
 import UnifiedLogEntry from "./unified-log-event.model";
 
 /** Specifies the interface for a loggable component. */
-export interface LoggableComponent {
+export interface StreamLoggable {
 	/** Observable stream of log entries */
 	readonly log$: Subject<UnifiedLogEntry>;
 
@@ -13,7 +13,7 @@ export interface LoggableComponent {
 	 * @remark This property enables use of a familiar syntax for logging messages to the `log$` observable stream.
 	 * @remark This is optional syntax sugar. Using `logToStream()` directly is equally valid.
 	 * @see {@link StreamLogger} for details on the logger implementation.
-	 * @see {@link LoggableComponent} for details on the `log$` observable stream.
+	 * @see {@link StreamLoggable} for details on the `log$` observable stream.
 	 * @example
 	 * ```typescript
 	 * this.logger.info('Info message', { data: 'example' });
@@ -38,4 +38,4 @@ export interface LoggableComponent {
 	 */
 	logToStream(level: LogLevel, message: string, data?: any, context?: string): void;
 };
-export default LoggableComponent;
+export default StreamLoggable;

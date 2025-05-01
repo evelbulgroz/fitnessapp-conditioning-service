@@ -1,6 +1,6 @@
 import { Subject } from 'rxjs';
 
-import LoggableComponent from '../models/loggable-component.model';
+import StreamLoggable from '../models/stream-loggable.model'
 import LogEventSource from '../models/log-event-source.model';
 import LogLevel from '../models/log-level.enum';
 import StreamLogger from './helpers/stream-logger.class';
@@ -13,7 +13,7 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
  * 
  * @example
  * ```typescript
- * class MyService extends LoggableComponentMixin(BaseClass) {
+ * class MyService extends StreamLoggableMixin(BaseClass) {
  *	 public doSomething(): void {
  *		 this.log(LogLevel.INFO, 'Doing something important');
  *		 // ...implementation...
@@ -27,8 +27,8 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
  * ```
  * 
  */
- export function LoggableComponentMixin<TParent extends new (...args: any[]) => any>(Base: TParent) {
-	return class Loggable extends Base implements LoggableComponent {
+ export function StreamLoggableMixin<TParent extends new (...args: any[]) => any>(Base: TParent) {
+	return class Loggable extends Base implements StreamLoggable {
 		public readonly log$ = new Subject<UnifiedLogEntry>();
 		public readonly logger: StreamLogger = new StreamLogger(this);
 
@@ -47,14 +47,14 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
 	};
 }
 
-export default LoggableComponentMixin;
+export default StreamLoggableMixin;
 
-/* Decorator that applies the LoggableComponentMixin to a class to add logging capabilities.
- * @see {@link LoggableComponentMixin} for details on the mixin.
- * @returns A decorator function that applies the LoggableComponentMixin to the decorated class
- * @remark This decorator is a shorthand for applying the LoggableComponentMixin to a class.
+/* Decorator that applies the StreamLoggableMixin to a class to add logging capabilities.
+ * @see {@link StreamLoggableMixin} for details on the mixin.
+ * @returns A decorator function that applies the StreamLoggableMixin to the decorated class
+ * @remark This decorator is a shorthand for applying the StreamLoggableMixin to a class.
  * @remark Any inheritance of the decorated class is preserved with no changes to the class hierarchy or 'extends' syntax.
- * @remark It may be useful to add {@link LoggableComponent} to the list of implemented interfaces in the decorated class.
+ * @remark It may be useful to add {@link StreamLoggable} to the list of implemented interfaces in the decorated class.
  * @todo Enable this decorator when TypeScript supports it. Currently, it is commented out to avoid compilation errors.
  * 
  * @example
@@ -68,8 +68,8 @@ export default LoggableComponentMixin;
  * ```
  */
 /*export function WithLogging() {
-	return function <T extends new (...args: any[]) => any>(target: T): T & (new (...args: any[]) => LoggableComponent) {
-		return LoggableComponentMixin(target) as T & (new (...args: any[]) => LoggableComponent);
+	return function <T extends new (...args: any[]) => any>(target: T): T & (new (...args: any[]) => StreamLoggable) {
+		return StreamLoggableMixin(target) as T & (new (...args: any[]) => StreamLoggable);
 	};
 }
 export default WithLogging;
