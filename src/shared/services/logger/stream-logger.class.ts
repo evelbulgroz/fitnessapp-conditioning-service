@@ -2,9 +2,10 @@ import LogLevel from "./models/log-level.enum";
 import LoggableComponent from "./models/loggable-component.model";
 import Logger from "./models/logger.model";
 
-/** Logger that logs messages to the log$ observable stream of a {@link LoggableComponent} instance.
+/** Logger that logs messages to the `log$` observable stream of a {@link LoggableComponent} instance.
  * @remark Intended to be composed into {@link LoggableMixin} to provide a standard logging interface.
- * @see {@link LoggableComponent} for details on the log$ observable stream.
+ * @remark Syntax sugar providing a familiar interface to the logToStream() method of the {@link LoggableComponent} class.
+ * @see {@link LoggableComponent} for details on the `log$` observable stream.
  * @see {@link LoggableMixin} for details on the mixin that adds logging capabilities to any class.
  * @todo Consider adding log level filtering to the logger to control which messages are logged based on the log level.
 */
