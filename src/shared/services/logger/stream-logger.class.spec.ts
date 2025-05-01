@@ -1,8 +1,9 @@
 import { Subject } from 'rxjs';
+
 import LogLevel from './models/log-level.enum';
 import LoggableComponent from './models/loggable-component.model';
-import UnifiedLogEntry from './models/unified-log-event.model';
 import StreamLogger from './stream-logger.class';
+import UnifiedLogEntry from './models/unified-log-event.model';
 
 describe('StreamLogger', () => {
 	// Create a mock LoggableComponent implementation
@@ -25,7 +26,7 @@ describe('StreamLogger', () => {
 		jest.clearAllMocks();
 	});
 
-	it('should create a new instance', () => {
+	it('can be created', () => {
 		expect(streamLogger).toBeDefined();
 		expect(streamLogger).toBeInstanceOf(StreamLogger);
 	});
@@ -34,7 +35,7 @@ describe('StreamLogger', () => {
 		const testMessage = 'Test message';
 		const testContext = 'TestContext';
 
-		it('should call logToStream with ERROR level when error() is called', () => {
+		it('calls logToStream with ERROR level when error() is called', () => {
 			// Test with just message
 			streamLogger.error(testMessage);
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.ERROR, testMessage, undefined, undefined);
@@ -63,7 +64,7 @@ describe('StreamLogger', () => {
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.ERROR, testMessage, stringTrace, testContext);
 		});
 
-		it('should call logToStream with WARN level when warn() is called', () => {
+		it('calls logToStream with WARN level when warn() is called', () => {
 			// Test with just message
 			streamLogger.warn(testMessage);
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.WARN, testMessage, undefined);
@@ -76,7 +77,7 @@ describe('StreamLogger', () => {
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.WARN, testMessage, testContext);
 		});
 
-		it('should call logToStream with INFO level when info() is called', () => {
+		it('calls logToStream with INFO level when info() is called', () => {
 			// Test with just message
 			streamLogger.info(testMessage);
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.INFO, testMessage, undefined);
@@ -89,7 +90,7 @@ describe('StreamLogger', () => {
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.INFO, testMessage, testContext);
 		});
 
-		it('should call logToStream with DEBUG level when debug() is called', () => {
+		it('calls logToStream with DEBUG level when debug() is called', () => {
 			// Test with just message
 			streamLogger.debug(testMessage);
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.DEBUG, testMessage, undefined);
@@ -102,7 +103,7 @@ describe('StreamLogger', () => {
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.DEBUG, testMessage, testContext);
 		});
 
-		it('should call logToStream with VERBOSE level when verbose() is called', () => {
+		it('calls logToStream with VERBOSE level when verbose() is called', () => {
 			// Test with just message
 			streamLogger.verbose(testMessage);
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.VERBOSE, testMessage, undefined);
@@ -115,7 +116,7 @@ describe('StreamLogger', () => {
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.VERBOSE, testMessage, testContext);
 		});
 
-		it('should call logToStream with LOG level when log() is called', () => {
+		it('calls logToStream with LOG level when log() is called', () => {
 			// Test with just message
 			streamLogger.log(testMessage);
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.LOG, testMessage, undefined);
@@ -130,12 +131,12 @@ describe('StreamLogger', () => {
 	});
 
 	describe('Edge cases', () => {
-		it('should handle empty message', () => {
+		it('handles empty message', () => {
 			streamLogger.log('');
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.LOG, '', undefined);
 		});
 
-		it('should handle empty context', () => {
+		it('handles empty context', () => {
 			streamLogger.log('Test message', '');
 			expect(mockLogSource.logToStream).toHaveBeenCalledWith(LogLevel.LOG, 'Test message', '');
 		});
