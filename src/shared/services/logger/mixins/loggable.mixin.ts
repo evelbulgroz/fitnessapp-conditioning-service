@@ -3,7 +3,7 @@ import { Subject } from 'rxjs';
 import LoggableComponent from '../models/loggable-component.model';
 import LogEventSource from '../models/log-event-source.model';
 import LogLevel from '../models/log-level.enum';
-import StreamLogger from '../stream-logger.class';
+import StreamLogger from './helpers/stream-logger.class';
 import UnifiedLogEntry from '../models/unified-log-event.model';
 
 /** Mixin that adds logging capabilities to any class via a log$ observable stream.

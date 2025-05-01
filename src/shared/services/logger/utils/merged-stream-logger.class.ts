@@ -1,10 +1,10 @@
 import { EMPTY, Observable, Subscription, catchError, mergeMap, of } from 'rxjs';
 
-import MergedStreamLoggerOptions from './models/merged-stream-logger-options.model';
-import Logger from './models/logger.model';
-import LogLevel from './models/log-level.enum';
-import UnifiedLogEntry from './models/unified-log-event.model';
-import StreamMapper from './models/stream-mapper.model';
+import MergedStreamLoggerOptions from '../models/merged-stream-logger-options.model';
+import Logger from '../models/logger.model';
+import LogLevel from '../models/log-level.enum';
+import UnifiedLogEntry from '../models/unified-log-event.model';
+import StreamMapper from '../models/stream-mapper.model';
 
 /** Unified logger of multiple observable streams using registered stream mappers.
  * @remark This class provides a centralized way to process multiple observable streams 

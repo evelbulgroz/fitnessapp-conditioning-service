@@ -1,9 +1,9 @@
 import { Subject } from 'rxjs';
 
-import LogLevel from './models/log-level.enum';
-import LoggableComponent from './models/loggable-component.model';
+import LogLevel from '../../models/log-level.enum';
+import LoggableComponent from '../../models/loggable-component.model';
 import StreamLogger from './stream-logger.class';
-import UnifiedLogEntry from './models/unified-log-event.model';
+import UnifiedLogEntry from '../../models/unified-log-event.model';
 
 describe('StreamLogger', () => {
 	// Create a mock LoggableComponent implementation

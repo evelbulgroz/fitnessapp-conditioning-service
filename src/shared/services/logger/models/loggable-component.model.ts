@@ -1,7 +1,7 @@
 import { Subject } from "rxjs";
 
 import LogLevel from "./log-level.enum";
-import StreamLogger from "../stream-logger.class";
+import StreamLogger from "../mixins/helpers/stream-logger.class";
 import UnifiedLogEntry from "./unified-log-event.model";
 
 /** Specifies the interface for a loggable component. */
