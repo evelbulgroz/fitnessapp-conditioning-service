@@ -55,6 +55,7 @@ export default LoggableComponentMixin;
  * @remark This decorator is a shorthand for applying the LoggableComponentMixin to a class.
  * @remark Any inheritance of the decorated class is preserved with no changes to the class hierarchy or 'extends' syntax.
  * @remark It may be useful to add {@link LoggableComponent} to the list of implemented interfaces in the decorated class.
+ * @todo Enable this decorator when TypeScript supports it. Currently, it is commented out to avoid compilation errors.
  * 
  * @example
  * ```typescript
