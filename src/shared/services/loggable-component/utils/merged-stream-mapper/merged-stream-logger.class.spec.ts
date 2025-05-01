@@ -1,12 +1,12 @@
 import { map, Observable, Subject } from 'rxjs';
 
-import Logger from '../models/logger.model';
-import LogLevel from '../models/log-level.enum';
-import LogEventSource from '../models/log-event-source.model';
+import Logger from '../../models/logger.model';
+import LogLevel from '../../models/log-level.enum';
+import LogEventSource from '../../models/log-event-source.model';
 import MergedStreamLogger from './merged-stream-logger.class';
-import StreamMapper from '../models/stream-mapper.model';
-import UnifiedLogEntry from '../models/unified-log-event.model';
-import MergedStreamLoggerOptions from '../models/merged-stream-logger-options.model';
+import StreamMapper from './models/stream-mapper.model';
+import UnifiedLogEntry from '../../models/unified-log-event.model';
+import MergedStreamLoggerOptions from './models/merged-stream-logger-options.model';
 
 // Mock log entry type for testing
 interface MockLogEntry {
