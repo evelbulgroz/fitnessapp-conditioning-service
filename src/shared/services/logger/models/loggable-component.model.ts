@@ -27,7 +27,7 @@ export interface LoggableComponent {
 	 * @param data Optional data to include with the log
 	 * @param context Optional context for the log (defaults to class name)
 	 * @remark Use the logLevel param to specify the log level rather than using the info, warn, error methods directly.
-	 * @remark Use this method to log messages directly, or optionally use the logger property for a more familiar syntax.
+	 * @remark Use this method to log messages directly, or optionally use the `logger` property for a more familiar syntax.
 	 * @example
 	 * ```typescript
 	 * this.log(LogLevel.INFO, 'Info message', { data: 'example' }, updatedOn: '2023-10-01T00:00:00Z', context: 'MyComponent');
