@@ -13,7 +13,7 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
  * 
  * @example
  * ```typescript
- * class MyService extends LoggableMixin(BaseClass) {
+ * class MyService extends LoggableComponentMixin(BaseClass) {
  *	 public doSomething(): void {
  *		 this.log(LogLevel.INFO, 'Doing something important');
  *		 // ...implementation...
@@ -27,7 +27,7 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
  * ```
  * 
  */
- export function LoggableMixin<TParent extends new (...args: any[]) => any>(Base: TParent) {
+ export function LoggableComponentMixin<TParent extends new (...args: any[]) => any>(Base: TParent) {
 	return class Loggable extends Base implements LoggableComponent {
 		public readonly log$ = new Subject<UnifiedLogEntry>();
 		public readonly logger: StreamLogger = new StreamLogger(this);
@@ -47,12 +47,12 @@ import UnifiedLogEntry from '../models/unified-log-event.model';
 	};
 }
 
-export default LoggableMixin;
+export default LoggableComponentMixin;
 
-/* Decorator that applies the LoggableMixin to a class to add logging capabilities.
- * @see {@link LoggableMixin} for details on the mixin.
- * @returns A decorator function that applies the LoggableMixin to the decorated class
- * @remark This decorator is a shorthand for applying the LoggableMixin to a class.
+/* Decorator that applies the LoggableComponentMixin to a class to add logging capabilities.
+ * @see {@link LoggableComponentMixin} for details on the mixin.
+ * @returns A decorator function that applies the LoggableComponentMixin to the decorated class
+ * @remark This decorator is a shorthand for applying the LoggableComponentMixin to a class.
  * @remark Any inheritance of the decorated class is preserved with no changes to the class hierarchy or 'extends' syntax.
  * @remark It may be useful to add {@link LoggableComponent} to the list of implemented interfaces in the decorated class.
  * 
@@ -68,7 +68,7 @@ export default LoggableMixin;
  */
 /*export function WithLogging() {
 	return function <T extends new (...args: any[]) => any>(target: T): T & (new (...args: any[]) => LoggableComponent) {
-		return LoggableMixin(target) as T & (new (...args: any[]) => LoggableComponent);
+		return LoggableComponentMixin(target) as T & (new (...args: any[]) => LoggableComponent);
 	};
 }
 export default WithLogging;

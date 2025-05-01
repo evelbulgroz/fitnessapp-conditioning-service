@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs';
-import UnifiedLogEntry from './unified-log-event.model';
+
+import UnifiedLogEntry from '../../../models/unified-log-event.model';
 
 /**Interface for a stream mapper that transforms a source observable into a stream of unified log events.
  * @template T - The type of the source observable.
