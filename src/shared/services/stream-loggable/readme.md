@@ -1,4 +1,4 @@
-# LoggableStreams
+# StreamLoggable
 
 [![npm version](https://badge.fury.io/js/loggable-streams.svg)](https://badge.fury.io/js/loggable-streams)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
@@ -23,7 +23,7 @@ npm install loggable-streams rxjs
 
 ## Core Concepts
 
-### LoggableComponentMixin
+### StreamLoggableMixin
 
 A TypeScript mixin that adds logging capabilities to any class via an observable stream. Components extended with this mixin gain:
 
@@ -53,9 +53,9 @@ Specialized classes that transform specific stream types into standardized log e
 ### Enhancing a Class with Logging
 
 ```typescript
-import { LoggableComponentMixin, LogLevel } from 'loggable-streams';
+import { StreamLoggableMixin, LogLevel } from 'loggable-streams';
 
-class MyService extends LoggableComponentMixin(BaseClass) {
+class MyService extends StreamLoggableMixin(BaseClass) {
   public doSomething(): void {
     this.logger.log(LogLevel.INFO, 'Operation started');
     
@@ -210,9 +210,9 @@ export class MetricsMapper implements StreamMapper<MetricEvent> {
 
 ```typescript
 import { Repository } from '@your-ddd-library/core';
-import { LoggableComponentMixin, MergedStreamLogger } from 'loggable-streams';
+import { StreamLoggableMixin, MergedStreamLogger } from 'loggable-streams';
 
-export class UserRepository extends LoggableComponentMixin(Repository) {
+export class UserRepository extends StreamLoggableMixin(Repository) {
   constructor(private readonly mergedLogger: MergedStreamLogger) {
     super();
     this.setupLogging();
