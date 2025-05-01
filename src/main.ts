@@ -6,7 +6,7 @@ import { LogLevel } from '@evelbulgroz/logger';
 import { AppConfig } from 'src/shared/domain/config-options.model';
 import { AppInstance } from 'src/api-docs/app-instance.model';
 import { AppModule } from './app.module';
-import NestLogger from './shared/logger/nest-logger';
+import NestLogger from './shared/loggers/nest-logger';
 
 async function bootstrap() {
 	// Set custom logger for NestJS before the app is created

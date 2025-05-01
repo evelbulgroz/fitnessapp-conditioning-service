@@ -3,10 +3,10 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { RepoLogEntry, RepoLogLevel } from '@evelbulgroz/ddd-base';
 
-import LogEventSource from '../models/log-event-source.model';
-import LogLevel from '../models/log-level.enum';
+import LogEventSource from '../../../models/log-event-source.model';
+import LogLevel from '../../../models/log-level.enum';
 import StreamMapper from '../models/stream-mapper.model';
-import UnifiedLogEntry from '../models/unified-log-event.model';
+import UnifiedLogEntry from '../../../models/unified-log-event.model';
 
 @Injectable()
 export class RepoLogMapper implements StreamMapper<RepoLogEntry> {

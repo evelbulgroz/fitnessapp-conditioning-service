@@ -1,9 +1,9 @@
 import { firstValueFrom, take, toArray } from 'rxjs';
 
-import LoggableComponentMixin from './loggable-component.mixin';
+import StreamLoggableMixin from './stream-loggable.mixin';
 import LogLevel from '../models/log-level.enum';
 
-describe('LoggableComponentMixin', () => {
+describe('StreamLoggableMixin', () => {
 	// Base class to apply the mixin to
 	class TestBase {
 		public baseMethod(): string {
@@ -12,7 +12,7 @@ describe('LoggableComponentMixin', () => {
 	}
 
 	// Class using the mixin
-	class LoggableTest extends LoggableComponentMixin(TestBase) {
+	class LoggableTest extends StreamLoggableMixin(TestBase) {
 		public testLogging(): void {
 			this.log(LogLevel.INFO, 'Test logging method');
 		}

@@ -4,7 +4,7 @@ import { take, toArray } from 'rxjs/operators';
 import { RepoLogEntry, RepoLogLevel } from '@evelbulgroz/ddd-base';
 
 import { RepoLogMapper } from './repo-log.mapper';
-import LogEventSource from '../models/log-event-source.model';
+import LogEventSource from '../../../models/log-event-source.model';
 
 describe('RepoLogMapper', () => {
 	let mapper: RepoLogMapper;

@@ -26,7 +26,7 @@ import { ConditioningLogDeletedHandler } from '../../handlers/conditioning-log-d
 import { ConditioningLogUndeletedHandler } from '../../handlers/conditioning-log-undeleted.handler';
 import { ConditioningLogUpdatedEvent } from '../../events/conditioning-log-updated.event';
 import { ConditioningLogUpdateHandler } from '../../handlers/conditioning-log-updated.handler';
-import Logger from '../../../shared/services/stream-loggable/models/logger.model';
+import Logger from '../../../shared/loggers/stream-loggable/models/logger.model';
 import { UserCreatedHandler } from '../../../user/handlers/user-created.handler';
 import { UserDeletedHandler } from '../../../user/handlers/user-deleted.handler';
 import { UserUpdatedEvent } from '../../../user/events/user-updated.event';

@@ -11,7 +11,7 @@ import AuthService from './authentication/domain/auth-service.class';
 import ConditioningController  from './conditioning/controllers/conditioning.controller';
 import ConditioningModule from './conditioning/conditioning.module';
 import EventDispatcherService  from './shared/services/utils/event-dispatcher/event-dispatcher.service';
-import NestLogger from './shared/logger/nest-logger';
+import NestLogger from './shared/loggers/nest-logger';
 import RegistrationService from './authentication/services/registration/registration.service';
 import RetryHttpService from './shared/services/utils/retry-http/retry-http.service';
 import SwaggerController from './api-docs/swagger.controller';

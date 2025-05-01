@@ -2,12 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import ComponentState from '../../../../app-health/models/component-state.enum';
-import ComponentStateInfo from '../../../../app-health/models/component-state-info.model';
-import LogEventSource from '../models/log-event-source.model';
-import LogLevel from '../models/log-level.enum';
+import ComponentState from '../../../../../../app-health/models/component-state.enum';
+import ComponentStateInfo from '../../../../../../app-health/models/component-state-info.model';
+import LogEventSource from '../../../models/log-event-source.model';
+import LogLevel from '../../../models/log-level.enum';
 import StreamMapper from '../models/stream-mapper.model';
-import UnifiedLogEntry from '../models/unified-log-event.model';
+import UnifiedLogEntry from '../../../models/unified-log-event.model';
 
 @Injectable()
 export class ComponentStateMapper implements StreamMapper<ComponentStateInfo> {
