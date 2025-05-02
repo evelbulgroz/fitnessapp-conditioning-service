@@ -1,21 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { Subject } from 'rxjs';
-import { take, toArray } from 'rxjs/operators';
-import { RepoLogEntry, RepoLogLevel } from '@evelbulgroz/ddd-base';
+import { Subject, take, toArray } from 'rxjs';
 
-import { RepoLogMapper } from './repo-log.mapper';
-import LogEventSource from '../../../models/log-event-source.model';
+import LogEventSource from '../../../../models/log-event-source.model';
+import RepoLogEntry from './repo-log-entry.model'
+import RepoLogLevel from './repo-log-level.enum';
+import RepoLogMapper from './repo-log.mapper';
 
 describe('RepoLogMapper', () => {
 	let mapper: RepoLogMapper;
-	let logsSubject: Subject<RepoLogEntry>;
-	
-	beforeEach(async () => {
-			const module: TestingModule = await Test.createTestingModule({
-					providers: [RepoLogMapper],
-			}).compile();
-			
-			mapper = module.get<RepoLogMapper>(RepoLogMapper);
+	let logsSubject: Subject<RepoLogEntry>;	
+	beforeEach(() => {
+			mapper = new RepoLogMapper();
 			logsSubject = new Subject<RepoLogEntry>();
 	});
 	

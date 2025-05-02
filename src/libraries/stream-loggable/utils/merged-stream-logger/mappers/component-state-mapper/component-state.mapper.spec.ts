@@ -1,22 +1,17 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 
-import ComponentState from '../../../../managed-stateful-component/models/component-state.enum';
-import ComponentStateInfo from '../../../../managed-stateful-component/models/component-state-info.model';
+import ComponentStateDemo from './component-state.enum';
+import ComponentStateInfo from './component-state-info.model';
 import ComponentStateMapper from './component-state.mapper';
-import LogEventSource from '../../../models/log-event-source.model';
-import LogLevel from '../../../models/log-level.enum';
+import LogEventSource from '../../../../models/log-event-source.model';
+import LogLevel from '../../../../models/log-level.enum';
 
 describe('ComponentStateMapper', () => {
 	let mapper: ComponentStateMapper;
 	
 	beforeEach(async () => {
-		const module: TestingModule = await Test.createTestingModule({
-			providers: [ComponentStateMapper],
-		}).compile();
-		
-		mapper = module.get<ComponentStateMapper>(ComponentStateMapper);
+		mapper = new ComponentStateMapper();
 	});
 	
 	describe('streamType', () => {
@@ -27,27 +22,27 @@ describe('ComponentStateMapper', () => {
 	
 	describe('mapStateToLogLevel', () => {
 		it('should map FAILED state to ERROR log level', () => {
-			const result = mapper['mapStateToLogLevel'](ComponentState.FAILED);
+			const result = mapper['mapStateToLogLevel'](ComponentStateDemo.FAILED);
 			expect(result).toBe(LogLevel.ERROR);
 		});
 		
 		it('should map DEGRADED state to WARN log level', () => {
-			const result = mapper['mapStateToLogLevel'](ComponentState.DEGRADED);
+			const result = mapper['mapStateToLogLevel'](ComponentStateDemo.DEGRADED);
 			expect(result).toBe(LogLevel.WARN);
 		});
 		
 		it('should map INITIALIZING state to INFO log level', () => {
-			const result = mapper['mapStateToLogLevel'](ComponentState.INITIALIZING);
+			const result = mapper['mapStateToLogLevel'](ComponentStateDemo.INITIALIZING);
 			expect(result).toBe(LogLevel.INFO);
 		});
 		
 		it('should map SHUTTING_DOWN state to INFO log level', () => {
-			const result = mapper['mapStateToLogLevel'](ComponentState.SHUTTING_DOWN);
+			const result = mapper['mapStateToLogLevel'](ComponentStateDemo.SHUTTING_DOWN);
 			expect(result).toBe(LogLevel.INFO);
 		});
 		
 		it('should map OK state to LOG log level', () => {
-			const result = mapper['mapStateToLogLevel'](ComponentState.OK);
+			const result = mapper['mapStateToLogLevel'](ComponentStateDemo.OK);
 			expect(result).toBe(LogLevel.LOG);
 		});
 		
@@ -65,7 +60,7 @@ describe('ComponentStateMapper', () => {
 		beforeEach(() => {
 			stateSubject = new BehaviorSubject<ComponentStateInfo>({
 				name: 'TestComponent',
-				state: ComponentState.INITIALIZING,
+				state: ComponentStateDemo.INITIALIZING,
 				reason: 'Starting up',
 				updatedOn: now
 			});
@@ -86,11 +81,11 @@ describe('ComponentStateMapper', () => {
 				source: LogEventSource.STATE,
 				timestamp: now,
 				level: LogLevel.INFO, // INITIALIZING maps to INFO
-				message: `State changed to ${ComponentState.INITIALIZING}: Starting up`,
+				message: `State changed to ${ComponentStateDemo.INITIALIZING}: Starting up`,
 				context: 'TestComponent',
 				data: { // Original state data
 					name: 'TestComponent',
-					state: ComponentState.INITIALIZING,
+					state: ComponentStateDemo.INITIALIZING,
 					reason: 'Starting up',
 					updatedOn: now
 				}
@@ -100,7 +95,7 @@ describe('ComponentStateMapper', () => {
 		it('should use state.name as context if available', async () => {
 			// Update the subject with a state that includes a name
 			stateSubject.next({
-				state: ComponentState.OK,
+				state: ComponentStateDemo.OK,
 				reason: 'All good',
 				name: 'NamedComponent',
 				updatedOn: now
@@ -120,7 +115,7 @@ describe('ComponentStateMapper', () => {
 			// Update the subject with a state that doesn't include a name
 			stateSubject.next({
 				name: undefined as any,
-				state: ComponentState.OK,
+				state: ComponentStateDemo.OK,
 				reason: 'All good',
 				updatedOn: now
 			});
@@ -143,7 +138,7 @@ describe('ComponentStateMapper', () => {
 			// Update the subject with a state that doesn't include updatedOn
 			stateSubject.next({
 				name: 'TestComponent',
-				state: ComponentState.OK,
+				state: ComponentStateDemo.OK,
 				reason: 'All good'
 				// No updatedOn
 			} as any);
@@ -171,14 +166,14 @@ describe('ComponentStateMapper', () => {
 			// Emit multiple state changes
 			stateSubject.next({
 				name: 'TestComponent',
-				state: ComponentState.OK,
+				state: ComponentStateDemo.OK,
 				reason: 'Initialized successfully',
 				updatedOn: new Date()
 			});
 			
 			stateSubject.next({
 				name: 'TestComponent',
-				state: ComponentState.DEGRADED,
+				state: ComponentStateDemo.DEGRADED,
 				reason: 'Performance issue detected',
 				updatedOn: new Date()
 			});
@@ -190,15 +185,15 @@ describe('ComponentStateMapper', () => {
 			expect(logEvents?.length).toBe(3);
 			
 			// First event (from beforeEach)
-			expect(logEvents![0].message).toBe(`State changed to ${ComponentState.INITIALIZING}: Starting up`);
+			expect(logEvents![0].message).toBe(`State changed to ${ComponentStateDemo.INITIALIZING}: Starting up`);
 			expect(logEvents![0].level).toBe(LogLevel.INFO);
 			
 			// Second event
-			expect(logEvents![1].message).toBe(`State changed to ${ComponentState.OK}: Initialized successfully`);
+			expect(logEvents![1].message).toBe(`State changed to ${ComponentStateDemo.OK}: Initialized successfully`);
 			expect(logEvents![1].level).toBe(LogLevel.LOG);
 			
 			// Third event
-			expect(logEvents![2].message).toBe(`State changed to ${ComponentState.DEGRADED}: Performance issue detected`);
+			expect(logEvents![2].message).toBe(`State changed to ${ComponentStateDemo.DEGRADED}: Performance issue detected`);
 			expect(logEvents![2].level).toBe(LogLevel.WARN);
 		});
 		
@@ -217,28 +212,28 @@ describe('ComponentStateMapper', () => {
 			// Emit various states
 			stateSubject.next({
 				name: 'TestComponent',
-				state: ComponentState.OK,
+				state: ComponentStateDemo.OK,
 				reason: 'All good',
 				updatedOn: new Date()
 			});
 			
 			stateSubject.next({
 				name: 'TestComponent',
-				state: ComponentState.DEGRADED,
+				state: ComponentStateDemo.DEGRADED,
 				reason: 'Slow response',
 				updatedOn: new Date()
 			});
 			
 			stateSubject.next({
 				name: 'TestComponent',
-				state: ComponentState.FAILED,
+				state: ComponentStateDemo.FAILED,
 				reason: 'Fatal error',
 				updatedOn: new Date()
 			});
 			
 			stateSubject.next({
 				name: 'TestComponent',
-				state: ComponentState.SHUTTING_DOWN,
+				state: ComponentStateDemo.SHUTTING_DOWN,
 				reason: 'System shutdown',
 				updatedOn: new Date()
 			});

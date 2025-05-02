@@ -13,5 +13,5 @@ export * from './models/unified-log-event.model';
 export * from './utils/merged-stream-logger/merged-stream-logger.class';
 export * from './utils/merged-stream-logger/models/stream-mapper.model';
 export * from './utils/merged-stream-logger/models/merged-stream-logger-options.model';
-export * from './utils/merged-stream-logger/mappers/component-state.mapper';
-export * from './utils/merged-stream-logger/mappers/repo-log.mapper';
+export * from './utils/merged-stream-logger/mappers/component-state-mapper/component-state.mapper';
+export * from './utils/merged-stream-logger/mappers/repo-log.mapper/repo-log.mapper';
