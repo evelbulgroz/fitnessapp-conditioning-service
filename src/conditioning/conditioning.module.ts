@@ -11,7 +11,7 @@ import ConditioningDataService from './services/conditioning-data/conditioning-d
 import ConditioningLogDeletedHandler from './handlers/conditioning-log-deleted.handler';
 import ConditioningLogRepository from './repositories/conditioning-log.repo';
 import ConditioningLogUndeletedHandler from './handlers/conditioning-log-undeleted.handler';
-import ConditioningLogUpdateHandler from './handlers/conditioning-log-updated.handler';
+import ConditioningLogUpdatedHandler from './handlers/conditioning-log-updated.handler';
 import QueryMapper from './mappers/query.mapper';
 
 @Module({
@@ -27,7 +27,7 @@ import QueryMapper from './mappers/query.mapper';
 		ConditioningLogDeletedHandler,
 		ConditioningLogRepository,
 		ConditioningLogUndeletedHandler,
-		ConditioningLogUpdateHandler,
+		ConditioningLogUpdatedHandler,
 		{
 			provide: PersistenceAdapter,
 			useFactory: (configService: ConfigService) => {
@@ -48,7 +48,7 @@ import QueryMapper from './mappers/query.mapper';
 		ConditioningLogDeletedHandler,
 		ConditioningLogRepository,
 		ConditioningLogUndeletedHandler,
-		ConditioningLogUpdateHandler,
+		ConditioningLogUpdatedHandler,
 	],
 })
 export class ConditioningModule {}

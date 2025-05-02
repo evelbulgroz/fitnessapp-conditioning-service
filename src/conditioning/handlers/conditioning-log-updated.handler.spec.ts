@@ -8,10 +8,10 @@ import { ConditioningDataService } from '../services/conditioning-data/condition
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogUpdatedEvent } from '../events/conditioning-log-updated.event';
-import { ConditioningLogUpdateHandler } from '../handlers/conditioning-log-updated.handler';
+import { ConditioningLogUpdatedHandler } from '../handlers/conditioning-log-updated.handler';
 
-describe('LogUpdatedHandler', () => {
-	let handler: ConditioningLogUpdateHandler;
+describe('ConditioningLogUpdatedHandler', () => {
+	let handler: ConditioningLogUpdatedHandler;
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
 			providers: [
@@ -29,12 +29,12 @@ describe('LogUpdatedHandler', () => {
 						// add other methods as needed
 					}
 				},
-				ConditioningLogUpdateHandler,							
+				ConditioningLogUpdatedHandler,							
 			],
 		}))
 		.compile();
 
-		handler = module.get<ConditioningLogUpdateHandler>(ConditioningLogUpdateHandler);
+		handler = module.get<ConditioningLogUpdatedHandler>(ConditioningLogUpdatedHandler);
 	});
 
 	it('can be created', () => {

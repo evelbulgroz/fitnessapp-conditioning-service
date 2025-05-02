@@ -9,7 +9,7 @@ import { ConditioningLogDeletedHandler } from '../../../../conditioning/handlers
 import { ConditioningLogUndeletedEvent } from '../../../../conditioning/events/conditioning-log-undeleted.event';
 import { ConditioningLogUndeletedHandler } from '../../../../conditioning/handlers/conditioning-log-undeleted.handler';
 import { ConditioningLogUpdatedEvent } from '../../../../conditioning/events/conditioning-log-updated.event';
-import { ConditioningLogUpdateHandler } from '../../../../conditioning/handlers/conditioning-log-updated.handler';
+import { ConditioningLogUpdatedHandler } from '../../../../conditioning/handlers/conditioning-log-updated.handler';
 import { UserCreatedEvent } from '../../../../user/events/user-created.event';
 import { UserCreatedHandler } from '../../../../user/handlers/user-created.handler';
 import { UserDeletedEvent } from '../../../../user/events/user-deleted.event';
@@ -28,7 +28,7 @@ import { UserUpdatedHandler } from '../../../../user/handlers/user-updated.handl
 export class EventDispatcherService {
 constructor(
 	private readonly logCreatedHandler: ConditioningLogCreatedHandler,
-	private readonly logUpdatedHandler: ConditioningLogUpdateHandler,
+	private readonly logUpdatedHandler: ConditioningLogUpdatedHandler,
 	private readonly logDeletedHandler: ConditioningLogDeletedHandler,
 	@Inject(forwardRef(() => ConditioningLogUndeletedHandler)) // forwardRef to handle circular dependency
 	private readonly logUndeletedHandler: ConditioningLogUndeletedHandler,

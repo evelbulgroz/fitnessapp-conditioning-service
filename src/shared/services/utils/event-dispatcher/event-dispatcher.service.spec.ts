@@ -15,7 +15,7 @@ import { ConditioningLogDeletedHandler } from '../../../../conditioning/handlers
 import { ConditioningLogUndeletedEvent } from '../../../../conditioning/events/conditioning-log-undeleted.event';
 import { ConditioningLogUndeletedHandler } from '../../../../conditioning/handlers/conditioning-log-undeleted.handler';
 import { ConditioningLogUpdatedEvent } from '../../../../conditioning/events/conditioning-log-updated.event';
-import { ConditioningLogUpdateHandler } from '../../../../conditioning/handlers/conditioning-log-updated.handler';
+import { ConditioningLogUpdatedHandler } from '../../../../conditioning/handlers/conditioning-log-updated.handler';
 import { UserCreatedEvent } from '../../../../user/events/user-created.event';
 import { UserCreatedHandler } from '../../../../user/handlers/user-created.handler';
 import { UserDeletedEvent } from '../../../../user/events/user-deleted.event';
@@ -56,7 +56,7 @@ describe('EventDispatcherService', () => {
 				EventDispatcherService,
 				ConditioningLogCreatedHandler,
 				ConditioningLogDeletedHandler,
-				ConditioningLogUpdateHandler,
+				ConditioningLogUpdatedHandler,
 				ConditioningLogUndeletedHandler,
 				UserCreatedHandler,
 				UserDeletedHandler,
@@ -114,7 +114,7 @@ describe('EventDispatcherService', () => {
 					payload: { entityId: '1' } as ConditioningLogDTO
 				});
 
-				const handleSpy = jest.spyOn(ConditioningLogUpdateHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
+				const handleSpy = jest.spyOn(ConditioningLogUpdatedHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
 
 				// act
 				// handler method not implemented yet, so expect an error

@@ -16,7 +16,7 @@ import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
  * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
-export class ConditioningLogUpdateHandler extends DomainEventHandler<ConditioningLogUpdatedEvent> {
+export class ConditioningLogUpdatedHandler extends DomainEventHandler<ConditioningLogUpdatedEvent> {
 	constructor(
 		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService, // forwardRef to avoid circular dependency
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
@@ -55,4 +55,4 @@ export class ConditioningLogUpdateHandler extends DomainEventHandler<Conditionin
 	}
 }
 
-export default ConditioningLogUpdateHandler;
+export default ConditioningLogUpdatedHandler;
