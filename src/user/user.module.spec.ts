@@ -142,10 +142,21 @@ describe('UserModule', () => {
 			// and that local implementations work correctly.									
 			
 		beforeEach(async () => {
-			// reset the userModule before each test
-			await userModule.shutdown(); // clear subscriptions and cache, and set state to SHUT_DOWN
-			userModule['msc_zh7y_stateSubject'].next({name: 'ConditioningDataService', state: ComponentState.UNINITIALIZED, updatedOn: new Date()}); // set state to UNINITIALIZED
-		});		
+			// Reset UserModule to UNINITIALIZED state properly
+			userModule['msc_zh7y_ownState'] = {
+			name: userModule.constructor.name,
+			state: ComponentState.UNINITIALIZED,
+			reason: 'Component reset for test',
+			updatedOn: new Date()
+			};
+			
+			// Update the state subject with the new state
+			userModule['msc_zh7y_stateSubject'].next({...userModule['msc_zh7y_ownState']});
+			
+			// Also reset initialization and shutdown promises
+			userModule['msc_zh7y_initializationPromise'] = undefined;
+			userModule['msc_zh7y_shutdownPromise'] = undefined;
+		});	
 		
 		describe('ManagedStatefulComponentMixin Members', () => {
 			it('inherits componentState$ ', () => {
@@ -295,7 +306,7 @@ describe('UserModule', () => {
 		});
 
 		describe('integration with subcomponents', () => {
-			it('gets aggregated state from itself and its registered subcomponents', async () => {
+			it('gets aggregated state for itself and its registered subcomponents', async () => {
 				// arrange
 				const subcomponent1 = new TestComponent();
 				const subcomponent2 = new TestComponent();
@@ -309,9 +320,13 @@ describe('UserModule', () => {
 				await userModule.initialize();
 
 				// assert
+				 // note: just verify basic aggregation of state, this is fully tested in the mixin
 				const stateInfo = await firstValueFrom(userModule.componentState$.pipe(take (1))) as ComponentStateInfo;
-				console.debug('UserModule state:', stateInfo); // bug: reports 'Aggregated state [SHUT_DOWN: 1/4, UNINITIALIZED: 3/4]. Worst: UserModule - Component shut down successfully'
 				expect(stateInfo.state).toBe(ComponentState.OK);
+				expect(stateInfo.components).toHaveLength(3);
+				expect(stateInfo.components![0].state).toBe(ComponentState.OK);
+				expect(stateInfo.components![1].state).toBe(ComponentState.OK);
+				expect(stateInfo.components![2].state).toBe(ComponentState.OK);
 
 				// clean up
 				userModule.unregisterSubcomponent(subcomponent1);
