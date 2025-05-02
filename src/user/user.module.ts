@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { Module } from '@nestjs/common';
+import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
@@ -11,6 +11,7 @@ import UserDeletedHandler from './handlers/user-deleted.handler';
 import UserRepository from './repositories/user.repo';
 import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
+import UserPersistenceDTO from './dtos/user-persistence.dto';
 
 @Module({
 	imports: [],
@@ -42,7 +43,34 @@ import UserUpdatedHandler from './handlers/user-updated.handler';
 		UserUpdatedHandler,
 	],
 })
-export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) {
+export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleInit, OnModuleDestroy {
+	constructor(
+		private readonly userRepository: UserRepository,
+		private readonly userDataService: UserDataService,
+		private readonly persistenceAdapter: PersistenceAdapter<UserPersistenceDTO>,
+	) {
+		super();
+	}
+
+	public async onModuleInit(): Promise<void> {
+		//await this.initialize(); // call the initialize method from the mixin
+	}
+
+	public async onModuleDestroy(): Promise<void> {
+		//await this.shutdown(); // call the shutdown method from the mixin
+	}
+
+	/* internal */ public async onInitialize(): Promise<void> {
+		//await this.persistenceAdapter.initialize();
+		await this.userRepository.initialize(); //  TypeError: this.userRepository.initialize is not a function
+		//await this.userDataService.initialize();
+	}
+
+	/* internal */ public async onShutdown(): Promise<void> {
+		//await this.userDataService.shutdown();
+		//await this.userRepository.shutdown();
+		//await this.persistenceAdapter.shutdown();
+	}
 
 }
 export default UserModule;

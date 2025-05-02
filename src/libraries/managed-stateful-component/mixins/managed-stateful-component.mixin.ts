@@ -434,7 +434,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 		// NOTE: TS does not support protected members in abstract classes, so we use public with @internal tag
 
-		/** Execute component-specific 
+		/** Execute component-specific initialization
 		 * @param args Result of parent class initialize() call (if any, passed in from initialize())
 		 * @returns Promise that resolves when initialization is complete
 		 * @throws Error if initialization fails
