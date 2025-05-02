@@ -301,9 +301,9 @@ describe('UserModule', () => {
 				const subcomponent2 = new TestComponent();
 				const subcomponent3 = new TestComponent();
 
-				userModule.registerSubcomponent(subcomponent1); // bug: fails with  'Component must be an instance of ManagedStatefulComponent'
-				//userModule.registerSubcomponent(subcomponent2);
-				//userModule.registerSubcomponent(subcomponent3);
+				userModule.registerSubcomponent(subcomponent1);
+				userModule.registerSubcomponent(subcomponent2);
+				userModule.registerSubcomponent(subcomponent3);
 
 				// act
 				await userModule.initialize();

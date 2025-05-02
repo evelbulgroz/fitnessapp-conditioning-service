@@ -47,7 +47,6 @@ export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	constructor(
 		private readonly userRepository: UserRepository,
 		private readonly userDataService: UserDataService,
-		private readonly persistenceAdapter: PersistenceAdapter<UserPersistenceDTO>,
 	) {
 		super();
 	}

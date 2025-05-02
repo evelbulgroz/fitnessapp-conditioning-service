@@ -5,6 +5,10 @@ import ComponentStateInfo from '../models/component-state-info.model';
 import ManagedStatefulComponent from '../models/managed-stateful-component.model';
 import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
 
+// Fixed prefix for internal members to avoid name collisions with parent classes or other libraries.
+ // Applied dynamically to all internal methods, and is hard coded into property names for simplicity.
+const MSC_PREFIX = 'msc_zh7y_';
+
 /** A mixin that provides a standard implementation of the {@link ManagedStatefulComponent} interface.
  * This mixin follows the stateful component pattern for lifecycle management with built-in
  * state tracking, hierarchical composition, and standardized initialization/shutdown flows.
@@ -12,7 +16,7 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * @param Parent The immediate parent class to extend, or `class {}` if no inheritance is needed
  * @typeparam TParent The type of the parent class
  * @param options Configuration options for initialization, shutdown, and subcomponent strategies
- * @param unshadowPrefix Prefix for internal methods to avoid name collisions. Defaults to "msc_" + random string
+ * @param unshadowPrefix Prefix for internal methods to avoid name collisions. Defaults to MSC_PREFIX. Leave as is in most cases.
  * @returns A class that implements {@link ManagedStatefulComponent} and extends the provided parent
  * @todo If/when TypeScript supports it, add a decorator to apply this mixin to a class (see below).
  * 
@@ -53,8 +57,7 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
  * Notes:
  * - Concrete classes may optionally override template methods `onInitialize()` and `onShutdown()`
  *   if they have specific initialization/shutdown needs
- * - Protected members are prefixed with 'msc_' + a random string to avoid name collisions and shadowing
- * - The protected method prefix is configurable via the `unshadowPrefix` parameter
+ * - The protected method prefix is configurable via the `unshadowPrefix` parameter, but should be left as is in most cases for compatibility
  * - The protected property prefix is hard coded to `msc_zh7y_` for simplicity
  * 
  * @remark COMPONENT HIERARCHY
@@ -107,7 +110,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		shutDownStrategy: 'parent-first',
 		subcomponentStrategy: 'parallel'
 	},
-	unshadowPrefix: string = `msc_${Math.random().toString(36).substring(2, 6)}_` // Default prefix: "managed stateful component" + random string
+	unshadowPrefix: string = MSC_PREFIX
 ) {
 	abstract class ManagedStatefulComponentClass extends Parent implements ManagedStatefulComponent {		
 		//------------------------------------- PROPERTIES --------------------------------------//
@@ -376,11 +379,10 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @required by {@link ComponentContainer} interface
 		 */
 		public registerSubcomponent(component: ManagedStatefulComponent): void {
-			console.debug('Registering subcomponent:', (component as any).msc_zh7y_ownState, component instanceof ManagedStatefulComponentClass);
 			if (!component) {
 				throw new Error('Component cannot be null or undefined');
 			}
-			else if (!(component instanceof ManagedStatefulComponentClass)) {
+			else if (!(this[`${unshadowPrefix}isValidManagedComponent`](component))) {
 				throw new Error('Component must be an instance of ManagedStatefulComponent');
 			}
 			else if (this. msc_zh7y_subcomponents.includes(component)) {
@@ -695,6 +697,25 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					await component.initialize();
 				}
 			}
+		}
+
+		/* Check if the object is a valid managed component using duck typing
+		 * @param obj The object to check
+		 * @returns true if the object is a valid managed component, false otherwise
+		 * @remark This method is used to check if the object is a valid managed component before registering it as a subcomponent
+		 * @remark Using `instanceof` may fail because the module system may load different copies of the same class
+		 */
+		/* @internal */ [`${unshadowPrefix}isValidManagedComponent`](obj: any): boolean {
+			return (
+				// Check for required properties/methods
+				typeof obj.initialize === 'function' &&
+				typeof obj.shutdown === 'function' &&
+				typeof obj.isReady === 'function' &&
+				typeof obj.registerSubcomponent === 'function' &&
+				typeof obj.unregisterSubcomponent === 'function' &&
+				typeof obj.componentState$ !== 'undefined' &&
+				obj.componentState$ instanceof Observable
+			);
 		}
 		
 		/* Shut down subcomponents
