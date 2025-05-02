@@ -17,6 +17,7 @@ import UserDeletedHandler from './handlers/user-deleted.handler';
 import UserRepository from './repositories/user.repo';
 import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
+import { register } from 'module';
 
 // Stand-alone component using the mixin
 class TestComponent extends ManagedStatefulComponentMixin(class {}) {
@@ -101,7 +102,11 @@ describe('UserModule', () => {
 		.overrideProvider(UserDataService)
 		.useValue({
 			initialize: async () => Promise.resolve(void 0),
-			shutdown: async () => Promise.resolve(void 0),			
+			shutdown: async () => Promise.resolve(void 0),
+			isReady: async () => Promise.resolve(true),
+			registerSubcomponent: jest.fn(),
+			unregisterSubcomponent: jest.fn(),
+			componentState$: new Subject<ComponentStateInfo>(),	
 		})
 		.overrideProvider(UserCreatedHandler)
 		.useValue({})
@@ -112,7 +117,11 @@ describe('UserModule', () => {
 		.overrideProvider(UserRepository)
 		.useValue({
 			initialize: async () => Promise.resolve(void 0),
-			shutdown: async () => Promise.resolve(void 0),			
+			shutdown: async () => Promise.resolve(void 0),
+			isReady: async () => Promise.resolve(true),
+			registerSubcomponent: jest.fn(),
+			unregisterSubcomponent: jest.fn(),
+			componentState$: new Subject<ComponentStateInfo>(),			
 		})
 		.overrideProvider(UserController)
 		.useValue({
@@ -129,6 +138,44 @@ describe('UserModule', () => {
 	afterEach(async () => {
 		await testingModule.close();
 	});
+
+	describe('Lifecycle Hooks', () => {
+		describe('onModuleInit', () => {
+			it('initializes the module and its subcomponents', async () => {
+				// arrange
+				const userRepository = testingModule.get<UserRepository>(UserRepository);
+				const userDataService = testingModule.get<UserDataService>(UserDataService);
+				const initializeSpy = jest.spyOn(userModule, 'initialize').mockResolvedValue(void 0);
+				const registerSubcomponentSpy = jest.spyOn(userModule, 'registerSubcomponent').mockReturnValue(void 0);
+	
+				// act
+				await userModule.onModuleInit();
+	
+				// assert
+				expect(initializeSpy).toHaveBeenCalledTimes(1);
+				expect(registerSubcomponentSpy).toHaveBeenCalledWith(userRepository);
+				expect(registerSubcomponentSpy).toHaveBeenCalledWith(userDataService);
+			});
+		});
+
+		describe('onModuleDestroy', () => {
+			it('shuts down the module and its subcomponents', async () => {
+				// arrange
+				const userRepository = testingModule.get<UserRepository>(UserRepository);
+				const userDataService = testingModule.get<UserDataService>(UserDataService);
+				const shutdownSpy = jest.spyOn(userModule, 'shutdown').mockResolvedValue(void 0);
+				const unregisterSubcomponentSpy = jest.spyOn(userModule, 'unregisterSubcomponent').mockReturnValue(true);
+				
+				// act
+				await userModule.onModuleDestroy();
+				
+				// assert
+				expect(shutdownSpy).toHaveBeenCalledTimes(1);
+				expect(unregisterSubcomponentSpy).toHaveBeenCalledWith(userRepository);
+				expect(unregisterSubcomponentSpy).toHaveBeenCalledWith(userDataService);
+			});
+		});
+	});	
 
 	it('can be created', () => {
 		expect(userModule).toBeDefined();

@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
-import { firstValueFrom, take } from 'rxjs';
+//import { firstValueFrom, take } from 'rxjs';
 
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { ComponentStateInfo, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';

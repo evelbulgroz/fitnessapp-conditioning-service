@@ -377,6 +377,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
 		 * @remark The component must be an instance of ManagedStatefulComponent.
 		 * @required by {@link ComponentContainer} interface
+		 * @todo Refactor to return boolean to indicate success/failure of registration
 		 */
 		public registerSubcomponent(component: ManagedStatefulComponent): void {
 			if (!component) {
@@ -706,6 +707,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Using `instanceof` may fail because the module system may load different copies of the same class
 		 */
 		/* @internal */ [`${unshadowPrefix}isValidManagedComponent`](obj: any): boolean {
+			if (!obj) return false; // Null or undefined object
 			return (
 				// Check for required properties/methods
 				typeof obj.initialize === 'function' &&
