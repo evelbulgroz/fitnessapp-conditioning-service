@@ -37,15 +37,8 @@ import NotFoundError from '../../../shared/domain/not-found.error';
 import PersistenceError from '../../../shared/domain/persistence.error';
 import { QueryDTO, QueryDTOProps } from '../../../shared/dtos/responses/query.dto';
 import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.error';
-import User from '../../../user/domain/user.entity';
+import { User, UserDTO, UserPersistenceDTO, UserRepository, UserUpdatedEvent, UserCreatedHandler, UserUpdatedHandler, UserDeletedHandler } from '../../../user/index';
 import UserContext from '../../../shared/domain/user-context.model';
-import UserCreatedHandler from '../../../user/handlers/user-created.handler';
-import UserDeletedHandler from '../../../user/handlers/user-deleted.handler';
-import UserUpdatedEvent from '../../../user/events/user-updated.event';
-import UserUpdatedHandler from '../../../user/handlers/user-updated.handler';
-import UserDTO from '../../../user/dtos/user.dto';
-import UserPersistenceDTO from '../../../user/dtos/user-persistence.dto';
-import UserRepository from '../../../user/repositories/user.repo';
 import { UserLogsCacheEntry } from './conditioning-data.service';
 
 const originalTimeout = 5000;
