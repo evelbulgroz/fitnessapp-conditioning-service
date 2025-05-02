@@ -6,7 +6,7 @@ import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { LogLevel, StreamLoggable, StreamLoggableMixin } from '../../../libraries/stream-loggable';
-import { ManagedStatefulComponentMixin } from '../../../libraries/managed-stateful-component/index';
+import { ManagedStatefulComponentMixin } from '../../../libraries/managed-stateful-component';
 
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';

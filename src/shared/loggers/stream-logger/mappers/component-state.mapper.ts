@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import { ComponentState, ComponentStateInfo } from '../../../../libraries/managed-stateful-component/index';
-import {LogEventSource, LogLevel, StreamMapper, UnifiedLogEntry} from '../../../../libraries/stream-loggable/index';
+import { ComponentState, ComponentStateInfo } from '../../../../libraries/managed-stateful-component';
+import {LogEventSource, LogLevel, StreamMapper, UnifiedLogEntry} from '../../../../libraries/stream-loggable';
 
 @Injectable()
 export class ComponentStateMapper implements StreamMapper<ComponentStateInfo> {

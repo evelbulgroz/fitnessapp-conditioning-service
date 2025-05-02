@@ -4,13 +4,13 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom, Observable, of,  Subject, take } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
-import {ComponentState, ComponentStateInfo} from "../../libraries/managed-stateful-component/index";
+import {ComponentState, ComponentStateInfo} from "../../libraries/managed-stateful-component";
 import { Result } from '@evelbulgroz/ddd-base';
-import { StreamLogger } from '../../libraries/stream-loggable/index';
+import { StreamLogger } from '../../libraries/stream-loggable';
 
 import { createTestingModule } from '../../test/test-utils';
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
-import { User, UserDataService, UserDTO, UserRepository } from '../index';
+import { User, UserDataService, UserDTO, UserRepository } from '..';
 import { UserContext } from '../../shared/domain/user-context.model';
 
 

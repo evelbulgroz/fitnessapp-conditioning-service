@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Subject } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 
-import { LogEventSource } from '../../../../libraries/stream-loggable/index';
+import { LogEventSource } from '../../../../libraries/stream-loggable';
 import { RepoLogEntry, RepoLogLevel } from '@evelbulgroz/ddd-base';
 
 import { RepoLogMapper } from './repo-log.mapper';

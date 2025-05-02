@@ -27,7 +27,7 @@ import {
 	ConditioningLogUndeletedHandler,
 	ConditioningLogUpdatedEvent,
 	QueryMapper
-} from '../../index';
+} from '../..';
 import createTestingModule from '../../../test/test-utils';
 import EntityIdDTO from '../../../shared/dtos/responses/entity-id.dto';
 import EventDispatcherService from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
@@ -35,7 +35,7 @@ import NotFoundError from '../../../shared/domain/not-found.error';
 import PersistenceError from '../../../shared/domain/persistence.error';
 import { QueryDTO, QueryDTOProps } from '../../../shared/dtos/responses/query.dto';
 import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.error';
-import { User, UserDTO, UserPersistenceDTO, UserRepository, UserUpdatedEvent, UserCreatedHandler, UserUpdatedHandler, UserDeletedHandler } from '../../../user/index';
+import { User, UserDTO, UserPersistenceDTO, UserRepository, UserUpdatedEvent, UserCreatedHandler, UserUpdatedHandler, UserDeletedHandler } from '../../../user';
 import UserContext from '../../../shared/domain/user-context.model';
 
 //const originalTimeout = 5000;

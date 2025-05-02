@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { RepoLogEntry, RepoLogLevel } from '@evelbulgroz/ddd-base';
 
-import { LogEventSource, LogLevel, StreamMapper, UnifiedLogEntry} from '../../../../libraries/stream-loggable/index';
+import { LogEventSource, LogLevel, StreamMapper, UnifiedLogEntry} from '../../../../libraries/stream-loggable';
 
 @Injectable()
 export class RepoLogMapper implements StreamMapper<RepoLogEntry> {

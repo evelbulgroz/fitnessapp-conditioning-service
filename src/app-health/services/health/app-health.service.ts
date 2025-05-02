@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { firstValueFrom, take } from 'rxjs';
 
-import { ComponentState, ComponentStateInfo, ManagedStatefulComponent } from '../../../libraries/managed-stateful-component/index';
+import { ComponentState, ComponentStateInfo, ManagedStatefulComponent } from '../../../libraries/managed-stateful-component';
 import { Logger } from '@evelbulgroz/logger';
 
 import AppStateInfo from '../../models/app-state-info.model';

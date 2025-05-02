@@ -9,7 +9,7 @@ import { User } from '../domain/user.entity';
 import { UserDTO } from '../dtos/user.dto';
 import { UserRepository } from './user.repo';
 import { UserPersistenceDTO } from '../dtos/user-persistence.dto';
-import {ComponentState, ComponentStateInfo} from "../../libraries/managed-stateful-component/index";
+import {ComponentState, ComponentStateInfo} from "../../libraries/managed-stateful-component";
 
 class PersistenceAdapterMock<T extends UserPersistenceDTO> extends PersistenceAdapter<T> {
 	// cannot get generics to work with jest.fn(), so skipping for now

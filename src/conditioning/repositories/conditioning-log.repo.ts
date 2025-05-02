@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
 import { EntityId, EntityMetadataDTO, RepoLogLevel, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
-import ManagedStatefulComponentMixin from "../../libraries/managed-stateful-component/mixins/managed-stateful-component.mixin";
+import { ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component/";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
 import ConditioningLog from "../domain/conditioning-log.entity";
