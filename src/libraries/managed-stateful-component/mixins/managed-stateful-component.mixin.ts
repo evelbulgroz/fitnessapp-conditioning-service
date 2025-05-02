@@ -379,7 +379,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @required by {@link ComponentContainer} interface
 		 * @todo Refactor to return boolean to indicate success/failure of registration
 		 */
-		public registerSubcomponent(component: ManagedStatefulComponent): void {
+		public registerSubcomponent(component: ManagedStatefulComponent): boolean {
 			if (!component) {
 				throw new Error('Component cannot be null or undefined');
 			}
@@ -390,18 +390,28 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				throw new Error('Component is already registered as a subcomponent');
 			}
 			
-			this. msc_zh7y_subcomponents.push(component);
-			
-			// Subscribe to component state changes
-			const subscription = component.componentState$.subscribe(state => {
-				// Update the aggregated state when a subcomponent's state changes
+			try {
+				this. msc_zh7y_subcomponents.push(component);
+				
+				// Subscribe to component state changes
+				const subscription = component.componentState$.subscribe(state => {
+					// Update the aggregated state when a subcomponent's state changes
+					this[`${unshadowPrefix}updateAggregatedState`]();
+				});
+				
+				this.msc_zh7y_componentSubscriptions.set(component, subscription);
+				
+				// Update the aggregated state to include the new component
 				this[`${unshadowPrefix}updateAggregatedState`]();
-			});
-			
-			this.msc_zh7y_componentSubscriptions.set(component, subscription);
-			
-			// Update the aggregated state to include the new component
-			this[`${unshadowPrefix}updateAggregatedState`]();
+
+				return true;
+			}
+			catch (error) {
+				throw new Error(`Failed to register subcomponent: ${error instanceof Error ? error.message : String(error)}`);
+			}
+			finally {
+				return false;
+			}
 		}
 
 		/** Unregister a subcomponent from this component
