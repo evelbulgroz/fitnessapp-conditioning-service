@@ -718,6 +718,137 @@ describe('ManagedStatefulComponentMixin', () => {
 			});
 		});
 
+		describe('isValidManagedComponent', () => {
+			it('returns true for a valid ManagedStatefulComponent', () => {
+				// A real TestComponent instance should pass all checks
+				const validComponent = new TestComponent();
+				const result = component[`${unshadowPrefix}isValidManagedComponent`](validComponent);
+				expect(result).toBe(true);
+			});
+			
+			it('returns false for null or undefined input', () => {
+				expect(component[`${unshadowPrefix}isValidManagedComponent`](null)).toBe(false);
+				expect(component[`${unshadowPrefix}isValidManagedComponent`](undefined)).toBe(false);
+			});
+			
+			it('returns false if initialize is not a function', () => {
+				const invalidComponent = {
+					initialize: 'not a function',
+					shutdown: () => Promise.resolve(),
+					isReady: () => Promise.resolve(true),
+					registerSubcomponent: () => {},
+					unregisterSubcomponent: () => true,
+				componentState$: new Subject<ComponentStateInfo>()
+				};
+				const result = component[`${unshadowPrefix}isValidManagedComponent`](invalidComponent);
+				expect(result).toBe(false);
+			});
+			
+			it('returns false if shutdown is not a function', () => {
+				const invalidComponent = {
+					initialize: () => Promise.resolve(),
+					shutdown: 'not a function',
+					isReady: () => Promise.resolve(true),
+					registerSubcomponent: () => {},
+					unregisterSubcomponent: () => true,
+					componentState$: new Subject<ComponentStateInfo>()
+				};
+				const result = component[`${unshadowPrefix}isValidManagedComponent`](invalidComponent);
+				expect(result).toBe(false);
+			});
+			
+			it('returns false if isReady is not a function', () => {
+				const invalidComponent = {
+					initialize: () => Promise.resolve(),
+					shutdown: () => Promise.resolve(),
+					isReady: 'not a function',
+					registerSubcomponent: () => {},
+					unregisterSubcomponent: () => true,
+					componentState$: new Subject<ComponentStateInfo>()
+				};
+				const result = component[`${unshadowPrefix}isValidManagedComponent`](invalidComponent);
+				expect(result).toBe(false);
+			});
+			
+			it('returns false if registerSubcomponent is not a function', () => {
+				const invalidComponent = {
+					initialize: () => Promise.resolve(),
+					shutdown: () => Promise.resolve(),
+					isReady: () => Promise.resolve(true),
+					registerSubcomponent: 'not a function',
+					unregisterSubcomponent: () => true,
+					componentState$: new Subject<ComponentStateInfo>()
+				};
+				const result = component[`${unshadowPrefix}isValidManagedComponent`](invalidComponent);
+				expect(result).toBe(false);
+			});
+			
+			it('returns false if unregisterSubcomponent is not a function', () => {
+				const invalidComponent = {
+					initialize: () => Promise.resolve(),
+					shutdown: () => Promise.resolve(),
+					isReady: () => Promise.resolve(true),
+					registerSubcomponent: () => {},
+					unregisterSubcomponent: 'not a function',
+					componentState$: new Subject<ComponentStateInfo>()
+				};
+				const result = component[`${unshadowPrefix}isValidManagedComponent`](invalidComponent);
+				expect(result).toBe(false);
+			});
+			
+			it('returns false if componentState$ is undefined', () => {
+				const invalidComponent = {
+					initialize: () => Promise.resolve(),
+					shutdown: () => Promise.resolve(),
+					isReady: () => Promise.resolve(true),
+					registerSubcomponent: () => {},
+					unregisterSubcomponent: () => true,
+					// componentState$ is missing
+				};
+				const result = component[`${unshadowPrefix}isValidManagedComponent`](invalidComponent);
+				expect(result).toBe(false);
+			});
+			
+			it('returns false if componentState$ is not an Observable', () => {
+				const invalidComponent = {
+					initialize: () => Promise.resolve(),
+					shutdown: () => Promise.resolve(),
+					isReady: () => Promise.resolve(true),
+					registerSubcomponent: () => {},
+					unregisterSubcomponent: () => true,
+					componentState$: 'not an observable'
+				};
+				const result = component[`${unshadowPrefix}isValidManagedComponent`](invalidComponent);
+				expect(result).toBe(false);
+			});
+			
+			it('returns false if any required property is missing', () => {
+				// Test with a partial implementation
+				const partialComponent = {
+					initialize: () => Promise.resolve(),
+					// shutdown is missing
+					isReady: () => Promise.resolve(true),
+					componentState$: new Subject<ComponentStateInfo>()
+				};
+				const result = component[`${unshadowPrefix}isValidManagedComponent`](partialComponent);
+				expect(result).toBe(false);
+			});
+			
+			it('returns true for a duck-typed component with all required properties', () => {
+				// A minimal mock that passes duck typing
+				const duckTypedComponent = {
+					initialize: () => Promise.resolve(),
+					shutdown: () => Promise.resolve(),
+					isReady: () => Promise.resolve(true),
+					registerSubcomponent: () => {},
+					unregisterSubcomponent: () => true,
+					componentState$: new Subject<ComponentStateInfo>()
+				};
+				const result = component[`${unshadowPrefix}isValidManagedComponent`](duckTypedComponent);
+				expect(result).toBe(true);
+			});
+			});
+
 		describe('onInitialize', () => {
 			it('is called during initialization', async () => {
 				await component.initialize();
@@ -755,15 +886,15 @@ describe('ManagedStatefulComponentMixin', () => {
 			it('receives the result from super.onInitialize()', async () => {
 				// Create a parent class with initialize that returns a value
 				class ParentWithInitialize {
-				  public async initialize(): Promise<any> {
+					public async initialize(): Promise<any> {
 					return Promise.resolve('parent initialized');
-				  }
+					}
 				}
 				
 				// Create a class that extends the parent with the mixin
 				class InheritingComponent extends ManagedStatefulComponentMixin(ParentWithInitialize) {
-				  public initValue: string | undefined;
-				  
+					public initValue: string | undefined;
+					
 					public async onInitialize(superReturn: any): Promise<void> {
 						this.initValue = superReturn; // Store the value returned from super.onInitialize()
 					}
@@ -816,15 +947,15 @@ describe('ManagedStatefulComponentMixin', () => {
 			it('receives the result from super.onShutdown()', async () => {
 				// Create a parent class with shutdown that returns a value
 				class ParentWithInitialize {
-				  public async shutdown(): Promise<any> {
+					public async shutdown(): Promise<any> {
 					return Promise.resolve('parent shut down');
-				  }
+					}
 				}
 				
 				// Create a class that extends the parent with the mixin
 				class InheritingComponent extends ManagedStatefulComponentMixin(ParentWithInitialize) {
-				  public shutdownValue: string | undefined;
-				  
+					public shutdownValue: string | undefined;
+					
 					public async onShutdown(superReturn: any): Promise<void> {
 						this.shutdownValue = superReturn; // Store the value returned from super.onInitialize()
 					}
