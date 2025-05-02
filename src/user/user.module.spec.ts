@@ -310,7 +310,7 @@ describe('UserModule', () => {
 
 				// assert
 				const stateInfo = await firstValueFrom(userModule.componentState$.pipe(take (1))) as ComponentStateInfo;
-				console.debug('UserModule state:', stateInfo);
+				console.debug('UserModule state:', stateInfo); // bug: reports 'Aggregated state [SHUT_DOWN: 1/4, UNINITIALIZED: 3/4]. Worst: UserModule - Component shut down successfully'
 				expect(stateInfo.state).toBe(ComponentState.OK);
 
 				// clean up
