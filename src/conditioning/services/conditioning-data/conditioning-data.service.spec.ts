@@ -18,22 +18,24 @@ import { Query } from '@evelbulgroz/query-fns';
 import AggregationQueryDTO from '../../dtos/aggregation-query.dto';
 import AggregatorService from '../aggregator/aggregator.service';
 import BooleanDTO from '../../../shared/dtos/responses/boolean.dto';
-import ConditioningDataService from './conditioning-data.service';
-import ConditioningLog from '../../domain/conditioning-log.entity';
-import ConditioningLogDTO from '../../dtos/conditioning-log.dto';
-import ConditioningLogRepository from '../../repositories/conditioning-log.repo';
+import {
+	ConditioningDataService,
+	ConditioningLog,
+	ConditioningLogDTO,
+	ConditioningLogRepository,
+	ConditioningLogCreatedHandler,
+	ConditioningLogUpdatedHandler,
+	ConditioningLogDeletedHandler,
+	ConditioningLogUndeletedHandler,
+	ConditioningLogUpdatedEvent,
+	QueryMapper
+} from '../../index';
 import createTestingModule from '../../../test/test-utils';
 import EntityIdDTO from '../../../shared/dtos/responses/entity-id.dto';
 import EventDispatcherService from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
-import ConditioningLogCreatedHandler from '../../handlers/conditioning-log-created.handler';
-import ConditioningLogDeletedHandler from '../../handlers/conditioning-log-deleted.handler';
-import ConditioningLogUndeletedHandler from '../../handlers/conditioning-log-undeleted.handler';
-import ConditioningLogUpdatedEvent from '../../events/conditioning-log-updated.event';
-import ConditioningLogUpdateHandler from '../../handlers/conditioning-log-updated.handler';
 import NotFoundError from '../../../shared/domain/not-found.error';
 import PersistenceError from '../../../shared/domain/persistence.error';
 import { QueryDTO, QueryDTOProps } from '../../../shared/dtos/responses/query.dto';
-import QueryMapper from '../../mappers/query.mapper';
 import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.error';
 import User from '../../../user/domain/user.entity';
 import UserContext from '../../../shared/domain/user-context.model';
@@ -87,7 +89,7 @@ describe('ConditioningDataService', () => {
 					}
 				},
 				{ // ConditioningLogUpdatedHandler
-					provide: ConditioningLogUpdateHandler,
+					provide: ConditioningLogUpdatedHandler,
 					useValue: {
 						handle: () => Promise.resolve(undefined)
 					}
@@ -968,7 +970,7 @@ describe('ConditioningDataService', () => {
 				// arrange
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
 
-				//todo : add spy to ConditioningLogUpdateHandler.handle to replicate adding log to cache entry
+				//todo : add spy to ConditioningLogUpdatedHandler.handle to replicate adding log to cache entry
 				
 				const randomUserDTO = randomUser.toDTO();
 				randomUserDTO.logs!.push(newLogId);
