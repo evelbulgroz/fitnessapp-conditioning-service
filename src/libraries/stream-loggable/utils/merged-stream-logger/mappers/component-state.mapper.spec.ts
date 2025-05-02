@@ -2,9 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 
-import ComponentState from '../../../../../../app-health/models/component-state.enum';
-import ComponentStateInfo from '../../../../../../app-health/models/component-state-info.model';
-import ComponentStateMapper from './component-state-mapper';
+import ComponentState from '../../../../../app-health/models/component-state.enum';
+import ComponentStateInfo from '../../../../../app-health/models/component-state-info.model';
+import ComponentStateMapper from './component-state.mapper';
 import LogEventSource from '../../../models/log-event-source.model';
 import LogLevel from '../../../models/log-level.enum';
 

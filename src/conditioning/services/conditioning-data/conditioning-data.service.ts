@@ -5,7 +5,7 @@ import { BehaviorSubject, firstValueFrom, Observable, Subscription, take } from 
 import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
-//import { Logger } from '@evelbulgroz/logger';
+import { LogLevel, StreamLoggable, StreamLoggableMixin } from '../../../libraries/stream-loggable';
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
 
@@ -21,8 +21,6 @@ import ConditioningLogSeries from '../../domain/conditioning-log-series.model';
 import DomainEventHandler from '../../../shared/handlers/domain-event.handler';
 import EntityIdDTO from '../../../shared/dtos/responses/entity-id.dto';
 import EventDispatcherService from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
-import LoggableMixin from '../../../shared/loggers/stream-loggable/mixins/stream-loggable.mixin';
-import LogLevel from '../../../shared/loggers/stream-loggable/models/log-level.enum';
 import ManagedStatefulComponentMixin from '../../../app-health/mixins/managed-stateful-component.mixin';
 import NotFoundError from '../../../shared/domain/not-found.error';
 import PersistenceError from '../../../shared/domain/persistence.error';
@@ -56,13 +54,13 @@ export interface UserLogsCacheEntry {
  * @remark For now, Observable chain ends here with methods that return single-shot promises, since there are currently no streaming endpoints in the API.
  * @remark Admins can access all logs, other users can only access their own logs.
  * @remark Local cache is kept in sync with repository data via subscriptions to log and user repo events.
- * @remark Provides {@link LoggableComponent} API via {@link LoggableMixin}, compatible with streaming Logger service.
+ * @remark Provides {@link StreamLoggable} API via {@link StreamLoggableMixin}, compatible with streaming Logger service.
  * @remark Provides {@link ManagedStatefulComponent} API for lifecycle management and state tracking, using {@link ManagedStatefulComponentMixin}.
  * @todo Break each public method out into separate service class, to make this class more manageable and testable by simply providing a facade to the new sub-services.
  * @todo Use shared cache library when available
  */
 @Injectable()
-export class ConditioningDataService extends LoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleDestroy {
+export class ConditioningDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleDestroy {
 	
 	//----------------------------------- PROPERTIES ------------------------------------//
 	
