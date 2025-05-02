@@ -1,0 +1,1 @@
+Subfolders in this folder are intended to be factored out into separate libraries. Treat them as such in consuming code.
