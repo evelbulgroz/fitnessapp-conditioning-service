@@ -184,6 +184,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Required by {@link ManageableComponent} interface
 		 */
 		public async initialize(...args: any[]): Promise<void> {
+			console.debug('Initialize called on', this.constructor.name, 'with args:', args, this. msc_zh7y_stateSubject.value.state);
 			// If already initialized, resolve immediately
 			if (this. msc_zh7y_stateSubject.value.state !== ComponentState.UNINITIALIZED) {
 				return Promise.resolve();
@@ -304,6 +305,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Required by {@link ManageableComponent} interface
 		 */
 		public async shutdown(...args: any[]): Promise<any> {
+			console.debug('Shutdown called on', this.constructor.name, 'with args:', args, this. msc_zh7y_stateSubject.value.state);
 			// If already shut down, resolve immediately
 			if (this. msc_zh7y_stateSubject.value.state === ComponentState.SHUT_DOWN) {
 				return Promise.resolve();
@@ -766,7 +768,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				...newState,
 				updatedOn: new Date()
 			};
-			
+
 			// For components with subcomponents, recalculate the aggregated componentState$
 			let updatedState: ComponentStateInfo;			
 			if (this.msc_zh7y_subcomponents.length > 0) {
@@ -776,7 +778,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					...newState,
 					updatedOn: new Date()
 				};
-				
+
 				// Calculate the full aggregated state (will include subcomponents)
 				updatedState = this[`${unshadowPrefix}calculateState`]();
 			} else {
