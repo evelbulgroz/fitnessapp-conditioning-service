@@ -5,13 +5,13 @@ import { jest } from '@jest/globals';
 import { firstValueFrom, Observable, of, Subject, Subscription, take } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ComponentState, ComponentStateInfo } from '../../../libraries/managed-stateful-component/index';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
+import { ComponentState, ComponentStateInfo } from '../../../libraries/managed-stateful-component';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
-import { Logger } from '../../../libraries/stream-loggable';
 import { Query } from '@evelbulgroz/query-fns';
+import { StreamLogger } from '../../../libraries/stream-loggable';
 
 import AggregationQueryDTO from '../../dtos/aggregation-query.dto';
 import AggregatorService from '../aggregator/aggregator.service';
@@ -2439,7 +2439,7 @@ describe('ConditioningDataService', () => {
 
 			it('inherits logger', () => {
 				expect(service.logger).toBeDefined();
-				expect(service.logger).toBeInstanceOf(Logger);
+				expect(service.logger).toBeInstanceOf(StreamLogger);
 			});
 
 			it('inherits logToStream', () => {

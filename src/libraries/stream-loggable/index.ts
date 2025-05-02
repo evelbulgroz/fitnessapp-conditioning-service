@@ -1,5 +1,6 @@
 // Mixins
 export * from './mixins/stream-loggable.mixin';
+export * from './mixins/helpers/stream-logger.class';
 
 // Models
 export * from './models/log-event-source.model';

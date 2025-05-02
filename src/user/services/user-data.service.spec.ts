@@ -5,8 +5,8 @@ import { firstValueFrom, Observable, of,  Subject, take } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import {ComponentState, ComponentStateInfo} from "../../libraries/managed-stateful-component/index";
-import { Logger } from '@evelbulgroz/logger';
 import { Result } from '@evelbulgroz/ddd-base';
+import { StreamLogger } from '../../libraries/stream-loggable/index';
 
 import { createTestingModule } from '../../test/test-utils';
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
@@ -30,16 +30,6 @@ describe('UserDataService', () => {
 			],
 			providers: [
 				ConfigService,
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},
 				{
 					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
 					useValue: 100						// figure out how to get this from config
@@ -646,6 +636,25 @@ describe('UserDataService', () => {
 			});
 		});
 	});
+
+	describe('Logging API', () => {
+			describe('LoggableMixin Members', () => {
+				it('inherits log$', () => {
+					expect(service.log$).toBeDefined();
+					expect(service.log$).toBeInstanceOf(Subject);
+				});
+	
+				it('inherits logger', () => {
+					expect(service.logger).toBeDefined();
+					expect(service.logger).toBeInstanceOf(StreamLogger);
+				});
+	
+				it('inherits logToStream', () => {
+					expect(service.logToStream).toBeDefined();
+					expect(typeof service.logToStream).toBe('function');
+				});
+			});
+		});		
 
 	describe('Protected Methods', () => {
 		describe('checkIsValidCaller()', () => {  }); // todo: implement tests

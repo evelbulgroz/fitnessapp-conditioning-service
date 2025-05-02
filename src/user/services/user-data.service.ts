@@ -7,6 +7,7 @@ import { EntityId } from '@evelbulgroz/ddd-base';
 import { Logger } from '@evelbulgroz/logger';
 import ManagedStatefulComponentMixin from "../../libraries/managed-stateful-component/mixins/managed-stateful-component.mixin";
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
+import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
 import EntityIdDTO from '../../shared/dtos/responses/entity-id.dto';
 import PersistenceError from '../../shared/domain/persistence.error';
@@ -25,13 +26,13 @@ import UserRepository from '../repositories/user.repo';
  * @remark Depends on the User repository for caching and persistence of user entities.
  */
 @Injectable()
-export class UserDataService  extends ManagedStatefulComponentMixin(class {}) implements OnModuleDestroy {
+export class UserDataService  extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleDestroy {
 
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
 	constructor(
 		protected readonly config: ConfigService,
-		protected readonly logger: Logger,
+		//protected readonly logger: Logger,
 		protected readonly userRepo: UserRepository
 	) {
 		super();
