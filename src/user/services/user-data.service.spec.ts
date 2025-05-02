@@ -9,11 +9,8 @@ import { Result } from '@evelbulgroz/ddd-base';
 
 import { createTestingModule } from '../../test/test-utils';
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
-import { User } from '../domain/user.entity';
+import { User, UserDataService, UserDTO, UserRepository } from '../index';
 import { UserContext } from '../../shared/domain/user-context.model';
-import { UserDTO } from '../dtos/user.dto';
-import { UserRepository } from '../repositories/user.repo';
-import { UserDataService } from './user-data.service';
 import ComponentState from '../../app-health/models/component-state.enum';
 import ComponentStateInfo from '../../app-health/models/component-state-info.model';
 
