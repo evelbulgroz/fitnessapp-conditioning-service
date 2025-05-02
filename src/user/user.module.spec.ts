@@ -139,6 +139,11 @@ describe('UserModule', () => {
 		await testingModule.close();
 	});
 
+	it('can be created', () => {
+		expect(userModule).toBeDefined();
+		expect(userModule).toBeInstanceOf(UserModule);
+	});
+
 	describe('Lifecycle Hooks', () => {
 		describe('onModuleInit', () => {
 			it('initializes the module and its subcomponents', async () => {
@@ -176,11 +181,6 @@ describe('UserModule', () => {
 			});
 		});
 	});	
-
-	it('can be created', () => {
-		expect(userModule).toBeDefined();
-		expect(userModule).toBeInstanceOf(UserModule);
-	});
 
 	describe('Management API', () => {
 		// NOTE: no need to fully retest ManagedStatefulComponentMixin methods,
