@@ -53,23 +53,17 @@ export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	}
 
 	public async onModuleInit(): Promise<void> {
-		//await this.initialize(); // call the initialize method from the mixin
+		this.registerSubcomponent(this.userRepository);
+		this.registerSubcomponent(this.userDataService);
+		//this.registerSubcomponent(this.persistenceAdapter); // register the persistenceAdapter as a subcomponent
+		await this.initialize(); // // initialize module and all subcomponents
 	}
 
 	public async onModuleDestroy(): Promise<void> {
-		//await this.shutdown(); // call the shutdown method from the mixin
-	}
-
-	/* internal */ public async onInitialize(): Promise<void> {
-		//await this.persistenceAdapter.initialize();
-		await this.userRepository.initialize(); //  TypeError: this.userRepository.initialize is not a function
-		//await this.userDataService.initialize();
-	}
-
-	/* internal */ public async onShutdown(): Promise<void> {
-		//await this.userDataService.shutdown();
-		//await this.userRepository.shutdown();
-		//await this.persistenceAdapter.shutdown();
+		await this.shutdown(); // shutdown module and all subcomponents
+		//this.unregisterSubcomponent(this.persistenceAdapter);
+		this.unregisterSubcomponent(this.userRepository);
+		this.unregisterSubcomponent(this.userDataService);
 	}
 
 }

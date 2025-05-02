@@ -53,8 +53,8 @@ describe('UserModule', () => {
 		.useValue(100)
 		.overrideProvider(PersistenceAdapter)
 		.useValue({
-			initialize: jest.fn(),
-			shutdown: jest.fn(),
+			initialize: async () => Promise.resolve(void 0),
+			shutdown: async () => Promise.resolve(void 0),
 			create: jest.fn(),
 			fetchAll: jest.fn(),
 			fetchById: jest.fn(),
@@ -63,7 +63,10 @@ describe('UserModule', () => {
 			undelete: jest.fn(),
 		})
 		.overrideProvider(UserDataService)
-		.useValue({})
+		.useValue({
+			initialize: async () => Promise.resolve(void 0),
+			shutdown: async () => Promise.resolve(void 0),			
+		})
 		.overrideProvider(UserCreatedHandler)
 		.useValue({})
 		.overrideProvider(UserDeletedHandler)
@@ -71,7 +74,10 @@ describe('UserModule', () => {
 		.overrideProvider(UserUpdatedHandler)
 		.useValue({})
 		.overrideProvider(UserRepository)
-		.useValue({})
+		.useValue({
+			initialize: async () => Promise.resolve(void 0),
+			shutdown: async () => Promise.resolve(void 0),			
+		})
 		.overrideProvider(UserController)
 		.useValue({
 			// Basic mock implementation of controller methods

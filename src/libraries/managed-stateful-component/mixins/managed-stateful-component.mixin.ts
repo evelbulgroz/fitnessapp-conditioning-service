@@ -174,7 +174,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @returns Promise that resolves when the component and all of its subcomponents are initialized
 		 * @throws Error if initialization fails
 		 * @remark Executes any inherited initialize() method before executing subclass initialize() logic
-		 * @remark Subclasses may optionally override `executeInitialization()` to provide component-specific initialization logic
+		 * @remark Subclasses may optionally override `onInitialize()` to provide component-specific initialization logic
 		 * @remark Transitions state to `INITIALIZING` during the process and to `OK` when complete
 		 * @remark Handles concurrent calls by returning the same promise for all callers during initialization
 		 * @remark If the component is already initialized, resolves immediately
@@ -294,7 +294,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @returns Promise that resolves when the component and all of its subcomponents are shut down
 		 * @throws Error if shutdown fails
 		 * @remark Executes any inherited shutdown() method before executing subclass shutdown() logic
-		 * @remark Subclasses may optionally override `executeShutdown()` to provide component-specific shutdown logic
+		 * @remark Subclasses may optionally override `onShutdown()` to provide component-specific shutdown logic
 		 * @remark Transitions state to `SHUTTING_DOWN` during the process and to `SHUT_DOWN` when complete
 		 * @remark Handles concurrent calls by returning the same promise for all callers during shutdown
 		 * @remark If the component is already shut down, resolves immediately
