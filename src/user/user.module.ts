@@ -66,7 +66,6 @@ export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixi
 		//console.debug(`UserModule: onModuleDestroy() called, state info: ${JSON.stringify(stateInfo, null, 2)}`);
 		this.unregisterSubcomponent(this.userRepository); // repo handles persistence shutdown internally
 		this.unregisterSubcomponent(this.userDataService);
-		
 	}
 
 }
