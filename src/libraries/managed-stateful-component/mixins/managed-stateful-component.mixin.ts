@@ -376,6 +376,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @required by {@link ComponentContainer} interface
 		 */
 		public registerSubcomponent(component: ManagedStatefulComponent): void {
+			console.debug('Registering subcomponent:', (component as any).msc_zh7y_ownState, component instanceof ManagedStatefulComponentClass);
 			if (!component) {
 				throw new Error('Component cannot be null or undefined');
 			}

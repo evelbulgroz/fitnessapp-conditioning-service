@@ -5,7 +5,7 @@ import { firstValueFrom, Observable, Subject, take } from 'rxjs';
 
 import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
 //import { Logger } from '@evelbulgroz/logger';
-import { ComponentState, ComponentStateInfo } from '../libraries/managed-stateful-component';
+import { ComponentState, ComponentStateInfo, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
 import { StreamLogger } from '../libraries/stream-loggable';
 
 import JwtAuthGuard from '../infrastructure/guards/jwt-auth.guard';
@@ -17,6 +17,42 @@ import UserDeletedHandler from './handlers/user-deleted.handler';
 import UserRepository from './repositories/user.repo';
 import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
+
+// Stand-alone component using the mixin
+class TestComponent extends ManagedStatefulComponentMixin(class {}) {
+	public initCount = 0;
+	public shutdownCount = 0;
+	public shouldFailInit = false;
+	public shouldFailShutdown = false;
+	public initDelay = 0;
+	public shutdownDelay = 0;
+
+	public onInitialize(): Promise<void> {
+		this.initCount++;
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				if (this.shouldFailInit) {
+					reject(new Error('Initialization failed'));
+				} else {
+					resolve();
+				}
+			}, this.initDelay);
+		});
+	}
+
+	public onShutdown(): Promise<void> {
+		this.shutdownCount++;
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				if (this.shouldFailShutdown) {
+					reject(new Error('Shutdown failed'));
+				} else {
+					resolve();
+				}
+			}, this.shutdownDelay);
+		});
+	}
+}
 
 describe('UserModule', () => {
 	let testingModule: TestingModule;
@@ -135,6 +171,19 @@ describe('UserModule', () => {
 				expect(userModule.isReady).toBeDefined();
 				expect(userModule.isReady).toBeInstanceOf(Function);
 			});
+
+			it('inherits registerSubcomponent method', () => {
+				expect(userModule).toHaveProperty('registerSubcomponent');
+				expect(userModule.registerSubcomponent).toBeDefined();
+				expect(userModule.registerSubcomponent).toBeInstanceOf(Function);
+			});
+
+			it('inherits unregisterSubcomponent method', () => {
+				expect(userModule).toHaveProperty('unregisterSubcomponent');
+				expect(userModule.unregisterSubcomponent).toBeDefined();
+				expect(userModule.unregisterSubcomponent).toBeInstanceOf(Function);
+			});
+			
 		});
 
 		describe('State Transitions', () => {
@@ -212,7 +261,7 @@ describe('UserModule', () => {
 				// clean up
 				sub.unsubscribe();
 				onInitializeSpy?.mockRestore();
-			});			
+			});
 		});
 
 		describe('isReady', () => {		
@@ -242,6 +291,32 @@ describe('UserModule', () => {
 
 				// clean up
 				onShutdownSpy?.mockRestore();
+			});
+		});
+
+		describe('integration with subcomponents', () => {
+			it('gets aggregated state from itself and its registered subcomponents', async () => {
+				// arrange
+				const subcomponent1 = new TestComponent();
+				const subcomponent2 = new TestComponent();
+				const subcomponent3 = new TestComponent();
+
+				userModule.registerSubcomponent(subcomponent1); // bug: fails with  'Component must be an instance of ManagedStatefulComponent'
+				//userModule.registerSubcomponent(subcomponent2);
+				//userModule.registerSubcomponent(subcomponent3);
+
+				// act
+				await userModule.initialize();
+
+				// assert
+				const stateInfo = await firstValueFrom(userModule.componentState$.pipe(take (1))) as ComponentStateInfo;
+				console.debug('UserModule state:', stateInfo);
+				expect(stateInfo.state).toBe(ComponentState.OK);
+
+				// clean up
+				userModule.unregisterSubcomponent(subcomponent1);
+				userModule.unregisterSubcomponent(subcomponent2);
+				userModule.unregisterSubcomponent(subcomponent3);
 			});
 		});
 	});

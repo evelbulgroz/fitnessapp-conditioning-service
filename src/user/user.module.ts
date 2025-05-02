@@ -53,16 +53,14 @@ export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	}
 
 	public async onModuleInit(): Promise<void> {
-		this.registerSubcomponent(this.userRepository);
+		this.registerSubcomponent(this.userRepository); // repo handles persistence initialization internally
 		this.registerSubcomponent(this.userDataService);
-		//this.registerSubcomponent(this.persistenceAdapter); // register the persistenceAdapter as a subcomponent
 		await this.initialize(); // // initialize module and all subcomponents
 	}
 
 	public async onModuleDestroy(): Promise<void> {
-		await this.shutdown(); // shutdown module and all subcomponents
-		//this.unregisterSubcomponent(this.persistenceAdapter);
-		this.unregisterSubcomponent(this.userRepository);
+		await this.shutdown(); // shutdown module and all subcomponents		
+		this.unregisterSubcomponent(this.userRepository); // repo handles persistence shutdown internally
 		this.unregisterSubcomponent(this.userDataService);
 	}
 
