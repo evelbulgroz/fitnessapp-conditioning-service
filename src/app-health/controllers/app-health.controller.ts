@@ -3,7 +3,7 @@ import { Controller, Get, HttpStatus, Res, UseGuards, UseInterceptors, UsePipes 
 import { Response } from 'express';
 
 import AppHealthService from '../services/health/app-health.service';
-import { ComponentState as AppState} from '../models/component-state.enum';
+import { ComponentState as AppState} from '../../libraries/managed-stateful-component/index';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
 import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
 import LoggingGuard from '../../infrastructure/guards/logging.guard';

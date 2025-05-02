@@ -4,6 +4,7 @@ import { Subscription } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
 import { EntityId, EntityMetadataDTO, RepoLogLevel, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
+import ManagedStatefulComponentMixin from "../../libraries/managed-stateful-component/mixins/managed-stateful-component.mixin";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
 import ConditioningLog from "../domain/conditioning-log.entity";
@@ -13,7 +14,6 @@ import ConditioningLogDTO from "../dtos/conditioning-log.dto";
 import ConditioningLogPersistenceDTO from "../dtos/conditioning-log-persistence.dto";
 import ConditioningLogUndeletedEvent from "../events/conditioning-log-undeleted.event";
 import ConditioningLogUpdatedEvent from "../events/conditioning-log-updated.event";
-import ManagedStatefulComponentMixin from "../../app-health/mixins/managed-stateful-component.mixin";
 
 /** Concrete implementation of an injectable ConditioningLogRepository that uses an adapter to interact with a persistence layer
  * @template T The type of the log, e.g. ConditioningLog

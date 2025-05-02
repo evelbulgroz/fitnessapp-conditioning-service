@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom, Observable, of,  Subject, take } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
+import {ComponentState, ComponentStateInfo} from "../../libraries/managed-stateful-component/index";
 import { Logger } from '@evelbulgroz/logger';
 import { Result } from '@evelbulgroz/ddd-base';
 
@@ -11,8 +12,7 @@ import { createTestingModule } from '../../test/test-utils';
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { User, UserDataService, UserDTO, UserRepository } from '../index';
 import { UserContext } from '../../shared/domain/user-context.model';
-import ComponentState from '../../app-health/models/component-state.enum';
-import ComponentStateInfo from '../../app-health/models/component-state-info.model';
+
 
 describe('UserDataService', () => {
 	// set up test environment and dependencies/mocks, and initialize the module

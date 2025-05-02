@@ -5,10 +5,10 @@ import { firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
 import { EntityId } from '@evelbulgroz/ddd-base';
 import { Logger } from '@evelbulgroz/logger';
+import ManagedStatefulComponentMixin from "../../libraries/managed-stateful-component/mixins/managed-stateful-component.mixin";
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 
 import EntityIdDTO from '../../shared/dtos/responses/entity-id.dto';
-import ManagedStatefulComponentMixin from '../../app-health/mixins/managed-stateful-component.mixin';
 import PersistenceError from '../../shared/domain/persistence.error';
 import UnauthorizedAccessError from '../../shared/domain/unauthorized-access.error';
 import User from '../domain/user.entity';

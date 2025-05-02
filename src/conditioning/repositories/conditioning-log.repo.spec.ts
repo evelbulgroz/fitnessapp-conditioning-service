@@ -11,8 +11,7 @@ import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogPersistenceDTO } from '../dtos/conditioning-log-persistence.dto';
 import { createTestingModule } from '../../test/test-utils';
-import ComponentState from '../../app-health/models/component-state.enum';
-import ComponentStateInfo from '../../app-health/models/component-state-info.model';
+import {ComponentState, ComponentStateInfo} from "../../libraries/managed-stateful-component/index";
 
 class PersistenceAdapterMock<T extends ConditioningLogPersistenceDTO<ConditioningLogDTO, EntityMetadataDTO>> extends PersistenceAdapter<T> {
 	// cannot get generics to work with jest.fn(), so skipping for now

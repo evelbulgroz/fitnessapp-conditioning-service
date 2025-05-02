@@ -5,8 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { EntityId, RepoLogLevel, PersistenceAdapter, Repository, Result } from "@evelbulgroz/ddd-base";
 import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
+import ManagedStatefulComponentMixin from "../../libraries/managed-stateful-component/mixins/managed-stateful-component.mixin";
 
-import ManagedStatefulComponentMixin from "../../app-health/mixins/managed-stateful-component.mixin";
 import User from "../domain/user.entity";
 import UserCreatedEvent from "../events/user-created.event";
 import UserDTO from "../dtos/user.dto";
