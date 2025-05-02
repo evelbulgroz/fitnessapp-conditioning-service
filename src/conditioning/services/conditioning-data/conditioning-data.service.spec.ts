@@ -2319,6 +2319,18 @@ describe('ConditioningDataService', () => {
 				expect(service.isReady).toBeDefined();
 				expect(service.isReady).toBeInstanceOf(Function);
 			});
+
+			it('inherits registerSubcomponent method', () => {
+				expect(service).toHaveProperty('registerSubcomponent');
+				expect(service.registerSubcomponent).toBeDefined();
+				expect(service.registerSubcomponent).toBeInstanceOf(Function);
+			});
+
+			it('inherits unregisterSubcomponent method', () => {
+				expect(service).toHaveProperty('unregisterSubcomponent');
+				expect(service.unregisterSubcomponent).toBeDefined();
+				expect(service.unregisterSubcomponent).toBeInstanceOf(Function);
+			});
 		});
 
 		describe('State Transitions', () => {

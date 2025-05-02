@@ -623,6 +623,18 @@ describe('ConditioningLogRepository', () => {
 				expect(repo.isReady).toBeDefined();
 				expect(repo.isReady).toBeInstanceOf(Function);
 			});
+
+			it('inherits registerSubcomponent method', () => {
+				expect(repo).toHaveProperty('registerSubcomponent');
+				expect(repo.registerSubcomponent).toBeDefined();
+				expect(repo.registerSubcomponent).toBeInstanceOf(Function);
+			});
+
+			it('inherits unregisterSubcomponent method', () => {
+				expect(repo).toHaveProperty('unregisterSubcomponent');
+				expect(repo.unregisterSubcomponent).toBeDefined();
+				expect(repo.unregisterSubcomponent).toBeInstanceOf(Function);
+			});
 		});
 
 		describe('State Transitions', () => {
