@@ -1,7 +1,9 @@
 import { ConfigService } from '@nestjs/config';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
+import { ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
+import { StreamLoggableMixin } from '../libraries/stream-loggable';
 
 import UserController from './controllers/user.controller';
 import UserCreatedHandler from './handlers/user-created.handler';
@@ -40,5 +42,7 @@ import UserUpdatedHandler from './handlers/user-updated.handler';
 		UserUpdatedHandler,
 	],
 })
-export class UserModule {}
+export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) {
+
+}
 export default UserModule;

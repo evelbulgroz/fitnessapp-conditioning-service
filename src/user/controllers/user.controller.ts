@@ -2,12 +2,13 @@ import { BadRequestException, Controller, Delete, HttpCode, HttpStatus, Param, P
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { Logger } from '@evelbulgroz/logger';
+import { ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component";
+import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
 import { JwtAuthResult } from '../../authentication/services/jwt/domain/jwt-auth-result.model';
-import { LoggingGuard } from '../../infrastructure/guards/logging.guard';
+//import { LoggingGuard } from '../../infrastructure/guards/logging.guard';
 import { RolesGuard } from '../../infrastructure/guards/roles.guard';
 import { Roles } from '../../infrastructure/decorators/roles.decorator';
 import { ServiceNameDTO } from '../../shared/dtos/responses/service-name.dto';
@@ -29,17 +30,18 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
-	LoggingGuard // log all requests to the console
+	//LoggingGuard // log all requests to the console
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
-export class UserController {
+export class UserController extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
 	constructor(
 		private readonly config: ConfigService,
-		private readonly logger: Logger,
 		private readonly userService: UserDataService,		
-	) { }
+	) {
+		super();
+	}
 
 	//---------------------------------------- PUBLIC API ---------------------------------------//
 

@@ -142,6 +142,4 @@ export class JwtAuthStrategy extends AuthStrategy {
 		}		
 	}
 }
-
-
 export default JwtAuthStrategy;
