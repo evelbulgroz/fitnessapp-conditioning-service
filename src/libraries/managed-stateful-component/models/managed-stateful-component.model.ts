@@ -1,6 +1,6 @@
 import ComponentContainer from "./component-container.model";
 import ManageableComponent from "./manageable-component.model";
-import StatefulComponent from "./stateful-component";
+import StatefulComponent from "./stateful-component.model";
 
 /** Interface for components with both lifecycle management and state tracking capabilities.
  * @remark Combines lifecycle management (initialize/shutdown) and observable health state tracking.

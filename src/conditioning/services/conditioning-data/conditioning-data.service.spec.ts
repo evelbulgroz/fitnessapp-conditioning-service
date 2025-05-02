@@ -8,8 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
 import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
-import ComponentState from '../../../app-health/models/component-state.enum';
-import ComponentStateInfo from '../../../app-health/models/component-state-info.model';
+import { ComponentState, ComponentStateInfo } from '../../../libraries/managed-stateful-component/index';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { Logger } from '../../../libraries/stream-loggable';
 
