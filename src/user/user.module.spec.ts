@@ -1,9 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
-import { Logger } from '@evelbulgroz/logger';
+import { firstValueFrom, Observable, Subject, take } from 'rxjs';
 
+import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
+//import { Logger } from '@evelbulgroz/logger';
+import { ComponentState, ComponentStateInfo } from '../libraries/managed-stateful-component';
+import { StreamLogger } from '../libraries/stream-loggable';
 
 import JwtAuthGuard from '../infrastructure/guards/jwt-auth.guard';
 import JwtAuthStrategy from '../infrastructure/strategies/jwt-auth.strategy';
@@ -16,57 +19,48 @@ import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
 
 describe('UserModule', () => {
-	let module: TestingModule;
+	let testingModule: TestingModule;
 	let userModule: UserModule;
-
 	beforeEach(async () => {
 		// Create a testing module with mocked dependencies
-		module = await Test.createTestingModule({
-		  imports: [
-			ConfigModule.forRoot({ isGlobal: true }), // Import ConfigModule for ConfigService, required by UserController
-			UserModule
-		],
+		testingModule = await Test.createTestingModule({
+			imports: [
+				ConfigModule.forRoot({ isGlobal: true }), // Import ConfigModule for ConfigService, required by UserController
+				UserModule
+			],
 		})
 		.overrideProvider(ConfigService) // Mock the ConfigService
 		.useValue({
-		  get: jest.fn((key: string) => {
-			switch (key) {
-			  case 'modules.user.repos.fs.dataDir':
-				return 'test-data-dir';
-			  default:
-				return null;
-			}
-		  }),
+			get: jest.fn((key: string) => {
+				switch (key) {
+				case 'modules.user.repos.fs.dataDir':
+					return 'test-data-dir';
+				default:
+					return null;
+				}
+			}),
 		})
 		.overrideProvider(JwtAuthStrategy) // First, provide the strategy that the guard depends on
 		.useValue({
-		  validate: jest.fn().mockResolvedValue({ userId: 'test-user-id' }),
-		  // Add any other methods needed
+			validate: jest.fn().mockResolvedValue({ userId: 'test-user-id' }),
+			// Add any other methods needed
 		})		
 		.overrideGuard(JwtAuthGuard) // Then override the guard that uses the strategy (use overrideGuard)
 		.useValue({
-		  canActivate: jest.fn().mockReturnValue(true),
+			canActivate: jest.fn().mockReturnValue(true),
 		})
 		.overrideProvider('REPOSITORY_THROTTLETIME')
 		.useValue(100)
-		.overrideProvider(Logger)
-		.useValue({
-		  log: jest.fn(),
-		  error: jest.fn(),
-		  warn: jest.fn(),
-		  debug: jest.fn(),
-		  verbose: jest.fn(),
-		})
 		.overrideProvider(PersistenceAdapter)
 		.useValue({
-		  initialize: jest.fn(),
-		  shutdown: jest.fn(),
-		  create: jest.fn(),
-		  fetchAll: jest.fn(),
-		  fetchById: jest.fn(),
-		  update: jest.fn(),
-		  delete: jest.fn(),
-		  undelete: jest.fn(),
+			initialize: jest.fn(),
+			shutdown: jest.fn(),
+			create: jest.fn(),
+			fetchAll: jest.fn(),
+			fetchById: jest.fn(),
+			update: jest.fn(),
+			delete: jest.fn(),
+			undelete: jest.fn(),
 		})
 		.overrideProvider(UserDataService)
 		.useValue({})
@@ -87,17 +81,181 @@ describe('UserModule', () => {
 		})
 		.compile();
 	  
-		userModule = module.get<UserModule>(UserModule);
+		userModule = testingModule.get<UserModule>(UserModule);
 	  });
 
 	afterEach(async () => {
-		await module.close();
+		await testingModule.close();
 	});
 
-	it('should be defined', () => {
+	it('can be created', () => {
 		expect(userModule).toBeDefined();
 		expect(userModule).toBeInstanceOf(UserModule);
 	});
 
-	// Add more tests as needed for the module's functionality
+	describe('Management API', () => {
+		// NOTE: no need to fully retest ManagedStatefulComponentMixin methods,
+			// as they are already tested in the mixin.
+			// Just do a few checks that things are hooked up correctly,
+			// and that local implementations work correctly.									
+			
+		beforeEach(async () => {
+			// reset the userModule before each test
+			await userModule.shutdown(); // clear subscriptions and cache, and set state to SHUT_DOWN
+			userModule['msc_zh7y_stateSubject'].next({name: 'ConditioningDataService', state: ComponentState.UNINITIALIZED, updatedOn: new Date()}); // set state to UNINITIALIZED
+		});		
+		
+		describe('ManagedStatefulComponentMixin Members', () => {
+			it('inherits componentState$ ', () => {
+				expect(userModule).toHaveProperty('componentState$');
+				expect(userModule.componentState$).toBeDefined();
+				expect(userModule.componentState$).toBeInstanceOf(Observable);
+			});
+
+			it('inherits initialize method', () => {
+				expect(userModule).toHaveProperty('initialize');
+				expect(userModule.initialize).toBeDefined();
+				expect(userModule.initialize).toBeInstanceOf(Function);
+			});
+
+			it('inherits shutdown method', () => {
+				expect(userModule).toHaveProperty('shutdown');
+				expect(userModule.shutdown).toBeDefined();
+				expect(userModule.shutdown).toBeInstanceOf(Function);
+			});
+
+			it('inherits isReady method', () => {
+				expect(userModule).toHaveProperty('isReady');
+				expect(userModule.isReady).toBeDefined();
+				expect(userModule.isReady).toBeInstanceOf(Function);
+			});
+		});
+
+		describe('State Transitions', () => {
+			it('is in UNINITIALIZED state before initialization', async () => {
+				// arrange
+				const stateInfo = await firstValueFrom(userModule.componentState$.pipe(take (1))) as ComponentStateInfo; // get the initial state
+
+				// act
+				
+				// assert
+				expect(stateInfo).toBeDefined();
+				expect(stateInfo.state).toBe(ComponentState.UNINITIALIZED);
+			});
+
+			it('is in OK state after initialization', async () => {
+				// arrange
+				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+				const sub = userModule.componentState$.subscribe((s) => {
+					state = s.state;
+				});
+
+				expect(state).toBe(ComponentState.UNINITIALIZED); // sanity check
+
+				// act
+				await userModule.initialize();
+
+				// assert
+				expect(state).toBe(ComponentState.OK);
+
+				// clean up
+				sub.unsubscribe();
+			});
+
+			it('is in SHUT_DOWN state after shutdown', async () => {
+				// arrange
+				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+				const sub = userModule.componentState$.subscribe((s: ComponentStateInfo) => {
+					state = s.state;
+				});
+				expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
+				
+				await userModule.initialize();
+				expect(state).toBe(ComponentState.OK); // sanity check
+				
+				// act			
+				await userModule.shutdown();
+
+				// assert
+				expect(state).toBe(ComponentState.SHUT_DOWN);
+
+				// clean up
+				sub.unsubscribe();
+			});
+		});
+		
+		describe('initialize', () => {	
+			it('calls onInitialize', async () => {				
+				// arrange
+				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+				const sub = userModule.componentState$.subscribe((s: ComponentStateInfo) => {
+					state = s.state;
+				});
+				expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
+				
+				const onInitializeSpy = jest.spyOn(userModule, 'onInitialize').mockReturnValue(Promise.resolve());
+	
+				// act
+				await userModule.initialize();
+				expect(state).toBe(ComponentState.OK); // sanity check
+	
+				// assert
+				expect(onInitializeSpy).toHaveBeenCalledTimes(1);
+				expect(onInitializeSpy).toHaveBeenCalledWith(undefined);
+
+				// clean up
+				sub.unsubscribe();
+				onInitializeSpy?.mockRestore();
+			});			
+		});
+
+		describe('isReady', () => {		
+			it('reports if/when it is initialized (i.e. ready)', async () => {
+				// arrange
+				await userModule.initialize(); // initialize the userModule
+
+				// act
+				const result = await userModule.isReady();
+
+				// assert
+				expect(result).toBe(true);
+			});
+		});		
+
+		describe('shutdown', () => {
+			it('calls onShutdown', async () => {				
+				// arrange
+				const onShutdownSpy = jest.spyOn(userModule, 'onShutdown').mockReturnValue(Promise.resolve());
+				
+				// act
+				await userModule.shutdown();
+	
+				// assert
+				expect(onShutdownSpy).toHaveBeenCalledTimes(1);
+				expect(onShutdownSpy).toHaveBeenCalledWith(undefined);
+
+				// clean up
+				onShutdownSpy?.mockRestore();
+			});
+		});
+	});
+		
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(userModule.log$).toBeDefined();
+				expect(userModule.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(userModule.logger).toBeDefined();
+				expect(userModule.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(userModule.logToStream).toBeDefined();
+				expect(typeof userModule.logToStream).toBe('function');
+			});
+		});
+	});
 });
