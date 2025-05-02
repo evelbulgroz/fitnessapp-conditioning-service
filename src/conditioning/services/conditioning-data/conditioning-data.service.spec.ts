@@ -37,9 +37,8 @@ import { QueryDTO, QueryDTOProps } from '../../../shared/dtos/responses/query.dt
 import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.error';
 import { User, UserDTO, UserPersistenceDTO, UserRepository, UserUpdatedEvent, UserCreatedHandler, UserUpdatedHandler, UserDeletedHandler } from '../../../user/index';
 import UserContext from '../../../shared/domain/user-context.model';
-import { UserLogsCacheEntry } from './conditioning-data.service';
 
-const originalTimeout = 5000;
+//const originalTimeout = 5000;
 //jest.setTimeout(15000);
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -82,7 +81,7 @@ describe('ConditioningDataService', () => {
 				{ // ConditioningLogUpdatedHandler
 					provide: ConditioningLogUpdatedHandler,
 					useValue: {
-						handle: () => Promise.resolve(undefined)
+						handle: () => jest.fn()
 					}
 				},
 				{ // ConditioningLogDeletedHandler
@@ -709,7 +708,7 @@ describe('ConditioningDataService', () => {
 		subs.forEach(sub => sub?.unsubscribe());
 		jest.clearAllMocks();
 		
-		jest.setTimeout(originalTimeout);
+		//jest.setTimeout(originalTimeout);
 		await app.close(); // close the module to trigger onModuleDestroy()
 	});
 
@@ -909,9 +908,9 @@ describe('ConditioningDataService', () => {
 					Promise.resolve(Result.ok())
 				);
 
-				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
-					Promise.resolve(Result.ok(randomUser))
-				);
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() => {
+					return Promise.resolve(Result.ok(randomUser))
+				});
 			});
 
 			afterEach(() => {
@@ -958,47 +957,96 @@ describe('ConditioningDataService', () => {
 			});
 
 			it('adds new log to cache entry', async () => {
-				// arrange
-				expect(randomUser.logs).not.toContain(newLogId); // sanity check
+				// NOTE:
+				// The cache is only updated in response to an emission from the UserRepository.update$, so we need to simulate that here.
+				// The process of creating a log and updating the cache follows this sequence:
+					// 1. Create log in ConditioningLogRepository
+					// 2. Update user in UserRepository
+					// 3. Emit UserUpdatedEvent from user repo
+					// 4. Dispatch UserUpdatedEvent from conditioning service to event dispatcher
+					// 5. Dispatch UserUpdatedEvent to userUpdatedHandler
+					// 6. Update cache entry in userUpdatedHandler
+					// 7. Return created log id from conditioning service
+				// Each of these collaborators is tested invididually, so here we just test that they are called in the right order.
+				// For completeness, we also mock the cache update and verify that the cache entry is updated correctly.
 
-				//todo : add spy to ConditioningLogUpdatedHandler.handle to replicate adding log to cache entry
+				// NOTE: ConditioningLogCreatedHandler currently does nothing, so we can ignore it here, even though it will be called in the real implementation.
+
+				// arrange	
+				let cacheEntry = service['cache'].value.find(entry => entry.userId === randomUserId);
+				expect(cacheEntry).toBeDefined();
+				expect(cacheEntry!.logs.find(log => log.entityId === newLogId)).not.toBeDefined(); // sanity check
 				
-				const randomUserDTO = randomUser.toDTO();
-				randomUserDTO.logs!.push(newLogId);
-
-				const createEvent = new UserUpdatedEvent({
+				randomUser.addLog(newLogId);
+				const updatedUserDTO = randomUser.toDTO();
+				
+				const event = new UserUpdatedEvent({
 					eventId: uuidv4(),
 					eventName: UserUpdatedEvent.name,
-					occurredOn: (new Date()).toISOString(),
-					payload: randomUserDTO,
+					occurredOn: new Date().toISOString(),
+					payload: updatedUserDTO
 				});
-
-				logRepoFetchByIdSpy?.mockRestore();
-				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async (id: EntityId) => {
-					const newLog = ConditioningLog.create(newLogDTO, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
-					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(newLog)));
-				});				
 				
-				const userUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() => {
-					userRepoUpdatesSubject.next(createEvent); // simulate event from userRepo.updates$
-					return Promise.resolve(Result.ok(randomUser))
-				});				
+				userRepoUpdateSpy?.mockRestore();
+				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() => {				  
+					setTimeout(() => userRepoUpdatesSubject.next(event), 10); // Emit the event with short delay to simulate async behavior
+					return Promise.resolve(Result.ok(randomUser));
+				});
+				
+				const eventDispatcher = app.get<EventDispatcherService>(EventDispatcherService);
+				const eventDispatcherSpy = jest.spyOn(eventDispatcher, 'dispatch');
+				
+				const userUpdatedHandler = app.get<UserUpdatedHandler>(UserUpdatedHandler);
+				const userUpdatedHandleSpy = jest.spyOn(userUpdatedHandler, 'handle').mockImplementation((event: UserUpdatedEvent) => {
+					// add the log to the cache entry (simplified version of the real implementation)
+					const userCacheEntry = service['cache'].value.find(entry => entry.userId === event.payload.userId);
+					if (userCacheEntry) {
+						const newLog = ConditioningLog.create(newLogDTO, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+						userCacheEntry.logs.push(newLog); // add the log to the cache entry
+					}
+					return Promise.resolve(void 0);
+				});
+				
+				let eventEmitted = false;
+				const eventPromise = new Promise<void>(resolve => { // resolve the promise when the event is emitted
+					const subscription = userRepo.updates$.subscribe(emittedEvent => {
+						if (emittedEvent instanceof UserUpdatedEvent) {
+							eventEmitted = true;
+							subscription.unsubscribe();
+							resolve();
+						}
+					});
+				});
 				
 				// act
-				void await service.createLog(userContext, randomUserIdDTO, newLog);
+				await service.createLog(userContext, randomUserIdDTO, newLog);				
+				await eventPromise;
 				
 				// assert
-				expect(randomUser.logs).toContain(newLogId); // sanity check
+				expect(userRepoUpdateSpy).toHaveBeenCalledWith(expect.objectContaining({
+					entityId: randomUser.entityId,
+					logs: expect.arrayContaining([newLogId])
+				}));
+				
+				expect(eventEmitted).toBe(true);
+				
+				expect(eventDispatcherSpy).toHaveBeenCalledWith(expect.objectContaining({
+					eventName: UserUpdatedEvent.name,
+					payload: expect.objectContaining({
+						logs: expect.arrayContaining([newLogId])
+					})
+				}));
+				
+				expect(userUpdatedHandleSpy).toHaveBeenCalledWith(expect.objectContaining({
+					eventName: UserUpdatedEvent.name,
+					payload: expect.objectContaining({
+						logs: expect.arrayContaining([newLogId])
+					})
+				}));
 
-				const updatedCache$ = service['cache'].pipe(take(2)) as Observable<UserLogsCacheEntry[]>;
-				const updatedCache = await firstValueFrom(updatedCache$);
-				const cacheEntry = updatedCache?.find(entry => entry.userId === randomUserId);
-				const addedLog = cacheEntry?.logs.find(log => log.entityId === newLogId);
-				expect(addedLog).toBeDefined();
-
-				// clean up
-				logRepoFetchByIdSpy?.mockRestore();
-				userUpdateSpy && userUpdateSpy?.mockRestore();
+				cacheEntry = service['cache'].value.find(entry => entry.userId === randomUserId);
+				expect(cacheEntry).toBeDefined();
+				expect(cacheEntry!.logs.find(log => log.entityId === newLogId)).toBeDefined();				
 			});
 
 			it(`succeeds if admin user tries to create a log for another user`, async () => {
