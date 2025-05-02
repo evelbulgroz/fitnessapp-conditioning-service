@@ -193,8 +193,7 @@ describe('UserModule', () => {
 				expect(userModule).toHaveProperty('unregisterSubcomponent');
 				expect(userModule.unregisterSubcomponent).toBeDefined();
 				expect(userModule.unregisterSubcomponent).toBeInstanceOf(Function);
-			});
-			
+			});			
 		});
 
 		describe('State Transitions', () => {
