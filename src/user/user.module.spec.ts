@@ -151,7 +151,7 @@ describe('UserModule', () => {
 				const userRepository = testingModule.get<UserRepository>(UserRepository);
 				const userDataService = testingModule.get<UserDataService>(UserDataService);
 				const initializeSpy = jest.spyOn(userModule, 'initialize').mockResolvedValue(void 0);
-				const registerSubcomponentSpy = jest.spyOn(userModule, 'registerSubcomponent').mockReturnValue(void 0);
+				const registerSubcomponentSpy = jest.spyOn(userModule, 'registerSubcomponent').mockReturnValue(true);
 	
 				// act
 				await userModule.onModuleInit();
