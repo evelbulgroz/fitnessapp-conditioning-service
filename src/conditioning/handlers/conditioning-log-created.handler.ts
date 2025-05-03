@@ -21,8 +21,9 @@ export class ConditioningLogCreatedHandler extends StreamLoggableMixin(DomainEve
 	}
 
 	public async handle(event: ConditioningLogCreatedEvent): Promise<void> {
+		throw new Error('Method not implemented.');
 		const logDTO = event.payload;
-		// Handle the log update event (for now, do nothing)
+		// Handle the log update event
 		this.logger.log(`Log ${logDTO.entityId} created.`);
 	}
 }
