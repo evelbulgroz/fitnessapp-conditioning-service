@@ -6,7 +6,7 @@ import { HttpService, HttpModule } from '@nestjs/axios';
 import { lastValueFrom, of, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
-import { Logger } from '@evelbulgroz/logger';
+import { Logger } from '@evelbulgroz/logger'; // retire or replace this when dependencies no longer need it
 import { Result } from '@evelbulgroz/ddd-base';
 import { StreamLogger } from '../../libraries/stream-loggable';
 
@@ -103,7 +103,7 @@ describe('UserController', () => {
 				}
 			],
 		}))
-		/*
+		/* TODO: shift to this more compact form when shifting from e2e to unit tests
 		.overrideGuard(JwtAuthGuard)
 		.useValue({ canActivate: jest.fn(() => true) })
 		.overrideGuard(RolesGuard)
@@ -560,21 +560,21 @@ describe('UserController', () => {
 	});
 
 	describe('Logging API', () => {
-			describe('LoggableMixin Members', () => {
-				it('inherits log$', () => {
-					expect(controller.log$).toBeDefined();
-					expect(controller.log$).toBeInstanceOf(Subject);
-				});
-	
-				it('inherits logger', () => {
-					expect(controller.logger).toBeDefined();
-					expect(controller.logger).toBeInstanceOf(StreamLogger);
-				});
-	
-				it('inherits logToStream', () => {
-					expect(controller.logToStream).toBeDefined();
-					expect(typeof controller.logToStream).toBe('function');
-				});
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(controller.log$).toBeDefined();
+				expect(controller.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(controller.logger).toBeDefined();
+				expect(controller.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(controller.logToStream).toBeDefined();
+				expect(typeof controller.logToStream).toBe('function');
 			});
 		});
+	});
 });
