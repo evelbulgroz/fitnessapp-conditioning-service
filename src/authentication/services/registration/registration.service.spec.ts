@@ -4,16 +4,16 @@ import { TestingModule } from '@nestjs/testing';
 
 import { jest } from '@jest/globals';
 import jwt from 'jsonwebtoken';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
-import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/service-data.dto';
+import { StreamLogger } from '../../../libraries/stream-loggable';
 
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../../shared/domain/config-options.model';
 import AuthService from '../../domain/auth-service.class';
 import createTestingModule from '../../../test/test-utils';
 import RegistrationService from '../registration/registration.service';
 import SecurityConfig from '../../../shared/domain/security.config.model';
+import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/service-data.dto';
 
 describe('RegistrationService', () => {
 	let authServiceSpy: any
@@ -34,16 +34,6 @@ describe('RegistrationService', () => {
 					}
 				},
 				ConfigService,
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},
 				RegistrationService,
 				{
 					provide: HttpService,
@@ -176,6 +166,25 @@ describe('RegistrationService', () => {
 		it('fails if the response status code is not 200 (i.e. OK)', async () => {
 			httpPostSpy.mockImplementationOnce(() => of({ data: false, status: 500 }) as any);
 			await expect(service.register()).rejects.toThrow();
+		});
+	});
+
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(service.log$).toBeDefined();
+				expect(service.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(service.logger).toBeDefined();
+				expect(service.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(service.logToStream).toBeDefined();
+				expect(typeof service.logToStream).toBe('function');
+			});
 		});
 	});
 });

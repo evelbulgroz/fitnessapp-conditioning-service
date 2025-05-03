@@ -4,24 +4,24 @@ import { Injectable, RequestMethod } from '@nestjs/common';
 
 import { firstValueFrom, from, Observable, switchMap, tap } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/logger';
-import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/service-data.dto';
+import { StreamLoggableMixin } from '../../../libraries/stream-loggable';
 
 import { AuthService } from '../../domain/auth-service.class';
 import { ServiceConfig, EndPointConfig, DefaultConfig } from '../../../shared/domain/config-options.model';
+import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/service-data.dto';
 
 /** Service for de/registering a running instance of this app with the microservice registry */
 @Injectable()
-export class RegistrationService {
+export class RegistrationService extends StreamLoggableMixin(class {}){
 	private readonly appConfig: any;
 	private readonly registryServiceName: string = 'fitnessapp-registry-service';
 	
 	public constructor(		
 		private readonly authService: AuthService,
 		private readonly configService: ConfigService,
-		private readonly logger: Logger,
 		private readonly http: HttpService,
 	) {
+		super();
 		this.appConfig = this.configService.get<any>('app') ?? {};
 	}
 
