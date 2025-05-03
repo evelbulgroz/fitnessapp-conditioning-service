@@ -4,7 +4,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { firstValueFrom, Observable, Subject, take } from 'rxjs';
 
 import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
-//import { Logger } from '@evelbulgroz/logger';
 import { ComponentState, ComponentStateInfo, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
 import { StreamLogger } from '../libraries/stream-loggable';
 
