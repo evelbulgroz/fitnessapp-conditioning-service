@@ -1,25 +1,24 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../test/test-utils';
 
+import { Subject } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
-//import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
-
-//import { jest } from '@jest/globals';
+import { StreamLogger } from '../../libraries/stream-loggable';
 
 import { ConditioningDataService, UserLogsCacheEntry} from '../services/conditioning-data/conditioning-data.service';
-import { ConditioningLog } from '../domain/conditioning-log.entity';
-import { ConditioningLogDeletedEvent } from '../events/conditioning-log-deleted.event';
-import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
-import { ConditioningLogUndeletedEvent } from '../events/conditioning-log-undeleted.event';
-import { ConditioningLogUndeletedHandler } from './conditioning-log-undeleted.handler';
-import { User } from '../../user/domain/user.entity';
-import { UserDTO } from '../../user/dtos/user.dto';
-
+import ConditioningLog from '../domain/conditioning-log.entity';
+import ConditioningLogDeletedEvent from '../events/conditioning-log-deleted.event';
+import ConditioningLogDTO from '../dtos/conditioning-log.dto';
+import ConditioningLogUndeletedEvent from '../events/conditioning-log-undeleted.event';
+import ConditioningLogUndeletedHandler from './conditioning-log-undeleted.handler';
+import User from '../../user/domain/user.entity';
+import UserDTO from '../../user/dtos/user.dto';
 
 describe('ConditioningLogUndeletedHandler', () => {
 	let handler: ConditioningLogUndeletedHandler;
+	let logger: StreamLogger;
 	let service: ConditioningDataService;
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
@@ -38,7 +37,7 @@ describe('ConditioningLogUndeletedHandler', () => {
 		.compile();
 
 		handler = module.get<ConditioningLogUndeletedHandler>(ConditioningLogUndeletedHandler);
-		//logger = module.get<Logger>(Logger);
+		logger = handler.logger as StreamLogger;
 		service = module.get<ConditioningDataService>(ConditioningDataService);
 	});
 
@@ -139,11 +138,11 @@ describe('ConditioningLogUndeletedHandler', () => {
 			expect(updatedLog?.deletedOn).toBeUndefined();
 		});
 
-		xit('logs a warning if the log is not found in the cache', async () => {
+		it('logs a warning if the log is not found in the cache', async () => {
 			// arrange
 			getCacheSnapshotSpy.mockRestore(); // reset mock to original implementation
 			getCacheSnapshotSpy.mockReturnValue([]); // return original cache
-			//const loggerWarnSpy = jest.spyOn(logger, 'warn');
+			const loggerWarnSpy = jest.spyOn(logger, 'warn');
 			
 			// act
 			await handler.handle(event);
@@ -151,8 +150,8 @@ describe('ConditioningLogUndeletedHandler', () => {
 			// assert
 			expect(getCacheSnapshotSpy).toHaveBeenCalled();
 			expect(updateCacheSpy).not.toHaveBeenCalled();
-			//expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
-			//expect(loggerWarnSpy).toHaveBeenCalledWith(`Log ${randomLogDTO.entityId} not found in cache.`);			
+			expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
+			expect(loggerWarnSpy).toHaveBeenCalledWith(`Log ${randomLogDTO.entityId} not found in cache.`);			
 		});
 
 		it('throws an error if the event is not a ConditioningLogUndeletedEvent', async () => {
@@ -166,6 +165,25 @@ describe('ConditioningLogUndeletedHandler', () => {
 
 			// act & assert
 			await expect(handler.handle(event)).rejects.toThrow('Invalid event: expected ConditioningLogUndeletedEvent.');
+		});
+	});
+
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(handler.log$).toBeDefined();
+				expect(handler.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(handler.logger).toBeDefined();
+				expect(handler.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(handler.logToStream).toBeDefined();
+				expect(typeof handler.logToStream).toBe('function');
+			});
 		});
 	});
 });

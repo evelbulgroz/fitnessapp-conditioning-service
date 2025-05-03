@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
-//import { Logger } from '@evelbulgroz/logger';
+import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
 import { ConditioningLogUndeletedEvent } from '../events/conditioning-log-undeleted.event';
@@ -8,14 +8,12 @@ import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
 
 /** Handler for entity undeleted event from ConditioningLog repository
  * @remark Marks log as undeleted in data service cache
- * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
-export class ConditioningLogUndeletedHandler extends DomainEventHandler<ConditioningLogUndeletedEvent> {
+export class ConditioningLogUndeletedHandler extends StreamLoggableMixin(DomainEventHandler<ConditioningLogUndeletedEvent>) {
 	constructor(
 		@Inject(forwardRef(() => ConditioningDataService)) // forwardRef to handle circular dependency
 		private readonly logService: ConditioningDataService,
-		//private readonly logger: Logger
 	) {
 		super();
 	}
@@ -43,7 +41,7 @@ export class ConditioningLogUndeletedHandler extends DomainEventHandler<Conditio
 
 		// if log is not found, log a warning and return
 		if (!log) {
-			//this.logger.warn(`Log ${logDTO.entityId} not found in cache.`); // todo: refactor to use mixin
+			this.logger.warn(`Log ${logDTO.entityId} not found in cache.`); // todo: refactor to use mixin
 			return;
 		}
 
@@ -53,7 +51,7 @@ export class ConditioningLogUndeletedHandler extends DomainEventHandler<Conditio
 		// update cache
 		this.logService.updateCache(cache, this);
 
-		//this.logger.log(`Log ${logDTO.entityId} undeleted.`); // todo: refactor to use mixin
+		this.logger.log(`Log ${logDTO.entityId} undeleted.`); // todo: refactor to use mixin
 	}
 }
 
