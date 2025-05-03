@@ -2,26 +2,28 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import * as express from 'express';
 
+import { ConsoleLogger } from '@evelbulgroz/logger';
+
 import { AppConfig } from 'src/shared/domain/config-options.model';
 import { AppInstance } from 'src/api-docs/app-instance.model';
 import { AppModule } from './app.module';
-import { Logger } from './libraries/stream-loggable';
+import { Logger, LogLevel } from './libraries/stream-loggable';
 import RequestLoggingInterceptor from './infrastructure/interceptors/request-logging.interceptor';
 
 async function bootstrap() {
-	// Set custom logger for NestJS before the app is created
-	//void await setDefaultLogger();
+	// Set custom logger for NestJS before the app is created to get consistent logging
+	void await setDefaultLogger();
 
 	// Create the Nest application and load the configuration
-	// Note: ConfigService is not available until after the app is created
 	const app = await NestFactory.create(AppModule);
-	const configService = app.get(ConfigService);
-
-	// Set the logger for the application using the configuration service
-	//const logger = await setCustomLogger(app, configService);
+	
+	// Get the logger provider from the app context
 	const logger = app.get(Logger);
 	logger.log('Nest application initialized', 'Bootstrap');
 	
+	// Get the ConfigService from the app context
+	const configService = app.get(ConfigService);
+		
 	// Set global prefix for all routes (from the configuration)
 	const prefix = configService.get('app.globalprefix');
 	app.setGlobalPrefix(prefix);
@@ -51,27 +53,12 @@ async function bootstrap() {
 	});
 }
 
-/*
 // Set a default logger for early initialization logs, before ConfigService is available
 async function setDefaultLogger(): Promise<Logger> {
 	// Set a default logger for early initialization logs
-	const logger = new NestLogger('debug', 'App', undefined, true, true);
+	const logger = new ConsoleLogger(LogLevel.DEBUG, 'fitnessapp-conditioning-service');
 	const { Logger: DefaultLogger } = await import('@nestjs/common');
 	DefaultLogger.overrideLogger(logger);
 	return logger;
 }
-
-// Set a custom logger for the application using the configuration service
-// This logger is used for all logs after the application is created
-async function setCustomLogger(app: any, config: ConfigService): Promise<NestLogger> {
-	const logLevel = config.get<string>('log.level') ?? 'debug';
-	const appName = config.get<string>('log.appName') ?? 'conditioning-service';
-	const addLocalTimestamp = config.get<boolean>('log.addLocalTimestamp') ?? false;
-	const useColors = config.get<boolean>('log.useColors') ?? true;
-
-	const logger = new NestLogger(logLevel as LogLevel, appName, undefined, addLocalTimestamp, useColors);
-	app.useLogger(logger);
-	return logger;
-}
-*/
 bootstrap();
