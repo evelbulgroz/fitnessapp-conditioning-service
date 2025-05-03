@@ -87,7 +87,7 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	 * use initialize() instead for public API
      */
     public async onInitialize(superResult: Result<void>): Promise<void> {
-		this.log(RepoLogLevel.LOG, `Executing initialization`);
+		this.log(RepoLogLevel.INFO, `Executing initialization`);
 		
 		// Repository.initialize() does most of the work, so we just need to check result from base class here
 		if (superResult.isFailure) {
@@ -97,7 +97,7 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 		
 		// If/when needed, add local initialization here
         
-		this.log(RepoLogLevel.LOG, `Initialization executed successfully`);
+		this.log(RepoLogLevel.INFO, `Initialization executed successfully`);
         return Promise.resolve();
     }
     
@@ -109,7 +109,7 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	 * use shutdown() instead for public API
      */
     public async onShutdown(superResult: Result<void>): Promise<void> {
-        this.log(RepoLogLevel.LOG, `Executing shutdown`);
+        this.log(RepoLogLevel.INFO, `Executing shutdown`);
 
 		// Repository.shutdown() does most of the work, so we just need to check result from base class here
 		if (superResult.isFailure) {

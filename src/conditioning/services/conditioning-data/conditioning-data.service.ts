@@ -90,7 +90,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
 	onModuleDestroy() {
-		this.logToStream(LogLevel.LOG, `Shutting down...`);
+		this.logToStream(LogLevel.INFO, `Shutting down...`);
 		this.shutdown(); // call shutdown method from mixin
 	}
 	
@@ -669,7 +669,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 
 		// execute initialization
 		try {
-			this.logToStream(LogLevel.LOG, 'Executing initialization...');
+			this.logToStream(LogLevel.INFO, 'Executing initialization...');
 			
 			// fetch all logs from conditioning log repo
 			let allLogs: ConditioningLog<any, ConditioningLogDTO>[] = [];
@@ -702,7 +702,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 			});
 			this.cache.next(userLogs);
 			
-			this.logToStream(LogLevel.LOG, `Initialization execution complete: Cached ${allLogs.length} logs for ${users.length} users.`);
+			this.logToStream(LogLevel.INFO, `Initialization execution complete: Cached ${allLogs.length} logs for ${users.length} users.`);
 			return Promise.resolve();
 		}
 		catch (error) {
@@ -725,7 +725,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 */
 	public override onShutdown(): Promise<void> {		
 		try {
-			this.logToStream(LogLevel.LOG, `Executing shutdown...`);
+			this.logToStream(LogLevel.INFO, `Executing shutdown...`);
 			
 			// clean up resources
 			while (this.subscriptions.length > 0) { // unsubscribe all subscriptions
@@ -738,7 +738,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 			this.cache.complete(); // complete the cache observable to release resources
 			this.cache.next([]); // emit empty array to clear cache
 			
-			this.logToStream(LogLevel.LOG, 'Shutdown execution complete.');
+			this.logToStream(LogLevel.INFO, 'Shutdown execution complete.');
 			return Promise.resolve();
 		} 
 		catch (error) {

@@ -43,8 +43,10 @@ export class RepoLogMapper implements StreamMapper<RepoLogEntry> {
 				return LogLevel.DEBUG;
 			case RepoLogLevel.VERBOSE:
 				return LogLevel.VERBOSE;
+			case RepoLogLevel.LOG:
+				return LogLevel.INFO; // Keep this until base class becomes more disciplined in using log levels.
 			default:
-				return LogLevel.LOG;
+				return LogLevel.INFO;
 		}
 	}
 }

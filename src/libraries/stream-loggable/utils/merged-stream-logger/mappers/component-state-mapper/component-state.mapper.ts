@@ -36,14 +36,10 @@ public readonly streamType = 'componentState$';
 			case ComponentStateDemo.FAILED:
 				return LogLevel.ERROR;
 			case ComponentStateDemo.DEGRADED:
-				return LogLevel.WARN;
-			case ComponentStateDemo.SHUTTING_DOWN:
-			case ComponentStateDemo.INITIALIZING:
-				return LogLevel.INFO;
-			case ComponentStateDemo.OK:
-				return LogLevel.LOG;
+				return LogLevel.WARN;			
+			// Most other states are INFO, but we can be more specific if needed.
 			default:
-				return LogLevel.LOG;
+				return LogLevel.INFO;
 		}
 	}
 }

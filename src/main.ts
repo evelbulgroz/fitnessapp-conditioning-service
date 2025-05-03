@@ -19,7 +19,7 @@ async function bootstrap() {
 	
 	// Get the logger provider from the app context
 	const logger = app.get(Logger);
-	logger.log('Nest application initialized', 'Bootstrap');
+	logger.info('Nest application initialized', 'Bootstrap');
 	
 	// Get the ConfigService from the app context
 	const configService = app.get(ConfigService);
@@ -43,11 +43,11 @@ async function bootstrap() {
 	const appConfig = configService.get('app') as AppConfig;
 	const port = appConfig.baseURL?.port;
 	await app.listen(port);
-	logger.log(`Application is running on: ${await app.getUrl()}/${prefix}`, 'Bootstrap');
+	logger.info(`Application is running on: ${await app.getUrl()}/${prefix}`, 'Bootstrap');
 
 	// Handle SIGINT signal, i.e. Ctrl+C in terminal
 	process.on('SIGINT', async () => {
-		logger.log('SIGINT signal received: closing the application...', 'Bootstrap');
+		logger.info('SIGINT signal received: closing the application...', 'Bootstrap');
 		await app.close();
 		process.exit(0); // exit process immediately
 	});

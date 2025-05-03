@@ -52,7 +52,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	 * use initialize() instead for public API
      */
     public override async onInitialize(initResult: Result<void>): Promise<void> {
-		this.log(RepoLogLevel.LOG, `Executing initialization`);
+		this.log(RepoLogLevel.INFO, `Executing initialization`);
 		
 		// Repository.initialize() does most of the work, so we just need to check result from base class here
 		if (initResult.isFailure) {
@@ -62,7 +62,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		
 		// If/when needed, add local initialization here
         
-		this.log(RepoLogLevel.LOG, `Initialization executed successfully`);
+		this.log(RepoLogLevel.INFO, `Initialization executed successfully`);
         return Promise.resolve();
     }
     
@@ -75,7 +75,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	 * use shutdown() instead for public API
      */
     public override async onShutdown(shutdownResult: Result<void>): Promise<void> {
-		this.log(RepoLogLevel.LOG, `Executing shutdown`);
+		this.log(RepoLogLevel.INFO, `Executing shutdown`);
 
 		// Repository.shutdown() does most of the work, so we just need to check result from base class here
 		if (shutdownResult.isFailure) {
@@ -164,7 +164,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	// todo: figure out a better way to handle imports
 	/*
 	protected async finalizeInitialization(): Promise<Result<void>> {
-		this.log(LogLevel.LOG, `${this.constructor.name}: Finalizing initialization...`);
+		this.log(LogLevel.INFO, `${this.constructor.name}: Finalizing initialization...`);
 		//await this.#subscribeToImportUpdates();
 		// base class initialization logs completion
 		return Promise.resolve(Result.ok<void>());

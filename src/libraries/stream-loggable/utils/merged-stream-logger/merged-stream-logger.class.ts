@@ -463,8 +463,10 @@ export class MergedStreamLogger {
 				);
 				break;
 			case LogLevel.LOG:
-			default:
 				this.logger.log(entry.message, entry.context);
+				break;
+			default:
+				this.logger.info(entry.message, entry.context);
 				break;
 		}
 	}

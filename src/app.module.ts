@@ -107,7 +107,7 @@ export class AppModule {
 	 * @todo Add "degraded" status to health check endpoint if initialization fails
 	 */
 	public async onModuleInit() {
-		this.logger.log('Initializing server...', `${this.constructor.name}.onModuleInit`);
+		this.logger.info('Initializing server...', `${this.constructor.name}.onModuleInit`);
 		// todo : set health check status to initializing
 
 		// Log in to the auth microservice (internally gets and stores access token)
@@ -130,7 +130,7 @@ export class AppModule {
 			// todo: set health check status to degraded
 		}
 		
-		this.logger.log(`Server initialized with instance id ${this.appConfig.serviceid}`, `${this.constructor.name}.onModuleInit`);
+		this.logger.info(`Server initialized with instance id ${this.appConfig.serviceid}`, `${this.constructor.name}.onModuleInit`);
 	}
 
 	/** Shut down the server by deregistering from the microservice registry and logging out from the auth service
@@ -138,7 +138,7 @@ export class AppModule {
 	 * @throws Error if deregistration or logout fails
 	 */
 	public async onModuleDestroy() {
-		this.logger.log('Destroying server...', `${this.constructor.name}.onModuleDestroy`);		
+		this.logger.info('Destroying server...', `${this.constructor.name}.onModuleDestroy`);		
 		// todo : set health check status to shutting down
 		
 		// Deregister from the microservice registry
@@ -161,7 +161,7 @@ export class AppModule {
 			// todo: set health check status to degraded
 		}
 
-		this.logger.log('Server destroyed', `${this.constructor.name}.onModuleDestroy`);
+		this.logger.info('Server destroyed', `${this.constructor.name}.onModuleDestroy`);
 		// todo : set health check status to destroyed
 		// todo : close all connections and clean up resources
 	}

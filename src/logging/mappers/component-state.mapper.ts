@@ -26,19 +26,15 @@ public readonly streamType = 'componentState$';
 	}
 	
 	protected mapStateToLogLevel(state: ComponentState): LogLevel {
-		switch (state) {
-			case ComponentState.FAILED:
-				return LogLevel.ERROR;
-			case ComponentState.DEGRADED:
-				return LogLevel.WARN;
-			case ComponentState.SHUTTING_DOWN:
-			case ComponentState.INITIALIZING:
-				return LogLevel.INFO;
-			case ComponentState.OK:
-				return LogLevel.LOG;
-			default:
-				return LogLevel.LOG;
+			switch (state) {
+				case ComponentState.FAILED:
+					return LogLevel.ERROR;
+				case ComponentState.DEGRADED:
+					return LogLevel.WARN;			
+				// Most other states are INFO, but we can be more specific if needed.
+				default:
+					return LogLevel.INFO;
+			}
 		}
-	}
 }
 export default ComponentStateMapper;
