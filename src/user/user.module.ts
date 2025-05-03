@@ -14,6 +14,46 @@ import UserRepository from './repositories/user.repo';
 import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
 
+/** Main module for components managing and serving user information.
+ * 
+ * This module encapsulates all functionality for storing, retrieving, and serving user
+ * information. It integrates with NestJS's lifecycle hooks for proper initialization and cleanup.
+ * 
+ * This is an auxiliary module, existing to enable per-user serving of conditioning requests.
+ * It provides minimal user management, deferring to the user microservice as the single source
+ * of truth for user information.
+ * 
+ * @implements {OnModuleInit} Handles proper initialization sequence of repository and service components.
+ * @implements {OnModuleDestroy} Ensures graceful shutdown of all components.
+ * 
+ * Initialization sequence: Register subcomponents → Initialize self → Initialize subcomponents.
+ * Shutdown sequence: Shutdown self and subcomponents → Unregister subcomponents.
+ * 
+ * @state-management
+ * The module implements {@link ManagedStatefulComponentMixin} for advanced state management:
+ * - Tracks component state through the standard lifecycle (UNINITIALIZED → INITIALIZING → OK → SHUTTING_DOWN → SHUT_DOWN)
+ * - Manages hierarchical state through subcomponent registration (repository and data service)
+ * - Provides observable state through componentState$ stream
+ * - Automatically aggregates worst-case state from all subcomponents
+ * - Ensures ordered initialization and shutdown sequences
+ * 
+ * @logging
+ * Implements {@link StreamLoggableMixin} for structured logging:
+ * - Provides contextual logging with component name and state information
+ * - Supports multiple log levels (debug, info, warn, error)
+ * - Logs important lifecycle events (initialization, state transitions, shutdown)
+ * - Integrates with RxJS observable streams for reactive logging
+ * @see {@link StreamLoggableMixin} for more details on logging capabilities and the provided strem logger utility.
+ * 
+ * @dependency-management
+ * Uses NestJS dependency injection for:
+ * - File system persistence adapter configuration
+ * - Repository throttling
+ * - Service and repository wiring
+ * 
+ * @exports Core services and handlers for use by other modules.
+ */
+
 @Module({
 	imports: [],
 	controllers: [UserController],
@@ -52,18 +92,31 @@ export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixi
 		super();
 	}
 
+	/** Initializes the module and its components
+	 * 
+	 * This method is called by NestJS during the module's initialization phase. It registers the repository and data service
+	 * as subcomponents, ensuring that they are properly initialized and managed within the module's lifecycle.
+	 * 
+	 * @returns {Promise<void>} A promise that resolves to void when the module is fully initialized.
+	 * 
+	 * @error-handling During initialization, failures are captured and propagated through the state 
+	 * management system, setting the component and module to FAILED state with detailed error information.
+	 */
 	public async onModuleInit(): Promise<void> {
 		this.registerSubcomponent(this.userRepository); // repo handles persistence initialization internally
 		this.registerSubcomponent(this.userDataService);
 		await this.initialize(); // // initialize module and all subcomponents
-		//const stateInfo = await firstValueFrom(this.componentState$.pipe(take (1))) as ComponentStateInfo;
-		//console.debug(`UserModule: onModuleInit() called, state info: ${JSON.stringify(stateInfo, null, 2)}`);
 	}
 
+	/** Cleans up the module and its components
+	 * 
+	 * This method is called by NestJS during the module's destruction phase. It unregisters the repository and data service
+	 * as subcomponents, ensuring that they are properly cleaned up and released from memory.
+	 * 
+	 * @returns {Promise<void>} A promise that resolves to void when the module is fully shut down.
+	 */
 	public async onModuleDestroy(): Promise<void> {		
 		await this.shutdown(); // shutdown module and all subcomponents
-		//const stateInfo = await firstValueFrom(this.componentState$.pipe(take (1))) as ComponentStateInfo;
-		//console.debug(`UserModule: onModuleDestroy() called, state info: ${JSON.stringify(stateInfo, null, 2)}`);
 		this.unregisterSubcomponent(this.userRepository); // repo handles persistence shutdown internally
 		this.unregisterSubcomponent(this.userDataService);
 	}
