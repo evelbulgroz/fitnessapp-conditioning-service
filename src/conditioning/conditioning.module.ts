@@ -67,7 +67,7 @@ import QueryMapper from './mappers/query.mapper';
 	providers: [
 		AggregatorService,
 		AggregationQueryMapper,
-		ConditioningController,
+		ConditioningController, // this allows injection of the controller into the module, but it seems to provide the wrong reference to the logger, so nothing is logged from the controller
 		ConditioningDataService,
 		ConditioningLogCreatedHandler,
 		ConditioningLogDeletedHandler,
