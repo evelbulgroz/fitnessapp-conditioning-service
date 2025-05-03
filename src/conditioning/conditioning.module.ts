@@ -124,6 +124,9 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 		// ConditioningController is not a managed component, so we don't register it as a subcomponent
 
 		// Subscribe to log streams for logging
+		
+		//console.log('ConditioningController', this.moduleRef.get(ConditioningController, { strict: false })); // logs a controller instance
+		
 		this.streamLogger.subscribeToStreams([
 			{ streamType: 'componentState$', component: this.repository },
 			{ streamType: 'componentState$', component: this.dataService },
@@ -131,7 +134,7 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 			
 			{ streamType: 'repoLog$', component: this.repository },
 			{ streamType: 'log$', component: this.dataService },
-			{ streamType: 'log$', component: this.moduleRef.get(ConditioningController, { strict: false }) },
+			// ConditioningController: Cannot get a reference to the active instance here, so it subscribes itself
 		]);
 				
 		await this.initialize(); // initialize module and all managed subcomponents

@@ -231,7 +231,7 @@ export class MergedStreamLogger {
 				);
 				continue;
 			}
-		
+			
 			const mapper = this.mappers.get(streamType);      
 			if (mapper) {
 				const componentName = component.constructor?.name;

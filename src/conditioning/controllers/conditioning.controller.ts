@@ -3,7 +3,7 @@ import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, 
 
 import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId } from '@evelbulgroz/ddd-base';
-import { StreamLoggableMixin } from '../../libraries/stream-loggable';
+import { MergedStreamLogger, StreamLoggableMixin } from '../../libraries/stream-loggable';
 
 import { AggregationQueryDTO } from '../dtos/aggregation-query.dto';
 import { BooleanDTO } from '../../shared/dtos/responses/boolean.dto';
@@ -51,9 +51,16 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
 	constructor(
-		private readonly LogService: ConditioningDataService,
+		private readonly dataService: ConditioningDataService,
+		private readonly streamLogger: MergedStreamLogger,
 	) {
 		super();
+
+		// Set up the logger for this component
+		 // Workaround for not being able to get a reference to the active controller instance in the module.
+		this.streamLogger.subscribeToStreams([
+			{ streamType: 'log$', component: this }
+		]);
 	}
 
 	//-------------------------------- PUBLIC API: SINGLE-LOG CRUD ------------------------------//
@@ -111,7 +118,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const log = this.createLogFromDTO(logDTO); // validate the log DTO before passing it to the service
-			return await this.LogService.createLog(userContext, userIdDTO, log);
+			return await this.dataService.createLog(userContext, userIdDTO, log);
 		} catch (error) {
 			const errorMessage = `Failed to create log: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -155,7 +162,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			const log = this.LogService.fetchLog(userContext, userIdDTO, logId);
+			const log = this.dataService.fetchLog(userContext, userIdDTO, logId);
 			if (!log) {
 				const errorMessage = `Log with id ${logId.value} not found`;
 				this.logger.error(errorMessage);
@@ -211,7 +218,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const partialLog = this.createLogFromDTO(partialLogDTO); // validate the log DTO before passing it to the service
-			void await this.LogService.updateLog(userContext, userIdDTO, logIdDTO, partialLog);
+			void await this.dataService.updateLog(userContext, userIdDTO, logIdDTO, partialLog);
 			// implicit return
 		} catch (error) {
 			const errorMessage = `Failed to update log with ID: ${logIdDTO.value}: ${error.message}`;
@@ -255,7 +262,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.LogService.deleteLog(userContext, userIdDTO, logIdDTO); // Implement this method in your service
+			void await this.dataService.deleteLog(userContext, userIdDTO, logIdDTO); // Implement this method in your service
 		} catch (error) {
 			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -299,7 +306,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	): Promise<void> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.LogService.undeleteLog(userContext, userIdDTO, logIdDTO);
+			void await this.dataService.undeleteLog(userContext, userIdDTO, logIdDTO);
 		} catch (error) {
 			const errorMessage = `Failed to undelete log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -350,9 +357,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			// debugging info
-			console.info(`Fetching logs for userId: ${userIdDTO?.value}, includeDeleted: ${includeDeletedDTO?.value}, queryDTO: ${JSON.stringify(queryDTO)}`);
-			this.logger.info(`Fetching logs for userId: ${userIdDTO?.value}, includeDeleted: ${includeDeletedDTO?.value}, queryDTO: ${JSON.stringify(queryDTO)}`);
-			
+			this.logger.debug(`Fetching logs for userId: ${userIdDTO?.value}, includeDeleted: ${includeDeletedDTO?.value}, queryDTO: ${JSON.stringify(queryDTO)}`);
+
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
 			
 			if (queryDTO) {// query always instantiated by framework, using all query params -> remove if empty except for userId and includeDeleted
@@ -361,7 +367,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO; 
 			}
 
-			return await this.LogService.fetchLogs(userContext, userIdDTO ?? undefined, queryDTO, includeDeletedDTO?.value);
+			return await this.dataService.fetchLogs(userContext, userIdDTO ?? undefined, queryDTO, includeDeletedDTO?.value);
 		}
 		catch (error) {
 			const errorMessage = `Request for logs failed: ${error.message}`;
@@ -416,7 +422,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				(queryDTO as any).includeDeleted = undefined; // not currently part of queryDTO, remove just in case
 				queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO; 
 			}
-			return await this.LogService.fetchActivityCounts(userContext, userIdDTO, queryDTO, includeDeletedDTO);
+			return await this.dataService.fetchActivityCounts(userContext, userIdDTO, queryDTO, includeDeletedDTO);
 		}
 		catch (error) {
 			this.logger.error(`Request for activities failed: ${error.message}`);
@@ -452,7 +458,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
 			// therefore remove empty queries here, so that the service method can just check for undefined
 			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-			return this.LogService.fetchAggretagedLogs(userContext, aggregationQueryDTO as any, queryDTO as any); // todo: refactor service method to accept dtos
+			return this.dataService.fetchAggretagedLogs(userContext, aggregationQueryDTO as any, queryDTO as any); // todo: refactor service method to accept dtos
 		}
 		catch (error) {
 			const errorMessage = `Request for aggregation failed: ${error.message}`;
@@ -501,7 +507,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	@UsePipes({ transform: () => undefined})  // Disable validation for this endpoint since it takes no parameters
 	public async sessions(): Promise<ConditioningData> {
 		try {
-			return this.LogService.conditioningData();
+			return this.dataService.conditioningData();
 		}
 		catch (error) {
 			throw new BadRequestException(`Request for all sessions failed: ${error.message}`);
