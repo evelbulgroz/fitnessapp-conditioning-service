@@ -114,6 +114,7 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 	public async onModuleInit(): Promise<void> {
 		this.registerSubcomponent(this.conditioningLogRepository); // repo handles persistence initialization internally
 		this.registerSubcomponent(this.conditioningDataService);
+		// ConditioningController is not a managed component, so we don't register it as a subcomponent
 		await this.initialize(); // initialize module and all managed subcomponents
 	}
 
@@ -126,6 +127,7 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 	 */
 	public async onModuleDestroy(): Promise<void> {
 		await this.shutdown(); // shutdown module and all managed subcomponents
+		// ConditioningController is not a managed component, so we don't unregister it as a subcomponent
 		this.unregisterSubcomponent(this.conditioningLogRepository); // repo handles persistence shutdown internally
 		this.unregisterSubcomponent(this.conditioningDataService);
 	}}
