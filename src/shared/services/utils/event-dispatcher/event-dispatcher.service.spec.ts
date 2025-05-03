@@ -1,32 +1,34 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../../../test/test-utils';
 
-import { Logger, ConsoleLogger } from '@evelbulgroz/logger';
-//import { jest } from '@jest/globals';
+import { Subject } from 'rxjs';
 
-import { ConditioningDataService } from '../../../../conditioning/services/conditioning-data/conditioning-data.service';
-import { ConditioningLogDTO } from '../../../../conditioning/dtos/conditioning-log.dto';
-import { ConditioningLogRepository } from '../../../../conditioning/repositories/conditioning-log.repo';
-import { EventDispatcherService } from '../event-dispatcher/event-dispatcher.service';
-import { ConditioningLogCreatedEvent } from '../../../../conditioning/events/conditioning-log-created.event';
-import { ConditioningLogCreatedHandler } from '../../../../conditioning/handlers/conditioning-log-created.handler';
-import { ConditioningLogDeletedEvent } from '../../../../conditioning/events/conditioning-log-deleted.event';
-import { ConditioningLogDeletedHandler } from '../../../../conditioning/handlers/conditioning-log-deleted.handler';
-import { ConditioningLogUndeletedEvent } from '../../../../conditioning/events/conditioning-log-undeleted.event';
-import { ConditioningLogUndeletedHandler } from '../../../../conditioning/handlers/conditioning-log-undeleted.handler';
-import { ConditioningLogUpdatedEvent } from '../../../../conditioning/events/conditioning-log-updated.event';
-import { ConditioningLogUpdatedHandler } from '../../../../conditioning/handlers/conditioning-log-updated.handler';
-import { UserCreatedEvent } from '../../../../user/events/user-created.event';
-import { UserCreatedHandler } from '../../../../user/handlers/user-created.handler';
-import { UserDeletedEvent } from '../../../../user/events/user-deleted.event';
-import { UserDeletedHandler } from '../../../../user/handlers/user-deleted.handler';
-import { UserUpdatedEvent } from '../../../../user/events/user-updated.event';
-import { UserUpdatedHandler } from '../../../../user/handlers/user-updated.handler';
-import { UserDTO } from '../../../../user/dtos/user.dto';
-import { UserRepository } from '../../../../user/repositories/user.repo';
+import { StreamLogger } from '../../../../libraries/stream-loggable';
+
+import ConditioningDataService from '../../../../conditioning/services/conditioning-data/conditioning-data.service';
+import ConditioningLogDTO from '../../../../conditioning/dtos/conditioning-log.dto';
+import ConditioningLogRepository from '../../../../conditioning/repositories/conditioning-log.repo';
+import EventDispatcherService from '../event-dispatcher/event-dispatcher.service';
+import ConditioningLogCreatedEvent from '../../../../conditioning/events/conditioning-log-created.event';
+import ConditioningLogCreatedHandler from '../../../../conditioning/handlers/conditioning-log-created.handler';
+import ConditioningLogDeletedEvent from '../../../../conditioning/events/conditioning-log-deleted.event';
+import ConditioningLogDeletedHandler from '../../../../conditioning/handlers/conditioning-log-deleted.handler';
+import ConditioningLogUndeletedEvent from '../../../../conditioning/events/conditioning-log-undeleted.event';
+import ConditioningLogUndeletedHandler from '../../../../conditioning/handlers/conditioning-log-undeleted.handler';
+import ConditioningLogUpdatedEvent from '../../../../conditioning/events/conditioning-log-updated.event';
+import ConditioningLogUpdatedHandler from '../../../../conditioning/handlers/conditioning-log-updated.handler';
+import UserCreatedEvent from '../../../../user/events/user-created.event';
+import UserCreatedHandler from '../../../../user/handlers/user-created.handler';
+import UserDeletedEvent from '../../../../user/events/user-deleted.event';
+import UserDeletedHandler from '../../../../user/handlers/user-deleted.handler';
+import UserUpdatedEvent from '../../../../user/events/user-updated.event';
+import UserUpdatedHandler from '../../../../user/handlers/user-updated.handler';
+import UserDTO from '../../../../user/dtos/user.dto';
+import UserRepository from '../../../../user/repositories/user.repo';
+
 
 describe('EventDispatcherService', () => {
-	let dispatcher: EventDispatcherService;
+	let service: EventDispatcherService;
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
 			providers: [
@@ -42,16 +44,6 @@ describe('EventDispatcherService', () => {
 					useValue: {
 						// add methods as needed
 					}
-				},
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
 				},
 				EventDispatcherService,
 				ConditioningLogCreatedHandler,
@@ -72,7 +64,7 @@ describe('EventDispatcherService', () => {
 		}))
 		.compile();
 
-		dispatcher = module.get<EventDispatcherService>(EventDispatcherService);		
+		service = module.get<EventDispatcherService>(EventDispatcherService);		
 	});
 
 	afterEach(() => {
@@ -80,7 +72,7 @@ describe('EventDispatcherService', () => {
 	});
 
 	it('can be created', () => {
-		expect(dispatcher).toBeDefined();
+		expect(service).toBeDefined();
 	});
 
 	describe('dispatch', () => {
@@ -98,7 +90,7 @@ describe('EventDispatcherService', () => {
 
 				// act
 				// handler method not implemented yet, so expect an error
-				expect(async () => await dispatcher.dispatch(event)).rejects.toThrow();
+				expect(async () => await service.dispatch(event)).rejects.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
@@ -118,7 +110,7 @@ describe('EventDispatcherService', () => {
 
 				// act
 				// handler method not implemented yet, so expect an error
-				expect(async () => await dispatcher.dispatch(event)).not.toThrow();
+				expect(async () => await service.dispatch(event)).not.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
@@ -138,7 +130,7 @@ describe('EventDispatcherService', () => {
 
 				// act
 				// handler method not implemented yet, so expect an error
-				expect(async () => await dispatcher.dispatch(event)).rejects.toThrow();
+				expect(async () => await service.dispatch(event)).rejects.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
@@ -157,7 +149,7 @@ describe('EventDispatcherService', () => {
 				const handleSpy = jest.spyOn(ConditioningLogUndeletedHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
 
 				// act
-				expect(async () => await dispatcher.dispatch(event)).not.toThrow();
+				expect(async () => await service.dispatch(event)).not.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
@@ -181,7 +173,7 @@ describe('EventDispatcherService', () => {
 				const handleSpy = jest.spyOn(UserCreatedHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
 
 				// act
-				expect(async () => await dispatcher.dispatch(event)).not.toThrow();
+				expect(async () => await service.dispatch(event)).not.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
@@ -200,7 +192,7 @@ describe('EventDispatcherService', () => {
 				const handleSpy = jest.spyOn(UserUpdatedHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
 
 				// act
-				expect(async () => await dispatcher.dispatch(event)).not.toThrow();
+				expect(async () => await service.dispatch(event)).not.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
@@ -219,11 +211,30 @@ describe('EventDispatcherService', () => {
 				const handleSpy = jest.spyOn(UserDeletedHandler.prototype, 'handle').mockImplementation(() => Promise.resolve());
 
 				// act
-				expect(async () => await dispatcher.dispatch(event)).not.toThrow();
+				expect(async () => await service.dispatch(event)).not.toThrow();
 
 				// assert
 				expect(handleSpy).toHaveBeenCalledTimes(1);
 				expect(handleSpy).toHaveBeenCalledWith(event);
+			});
+		});
+	});
+		
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(service.log$).toBeDefined();
+				expect(service.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(service.logger).toBeDefined();
+				expect(service.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(service.logToStream).toBeDefined();
+				expect(typeof service.logToStream).toBe('function');
 			});
 		});
 	});

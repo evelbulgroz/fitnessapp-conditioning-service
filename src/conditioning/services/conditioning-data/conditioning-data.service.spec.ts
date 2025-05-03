@@ -49,7 +49,6 @@ describe('ConditioningDataService', () => {
 	let aggregatorService: AggregatorService;
 	let app: TestingModule;
 	let service: ConditioningDataService;
-	//let logger: Logger;
 	let logRepo: ConditioningLogRepository<any, ConditioningLogDTO>;
 	let logRepoUpdatesSubject: Subject<any>;
 	let queryMapper: QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>;
@@ -148,7 +147,6 @@ describe('ConditioningDataService', () => {
 
 		aggregatorService = app.get<AggregatorService>(AggregatorService);
 		service = app.get<ConditioningDataService>(ConditioningDataService);
-		//logger = app.get<Logger>(Logger);
 		logRepo = app.get<ConditioningLogRepository<any, ConditioningLogDTO>>(ConditioningLogRepository);
 		queryMapper = app.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
 		userRepo = app.get<UserRepository>(UserRepository);
@@ -2441,25 +2439,6 @@ describe('ConditioningDataService', () => {
 			});
 		});
 	});
-	
-	describe('Logging API', () => {
-		describe('LoggableMixin Members', () => {
-			it('inherits log$', () => {
-				expect(service.log$).toBeDefined();
-				expect(service.log$).toBeInstanceOf(Subject);
-			});
-
-			it('inherits logger', () => {
-				expect(service.logger).toBeDefined();
-				expect(service.logger).toBeInstanceOf(StreamLogger);
-			});
-
-			it('inherits logToStream', () => {
-				expect(service.logToStream).toBeDefined();
-				expect(typeof service.logToStream).toBe('function');
-			});
-		});
-	});
 
 	describe('Protected Methods', () => {
 		describe('rollbackLogCreation', () => {
@@ -2812,6 +2791,25 @@ describe('ConditioningDataService', () => {
 				// clean up
 				logToStreamSpy?.mockRestore();
 			});			
+		});
+	});
+	
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(service.log$).toBeDefined();
+				expect(service.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(service.logger).toBeDefined();
+				expect(service.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(service.logToStream).toBeDefined();
+				expect(typeof service.logToStream).toBe('function');
+			});
 		});
 	});
 });

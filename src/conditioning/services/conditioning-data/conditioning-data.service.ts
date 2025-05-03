@@ -69,7 +69,6 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	protected readonly cache = new BehaviorSubject<UserLogsCacheEntry[]>([]);
 	
 	// Inject separately to keep constructor signature clean
-	//@Inject(Logger) protected readonly logger: Logger;
 	@Inject(QueryMapper) protected readonly queryMapper: QueryMapper<QueryType, QueryDTO>;
 
 	 // Array of subscriptions to be cleaned up on shutdown
