@@ -186,6 +186,17 @@ export class MergedStreamLogger {
 	 * @remark If a mapper is not found for a stream type, a warning is logged and the stream is ignored.
 	 * @remark If an error occurs during mapping, it is logged and the stream continues to be monitored.
 	 * @remark Streams with repeated failures will have reduced error logging to avoid log spamming.
+	 * @todo Refactor to allow several streams to use the same key, .e.g. log$ for different components
+	 *  - as is, this scenarios prevents multiple components using the same stream type registering in the same call
+	 * 
+	 * @example
+	 * ```typescript
+	 * const logger = new MergedStreamLogger(new ConsoleLogger());
+	 * logger.subscribeToStreams({
+	 *   logs$: component.logs$,
+	 *   repoLog$$: component.repoLog$
+	 *  }, 'MyComponent', 'my-component-logs');
+	 * ```
 	 */
 	public subscribeToStreams(
 		streams: Record<string, Observable<any>>,

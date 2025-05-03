@@ -1,35 +1,52 @@
 import { Global, Module } from '@nestjs/common';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { ConsoleLogger } from '@evelbulgroz/logger';
+import { Logger, LogLevel, MergedStreamLogger } from '../libraries/stream-loggable';
 
-import { MergedStreamLogger } from '../libraries/stream-loggable/utils/merged-stream-logger/merged-stream-logger.class';
-import { LogEntryMapper } from '../libraries/stream-loggable/utils/merged-stream-logger/mappers/log-entry.mapper';
-import { ComponentStateMapper } from '../libraries/stream-loggable/utils/merged-stream-logger/mappers/component-state.mapper';
-import { LogLevel } from 'src/libraries/stream-loggable';
+import ComponentStateMapper from './mappers/component-state.mapper';
+import LogMapper from './mappers/log.mapper';
+import RepoLogMapper from './mappers/repo-log.mapper';
 
+/** This module centrally manages the logging configuration for the application.
+ * 
+ * It provides {@link MergedStreamLogger} globally to all modules, allowing them to 
+ * register components that use {@link StreamLoggableMixin} for logging so that
+ * their logs can be aggregated into a single stream and sent to the concrete logger.
+ * 
+ * @see {@link MergedStreamLogger} for more details on how to use this logger.
+ * 
+ * Consuming modules can inject the logger using the `@Inject(MergedStreamLogger)` decorator.
+ * 
+ * They should register their components with the logger using the `registerComponent` method
+ * in the `onModuleInit` lifecycle hook.
+ * 
+ * They should also unregister their components using the `unregisterComponent` method
+ * in the `onModuleDestroy` lifecycle hook.
+ */
 @Global()
 @Module({
 	providers: [
 		// Register mappers
-		LogEntryMapper,
-		ComponentStateMapper,		
+		ComponentStateMapper,
+		LogMapper,
+		RepoLogMapper,
 		{ // Group mappers into an injectable token
 			provide: 'STREAM_MAPPERS',
-			useFactory: (logMapper: LogEntryMapper, stateMapper: ComponentStateMapper) => [
-				logMapper, 
+			useFactory: (logMapper: LogMapper, repoMapper: RepoLogMapper, stateMapper: ComponentStateMapper) => [
+				logMapper,	
+				repoMapper, 
 				stateMapper
 			],
-			inject: [LogEntryMapper, ComponentStateMapper]
+			inject: [ComponentStateMapper, LogMapper, RepoLogMapper, ]
 		},
 		
-		{ // Register NestJS Logger as a provider
+		{ // Register ConsoleLogger as a provider
 			provide: Logger,
 			useFactory: () => {
-				return new ConsoleLogger(LogLevel.DEBUG, 'fitnessapp-conditioning-service', undefined, true);
+				return new ConsoleLogger(LogLevel.DEBUG, 'fitnessapp-conditioning-service');
 			}
-		},
-		// Configure MergedStreamLogger with the NestJS Logger
-		{
+		},		
+		{ // Configure MergedStreamLogger with ConsoleLogger
 			provide: MergedStreamLogger,
 			useFactory: (logger: Logger, mappers: any[]) => {
 				return new MergedStreamLogger(logger, mappers);
@@ -40,3 +57,4 @@ import { LogLevel } from 'src/libraries/stream-loggable';
 	exports: [MergedStreamLogger]
 })
 export class LoggingModule {}
+export default LoggingModule;

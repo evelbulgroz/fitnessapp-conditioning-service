@@ -349,6 +349,10 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		@Query() queryDTO?: QueryDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
+			// debugging info
+			console.info(`Fetching logs for userId: ${userIdDTO?.value}, includeDeleted: ${includeDeletedDTO?.value}, queryDTO: ${JSON.stringify(queryDTO)}`);
+			this.logger.info(`Fetching logs for userId: ${userIdDTO?.value}, includeDeleted: ${includeDeletedDTO?.value}, queryDTO: ${JSON.stringify(queryDTO)}`);
+			
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
 			
 			if (queryDTO) {// query always instantiated by framework, using all query params -> remove if empty except for userId and includeDeleted

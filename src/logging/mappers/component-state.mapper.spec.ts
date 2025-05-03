@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 
-import { ComponentState, ComponentStateInfo } from '../../../../libraries/managed-stateful-component';
-import { LogEventSource, LogLevel } from '../../../../libraries/stream-loggable';
+import { ComponentState, ComponentStateInfo } from '../../libraries/managed-stateful-component';
+import { LogEventSource, LogLevel } from '../../libraries/stream-loggable';
 import ComponentStateMapper from './component-state.mapper';
 
 describe('ComponentStateMapper', () => {

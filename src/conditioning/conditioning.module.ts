@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { ComponentStateInfo, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
-import { StreamLoggableMixin } from '../libraries/stream-loggable';
+import { MergedStreamLogger, StreamLoggableMixin } from '../libraries/stream-loggable';
 
 import AggregationQueryMapper from './mappers/aggregation-query.mapper';
 import AggregatorService from './services/aggregator/aggregator.service';
@@ -16,7 +16,9 @@ import ConditioningLogDeletedHandler from './handlers/conditioning-log-deleted.h
 import ConditioningLogRepository from './repositories/conditioning-log.repo';
 import ConditioningLogUndeletedHandler from './handlers/conditioning-log-undeleted.handler';
 import ConditioningLogUpdatedHandler from './handlers/conditioning-log-updated.handler';
+import LoggingModule from '../logging/logging.module';
 import QueryMapper from './mappers/query.mapper';
+
 
 /** Main module for components managing and serving conditioning logs.
  * 
@@ -56,13 +58,16 @@ import QueryMapper from './mappers/query.mapper';
  * @exports Core services and handlers for use by other modules.
  */
 @Module({
-	imports: [],
+	imports: [
+		LoggingModule, // import logging module for logging capabilities
+	],
 	controllers: [
 		ConditioningController
 	],
 	providers: [
 		AggregatorService,
 		AggregationQueryMapper,
+		ConditioningController,
 		ConditioningDataService,
 		ConditioningLogCreatedHandler,
 		ConditioningLogDeletedHandler,
@@ -94,11 +99,12 @@ import QueryMapper from './mappers/query.mapper';
 })
 export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleInit, OnModuleDestroy {
 	constructor(
-		private readonly conditioningLogRepository: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		private readonly conditioningDataService: ConditioningDataService,
+		private readonly repository: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
+		private readonly dataService: ConditioningDataService,
+		private readonly controller: ConditioningController,
+		private readonly streamLogger: MergedStreamLogger,
 	) {
-		super();
-		
+		super();		
 	}
 
 	/** Initializes the module and its components
@@ -112,9 +118,20 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 	 * management system, setting the component and module to FAILED state with detailed error information.
 	 */
 	public async onModuleInit(): Promise<void> {
-		this.registerSubcomponent(this.conditioningLogRepository); // repo handles persistence initialization internally
-		this.registerSubcomponent(this.conditioningDataService);
+		// Register subcomponents for lifecycle management
+		this.registerSubcomponent(this.repository); // repo handles persistence initialization internally
+		this.registerSubcomponent(this.dataService);
 		// ConditioningController is not a managed component, so we don't register it as a subcomponent
+
+		// Subscribe to log streams for logging
+		this.streamLogger.subscribeToStreams({ 'componentState$': this.repository.componentState$});
+		this.streamLogger.subscribeToStreams({ 'componentState$': this.dataService.componentState$});
+		// ConditioningController is not a managed component, so we don't subscribe to its state stream
+
+		this.streamLogger.subscribeToStreams({ 'repoLog$': this.repository.repoLog$ });
+		this.streamLogger.subscribeToStreams({ 'log$': this.dataService.log$ });
+		this.streamLogger.subscribeToStreams({ 'log$': this.controller.log$ }); // bug: nothing logged from controller
+
 		await this.initialize(); // initialize module and all managed subcomponents
 	}
 
@@ -128,7 +145,7 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 	public async onModuleDestroy(): Promise<void> {
 		await this.shutdown(); // shutdown module and all managed subcomponents
 		// ConditioningController is not a managed component, so we don't unregister it as a subcomponent
-		this.unregisterSubcomponent(this.conditioningLogRepository); // repo handles persistence shutdown internally
-		this.unregisterSubcomponent(this.conditioningDataService);
+		this.unregisterSubcomponent(this.repository); // repo handles persistence shutdown internally
+		this.unregisterSubcomponent(this.dataService);
 	}}
 export default ConditioningModule;
