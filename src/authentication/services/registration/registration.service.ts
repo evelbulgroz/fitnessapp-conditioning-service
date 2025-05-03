@@ -12,7 +12,7 @@ import { ServiceDataDTO as RegistryServiceDataDTO } from '../../dtos/responses/s
 
 /** Service for de/registering a running instance of this app with the microservice registry */
 @Injectable()
-export class RegistrationService extends StreamLoggableMixin(class {}){
+export class RegistrationService extends StreamLoggableMixin(class {}) {
 	private readonly appConfig: any;
 	private readonly registryServiceName: string = 'fitnessapp-registry-service';
 	

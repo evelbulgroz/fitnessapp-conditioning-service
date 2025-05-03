@@ -5,7 +5,7 @@ import { Injectable, RequestMethod } from '@nestjs/common';
 import { firstValueFrom, Observable } from 'rxjs';
 import jwt from 'jsonwebtoken';
 
-import { Logger } from '@evelbulgroz/logger';
+import { StreamLoggableMixin } from '../../../libraries/stream-loggable';
 
 import { AppConfig, EndPointConfig, ServiceConfig } from '../../../shared/domain/config-options.model';
 import AuthService from '../../domain/auth-service.class';
@@ -22,7 +22,7 @@ import ServiceTokenRefreshDataDTO from '../../dtos/requests/service-token-refres
  * @remark Will recursively retry http requests if they fail, up to the maximum number of attempts specified in config for the endpoint or microservice
  */
 @Injectable()
-export class TokenService extends AuthService {
+export class TokenService extends StreamLoggableMixin(AuthService) {
 	protected accessToken: string | undefined;
 	protected refreshToken: string | undefined;
 	protected loginPromise: Promise<{ accessToken: string, refreshToken: string }> | undefined;
@@ -33,7 +33,6 @@ export class TokenService extends AuthService {
 	public constructor(
 		private readonly config: ConfigService,
 		private readonly http: HttpService,
-		private readonly logger: Logger,
 	) {
 		super();
 		void this.http; // suppress compiler warning about unused variable (hidden by 'self' in executeRequest)

@@ -4,10 +4,10 @@ import { TestingModule } from '@nestjs/testing';
 
 import { jest } from '@jest/globals';
 import jwt from 'jsonwebtoken';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { StreamLogger } from '../../../libraries/stream-loggable';
 
 import ServiceDataDTOProps from '../../dtos/responses/service-data.dto';
 import BootstrapResponseDTO from '../../dtos/responses/bootstrap-response.dto';
@@ -39,16 +39,6 @@ describe('TokenService', () => {
 					},
 				},
 				ConfigService,
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},
 				TokenService,
 			],
 		}))
@@ -675,4 +665,23 @@ describe('TokenService', () => {
 			});
 		});
 	});	
+
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(service.log$).toBeDefined();
+				expect(service.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(service.logger).toBeDefined();
+				expect(service.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(service.logToStream).toBeDefined();
+				expect(typeof service.logToStream).toBe('function');
+			});
+		});
+	});
 });
