@@ -1,8 +1,9 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../test/test-utils';
-//import { jest } from '@jest/globals';
 
-//import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { Subject } from 'rxjs';
+
+import { StreamLogger } from '../../libraries/stream-loggable';
 
 import { ConditioningDataService } from '../../conditioning/services/conditioning-data/conditioning-data.service';
 import { ConditioningLogRepository } from '../../conditioning/repositories/conditioning-log.repo';
@@ -60,6 +61,25 @@ describe('UserUpdatedHandler', () => {
 
 		it('needs testing!', async () => {
 			await expect(handler.handle(event)).resolves.toBeUndefined();
+		});
+	});
+
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(handler.log$).toBeDefined();
+				expect(handler.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(handler.logger).toBeDefined();
+				expect(handler.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(handler.logToStream).toBeDefined();
+				expect(typeof handler.logToStream).toBe('function');
+			});
 		});
 	});
 });
