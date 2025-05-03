@@ -3,8 +3,8 @@ import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 //import { firstValueFrom, take } from 'rxjs';
 
-import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { ComponentStateInfo, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
+import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { StreamLoggableMixin } from '../libraries/stream-loggable';
 
 import UserController from './controllers/user.controller';
