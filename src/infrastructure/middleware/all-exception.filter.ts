@@ -1,7 +1,7 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
 /** Middleware to catch all exceptions and log them
  * @remark This is a global exception filter
@@ -16,9 +16,7 @@ import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
  * bootstrap();
  */
 @Catch()
-export class AllExceptionsFilter implements ExceptionFilter {
-	private readonly logger = new ConsoleLogger('debug', AllExceptionsFilter.name);
-
+export class AllExceptionsFilter extends StreamLoggableMixin(class {}) implements ExceptionFilter {
 	catch(exception: unknown, host: ArgumentsHost) {
 		const ctx = host.switchToHttp();
 		const request = ctx.getRequest<Request>();
@@ -26,16 +24,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
 		const status = exception instanceof HttpException ? exception.getStatus() : 500;
 
 		const errorResponse = {
-		statusCode: status,
-		timestamp: new Date().toISOString(),
-		path: request.url,
-		message: exception instanceof HttpException ? exception.message : 'Internal server error',
+			statusCode: status,
+			timestamp: new Date().toISOString(),
+			path: request.url,
+			message: exception instanceof HttpException ? exception.message : 'Internal server error',
 		};
 
 		if (status === 500) {
-		this.logger.error(`Internal server error: ${exception}`);
+			this.logger.error(`Internal server error: ${exception}`);
 		} else {
-		this.logger.warn(`HTTP ${status} Error: ${exception}`);
+			this.logger.warn(`HTTP ${status} Error: ${exception}`);
 		}
 
 		response.status(status).json(errorResponse);
