@@ -2,7 +2,7 @@ import { BadRequestException, Controller, Delete, HttpCode, HttpStatus, Param, P
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { StreamLoggableMixin } from '../../libraries/stream-loggable';
+import { MergedStreamLogger, StreamLoggableMixin } from '../../libraries/stream-loggable';
 
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
@@ -40,9 +40,16 @@ export class UserController extends StreamLoggableMixin(class {}) {
 
 	constructor(
 		private readonly config: ConfigService,
-		private readonly userService: UserDataService,		
+		private readonly userService: UserDataService,
+		private readonly streamLogger: MergedStreamLogger,
 	) {
 		super();
+
+		// Set up the logger for this component
+		 // Workaround for not being able to get a reference to the active controller instance in the module.
+		 this.streamLogger.subscribeToStreams([
+			{ streamType: 'log$', component: this }
+		]);
 	}
 
 	//---------------------------------------- PUBLIC API ---------------------------------------//
