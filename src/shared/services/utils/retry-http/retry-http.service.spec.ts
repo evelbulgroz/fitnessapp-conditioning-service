@@ -2,9 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 
 import axiosRetry from 'axios-retry';
-import { firstValueFrom, take } from 'rxjs';
+import { firstValueFrom, Subject, take } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/logger';
+import { StreamLogger } from '../../../../libraries/stream-loggable';
 
 import * as ConfigFactory from '../../../../../config/test.config';
 import { ConfigOptions, RetryConfig } from '../../../domain/config-options.model';
@@ -56,7 +56,7 @@ describe('RetryHttpService', () => {
 	let axiosRef: any;
 	let config: ConfigService;
 	let configGetSpy: jest.SpyInstance;
-	let logger: Logger;
+	let logger: StreamLogger;
 	let service: RetryHttpService;
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
@@ -72,16 +72,6 @@ describe('RetryHttpService', () => {
 					}
 				},
 				ConfigService,
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},
 				RetryHttpService,
 			],
 		})
@@ -90,7 +80,7 @@ describe('RetryHttpService', () => {
 		service = module.get<RetryHttpService>(RetryHttpService);
 		axiosRef = service['axiosRef'];
 		config = service['config'] as jest.Mocked<ConfigService>; // workaround: framework injects mock regardless of config service provided here, so get reference from service rather than module
-		logger = module.get<Logger>(Logger);
+		logger = service.logger as StreamLogger; // workaround: framework injects mock regardless of logger provided here, so get reference from service rather than module
 		
 		// spy on ConfigService.get to return the test config
 		configGetSpy = jest.spyOn(config, 'get').mockImplementation((key: string) => { // workaround: can't control injection of ConfigService, so mock get method instead
@@ -149,6 +139,7 @@ describe('RetryHttpService', () => {
 				requestLog.push(config.url || 'unknown');
 				return config;
 			});
+			jest.spyOn(logger, 'warn').mockImplementation(() => {}); // mock logger to avoid console output
 			
 			try {
 				// act
@@ -240,6 +231,25 @@ describe('RetryHttpService', () => {
 
 				// assert
 				expect(actualConfig).toBeUndefined();
+			});
+		});
+	});
+			
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(service.log$).toBeDefined();
+				expect(service.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(service.logger).toBeDefined();
+				expect(service.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(service.logToStream).toBeDefined();
+				expect(typeof service.logToStream).toBe('function');
 			});
 		});
 	});

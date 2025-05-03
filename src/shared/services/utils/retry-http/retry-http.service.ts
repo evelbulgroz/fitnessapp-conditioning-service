@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
 
-import { Logger } from '@evelbulgroz/logger';
+import { StreamLoggableMixin } from '../../../../libraries/stream-loggable';
 
 import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../../../domain/config-options.model';
 
@@ -15,13 +15,12 @@ import { DefaultConfig, EndPointConfig, RetryConfig, ServiceConfig } from '../..
  * @remark Retry delays are exponential backoff with jitter to prevent synchronized retries
  */
 @Injectable()
-export class RetryHttpService extends HttpService {
+export class RetryHttpService extends StreamLoggableMixin(HttpService) {
 
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 	
 	constructor(
 		private readonly config: ConfigService,
-		private readonly logger: Logger,
 	) {
 		super();
 		this.configureAxios();		
