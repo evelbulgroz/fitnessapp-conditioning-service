@@ -7,10 +7,8 @@ import { TestingModule } from '@nestjs/testing';
 
 import { lastValueFrom, of } from 'rxjs';
 import { Response } from 'express';
-import { readFileSync } from 'fs';
 import { v4 as uuid } from 'uuid';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 import { Result } from '@evelbulgroz/ddd-base';
 
 import AppInstance from './app-instance.model';
@@ -103,16 +101,6 @@ describe('SwaggerController', () => {
 					inject: [JwtSecretService],
 				},
 				JwtAuthStrategy, // mostly for internal use by JwtAuthGuard, but simpler to provide here
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},
 				{ //RolesGuard
 					provide: RolesGuard,
 					useValue: jest.fn(),

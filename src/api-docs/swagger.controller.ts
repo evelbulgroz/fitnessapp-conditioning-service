@@ -4,11 +4,11 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';import { Response } from 'express';
 
-import { AppInstance } from './app-instance.model';
-import { JwtAuthGuard } from '../infrastructure/guards/jwt-auth.guard';
-import { RolesGuard } from '../infrastructure/guards/roles.guard';
-import { LoggingGuard } from '../infrastructure/guards/logging.guard';
-import { Roles } from '../infrastructure/decorators/roles.decorator';
+import AppInstance from './app-instance.model';
+import JwtAuthGuard from '../infrastructure/guards/jwt-auth.guard';
+import LoggingGuard from '../infrastructure/guards/logging.guard';
+import Roles from '../infrastructure/decorators/roles.decorator';
+import RolesGuard from '../infrastructure/guards/roles.guard';
 
 /** Controller for serving Swagger UI and JSON documentation.
  * @remark Used to require authentication and authorization for accessing the documentation.

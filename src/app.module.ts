@@ -68,10 +68,10 @@ import developmentConfig from '../config/development.config';
 		},		
 		{ // RetryHttpService
 			provide: RetryHttpService,
-			useFactory: (configService: ConfigService, logger: Logger) => {
-				return new RetryHttpService(configService, logger);
+			useFactory: (configService: ConfigService) => {
+				return new RetryHttpService(configService);
 			},
-			inject: [ConfigService, Logger],
+			inject: [ConfigService],
 		},
 		{ // HttpService
 			provide: HttpService,
