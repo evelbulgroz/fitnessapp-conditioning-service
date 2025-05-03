@@ -15,7 +15,7 @@ import { DefaultStatusCodeInterceptor } from '../../infrastructure/interceptors/
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
 import { JwtAuthResult } from '../../authentication/services/jwt/domain/jwt-auth-result.model';
-//import { LoggingGuard } from '../../infrastructure/guards/logging.guard';
+import { LoggingGuard } from '../../infrastructure/guards/logging.guard';
 import { Public } from '../../infrastructure/decorators/public.decorator';
 import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
 import { QueryDTO } from '../../shared/dtos/responses/query.dto';
@@ -42,7 +42,7 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
-	//LoggingGuard // log all requests to the console // todo: re-enable after refactoring to stream logger
+	LoggingGuard // log all requests
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
