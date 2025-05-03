@@ -32,6 +32,8 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
  * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation: 
  * - There is no need to duplicate this documentation for TypeDoc, hence fewer traditional comments.
  * @remark Streams logging using the {@link StreamLoggableMixin}, which provides a unified logging interface for all components.
+ * @remark Does not implement {@link ManagedStatefulComponentMixin} as it does not manage any stateful components.
+ * - Standard health checks are sufficient this controller.
  * @todo Retire unsecured /session endpoint when all clients have migrated to JWT authentication.
  */
 @ApiTags('conditioning')
