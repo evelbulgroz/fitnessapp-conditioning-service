@@ -37,7 +37,7 @@ import RepoLogMapper from './mappers/repo-log.mapper';
 				repoMapper, 
 				stateMapper
 			],
-			inject: [ComponentStateMapper, LogMapper, RepoLogMapper, ]
+			inject: [LogMapper, RepoLogMapper, ComponentStateMapper, ]
 		},
 		
 		{ // Register ConsoleLogger as a provider

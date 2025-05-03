@@ -6,6 +6,18 @@ import LogLevel from '../../models/log-level.enum';
 import UnifiedLogEntry from '../../models/unified-log-event.model';
 import StreamMapper from './models/stream-mapper.model';
 
+/** Information about a stream to subscribe to */
+export interface StreamInfo {
+	/** The type of stream using a key matched by a mapper, e.g. 'log$', 'componentState$'
+	 * @remark This is the property name of the observable stream on the component instance.
+	*/
+	streamType: string;
+	/** The component instance that has an Observable by the name of streamType
+	 * @remark Instance constructor must not be anonymous function or arrow function, as name is used for indexing and logging.
+	 */
+	component: any;
+}
+
 /** Unified logger of multiple observable streams using registered stream mappers.
  * @remark This class provides a centralized way to process multiple observable streams 
  * into a unified logging mechanism using registered stream mappers.
@@ -134,7 +146,7 @@ export class MergedStreamLogger {
 	//--------------------------------------- PROPERTIES ----------------------------------------//
 	
 	// Map components to their subscriptions
-	protected componentSubscriptions: Map<string, Subscription[]> = new Map();
+	protected componentSubscriptions: Map<string, Subscription> = new Map();
 	protected mappers: Map<string, StreamMapper<any>> = new Map();
 
 	// Config options for the logger
@@ -179,50 +191,71 @@ export class MergedStreamLogger {
 	}
 
 	/** Register component streams the logger should listen to
-	 * @param streams Object containing named observable streams to process
-	 * @param context Optional component name for context
-	 * @param subscriptionKey Optional key to identify this subscription group
+	 * @param streams Array of StreamInfo objects containing streams to process
 	 * @remark This method subscribes to the provided streams and processes their events using the registered mappers.
 	 * @remark If a mapper is not found for a stream type, a warning is logged and the stream is ignored.
 	 * @remark If an error occurs during mapping, it is logged and the stream continues to be monitored.
 	 * @remark Streams with repeated failures will have reduced error logging to avoid log spamming.
-	 * @todo Refactor to allow several streams to use the same key, .e.g. log$ for different components
-	 *  - as is, this scenarios prevents multiple components using the same stream type registering in the same call
+	 * @todo Consider making more robust against anonymous functions, arrow functions, or components with similar names.
 	 * 
 	 * @example
 	 * ```typescript
 	 * const logger = new MergedStreamLogger(new ConsoleLogger());
-	 * logger.subscribeToStreams({
-	 *   logs$: component.logs$,
-	 *   repoLog$$: component.repoLog$
-	 *  }, 'MyComponent', 'my-component-logs');
+	 * logger.subscribeToStreams(
+	 *   [
+	 *     { streamType: 'log$', component },
+	 *     { streamType: 'componentState$', component }
+	 *   ]
+	 * );
 	 * ```
 	 */
 	public subscribeToStreams(
-		streams: Record<string, Observable<any>>,
-		context?: string,
-		subscriptionKey?: string
+		streams: StreamInfo[],
 	): void {
-		const key = subscriptionKey || context || `anonymous-${Date.now()}`;
-		
 		// Subscribe to each stream individually
-		Object.entries(streams).forEach(([streamType, stream$]) => {
-			if (!stream$) return;
-	
-			const mapper = this.mappers.get(streamType);			
+		for (const { streamType, component } of streams) {
+			if (!component) {
+				this.logger.warn(
+					`No component provided for stream type "${streamType}"`, 
+					this.constructor.name
+				);
+				continue;
+			}
+
+			// Get stream from component by property name
+			const stream$ = component[streamType];    
+			if (!stream$ || typeof stream$.subscribe !== 'function') {
+				this.logger.warn(
+					`No valid observable found at "${streamType}" on component ${component.constructor?.name || 'unknown'}`, 
+					this.constructor.name
+				);
+				continue;
+			}
+		
+			const mapper = this.mappers.get(streamType);      
 			if (mapper) {
+				const componentName = component.constructor?.name;
+				if (!componentName) {
+					this.logger.warn(
+						`Component name not found for stream type "${streamType}"`, 
+						this.constructor.name
+					);
+					continue;
+				}
+
+				const streamKey = `${componentName}:${streamType}`;
+				
 				// Track failures for this stream
-				const streamKey = `${key}:${streamType}`;
 				if (!this.streamFailureCounts.has(streamKey)) {
 					this.streamFailureCounts.set(streamKey, 0);
 				}
-	
+		
 				// Define a function to handle mapping an event with built-in error handling
 				const processEvent = (event: any) => {
 					try {
 						// Try to map the event
-						const result = mapper.mapToLogEvents(of(event), context);
-						
+						const result = mapper.mapToLogEvents(of(event), componentName); // Pass the component name as context
+			
 						// Reset failure count on success
 						if (this.streamFailureCounts.get(streamKey)! > 0) {
 							this.handleStreamRecovery(streamKey, streamType);
@@ -237,7 +270,7 @@ export class MergedStreamLogger {
 						return EMPTY;
 					}
 				};
-	
+		
 				// Create a subscription for this specific stream
 				const subscription = stream$
 					.pipe(
@@ -257,29 +290,29 @@ export class MergedStreamLogger {
 							return processEvent(event).pipe(
 								// Catch errors at the individual mapped event level
 								catchError(error => {
-									this.handleStreamError(streamKey, streamType, error);
-									return EMPTY; // Skip just this event
+								this.handleStreamError(streamKey, streamType, error);
+								return EMPTY; // Skip just this event
 								})
 							);
 						})
 					)
-					.subscribe(event => {
+					.subscribe((event: any) => {
 						this.processLogEntry(event);
 					});
 				
-				// Store subscription with key for targeted cleanup
-				if (!this.componentSubscriptions.has(key)) {
-					this.componentSubscriptions.set(key, []);
-				}
-				this.componentSubscriptions.get(key)?.push(subscription);
-			} else {
-				// Log a warning if no mapper is found for this stream type
+				// Store subscription using the provided or generated key
+
+				if (!this.componentSubscriptions.has(streamKey)) {
+					this.componentSubscriptions.set(streamKey, subscription);
+				}				
+			}
+			else if (this.config.warnOnMissingMappers) {
 				this.logger.warn(
 					`No mapper registered for stream type "${streamType}"`, 
 					this.constructor.name
 				);
 			}
-		});
+		}
 	}
 
 	/** Unsubscribe all subscriptions for a specific component
@@ -287,28 +320,40 @@ export class MergedStreamLogger {
 	 * @returns true if subscriptions were found and unsubscribed, false otherwise
 	 * @remark This is useful for properly cleaning up subscriptions when a component is destroyed or no longer needs logging.
 	 */
-	public unsubscribeComponent(key: string): boolean {
-		const subscriptions = this.componentSubscriptions.get(key);
-		
-		if (!subscriptions || subscriptions.length === 0) {
+	public unsubscribeComponent(component: any): boolean {
+		const componentName = component.constructor?.name;
+		if (!componentName) {
+			this.logger.warn(
+				`No component name found for unsubscription`, 
+				this.constructor.name
+			);
 			return false;
 		}
-		
-		// Unsubscribe all subscriptions for this component
-		subscriptions.forEach(subscription => {
-			subscription.unsubscribe();
+		// get the keys in componentSubscriptions that start with the component name
+		const streamKeys = Array.from(this.componentSubscriptions.keys()).filter(key => key.startsWith(componentName));
+		if (streamKeys.length === 0) {
+			this.logger.warn(
+				`No subscriptions found for component "${componentName}"`, 
+				this.constructor.name
+			);
+			return false;
+		}
+		// Unsubscribe and clear all subscriptions for this component
+		streamKeys.forEach(streamKey => {
+			const subscription = this.componentSubscriptions.get(streamKey);
+			if (subscription) {
+				subscription.unsubscribe();
+				this.componentSubscriptions.delete(streamKey);
+			}
 		});
-		
-		// Clear the component's subscriptions
-		this.componentSubscriptions.delete(key);
 		
 		return true;
 	}
 
 	/** Clean up all subscriptions */
 	public unsubscribeAll(): void {
-		this.componentSubscriptions.forEach(subscriptions => {
-			subscriptions.forEach(sub => sub?.unsubscribe());
+		this.componentSubscriptions.forEach(sub => {
+			sub?.unsubscribe();
 		});
 		this.componentSubscriptions.clear();
 	}

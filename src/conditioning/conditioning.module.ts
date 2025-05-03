@@ -18,6 +18,7 @@ import ConditioningLogUndeletedHandler from './handlers/conditioning-log-undelet
 import ConditioningLogUpdatedHandler from './handlers/conditioning-log-updated.handler';
 import LoggingModule from '../logging/logging.module';
 import QueryMapper from './mappers/query.mapper';
+import { ModuleRef } from '@nestjs/core';
 
 
 /** Main module for components managing and serving conditioning logs.
@@ -67,7 +68,6 @@ import QueryMapper from './mappers/query.mapper';
 	providers: [
 		AggregatorService,
 		AggregationQueryMapper,
-		ConditioningController, // this allows injection of the controller into the module, but it seems to provide the wrong reference to the logger, so nothing is logged from the controller
 		ConditioningDataService,
 		ConditioningLogCreatedHandler,
 		ConditioningLogDeletedHandler,
@@ -101,7 +101,7 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 	constructor(
 		private readonly repository: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly dataService: ConditioningDataService,
-		private readonly controller: ConditioningController,
+		private readonly moduleRef: ModuleRef,
 		private readonly streamLogger: MergedStreamLogger,
 	) {
 		super();		
@@ -124,14 +124,16 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 		// ConditioningController is not a managed component, so we don't register it as a subcomponent
 
 		// Subscribe to log streams for logging
-		this.streamLogger.subscribeToStreams({ 'componentState$': this.repository.componentState$});
-		this.streamLogger.subscribeToStreams({ 'componentState$': this.dataService.componentState$});
-		// ConditioningController is not a managed component, so we don't subscribe to its state stream
-
-		this.streamLogger.subscribeToStreams({ 'repoLog$': this.repository.repoLog$ });
-		this.streamLogger.subscribeToStreams({ 'log$': this.dataService.log$ });
-		this.streamLogger.subscribeToStreams({ 'log$': this.controller.log$ }); // bug: nothing logged from controller
-
+		this.streamLogger.subscribeToStreams([
+			{ streamType: 'componentState$', component: this.repository },
+			{ streamType: 'componentState$', component: this.dataService },
+			// ConditioningController is not a managed component, so we don't subscribe to its componentState$ stream
+			
+			{ streamType: 'repoLog$', component: this.repository },
+			{ streamType: 'log$', component: this.dataService },
+			{ streamType: 'log$', component: this.moduleRef.get(ConditioningController, { strict: false }) },
+		]);
+				
 		await this.initialize(); // initialize module and all managed subcomponents
 	}
 
