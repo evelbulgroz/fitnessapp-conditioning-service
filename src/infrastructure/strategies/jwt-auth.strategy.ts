@@ -1,7 +1,7 @@
 import { ConfigService } from "@nestjs/config";
 import { Injectable } from "@nestjs/common";
 
-import { Logger } from '@evelbulgroz/logger';
+import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
 import { AuthStrategy } from './auth-strategy.model';
 import { CryptoService } from '../../authentication/services/crypto/domain/crypto-service.model';
@@ -19,7 +19,7 @@ import { UserRepository } from '../../user/repositories/user.repo';
  * @todo Add logging
  */
 @Injectable()
-export class JwtAuthStrategy extends AuthStrategy {
+export class JwtAuthStrategy extends StreamLoggableMixin(AuthStrategy)  {
 	private readonly MAX_TOKEN_SIZE: number;
 	private readonly tokenIssuer: string;
 	
@@ -27,7 +27,6 @@ export class JwtAuthStrategy extends AuthStrategy {
 		private readonly config: ConfigService,
 		private readonly crypto: CryptoService,
 		private readonly jwtService: JwtService,
-		private readonly logger: Logger,
 		private readonly userRepo: UserRepository
 	) {
 		super();

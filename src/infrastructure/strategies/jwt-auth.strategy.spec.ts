@@ -6,7 +6,6 @@ import jwt from 'jsonwebtoken';
 import { of } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
 import { Result } from '@evelbulgroz/ddd-base';
 
 import { BcryptCryptoService } from '../../authentication/services/crypto/bcrypt-crypto.service';
@@ -45,16 +44,6 @@ describe('JwtAuthStrategy', () => {
 					provide: JwtService,
 					useValue: {
 					verify: jest.fn(),
-					},
-				},
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
 					},
 				},
 				{
