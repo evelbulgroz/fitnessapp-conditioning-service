@@ -32,7 +32,6 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
-	LoggingGuard // log all requests
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 export class UserController extends StreamLoggableMixin(class {}) {

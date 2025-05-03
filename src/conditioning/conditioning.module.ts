@@ -18,8 +18,6 @@ import ConditioningLogUndeletedHandler from './handlers/conditioning-log-undelet
 import ConditioningLogUpdatedHandler from './handlers/conditioning-log-updated.handler';
 import LoggingModule from '../logging/logging.module';
 import QueryMapper from './mappers/query.mapper';
-import { ModuleRef } from '@nestjs/core';
-
 
 /** Main module for components managing and serving conditioning logs.
  * 
@@ -101,7 +99,6 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 	constructor(
 		private readonly repository: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly dataService: ConditioningDataService,
-		private readonly moduleRef: ModuleRef,
 		private readonly streamLogger: MergedStreamLogger,
 	) {
 		super();		

@@ -54,7 +54,7 @@ import RepoLogMapper from './mappers/repo-log.mapper';
 			inject: [Logger, 'STREAM_MAPPERS']
 		}
 	],
-	exports: [MergedStreamLogger]
+	exports: [Logger, MergedStreamLogger]
 })
 export class LoggingModule {}
 export default LoggingModule;

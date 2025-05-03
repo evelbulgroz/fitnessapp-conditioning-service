@@ -160,7 +160,7 @@ export class MergedStreamLogger {
 	//-------------------------------------- CONSTRUCTOR ----------------------------------------//
 
 	constructor(
-		protected readonly logger: Logger,
+		readonly logger: Logger,
 		mappers?: StreamMapper<any>[],
 		options?: MergedStreamLoggerOptions
 	) {
@@ -360,7 +360,7 @@ export class MergedStreamLogger {
 
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
-	/** Handle stream error with failure counting and backoff
+	/* Handle stream error with failure counting and backoff
 	 * @param streamKey Unique key for the stream (component:streamType)
 	 * @param streamType Type of stream that failed
 	 * @param error The error that occurred
@@ -416,7 +416,7 @@ export class MergedStreamLogger {
 		}
 	}
 
-	/** Handle recovery from stream errors
+	/* Handle recovery from stream errors
 	 * @param streamKey Unique key for the stream
 	 * @param streamType Type of stream that recovered
 	 */
@@ -441,7 +441,7 @@ export class MergedStreamLogger {
 		}
 	}
 
-	/** Log unified log event using the concrete logger set at construction */
+	/* Log unified log event using the concrete logger set at construction */
 	protected processLogEntry(entry: UnifiedLogEntry): void {
 		switch (entry.level) {
 			case LogLevel.ERROR:
@@ -469,7 +469,7 @@ export class MergedStreamLogger {
 		}
 	}
 
-	/** Validates logger options and returns sanitized options
+	/* Validates logger options and returns sanitized options
 	 * @param options Raw options provided by user
 	 * @returns Validated options with any invalid values corrected
 	 */

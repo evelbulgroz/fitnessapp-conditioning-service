@@ -4,15 +4,16 @@ import { Global, Module }  from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { AppHealthModule } from './app-health/app-health.module';
 
-import { Logger, LogLevel }  from '@evelbulgroz/logger';
+import { Logger } from "./libraries/stream-loggable";
 
 import AuthenticationModule from './authentication/authentication.module';
 import AuthService from './authentication/domain/auth-service.class';
 import ConditioningController  from './conditioning/controllers/conditioning.controller';
 import ConditioningModule from './conditioning/conditioning.module';
 import EventDispatcherService  from './shared/services/utils/event-dispatcher/event-dispatcher.service';
-import NestLogger from './shared/loggers/nest-logger';
+import LoggingModule from './logging/logging.module';
 import RegistrationService from './authentication/services/registration/registration.service';
+import RequestLoggingInterceptor from './infrastructure/interceptors/request-logging.interceptor';
 import RetryHttpService from './shared/services/utils/retry-http/retry-http.service';
 import SwaggerController from './api-docs/swagger.controller';
 import TokenService from './authentication/services/token/token.service';
@@ -35,6 +36,7 @@ import developmentConfig from '../config/development.config';
 			}],
 			isGlobal: true,
 		}),
+		LoggingModule,
 		ConditioningModule,
 		UserModule,
 		AuthenticationModule,
@@ -48,17 +50,7 @@ import developmentConfig from '../config/development.config';
 	providers: [		
 		ConfigService,
 		EventDispatcherService,
-		{ // Logger compatible with ddd-base library
-			provide: Logger,
-			useFactory(configService: ConfigService) {
-				const logLevel = configService.get<string>('log.level') ?? 'debug';
-				const appName = configService.get<string>('log.appName') ?? 'conditioning-service';
-				const addLocalTimestamp = configService.get<boolean>('log.addLocalTimestamp') ?? false;	
-				const useColors = configService.get<boolean>('log.useColors') ?? true;
-				return new NestLogger(logLevel as LogLevel, appName, undefined, addLocalTimestamp, useColors);
-			},
-			inject: [ConfigService],
-		},
+		RequestLoggingInterceptor,
 		RegistrationService,
 		{ // AuthService
 			// Provide the TokenService implementation of the AuthService interface
@@ -91,7 +83,7 @@ import developmentConfig from '../config/development.config';
 		ConditioningModule,
 		ConfigModule,
 		EventDispatcherService,
-		Logger,		
+		LoggingModule,
 		UserModule,
 	]
 })

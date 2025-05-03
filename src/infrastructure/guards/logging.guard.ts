@@ -2,6 +2,8 @@ import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 
 import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
+/** DEPRECATED: Use interceptors instead. 
+ */
 @Injectable()
 export class LoggingGuard extends StreamLoggableMixin(class {}) implements CanActivate {
   constructor() {

@@ -1,16 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import * as express from 'express';
-import { LogLevel } from '@evelbulgroz/logger';
 
 import { AppConfig } from 'src/shared/domain/config-options.model';
 import { AppInstance } from 'src/api-docs/app-instance.model';
 import { AppModule } from './app.module';
-import NestLogger from './shared/loggers/nest-logger';
+import { Logger } from './libraries/stream-loggable';
+import RequestLoggingInterceptor from './infrastructure/interceptors/request-logging.interceptor';
 
 async function bootstrap() {
 	// Set custom logger for NestJS before the app is created
-	void await setDefaultLogger();
+	//void await setDefaultLogger();
 
 	// Create the Nest application and load the configuration
 	// Note: ConfigService is not available until after the app is created
@@ -18,12 +18,16 @@ async function bootstrap() {
 	const configService = app.get(ConfigService);
 
 	// Set the logger for the application using the configuration service
-	const logger = await setCustomLogger(app, configService);
+	//const logger = await setCustomLogger(app, configService);
+	const logger = app.get(Logger);
 	logger.log('Nest application initialized', 'Bootstrap');
 	
 	// Set global prefix for all routes (from the configuration)
 	const prefix = configService.get('app.globalprefix');
 	app.setGlobalPrefix(prefix);
+
+	// Register global interceptor
+	app.useGlobalInterceptors(app.get(RequestLoggingInterceptor));
 
 	// Provide the app instance globally
 	AppInstance.setAppInstance(app);
@@ -47,8 +51,9 @@ async function bootstrap() {
 	});
 }
 
+/*
 // Set a default logger for early initialization logs, before ConfigService is available
-async function setDefaultLogger(): Promise<NestLogger> {
+async function setDefaultLogger(): Promise<Logger> {
 	// Set a default logger for early initialization logs
 	const logger = new NestLogger('debug', 'App', undefined, true, true);
 	const { Logger: DefaultLogger } = await import('@nestjs/common');
@@ -68,4 +73,5 @@ async function setCustomLogger(app: any, config: ConfigService): Promise<NestLog
 	app.useLogger(logger);
 	return logger;
 }
+*/
 bootstrap();

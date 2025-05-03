@@ -42,7 +42,7 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
-	LoggingGuard // log all requests
+	//LoggingGuard // log all requests
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
@@ -356,9 +356,6 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		@Query() queryDTO?: QueryDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
-			// debugging info
-			this.logger.debug(`Fetching logs for userId: ${userIdDTO?.value}, includeDeleted: ${includeDeletedDTO?.value}, queryDTO: ${JSON.stringify(queryDTO)}`);
-
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
 			
 			if (queryDTO) {// query always instantiated by framework, using all query params -> remove if empty except for userId and includeDeleted
