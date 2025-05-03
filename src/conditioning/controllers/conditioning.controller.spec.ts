@@ -8,7 +8,6 @@ import { of, lastValueFrom, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
-import { Logger } from '@evelbulgroz/logger';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { StreamLogger } from '../../libraries/stream-loggable';
 
@@ -84,16 +83,6 @@ describe('ConditioningController', () => {
 						return new JsonWebtokenService(secretService);
 					},
 					inject: [JwtSecretService],
-				},
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
 				},
 				{ // Data service
 					provide: ConditioningDataService,
