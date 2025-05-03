@@ -76,8 +76,7 @@ import developmentConfig from '../config/development.config';
 		{ // HttpService
 			provide: HttpService,
 			useExisting: RetryHttpService, // Use the same instance as RetryHttpService
-		},
-		
+		},		
 		{ // AXIOS_INSTANCE_TOKEN
 			// Provide AxiosInstance for use in RetryHttpService			
 			provide: 'AXIOS_INSTANCE_TOKEN',
