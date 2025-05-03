@@ -2,25 +2,23 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 import { firstValueFrom, Observable } from 'rxjs';
 
-//import { Logger } from '@evelbulgroz/logger';
+import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
-import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
-import { ConditioningLog } from '../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
-import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
-import { ConditioningLogUpdatedEvent } from '../events/conditioning-log-updated.event';
-import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
+import ConditioningDataService from '../services/conditioning-data/conditioning-data.service';
+import ConditioningLog from '../domain/conditioning-log.entity';
+import ConditioningLogDTO from '../dtos/conditioning-log.dto';
+import ConditioningLogRepository from '../repositories/conditioning-log.repo';
+import ConditioningLogUpdatedEvent from '../events/conditioning-log-updated.event';
+import DomainEventHandler from '../../shared/handlers/domain-event.handler';
 
 /** Handler for entity updated event from ConditioningLog repository
  * @remark Updates logs in log service cache
- * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
-export class ConditioningLogUpdatedHandler extends DomainEventHandler<ConditioningLogUpdatedEvent> {
+export class ConditioningLogUpdatedHandler extends StreamLoggableMixin(DomainEventHandler<ConditioningLogUpdatedEvent>) {
 	constructor(
 		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService, // forwardRef to avoid circular dependency
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		//private readonly logger: Logger
 	) {
 		super();
 	}
@@ -35,7 +33,7 @@ export class ConditioningLogUpdatedHandler extends DomainEventHandler<Conditioni
 		const logDTO = event.payload;
 		const logResult = await this.logRepo.fetchById(logDTO.entityId!);
 		if (logResult.isFailure) {
-			//this.logger.warn(`LogUpdatedHandler: Error fetching log from repo: ${logResult.error}`); // todo: refactor to use mixin
+			this.logger.warn(`LogUpdatedHandler: Error fetching log from repo: ${logResult.error}`); // todo: refactor to use mixin
 			return;
 		}
 		const log$ = logResult.value as Observable<ConditioningLog<any, ConditioningLogDTO>>;
@@ -50,7 +48,7 @@ export class ConditioningLogUpdatedHandler extends DomainEventHandler<Conditioni
 			this.logService.updateCache([...snapshot], this);
 		}
 		else {
-			//this.logger.warn(`LogUpdatedHandler: Log ${logDTO.entityId} not found in cache`); // todo: refactor to use mixin
+			this.logger.warn(`LogUpdatedHandler: Log ${logDTO.entityId} not found in cache`); // todo: refactor to use mixin
 		}
 	}
 }

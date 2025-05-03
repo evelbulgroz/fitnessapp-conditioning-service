@@ -2,29 +2,27 @@ import { Inject, Injectable, forwardRef } from '@nestjs/common';
 
 import { firstValueFrom, Observable } from 'rxjs';
 
-//import { Logger } from '@evelbulgroz/logger';
+import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
-import { ConditioningDataService } from '../../conditioning/services/conditioning-data/conditioning-data.service';
-import { ConditioningLog } from '../../conditioning/domain/conditioning-log.entity';
-import { ConditioningLogDTO } from '../../conditioning/dtos/conditioning-log.dto';
-import { ConditioningLogRepository } from '../../conditioning/repositories/conditioning-log.repo';
-import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
-import { User } from '../domain/user.entity';
-import { UserCreatedEvent } from '../events/user-created.event';
-import { UserDTO } from '../dtos/user.dto';
-import { UserRepository } from '../repositories/user.repo';
+import ConditioningDataService from '../../conditioning/services/conditioning-data/conditioning-data.service';
+import ConditioningLog from '../../conditioning/domain/conditioning-log.entity';
+import ConditioningLogDTO from '../../conditioning/dtos/conditioning-log.dto';
+import ConditioningLogRepository from '../../conditioning/repositories/conditioning-log.repo';
+import DomainEventHandler from '../../shared/handlers/domain-event.handler';
+import User from '../domain/user.entity';
+import UserCreatedEvent from '../events/user-created.event';
+import UserDTO from '../dtos/user.dto';
+import UserRepository from '../repositories/user.repo';
 
 /** Handler for entity created event from User repository
  * @remark Handles addition and log population of user in log service cache, triggered by creation events from user repository
- * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
-export class UserCreatedHandler extends DomainEventHandler<UserCreatedEvent> {
+export class UserCreatedHandler extends StreamLoggableMixin(DomainEventHandler<UserCreatedEvent>) {
 	constructor(
 		@Inject(forwardRef(() => ConditioningDataService)) private readonly logService: ConditioningDataService, // forwardRef to avoid circular dependency
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly userRepo: UserRepository,
-		//private readonly logger: Logger
 	) {
 		super();
 		void this.logRepo, this.userRepo; // avoid unused variable warning
@@ -39,7 +37,7 @@ export class UserCreatedHandler extends DomainEventHandler<UserCreatedEvent> {
 			// constructor sets logs from dto, so no need to pass them here
 		);
 		if (userResult.isFailure) {
-			//this.logger.error(`${this.constructor.name}: Error creating user ${userDTO.entityId}: ${userResult.error}`);
+			this.logger.error(`${this.constructor.name}: Error creating user ${userDTO.entityId}: ${userResult.error}`);
 			return;
 		}
 		const user = userResult.value as unknown as  User;
@@ -53,7 +51,7 @@ export class UserCreatedHandler extends DomainEventHandler<UserCreatedEvent> {
 			for (const logId of logIds) {
 				const result = await this.logRepo.fetchById(logId);
 				if (result.isFailure) {
-					//this.logger.error(`${this.constructor.name}: Error fetching log ${logId} for user ${user.userId}: ${result.error}`);
+					this.logger.error(`${this.constructor.name}: Error fetching log ${logId} for user ${user.userId}: ${result.error}`);
 				}
 				else {
 					const log$ = result.value as Observable<ConditioningLog<any, ConditioningLogDTO>>;
@@ -71,7 +69,7 @@ export class UserCreatedHandler extends DomainEventHandler<UserCreatedEvent> {
 			this.logService.updateCache([...snapshot], this);
 		}
 		else {
-			//this.logger.error(`${this.constructor.name}: Cache entry not found for user ${user.userId}`);
+			this.logger.error(`${this.constructor.name}: Cache entry not found for user ${user.userId}`);
 		}
 	}
 }

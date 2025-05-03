@@ -2,9 +2,9 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
-import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
-import { ConditioningLogUndeletedEvent } from '../events/conditioning-log-undeleted.event';
-import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
+import ConditioningDataService from '../services/conditioning-data/conditioning-data.service';
+import ConditioningLogUndeletedEvent from '../events/conditioning-log-undeleted.event';
+import DomainEventHandler from '../../shared/handlers/domain-event.handler';
 
 /** Handler for entity undeleted event from ConditioningLog repository
  * @remark Marks log as undeleted in data service cache
