@@ -1,9 +1,9 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../test/test-utils';
 
-//import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { Subject } from 'rxjs';
 
-//import { jest } from '@jest/globals';
+import { StreamLogger } from '../../libraries/stream-loggable';
 
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
@@ -23,8 +23,7 @@ describe('ConditioningLogCreatedHandler', () => {
 						// add other methods as needed
 					}
 				},
-				ConditioningLogCreatedHandler,
-				
+				ConditioningLogCreatedHandler,				
 			],
 		}))
 		.compile();
@@ -51,4 +50,23 @@ describe('ConditioningLogCreatedHandler', () => {
 			await expect(handler.handle(event)).rejects.toThrow('Method not implemented.');
 		});
 	});
+
+	describe('Logging API', () => {
+			describe('LoggableMixin Members', () => {
+				it('inherits log$', () => {
+					expect(handler.log$).toBeDefined();
+					expect(handler.log$).toBeInstanceOf(Subject);
+				});
+	
+				it('inherits logger', () => {
+					expect(handler.logger).toBeDefined();
+					expect(handler.logger).toBeInstanceOf(StreamLogger);
+				});
+	
+				it('inherits logToStream', () => {
+					expect(handler.logToStream).toBeDefined();
+					expect(typeof handler.logToStream).toBe('function');
+				});
+			});
+		});
 });
