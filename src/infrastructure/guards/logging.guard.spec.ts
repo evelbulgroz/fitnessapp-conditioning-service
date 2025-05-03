@@ -1,76 +1,131 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext } from '@nestjs/common';
-import { LoggingGuard } from './logging.guard';
 
 import { jest } from '@jest/globals';
+import { Subject } from 'rxjs';
 
-import { Logger } from '@evelbulgroz/logger';
+import { StreamLogger } from '../../libraries/stream-loggable';
+
+import { LoggingGuard } from './logging.guard';
 
 describe('LoggingGuard', () => {
+	let logger: StreamLogger;
 	let loggingGuard: LoggingGuard;
-	let logger: Logger;
-
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
-				LoggingGuard,
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},
+				LoggingGuard
 			],
 		})
 		.compile();
 		
-		logger = module.get<Logger>(Logger);
-		loggingGuard = module.get<LoggingGuard>(LoggingGuard);		
+		loggingGuard = module.get<LoggingGuard>(LoggingGuard);
+		logger = loggingGuard.logger as StreamLogger;
+		jest.spyOn(logger, 'info').mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		jest.clearAllMocks();
 	});
 
 	it('can be created', () => {
 		expect(loggingGuard).toBeDefined();
 	});
 
-	it('should log the access attempt', () => {
-		const mockRequest = {
-			user: { username: 'testuser' },
-			method: 'GET',
-			url: '/test-url',
-		};
-		const mockContext = {
-			getClass: jest.fn().mockReturnValue('TestController'),
-			switchToHttp: jest.fn().mockReturnValue({
-				getRequest: jest.fn().mockReturnValue(mockRequest),
-			}),
-		} as any as ExecutionContext;
+	describe('canActivate', () => {
+		it('logs the access attempt', () => {
+			const mockRequest = {
+				user: { username: 'testuser' },
+				method: 'GET',
+				url: '/test-url',
+			};
+			const mockContext = {
+				getClass: jest.fn().mockReturnValue('TestController'),
+				switchToHttp: jest.fn().mockReturnValue({
+					getRequest: jest.fn().mockReturnValue(mockRequest),
+				}),
+			} as any as ExecutionContext;
 
-		const result = loggingGuard.canActivate(mockContext);
+			const result = loggingGuard.canActivate(mockContext);
 
-		expect(logger.log).toHaveBeenCalledWith('User unknown () accessed GET /test-url', undefined);
-		expect(result).toBe(true);
+			expect(logger.info).toHaveBeenCalledWith('User unknown (unknown id) accessed GET /test-url', undefined);
+			expect(result).toBe(true);
+		});
+
+		it('logs "unknown" if user is not defined', () => {
+			const mockRequest = {
+				user: undefined,
+				method: 'GET',
+				url: '/test-url',
+			};
+			const mockContext = {
+				getClass: jest.fn().mockReturnValue('TestController'),
+				switchToHttp: jest.fn().mockReturnValue({
+					getRequest: jest.fn().mockReturnValue(mockRequest),
+				}),
+			} as any as ExecutionContext;
+
+			const result = loggingGuard.canActivate(mockContext);
+
+			expect(logger.info).toHaveBeenCalledWith('User unknown (unknown id) accessed GET /test-url', undefined);
+			expect(result).toBe(true);
+		});
+
+		it('logs "unknown id" if userId is not defined', () => {
+			const mockRequest = {
+				user: { userName: 'testuser', userId: undefined },
+				method: 'GET',
+				url: '/test-url',
+			};
+			const mockContext = {
+				getClass: jest.fn().mockReturnValue('TestController'),
+				switchToHttp: jest.fn().mockReturnValue({
+					getRequest: jest.fn().mockReturnValue(mockRequest),
+				}),
+			} as any as ExecutionContext;
+
+			const result = loggingGuard.canActivate(mockContext);
+
+			expect(logger.info).toHaveBeenCalledWith('User testuser (unknown id) accessed GET /test-url', undefined);
+			expect(result).toBe(true);
+		});
+
+		it('uses log level "info"', () => {
+			const mockRequest = {
+				user: { userName: 'testuser', userId: '123' },
+				method: 'GET',
+				url: '/test-url',
+			};
+
+			const mockContext = {
+				getClass: jest.fn().mockReturnValue('TestController'),
+				switchToHttp: jest.fn().mockReturnValue({
+					getRequest: jest.fn().mockReturnValue(mockRequest),
+				}),
+			} as any as ExecutionContext;
+			const result = loggingGuard.canActivate(mockContext);
+
+			expect(logger.info).toHaveBeenCalled();
+			expect(result).toBe(true);
+		});
 	});
 
-	it('should log "unknown" if user is not defined', () => {
-		const mockRequest = {
-			user: undefined,
-			method: 'GET',
-			url: '/test-url',
-		};
-		const mockContext = {
-			getClass: jest.fn().mockReturnValue('TestController'),
-			switchToHttp: jest.fn().mockReturnValue({
-				getRequest: jest.fn().mockReturnValue(mockRequest),
-			}),
-		} as any as ExecutionContext;
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(loggingGuard.log$).toBeDefined();
+				expect(loggingGuard.log$).toBeInstanceOf(Subject);
+			});
 
-		const result = loggingGuard.canActivate(mockContext);
+			it('inherits logger', () => {
+				expect(loggingGuard.logger).toBeDefined();
+				expect(loggingGuard.logger).toBeInstanceOf(StreamLogger);
+			});
 
-		expect(logger.log).toHaveBeenCalledWith('User unknown () accessed GET /test-url', undefined);
-		expect(result).toBe(true);
+			it('inherits logToStream', () => {
+				expect(loggingGuard.logToStream).toBeDefined();
+				expect(typeof loggingGuard.logToStream).toBe('function');
+			});
+		});
 	});
 });

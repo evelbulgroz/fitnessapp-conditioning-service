@@ -1,10 +1,12 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 
-import { Logger } from '@evelbulgroz/logger';
+import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
 @Injectable()
-export class LoggingGuard implements CanActivate {
-  constructor(private readonly logger: Logger) {}
+export class LoggingGuard extends StreamLoggableMixin(class {}) implements CanActivate {
+  constructor() {
+	super();
+  }
 
   canActivate(context: ExecutionContext): boolean {
 	const controller = context.getClass();
@@ -13,7 +15,8 @@ export class LoggingGuard implements CanActivate {
     const method = request.method;
     const url = request.url;
 
-    this.logger.log(`User ${user?.userName || 'unknown'} (${user?.userId ? user?.userId : ''}) accessed ${method} ${url}`, controller.name);
+    this.logger.info(
+		`User ${user?.userName || 'unknown'} (${user?.userId ?? 'unknown id'}) accessed ${method} ${url}`, controller.name);
     return true;
   }
 }
