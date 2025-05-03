@@ -1,9 +1,9 @@
 import { TestingModule } from '@nestjs/testing';
 import { createTestingModule } from '../../test/test-utils';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
+import { Subject } from 'rxjs';
 
-//import { jest } from '@jest/globals';
+import { StreamLogger } from '../../libraries/stream-loggable';
 
 import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
@@ -23,17 +23,7 @@ describe('LogDeletedHandler', () => {
 						// add other methods as needed
 					}
 				},
-				ConditioningLogDeletedHandler,
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
-				},				
+				ConditioningLogDeletedHandler,								
 			],
 		}))
 		.compile();
@@ -58,6 +48,25 @@ describe('LogDeletedHandler', () => {
 
 		it('is not implemented', async () => {
 			await expect(handler.handle(event)).rejects.toThrow('Method not implemented.');
+		});
+	});
+
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(handler.log$).toBeDefined();
+				expect(handler.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(handler.logger).toBeDefined();
+				expect(handler.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(handler.logToStream).toBeDefined();
+				expect(typeof handler.logToStream).toBe('function');
+			});
 		});
 	});
 });

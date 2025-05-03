@@ -52,21 +52,21 @@ describe('ConditioningLogCreatedHandler', () => {
 	});
 
 	describe('Logging API', () => {
-			describe('LoggableMixin Members', () => {
-				it('inherits log$', () => {
-					expect(handler.log$).toBeDefined();
-					expect(handler.log$).toBeInstanceOf(Subject);
-				});
-	
-				it('inherits logger', () => {
-					expect(handler.logger).toBeDefined();
-					expect(handler.logger).toBeInstanceOf(StreamLogger);
-				});
-	
-				it('inherits logToStream', () => {
-					expect(handler.logToStream).toBeDefined();
-					expect(typeof handler.logToStream).toBe('function');
-				});
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(handler.log$).toBeDefined();
+				expect(handler.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(handler.logger).toBeDefined();
+				expect(handler.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(handler.logToStream).toBeDefined();
+				expect(typeof handler.logToStream).toBe('function');
 			});
 		});
+	});
 });

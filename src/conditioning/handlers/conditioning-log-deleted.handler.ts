@@ -1,22 +1,20 @@
 import { Injectable } from '@nestjs/common';
 
-//import { Logger } from '@evelbulgroz/logger';
+import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
-import { ConditioningLog } from '../domain/conditioning-log.entity';
-import { ConditioningLogDeletedEvent } from '../events/conditioning-log-deleted.event';
-import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
-import { ConditioningLogRepository } from '../repositories/conditioning-log.repo';
-import { DomainEventHandler } from '../../shared/handlers/domain-event.handler';
+import ConditioningLog from '../domain/conditioning-log.entity';
+import ConditioningLogDeletedEvent from '../events/conditioning-log-deleted.event';
+import ConditioningLogDTO from '../dtos/conditioning-log.dto';
+import ConditioningLogRepository from '../repositories/conditioning-log.repo';
+import DomainEventHandler from '../../shared/handlers/domain-event.handler';
 
 /** Handler for entity deleted event from ConditioningLog repository
  * @remark Placeholder: logs are removed from log service cache when removed from user, so this handler may not be necessary
- * @todo Reintroduce logging after deciding on logging strategy
  */
 @Injectable()
-export class ConditioningLogDeletedHandler extends DomainEventHandler<ConditioningLogDeletedEvent> {
+export class ConditioningLogDeletedHandler extends StreamLoggableMixin(DomainEventHandler<ConditioningLogDeletedEvent>) {
 	constructor(
 		private readonly logRepo: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		//private readonly logger: Logger
 	) {
 		super();
 	}
