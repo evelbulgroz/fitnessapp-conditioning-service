@@ -6,7 +6,6 @@ import { HttpService, HttpModule } from '@nestjs/axios';
 import { lastValueFrom, of, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
-import { Logger } from '@evelbulgroz/logger'; // retire or replace this when dependencies no longer need it
 import { Result } from '@evelbulgroz/ddd-base';
 import { StreamLogger } from '../../libraries/stream-loggable';
 
@@ -75,16 +74,6 @@ describe('UserController', () => {
 						return new JsonWebtokenService(secretService);
 					},
 					inject: [JwtSecretService],
-				},
-				{ // Logger (suppress console output)
-					provide: Logger,
-					useValue: {
-						log: jest.fn(),
-						error: jest.fn(),
-						warn: jest.fn(),
-						debug: jest.fn(),
-						verbose: jest.fn(),
-					},
 				},
 				{ // Data service
 					provide: UserDataService,
