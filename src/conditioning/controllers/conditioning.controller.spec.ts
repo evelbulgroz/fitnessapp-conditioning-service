@@ -4,7 +4,7 @@ import { HttpModule, HttpService } from '@nestjs/axios';
 import { ForbiddenException, INestApplication } from '@nestjs/common';
 
 import { jest } from '@jest/globals';
-import { of, lastValueFrom } from 'rxjs';
+import { of, lastValueFrom, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
 import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
@@ -31,6 +31,7 @@ import { UserContext, UserContextProps } from '../../shared/domain/user-context.
 import { UserJwtPayload } from '../../authentication/services/jwt/domain/user-jwt-payload.model';
 import { UserRepository } from '../../user/repositories/user.repo';
 import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
+import { StreamLogger } from '../../libraries/stream-loggable';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -1327,6 +1328,25 @@ describe('ConditioningController', () => {
 
 				// cleanup
 				spy && spy.mockRestore();
+			});
+		});
+	});
+
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(controller.log$).toBeDefined();
+				expect(controller.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(controller.logger).toBeDefined();
+				expect(controller.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(controller.logToStream).toBeDefined();
+				expect(typeof controller.logToStream).toBe('function');
 			});
 		});
 	});

@@ -3,7 +3,7 @@ import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, 
 
 import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId } from '@evelbulgroz/ddd-base';
-import { Logger } from '@evelbulgroz/logger';
+import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
 import { AggregationQueryDTO } from '../dtos/aggregation-query.dto';
 import { BooleanDTO } from '../../shared/dtos/responses/boolean.dto';
@@ -25,12 +25,13 @@ import { DomainTypeDTO } from '../../shared/dtos/responses/domain-type.dto';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
 import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 
-/** Controller serving requests for conditioning data
+/** Controller serving requests for conditioning datap
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests for conditioning data.
  * @remark It delegates the actual processing of data to the appropriate data service methods, which are responsible for business logic and persistence.
  * @remark All endpoints are intended for use by front-end applications on behalf of authenticated users.
- * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation.
- * @remark No need to duplicate documentation for TypeDoc, hence fewer traditional comments.
+ * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation: 
+ * - There is no need to duplicate this documentation for TypeDoc, hence fewer traditional comments.
+ * @remark Streams logging using the {@link StreamLoggableMixin}, which provides a unified logging interface for all components.
  * @todo Retire unsecured /session endpoint when all clients have migrated to JWT authentication.
  */
 @ApiTags('conditioning')
@@ -44,13 +45,14 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })) // whitelisting ignored with primitive types
-export class ConditioningController {
+export class ConditioningController extends StreamLoggableMixin(class {}) {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
 	constructor(
-		//private readonly logger: Logger,
 		private readonly LogService: ConditioningDataService,
-	) {}
+	) {
+		super();
+	}
 
 	//-------------------------------- PUBLIC API: SINGLE-LOG CRUD ------------------------------//
 	
@@ -110,7 +112,7 @@ export class ConditioningController {
 			return await this.LogService.createLog(userContext, userIdDTO, log);
 		} catch (error) {
 			const errorMessage = `Failed to create log: ${error.message}`;
-			// this.logger.error(errorMessage);
+			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
 	}
@@ -154,14 +156,14 @@ export class ConditioningController {
 			const log = this.LogService.fetchLog(userContext, userIdDTO, logId);
 			if (!log) {
 				const errorMessage = `Log with id ${logId.value} not found`;
-				// this.logger.error(errorMessage);
+				this.logger.error(errorMessage);
 				throw new NotFoundException(errorMessage);
 			}			
 			return log;			
 		}
 		catch (error) {
 			const errorMessage = `Request for log details failed: ${error.message}`;
-			// this.logger.error(errorMessage);
+			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
 	}
@@ -211,7 +213,7 @@ export class ConditioningController {
 			// implicit return
 		} catch (error) {
 			const errorMessage = `Failed to update log with ID: ${logIdDTO.value}: ${error.message}`;
-			// this.logger.error(errorMessage);
+			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
 	}
@@ -254,7 +256,7 @@ export class ConditioningController {
 			void await this.LogService.deleteLog(userContext, userIdDTO, logIdDTO); // Implement this method in your service
 		} catch (error) {
 			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
-			// this.logger.error(errorMessage);
+			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
 	}
@@ -298,7 +300,7 @@ export class ConditioningController {
 			void await this.LogService.undeleteLog(userContext, userIdDTO, logIdDTO);
 		} catch (error) {
 			const errorMessage = `Failed to undelete log with id: ${logIdDTO.value}: ${error.message}`;
-			// this.logger.error(errorMessage);
+			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
 	}
@@ -357,7 +359,7 @@ export class ConditioningController {
 		}
 		catch (error) {
 			const errorMessage = `Request for logs failed: ${error.message}`;
-			// this.logger.error(errorMessage);
+			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
 	}
@@ -411,7 +413,7 @@ export class ConditioningController {
 			return await this.LogService.fetchActivityCounts(userContext, userIdDTO, queryDTO, includeDeletedDTO);
 		}
 		catch (error) {
-			// this.logger.error(`Request for activities failed: ${error.message}`);
+			this.logger.error(`Request for activities failed: ${error.message}`);
 			throw new BadRequestException(`Request for activities failed: ${error.message}`);
 		}
 	}
@@ -448,7 +450,7 @@ export class ConditioningController {
 		}
 		catch (error) {
 			const errorMessage = `Request for aggregation failed: ${error.message}`;
-			// this.logger.error(errorMessage);
+			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
 	}
@@ -475,7 +477,7 @@ export class ConditioningController {
 				const rules = ConditioningLog.getSanitizationRules();
 				return rules;
 			default:
-				// this.logger.error(`Invalid entity type: ${type.value}`);
+				this.logger.error(`Invalid entity type: ${type.value}`);
 				throw new BadRequestException(`Invalid entity type: ${type.value}`);
 		}
 	}
@@ -512,7 +514,7 @@ export class ConditioningController {
 		const createResult = ConditioningLog.create(logDTO as ConditioningLogDTO);
 		if (createResult.isFailure) {
 			const errorMessage = `Invalid log data: ${createResult.error}`;
-			// this.logger.error(errorMessage);
+			this.logger.error(errorMessage);
 			throw new BadRequestException(errorMessage);
 		}
 		const log = createResult.value as ConditioningLog<any, ConditioningLogDTO>;
