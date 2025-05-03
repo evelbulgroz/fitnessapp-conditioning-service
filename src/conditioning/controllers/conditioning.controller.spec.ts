@@ -7,9 +7,10 @@ import { jest } from '@jest/globals';
 import { of, lastValueFrom, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
-import { ConsoleLogger, Logger } from '@evelbulgroz/logger';
-import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
+import { Logger } from '@evelbulgroz/logger';
+import { EntityId, Result } from '@evelbulgroz/ddd-base';
+import { StreamLogger } from '../../libraries/stream-loggable';
 
 import { AggregationQueryDTO, AggregationQueryDTOProps } from '../dtos/aggregation-query.dto';
 import { BooleanDTO } from '../../shared/dtos/responses/boolean.dto';
@@ -31,7 +32,6 @@ import { UserContext, UserContextProps } from '../../shared/domain/user-context.
 import { UserJwtPayload } from '../../authentication/services/jwt/domain/user-jwt-payload.model';
 import { UserRepository } from '../../user/repositories/user.repo';
 import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
-import { StreamLogger } from '../../libraries/stream-loggable';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 

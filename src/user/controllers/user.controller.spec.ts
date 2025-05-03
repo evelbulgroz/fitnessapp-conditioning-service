@@ -3,11 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { TestingModule } from '@nestjs/testing';
 import { HttpService, HttpModule } from '@nestjs/axios';
 
-import { lastValueFrom, of } from 'rxjs';
+import { lastValueFrom, of, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
 import { Logger } from '@evelbulgroz/logger';
 import { Result } from '@evelbulgroz/ddd-base';
+import { StreamLogger } from '../../libraries/stream-loggable';
 
 import { BcryptCryptoService } from '../../authentication/services/crypto/bcrypt-crypto.service';
 import { createTestingModule } from '../../test/test-utils';
@@ -557,4 +558,23 @@ describe('UserController', () => {
 			});
 		});
 	});
+
+	describe('Logging API', () => {
+			describe('LoggableMixin Members', () => {
+				it('inherits log$', () => {
+					expect(controller.log$).toBeDefined();
+					expect(controller.log$).toBeInstanceOf(Subject);
+				});
+	
+				it('inherits logger', () => {
+					expect(controller.logger).toBeDefined();
+					expect(controller.logger).toBeInstanceOf(StreamLogger);
+				});
+	
+				it('inherits logToStream', () => {
+					expect(controller.logToStream).toBeDefined();
+					expect(typeof controller.logToStream).toBe('function');
+				});
+			});
+		});
 });

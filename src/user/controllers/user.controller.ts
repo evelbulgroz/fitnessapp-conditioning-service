@@ -2,7 +2,6 @@ import { BadRequestException, Controller, Delete, HttpCode, HttpStatus, Param, P
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component";
 import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
@@ -23,6 +22,9 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
  * @remark All endpoints are intended for use by the user microservice only, and are protected by authentication and role-based access control.
  * @remark Only stores the user id locally, which is immutable once set, so there is no need to support updating or retrieving other user data here.
  * @remark Documented using Swagger decorators for easy generation of OpenAPI documentation. No need to duplicate documentation for TypeDoc, hence fewer traditional comments.
+ * @remark Streams logging using the {@link StreamLoggableMixin}, which provides a unified logging interface for all components.
+ * @remark Does not implement {@link ManagedStatefulComponentMixin} as it does not manage any stateful components.
+ * - Standard health checks are sufficient for this controller.
  * @todo Move ValidationPipe to controller level once global validation pipe is implemented
 */ 
 @ApiTags('user') // version prefix set in main.ts
@@ -33,7 +35,7 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 	//LoggingGuard // log all requests to the console // todo: re-enable after refactoring to stream logger
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
-export class UserController extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) {
+export class UserController extends StreamLoggableMixin(class {}) {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
 	constructor(
