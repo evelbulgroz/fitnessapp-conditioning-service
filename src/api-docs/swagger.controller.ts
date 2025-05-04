@@ -6,7 +6,6 @@ import { resolve } from 'path';import { Response } from 'express';
 
 import AppInstance from './app-instance.model';
 import JwtAuthGuard from '../infrastructure/guards/jwt-auth.guard';
-import LoggingGuard from '../infrastructure/guards/logging.guard';
 import Roles from '../infrastructure/decorators/roles.decorator';
 import RolesGuard from '../infrastructure/guards/roles.guard';
 
@@ -20,7 +19,6 @@ import RolesGuard from '../infrastructure/guards/roles.guard';
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
-	LoggingGuard // log all requests to the console
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 export class SwaggerController {

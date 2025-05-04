@@ -7,7 +7,6 @@ import { MergedStreamLogger, StreamLoggableMixin } from '../../libraries/stream-
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
 import { JwtAuthResult } from '../../authentication/services/jwt/domain/jwt-auth-result.model';
-import { LoggingGuard } from '../../infrastructure/guards/logging.guard';
 import { RolesGuard } from '../../infrastructure/guards/roles.guard';
 import { Roles } from '../../infrastructure/decorators/roles.decorator';
 import { ServiceNameDTO } from '../../shared/dtos/responses/service-name.dto';

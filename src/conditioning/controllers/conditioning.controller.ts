@@ -15,7 +15,6 @@ import { DefaultStatusCodeInterceptor } from '../../infrastructure/interceptors/
 import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
 import { JwtAuthResult } from '../../authentication/services/jwt/domain/jwt-auth-result.model';
-import { LoggingGuard } from '../../infrastructure/guards/logging.guard';
 import { Public } from '../../infrastructure/decorators/public.decorator';
 import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
 import { QueryDTO } from '../../shared/dtos/responses/query.dto';
