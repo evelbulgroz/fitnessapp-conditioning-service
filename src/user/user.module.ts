@@ -11,6 +11,7 @@ import UserDeletedHandler from './handlers/user-deleted.handler';
 import UserRepository from './repositories/user.repo';
 import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
+import LoggingModule from '../logging/logging.module';
 
 /** Main module for components managing and serving user information.
  * 
@@ -53,7 +54,7 @@ import UserUpdatedHandler from './handlers/user-updated.handler';
  */
 
 @Module({
-	imports: [],
+	imports: [LoggingModule], // Import the LoggingModule to use MergedStreamLogger
 	controllers: [UserController],
 	providers: [
 		{
