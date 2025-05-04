@@ -1,4 +1,4 @@
-import { EMPTY, Observable, Subscription, catchError, mergeMap, of } from 'rxjs';
+import { EMPTY, Subscription, catchError, mergeMap, of } from 'rxjs';
 
 import MergedStreamLoggerOptions from './models/merged-stream-logger-options.model';
 import Logger from '../../models/logger.model';
