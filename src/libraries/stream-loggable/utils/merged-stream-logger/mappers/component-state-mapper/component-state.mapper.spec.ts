@@ -41,15 +41,15 @@ describe('ComponentStateMapper', () => {
 			expect(result).toBe(LogLevel.INFO);
 		});
 		
-		it('should map OK state to LOG log level', () => {
+		it('should map OK state to INFO log level', () => {
 			const result = mapper['mapStateToLogLevel'](ComponentStateDemo.OK);
-			expect(result).toBe(LogLevel.LOG);
+			expect(result).toBe(LogLevel.INFO);
 		});
 		
-		it('should map unknown states to LOG log level', () => {
+		it('should map unknown states to INFO log level', () => {
 			// @ts-ignore - Testing with a non-existent state
 			const result = mapper['mapStateToLogLevel']('UNKNOWN_STATE');
-			expect(result).toBe(LogLevel.LOG);
+			expect(result).toBe(LogLevel.INFO);
 		});
 	});
 	
@@ -190,7 +190,7 @@ describe('ComponentStateMapper', () => {
 			
 			// Second event
 			expect(logEvents![1].message).toBe(`State changed to ${ComponentStateDemo.OK}: Initialized successfully`);
-			expect(logEvents![1].level).toBe(LogLevel.LOG);
+			expect(logEvents![1].level).toBe(LogLevel.INFO);
 			
 			// Third event
 			expect(logEvents![2].message).toBe(`State changed to ${ComponentStateDemo.DEGRADED}: Performance issue detected`);
@@ -246,7 +246,7 @@ describe('ComponentStateMapper', () => {
 			
 			// Check the correct mapping (starting with initial INITIALIZING from beforeEach)
 			expect(levels[0]).toBe(LogLevel.INFO);	// INITIALIZING
-			expect(levels[1]).toBe(LogLevel.LOG);	 // OK
+			expect(levels[1]).toBe(LogLevel.INFO);	 // OK
 			expect(levels[2]).toBe(LogLevel.WARN);	// DEGRADED
 			expect(levels[3]).toBe(LogLevel.ERROR); // FAILED
 			expect(levels[4]).toBe(LogLevel.INFO);	// SHUTTING_DOWN
