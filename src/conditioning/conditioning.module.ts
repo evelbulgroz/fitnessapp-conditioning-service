@@ -121,9 +121,6 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 		// ConditioningController is not a managed component, so we don't register it as a subcomponent
 
 		// Subscribe to log streams for logging
-		
-		//console.log('ConditioningController', this.moduleRef.get(ConditioningController, { strict: false })); // logs a controller instance
-		
 		this.streamLogger.subscribeToStreams([
 			{ streamType: 'componentState$', component: this.repository },
 			{ streamType: 'componentState$', component: this.dataService },
@@ -133,8 +130,9 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 			{ streamType: 'log$', component: this.dataService },
 			// ConditioningController: Cannot get a reference to the active instance here, so it subscribes itself
 		]);
-				
-		await this.initialize(); // initialize module and all managed subcomponents
+		
+		// Initialize module and all managed subcomponents
+		await this.initialize(); 
 	}
 
 	/** Cleans up the module and its components
@@ -145,9 +143,15 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 	 * @returns {Promise<void>} A promise that resolves to void when the module is fully shut down.
 	 */
 	public async onModuleDestroy(): Promise<void> {
-		await this.shutdown(); // shutdown module and all managed subcomponents
+		// Shutdown module and all managed subcomponents
+		await this.shutdown();
+
+		// Unregister subcomponents for lifecycle management
 		// ConditioningController is not a managed component, so we don't unregister it as a subcomponent
 		this.unregisterSubcomponent(this.repository); // repo handles persistence shutdown internally
 		this.unregisterSubcomponent(this.dataService);
+
+		// Unsubscribe from log streams for logging
+		this.streamLogger.unsubscribeAll(); // unsubscribe from all streams
 	}}
 export default ConditioningModule;

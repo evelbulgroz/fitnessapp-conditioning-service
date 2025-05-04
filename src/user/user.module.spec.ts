@@ -5,7 +5,7 @@ import { firstValueFrom, Observable, Subject, take } from 'rxjs';
 
 import { PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { ComponentState, ComponentStateInfo, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
-import { StreamLogger } from '../libraries/stream-loggable';
+import { MergedStreamLogger, StreamLogger } from '../libraries/stream-loggable';
 
 import JwtAuthGuard from '../infrastructure/guards/jwt-auth.guard';
 import JwtAuthStrategy from '../infrastructure/strategies/jwt-auth.strategy';
@@ -16,7 +16,6 @@ import UserDeletedHandler from './handlers/user-deleted.handler';
 import UserRepository from './repositories/user.repo';
 import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
-import { register } from 'module';
 
 // Stand-alone component using the mixin
 class TestComponent extends ManagedStatefulComponentMixin(class {}) {
@@ -75,6 +74,13 @@ describe('UserModule', () => {
 					return null;
 				}
 			}),
+		})
+		.overrideProvider(MergedStreamLogger) // Mock the MergedStreamLogger
+		.useValue({
+			registerMapper: jest.fn(),
+			subscribeToStreams: jest.fn(),
+			unsubscribeComponent: jest.fn(),
+			unsubscribeAll: jest.fn(),
 		})
 		.overrideProvider(JwtAuthStrategy) // First, provide the strategy that the guard depends on
 		.useValue({

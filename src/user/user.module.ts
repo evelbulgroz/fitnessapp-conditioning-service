@@ -3,15 +3,15 @@ import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 import { ComponentStateInfo, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
-import { StreamLoggableMixin } from '../libraries/stream-loggable';
+import { MergedStreamLogger, StreamLoggableMixin } from '../libraries/stream-loggable';
 
+import LoggingModule from '../logging/logging.module';
 import UserController from './controllers/user.controller';
 import UserCreatedHandler from './handlers/user-created.handler';
 import UserDeletedHandler from './handlers/user-deleted.handler';
 import UserRepository from './repositories/user.repo';
 import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
-import LoggingModule from '../logging/logging.module';
 
 /** Main module for components managing and serving user information.
  * 
@@ -85,8 +85,9 @@ import LoggingModule from '../logging/logging.module';
 })
 export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleInit, OnModuleDestroy {
 	constructor(
-		private readonly userRepository: UserRepository,
-		private readonly userDataService: UserDataService,
+		private readonly repo: UserRepository,
+		private readonly dataService: UserDataService,
+		private readonly streamLogger: MergedStreamLogger, // Inject the MergedStreamLogger for logging
 	) {
 		super();
 	}
@@ -102,10 +103,24 @@ export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	 * management system, setting the component and module to FAILED state with detailed error information.
 	 */
 	public async onModuleInit(): Promise<void> {
-		this.registerSubcomponent(this.userRepository); // repo handles persistence initialization internally
-		this.registerSubcomponent(this.userDataService);
-		// UserController is not a managed component, so we don't register it as a subcomponent
-		await this.initialize(); // // initialize module and all subcomponents
+		// Register subcomponents for lifecycle management
+		this.registerSubcomponent(this.repo); // repo handles persistence initialization internally
+		this.registerSubcomponent(this.dataService);
+		// UserController is not a managed component, , so we don't register it as a subcomponent
+		
+		// Subscribe to log streams for logging
+		this.streamLogger.subscribeToStreams([
+			{ streamType: 'componentState$', component: this.repository },
+			{ streamType: 'componentState$', component: this.dataService },
+			// ConditioningController is not a managed component, so we don't subscribe to its componentState$ stream
+			
+			{ streamType: 'repoLog$', component: this.repository },
+			{ streamType: 'log$', component: this.dataService },
+			// UserController: Cannot get a reference to the active instance here, so it subscribes itself
+		]);
+		
+		// Initialize module and all subcomponents
+		await this.initialize();
 	}
 
 	/** Cleans up the module and its components
@@ -118,8 +133,8 @@ export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	public async onModuleDestroy(): Promise<void> {		
 		await this.shutdown(); // shutdown module and all subcomponents
 		// UserController is not a managed component, so we don't unregister it as a subcomponent
-		this.unregisterSubcomponent(this.userRepository); // repo handles persistence shutdown internally
-		this.unregisterSubcomponent(this.userDataService);
+		this.unregisterSubcomponent(this.repo); // repo handles persistence shutdown internally
+		this.unregisterSubcomponent(this.dataService);
 	}
 
 }
