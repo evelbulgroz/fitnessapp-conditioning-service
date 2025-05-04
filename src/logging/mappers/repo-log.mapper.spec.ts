@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Subject } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 
-import { LogEventSource } from '../../libraries/stream-loggable';
+import { LogEventSource, LogLevel } from '../../libraries/stream-loggable';
 import { RepoLogEntry, RepoLogLevel } from '@evelbulgroz/ddd-base';
 
 import { RepoLogMapper } from './repo-log.mapper';
@@ -155,12 +155,12 @@ describe('RepoLogMapper', () => {
 				
 				// Verify we got 6 events with the correct log levels
 				expect(logEvents?.length).toBe(6);
-				expect(logEvents![0].level).toBe(RepoLogLevel.ERROR);
-				expect(logEvents![1].level).toBe(RepoLogLevel.WARN);
-				expect(logEvents![2].level).toBe(RepoLogLevel.INFO);
-				expect(logEvents![3].level).toBe(RepoLogLevel.DEBUG);
-				expect(logEvents![4].level).toBe(RepoLogLevel.VERBOSE);
-				expect(logEvents![5].level).toBe(RepoLogLevel.LOG);
+				expect(logEvents![0].level).toBe(LogLevel.ERROR);
+				expect(logEvents![1].level).toBe(LogLevel.WARN);
+				expect(logEvents![2].level).toBe(LogLevel.INFO);
+				expect(logEvents![3].level).toBe(LogLevel.DEBUG);
+				expect(logEvents![4].level).toBe(LogLevel.VERBOSE);
+				expect(logEvents![5].level).toBe(LogLevel.INFO); // RepoLogLevel.LOG is mapped to LogLevel.INFO until bas class becomes more disciplined in using log levels.
 				
 				// Restore Date
 				jest.restoreAllMocks();

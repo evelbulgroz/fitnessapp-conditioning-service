@@ -1,6 +1,7 @@
 import { Subject, take, toArray } from 'rxjs';
 
 import LogEventSource from '../../../../models/log-event-source.model';
+import LogLevel from '../../../../models/log-level.enum';
 import RepoLogEntry from './repo-log-entry.model'
 import RepoLogLevel from './repo-log-level.enum';
 import RepoLogMapper from './repo-log.mapper';
@@ -148,12 +149,12 @@ describe('RepoLogMapper', () => {
 					
 					// Verify we got 6 events with the correct log levels
 					expect(logEvents?.length).toBe(6);
-					expect(logEvents![0].level).toBe(RepoLogLevel.ERROR);
-					expect(logEvents![1].level).toBe(RepoLogLevel.WARN);
-					expect(logEvents![2].level).toBe(RepoLogLevel.INFO);
-					expect(logEvents![3].level).toBe(RepoLogLevel.DEBUG);
-					expect(logEvents![4].level).toBe(RepoLogLevel.VERBOSE);
-					expect(logEvents![5].level).toBe(RepoLogLevel.LOG);
+					expect(logEvents![0].level).toBe(LogLevel.ERROR);
+					expect(logEvents![1].level).toBe(LogLevel.WARN);
+					expect(logEvents![2].level).toBe(LogLevel.INFO);
+					expect(logEvents![3].level).toBe(LogLevel.DEBUG);
+					expect(logEvents![4].level).toBe(LogLevel.VERBOSE);
+					expect(logEvents![5].level).toBe(LogLevel.INFO); // RepoLogLevel.LOG is mapped to LogLevel.INFO until bas class becomes more disciplined in using log levels.
 					
 					// Restore Date
 					jest.restoreAllMocks();
