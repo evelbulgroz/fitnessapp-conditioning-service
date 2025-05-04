@@ -6,7 +6,7 @@ import { RepoLogEntry, RepoLogLevel } from '@evelbulgroz/ddd-base';
 import { LogEventSource, LogLevel, StreamMapper, UnifiedLogEntry} from '../../libraries/stream-loggable';
 
 @Injectable()
-export class RepoLogMapper implements StreamMapper<RepoLogEntry> {
+export class RepoLogMapper extends StreamMapper<RepoLogEntry> {
 	public readonly streamType = 'repoLog$';
 	
 	public mapToLogEvents(

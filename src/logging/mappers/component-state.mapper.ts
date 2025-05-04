@@ -6,7 +6,7 @@ import { ComponentState, ComponentStateInfo } from '../../libraries/managed-stat
 import {LogEventSource, LogLevel, StreamMapper, UnifiedLogEntry} from '../../libraries/stream-loggable';
 
 @Injectable()
-export class ComponentStateMapper implements StreamMapper<ComponentStateInfo> {
+export class ComponentStateMapper extends StreamMapper<ComponentStateInfo> {
 public readonly streamType = 'componentState$';
 	
 	public mapToLogEvents(

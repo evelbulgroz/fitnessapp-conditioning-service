@@ -1,4 +1,4 @@
-import { map, Observable, Subject } from 'rxjs';
+import { map, Observable, Subject, tap } from 'rxjs';
 
 import Logger from '../../models/logger.model';
 import LogLevel from '../../models/log-level.enum';
@@ -31,11 +31,12 @@ interface MockMetric {
 }
 
 // Mock mappers for testing
-class MockLogMapper implements StreamMapper<MockLogEntry> {
+class MockLogMapper extends StreamMapper<MockLogEntry> {
 	public readonly streamType = 'logs$';
 	
 	public mapToLogEvents(source$: Observable<any>, context?: any) {
 		return source$.pipe(
+			//tap((log: MockLogEntry) => console.debug('Raw log:', JSON.stringify(log))),
 			map((log: MockLogEntry): UnifiedLogEntry => ({
 				source: LogEventSource.LOG,
 				timestamp: new Date(),
@@ -43,12 +44,13 @@ class MockLogMapper implements StreamMapper<MockLogEntry> {
 				message: log.message,
 				context: log.context || context,
 				data: log.data
-			}))
+			})),
+			//tap((log: UnifiedLogEntry) => console.debug('Mapped log:', JSON.stringify(log))),			
 		);
 	}
 }
 
-class MockStateMapper implements StreamMapper<MockState> {
+class MockStateMapper extends StreamMapper<MockState> {
 	public readonly streamType = 'componentState$';
 	
 	public mapToLogEvents(source$: Observable<any>, context?: any) {
@@ -65,7 +67,7 @@ class MockStateMapper implements StreamMapper<MockState> {
 	}
 }
 
-class MockMetricMapper implements StreamMapper<MockMetric> {
+class MockMetricMapper extends StreamMapper<MockMetric> {
 	public readonly streamType = 'metrics$';
 	
 	public mapToLogEvents(source$: Observable<any>, context?: any) {
@@ -130,15 +132,15 @@ describe('MergedStreamLogger', () => {
 				const stateComponent = { componentState$: new Subject<MockState>() };
 				
 				logger.subscribeToStreams([
-					{ streamType: 'logs$', component: logComponent },
-					{ streamType: 'componentState$', component: stateComponent }
+					{ streamType: 'logs$', component: logComponent, customKey: 'LogComponent' },
+					{ streamType: 'componentState$', component: stateComponent, customKey: 'StateComponent' }
 				]);
 				
 				logComponent.logs$.next({ level: LogLevel.LOG, message: 'Test log' });
 				stateComponent.componentState$.next({ state: 'OK', reason: 'All good' });
 				
-				expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'Object');
-				expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('All good'), 'Object');
+				expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'LogComponent');
+				expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('All good'), 'StateComponent');
 			});
 
 			describe('constructor options', () => {
@@ -195,7 +197,7 @@ describe('MergedStreamLogger', () => {
 				
 				// Try to subscribe without a mapper first - should log a warning
 				logger.subscribeToStreams([
-					{ streamType: 'metrics$', component: metricsComponent }
+					{ streamType: 'metrics$', component: metricsComponent, customKey: 'MetricsComponent' }
 				]);
 				expect(mockLogger.warn).toHaveBeenCalledWith(
 					expect.stringContaining('No mapper registered for stream type "metrics$"'),
@@ -207,7 +209,7 @@ describe('MergedStreamLogger', () => {
 				
 				// Try again
 				logger.subscribeToStreams([
-					{ streamType: 'metrics$', component: metricsComponent }
+					{ streamType: 'metrics$', component: metricsComponent, customKey: 'MetricsComponent' }
 				]);
 				
 				// Send a metric
@@ -220,7 +222,7 @@ describe('MergedStreamLogger', () => {
 				// Should be logged now
 				expect(mockLogger.log).toHaveBeenCalledWith(
 					expect.stringContaining('Metric: test-metric = 42'),
-					'Object'
+					'MetricsComponent'
 				);
 			});
 		});
@@ -243,7 +245,7 @@ describe('MergedStreamLogger', () => {
 			it('should subscribe to a single stream', () => {
 				// Subscribe to just logs$
 				logger.subscribeToStreams([
-					{ streamType: 'logs$', component: mockComponent }
+					{ streamType: 'logs$', component: mockComponent, customKey: 'TestComponent' }
 				]);
 				
 				// Send a log
@@ -255,17 +257,17 @@ describe('MergedStreamLogger', () => {
 				
 				// Should call the error method
 				expect(mockLogger.error).toHaveBeenCalledWith(
-				'Test error',
-				{ error: 'Something went wrong' },
-				'Object'
-				);
+					'Test error',
+					{ error: 'Something went wrong' },
+					'TestComponent'
+					);
 			});
 			
 			it('should subscribe to multiple streams', () => {
 				// Subscribe to both logs$ and componentState$
 				logger.subscribeToStreams([
-					{ streamType: 'logs$', component: mockComponent },
-					{ streamType: 'componentState$', component: mockComponent }
+					{ streamType: 'logs$', component: mockComponent, customKey: 'LogComponent' },
+					{ streamType: 'componentState$', component: mockComponent, customKey: 'StateComponent' }
 				]);
 				
 				// Send a log and a state update
@@ -273,16 +275,16 @@ describe('MergedStreamLogger', () => {
 				mockComponent.componentState$.next({ state: 'DEGRADED', reason: 'Service slow' });
 				
 				// Should have logged both
-				expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'Object');
+				expect(mockLogger.log).toHaveBeenCalledWith('Test log', 'LogComponent');
 				expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining('State changed to DEGRADED: Service slow'),
-				'Object'
+					'StateComponent'
 				);
 			});
 			
 			it('should respect context in log entry if provided', () => {
 				logger.subscribeToStreams([
-					{ streamType: 'logs$', component: mockComponent }
+					{ streamType: 'logs$', component: mockComponent, customKey: 'OverrideContext' }
 				]);
 				
 				mockComponent.logs$.next({ 
@@ -309,18 +311,18 @@ describe('MergedStreamLogger', () => {
 				};
 				
 				logger.subscribeToStreams([
-					{ streamType: 'logs$', component: incompleteComponent },
-					{ streamType: 'componentState$', component: incompleteComponent } // Missing stream
+					{ streamType: 'logs$', component: incompleteComponent, customKey: 'LogComponent' },
+					{ streamType: 'componentState$', component: incompleteComponent, customKey: 'StateComponent' } // Missing stream
 				]);
 				
 				// Should still subscribe to the valid stream
 				incompleteComponent.logs$.next({ level: LogLevel.LOG, message: 'This works' });
-				expect(mockLogger.log).toHaveBeenCalledWith('This works', 'Object');
+				expect(mockLogger.log).toHaveBeenCalledWith('This works', 'LogComponent');
 				
 				// Should have logged a warning for the missing stream
 				expect(mockLogger.warn).toHaveBeenCalledWith(
-				expect.stringContaining('No valid observable found'),
-				expect.any(String)
+					expect.stringContaining('No valid observable found'),
+					expect.any(String)
 				);
 			});
 			
@@ -330,8 +332,8 @@ describe('MergedStreamLogger', () => {
 				]);
 				
 				expect(mockLogger.warn).toHaveBeenCalledWith(
-				expect.stringContaining('No component provided'),
-				expect.any(String)
+					expect.stringContaining('No component provided'),
+					expect.any(String)
 				);
 			});
 		});
@@ -351,11 +353,11 @@ describe('MergedStreamLogger', () => {
 				};
 			});
 
-			xit('should unsubscribe all streams for a component', () => {
+			it('should unsubscribe all streams for a component', () => {
 				// Subscribe with a specific key
 				logger.subscribeToStreams([
-					{ streamType: 'logs$', component: mockComponent },
-					{ streamType: 'componentState$', component: mockComponent }
+					{ streamType: 'logs$', component: mockComponent, customKey: 'MockComponent' },
+					{ streamType: 'componentState$', component: mockComponent, customKey: 'MockComponent' }
 				]);
 				
 				// Verify subscriptions are working
@@ -363,7 +365,7 @@ describe('MergedStreamLogger', () => {
 				expect(mockLogger.log).toHaveBeenCalledTimes(1);
 				
 				// Unsubscribe
-				const result = logger.unsubscribeComponent('testKey');
+				const result = logger.unsubscribeComponent('MockComponent');
 				
 				// Should return true
 				expect(result).toBe(true);
@@ -388,12 +390,12 @@ describe('MergedStreamLogger', () => {
 				
 				// Subscribe component A
 				logger.subscribeToStreams([
-					{ streamType: 'logs$', component: componentA }
+					{ streamType: 'logs$', component: componentA, customKey: 'ComponentA' }
 				]);
 				
 				// Subscribe component B
 				logger.subscribeToStreams([
-					{ streamType: 'logs$', component: componentB }
+					{ streamType: 'logs$', component: componentB, customKey: 'ComponentB' }
 				]);
 				
 				// Both should work
@@ -403,19 +405,19 @@ describe('MergedStreamLogger', () => {
 				expect(mockLogger.log).toHaveBeenCalledTimes(2);
 				
 				// Unsubscribe A
-				logger.unsubscribeComponent(componentA);
+				logger.unsubscribeComponent('ComponentA');
 				
 				// A should no longer work, but B should
 				componentA.logs$.next({ level: LogLevel.LOG, message: 'Log from A again' });
 				componentB.logs$.next({ level: LogLevel.LOG, message: 'Log from B again' });
 				
 				expect(mockLogger.log).toHaveBeenCalledTimes(3);
-				expect(mockLogger.log).toHaveBeenLastCalledWith('Log from B again', 'Object');
+				expect(mockLogger.log).toHaveBeenLastCalledWith('Log from B again', 'ComponentB');
 			});
 		});
 		
 		describe('unsubscribeAll', () => {
-			xit('should unsubscribe all components', () => {
+			it('should unsubscribe all components', () => {
 				// Set up multiple components
 				// Create two components with logs$ streams
 				const componentA = { logs$: new Subject<MockLogEntry>() };
@@ -423,9 +425,9 @@ describe('MergedStreamLogger', () => {
 				const componentC = { logs$: new Subject<MockLogEntry>() };
 
 				logger.subscribeToStreams([
-					{ streamType: 'logs$', component: componentA },					
-					{ streamType: 'logs$', component: componentB },
-					{ streamType: 'logs$', component: componentC },
+					{ streamType: 'logs$', component: componentA, customKey: 'ComponentA' },					
+					{ streamType: 'logs$', component: componentB, customKey: 'ComponentB' },
+					{ streamType: 'logs$', component: componentC, customKey: 'ComponentC' },
 				]);
 				
 				// Verify they work
@@ -446,9 +448,9 @@ describe('MergedStreamLogger', () => {
 				expect(mockLogger.log).toHaveBeenCalledTimes(3); // Still just 3
 				
 				// Should no longer have subscriptions for any component
-				expect(logger.unsubscribeComponent('keyA')).toBe(false);
-				expect(logger.unsubscribeComponent('keyB')).toBe(false);
-				expect(logger.unsubscribeComponent('keyC')).toBe(false);
+				expect(logger.unsubscribeComponent('ComponentA')).toBe(false);
+				expect(logger.unsubscribeComponent('ComponentA')).toBe(false);
+				expect(logger.unsubscribeComponent('ComponentA')).toBe(false);
 			});
 		});
 	});
@@ -675,7 +677,7 @@ describe('MergedStreamLogger', () => {
 			});
 		});
 
-		xdescribe('handleStreamRecovery', () => {
+		describe('handleStreamRecovery', () => {
 			let logger: MergedStreamLogger;
 			let mockLogger: Logger;
 			
@@ -700,7 +702,7 @@ describe('MergedStreamLogger', () => {
 				jest.clearAllMocks();
 			});
 			
-			xit('should reset failure count to zero', () => {
+			it('should reset failure count to zero', () => {
 				const streamKey = 'testComponent:testStream';
 				const streamType = 'testStream';
 				
@@ -714,7 +716,7 @@ describe('MergedStreamLogger', () => {
 				expect(logger['streamFailureCounts'].get(streamKey)).toBe(0);
 			});
 			
-			xit('should clear existing backoff timer', () => {
+			it('should clear existing backoff timer', () => {
 				const streamKey = 'testComponent:testStream';
 				const streamType = 'testStream';
 				
@@ -733,7 +735,7 @@ describe('MergedStreamLogger', () => {
 				expect(logger['streamBackoffTimers'].has(streamKey)).toBe(false);
 			});
 			
-			xit('should log recovery message when failures were significant', () => {
+			it('should log recovery message when failures were significant', () => {
 				const streamKey = 'testComponent:testStream';
 				const streamType = 'testStream';
 				
@@ -764,7 +766,7 @@ describe('MergedStreamLogger', () => {
 				expect(mockLogger.info).not.toHaveBeenCalled();
 			});
 			
-			xit('should handle recovery when no timer exists', () => {
+			it('should handle recovery when no timer exists', () => {
 				const streamKey = 'testComponent:testStream';
 				const streamType = 'testStream';
 				
@@ -779,7 +781,7 @@ describe('MergedStreamLogger', () => {
 				expect(clearTimeout).not.toHaveBeenCalled();
 			});
 			
-			xit('should handle the case when failure count is undefined', () => {
+			it('should handle the case when failure count is undefined', () => {
 				const streamKey = 'testComponent:testStream';
 				const streamType = 'testStream';
 				
@@ -799,7 +801,7 @@ describe('MergedStreamLogger', () => {
 			
 			beforeEach(() => {
 				component = { logs$: new Subject<MockLogEntry>() };
-				logger.subscribeToStreams([{ streamType: 'logs$', component }]);
+				logger.subscribeToStreams([{ streamType: 'logs$', component, customKey: 'Component' }]);
 			});
 			
 			it('should route ERROR level to logger.error', () => {
@@ -812,7 +814,7 @@ describe('MergedStreamLogger', () => {
 				expect(mockLogger.error).toHaveBeenCalledWith(
 					'Error message', 
 					{ error: 'test' }, 
-					'Object'
+					'Component'
 				);
 			});
 			
@@ -821,7 +823,7 @@ describe('MergedStreamLogger', () => {
 				
 				expect(mockLogger.warn).toHaveBeenCalledWith(
 					'Warning message', 
-					'Object'
+					'Component'
 				);
 			});
 			
@@ -830,7 +832,7 @@ describe('MergedStreamLogger', () => {
 				
 				expect(mockLogger.info).toHaveBeenCalledWith(
 					'Info message', 
-					'Object'
+					'Component'
 				);
 			});
 			
@@ -839,7 +841,7 @@ describe('MergedStreamLogger', () => {
 				
 				expect(mockLogger.debug).toHaveBeenCalledWith(
 					'Debug message', 
-					'Object'
+					'Component'
 				);
 			});
 			
@@ -852,12 +854,12 @@ describe('MergedStreamLogger', () => {
 				
 				expect(mockLogger.verbose).toHaveBeenCalledWith(
 					expect.stringContaining('Verbose message'),
-					'Object'
+					'Component'
 				);
 				// The call should include JSON-stringified data
 				expect(mockLogger.verbose).toHaveBeenCalledWith(
 					expect.stringContaining('{"detail":"Extra info"}'),
-					'Object'
+					'Component'
 				);
 			});
 			
@@ -866,17 +868,16 @@ describe('MergedStreamLogger', () => {
 				
 				expect(mockLogger.log).toHaveBeenCalledWith(
 					'Log message', 
-					'Object'
+					'Component'
 				);
 			});
 			
-			xit('should default to logger.log for unknown levels', () => {
-				// @ts-ignore - Testing runtime behavior
-				logs$.next({ level: 999, message: 'Unknown level' });
+			it('should default to logger.info for unknown levels', () => {
+				component.logs$.next({ level: 999 as unknown as  LogLevel, message: 'Unknown level' });
 				
-				expect(mockLogger.log).toHaveBeenCalledWith(
+				expect(mockLogger.info).toHaveBeenCalledWith(
 					'Unknown level', 
-					'Object'
+					'Component'
 				);
 			});
 		});
@@ -1030,7 +1031,10 @@ describe('MergedStreamLogger', () => {
 	});
 	
 	describe('Integration scenarios', () => {
-		xit('should handle high frequency log events', () => {
+		// NOTE: The disabled tests cause the test runner to report a memory leak, but they are valid tests.
+		// They are left here for reference and should be enabled once the issue is resolved.
+
+		it('should handle high frequency log events', () => {
 			const component = { logs$: new Subject<MockLogEntry>() };			
 			logger.subscribeToStreams([{ streamType: 'logs$', component }]);
 			
@@ -1081,8 +1085,8 @@ describe('MergedStreamLogger', () => {
 				
 				// Register both with their own contexts, but same stream type name
 				logger.subscribeToStreams([
-					{ streamType: 'componentState$', component: userComponent },
-					{ streamType: 'componentState$', component: productComponent }
+					{ streamType: 'componentState$', component: userComponent, customKey: 'UserRepository' },
+					{ streamType: 'componentState$', component: productComponent, customKey: 'ProductRepository' }
 				]);
 				
 				// Reset mock calls
@@ -1094,7 +1098,7 @@ describe('MergedStreamLogger', () => {
 				// Should log user event with correct context
 				expect(mockLogger.info).toHaveBeenCalledWith(
 					expect.stringContaining('State changed to ACTIVE: User logged in'),
-					'Object'
+					'UserRepository'
 				);
 				
 				// Reset mock calls
@@ -1106,7 +1110,7 @@ describe('MergedStreamLogger', () => {
 				// Should log product event with correct context
 				expect(mockLogger.info).toHaveBeenCalledWith(
 					expect.stringContaining('State changed to AVAILABLE: Product in stock'),
-					'Object'
+					'ProductRepository'
 				);
 				
 				// Test error handling is separate
@@ -1139,7 +1143,7 @@ describe('MergedStreamLogger', () => {
 				// Should log product event without errors
 				expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining('State changed to LOW_STOCK: Running out'),
-				'Object'
+					'ProductRepository'
 				);
 				expect(mockLogger.error).not.toHaveBeenCalled();
 				
@@ -1157,7 +1161,7 @@ describe('MergedStreamLogger', () => {
 				productComponent.componentState$.next({ state: 'OUT_OF_STOCK', reason: 'None left' });
 				expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining('State changed to OUT_OF_STOCK: None left'),
-				'ProductRepository'
+					'ProductRepository'
 				);
 				
 				// Clean up remaining subscriptions
@@ -1207,8 +1211,8 @@ describe('MergedStreamLogger', () => {
 			
 			// Subscribe to both streams
 			logger.subscribeToStreams([
-				{ streamType: 'logs$', component: logComponent },
-				{ streamType: 'componentState$', component: stateComponent }
+				{ streamType: 'logs$', component: logComponent, customKey: 'LogComponent' },
+				{ streamType: 'componentState$', component: stateComponent, customKey: 'StateComponent' }
 			]);
 			
 			// Reset mocks to ensure clean tracking
@@ -1218,7 +1222,7 @@ describe('MergedStreamLogger', () => {
 			logComponent.logs$.next({ level: LogLevel.LOG, message: 'Before error' });
 			
 			// Verify the log was processed
-			expect(mockLogger.log).toHaveBeenCalledWith('Before error', 'Object');
+			expect(mockLogger.log).toHaveBeenCalledWith('Before error', 'LogComponent');
 			
 			// Reset mocks to make following assertions clearer
 			jest.clearAllMocks();
@@ -1315,7 +1319,7 @@ describe('MergedStreamLogger', () => {
 			});
 			
 			// Subscribe to the stream
-			logger.subscribeToStreams([{ streamType: 'componentState$', component: stateComponent }]);
+			logger.subscribeToStreams([{ streamType: 'componentState$', component: stateComponent, customKey: 'StateComponent' }]);
 			
 			// Reset mocks
 			jest.clearAllMocks();
@@ -1337,7 +1341,7 @@ describe('MergedStreamLogger', () => {
 			// Should log recovery message (this comes from handleStreamRecovery)
 			expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining('State changed to OK: Finally recovered'),
-				'Object'
+				'StateComponent'
 			);
 			
 			// Reset mocks
@@ -1484,9 +1488,9 @@ describe('MergedStreamLogger', () => {
 			
 			// Subscribe to all three streams
 			logger.subscribeToStreams([
-				{ streamType: 'logs$', component: logComponent },
-				{ streamType: 'componentState$', component: stateComponent },
-				{ streamType: 'metrics$', component: metricComponent }
+				{ streamType: 'logs$', component: logComponent, customKey: 'LogComponent' },
+				{ streamType: 'componentState$', component: stateComponent, customKey: 'StateComponent' },
+				{ streamType: 'metrics$', component: metricComponent, customKey: 'MetricComponent' }
 			]);
 			
 			// Reset mocks
@@ -1524,14 +1528,18 @@ describe('MergedStreamLogger', () => {
 			metricComponent.metrics$.next({ name: 'positive-metric', value: 10, timestamp: new Date() });
 			
 			// Verify all streams still work
-			expect(mockLogger.log).toHaveBeenCalledWith('Metric: positive-metric = 10', 'Object');
+			expect(mockLogger.log).toHaveBeenCalledWith('Log still works', 'LogComponent');
 			expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining('State changed to OK: State still works'),
-				'MultistreamTest'
+				'StateComponent'
+			);
+			expect(mockLogger.log).toHaveBeenCalledWith(
+				expect.stringContaining('Log still works'),
+				expect.stringContaining('LogComponent'),
 			);
 			expect(mockLogger.log).toHaveBeenCalledWith(
 				expect.stringContaining('Metric: positive-metric = 10'),
-				'MultistreamTest'
+				'MetricComponent'
 			);
 			
 			// Restore original methods
@@ -1539,13 +1547,13 @@ describe('MergedStreamLogger', () => {
 			metricMapper.mapToLogEvents = originalMetricMapToLogEvents;
 		});
 		
-		xit('should handle completion of source streams', () => {
+		it('should handle completion of source streams', () => {
 			const logComponent = { logs$: new Subject<MockLogEntry>() };
 			const stateComponent = { componentState$: new Subject<MockState>() };
 			
 			logger.subscribeToStreams([
-				{ streamType: 'logs$', component: logComponent },
-				{ streamType: 'componentState$', component: stateComponent }
+				{ streamType: 'logs$', component: logComponent, customKey: 'LogComponent' },
+				{ streamType: 'componentState$', component: stateComponent, customKey: 'StateComponent' }
 			]);
 			
 			// Send initial messages
@@ -1568,16 +1576,16 @@ describe('MergedStreamLogger', () => {
 			
 			// Both streams are now completed, but the subscription should still exist
 			// We can verify this by checking unsubscribeComponent still returns true
-			expect(logger.unsubscribeComponent('CompletionTest')).toBe(true);
+			expect(logger.unsubscribeComponent('StateComponent')).toBe(true);
 		});
 		
-		xit('should handle source stream errors - not mapper errors', () => {
+		it('should handle source stream errors - not mapper errors', () => {
 			const logComponent = { logs$: new Subject<MockLogEntry>() };
 			const problematicStateComponent = { componentState$: new Subject<MockState>() };
 			
 			logger.subscribeToStreams([
-				{ streamType: 'logs$', component: logComponent },
-				{ streamType: 'componentState$', component: problematicStateComponent }
+				{ streamType: 'logs$', component: logComponent, customKey: 'LogComponent' },
+				{ streamType: 'componentState$', component: problematicStateComponent, customKey: 'StateComponent' }
 			]);
 			
 			// Send initial messages
@@ -1605,7 +1613,7 @@ describe('MergedStreamLogger', () => {
 			expect(mockLogger.log).toHaveBeenCalledTimes(1);
 			
 			// Unsubscribe should still work
-			expect(logger.unsubscribeComponent('StreamErrorTest')).toBe(true);
+			expect(logger.unsubscribeComponent('StateComponent')).toBe(true);
 		});
 	});
 });

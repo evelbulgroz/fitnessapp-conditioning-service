@@ -12,7 +12,7 @@ import UnifiedLogEntry from '../../../../models/unified-log-event.model';
  * @remark To avoid external dependencies, it is not exported from this library.
  * @remark Library consumers should implement their own mappers for their specific use cases.
 */
-export class RepoLogMapper implements StreamMapper<RepoLogEntry> {
+export class RepoLogMapper extends StreamMapper<RepoLogEntry> {
 	public readonly streamType = 'repoLog$';
 	
 	public mapToLogEvents(

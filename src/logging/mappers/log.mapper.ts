@@ -10,7 +10,7 @@ import { LogEventSource, StreamMapper, UnifiedLogEntry } from '../../libraries/s
  * the context is properly set if provided.
  */
 @Injectable()
-export class LogMapper implements StreamMapper<UnifiedLogEntry> {
+export class LogMapper extends StreamMapper<UnifiedLogEntry> {
 	public readonly streamType = 'log$';
 	
 	/** Maps UnifiedLogEntry directly to UnifiedLogEntry, setting context if provided

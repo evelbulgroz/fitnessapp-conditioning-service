@@ -185,7 +185,7 @@ interface MetricEvent {
   timestamp: Date;
 }
 
-export class MetricsMapper implements StreamMapper<MetricEvent> {
+export class MetricsMapper extends StreamMapper<MetricEvent> {
   public readonly streamType = 'metrics$';
   
   public mapToLogEvents(

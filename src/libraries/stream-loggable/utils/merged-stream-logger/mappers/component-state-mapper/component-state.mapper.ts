@@ -12,7 +12,7 @@ import UnifiedLogEntry from '../../../../models/unified-log-event.model';
  * @remark To avoid external dependencies, it is not exported from this library.
  * @remark Library consumers should implement their own mappers for their specific use cases.
 */
-export class ComponentStateMapper implements StreamMapper<ComponentStateInfo> {
+export class ComponentStateMapper extends StreamMapper<ComponentStateInfo> {
 public readonly streamType = 'componentState$';
 	
 	public mapToLogEvents(

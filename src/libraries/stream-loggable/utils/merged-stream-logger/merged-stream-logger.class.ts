@@ -16,6 +16,10 @@ export interface StreamInfo {
 	 * @remark Instance constructor must not be anonymous function or arrow function, as name is used for indexing and logging.
 	 */
 	component: any;
+	/** Optional custom key for the subscription, defaults to component name
+	 * @remark This is useful for anonymous functions or arrow functions where the constructor name is not available.
+	 */
+	customKey?: string;
 }
 
 /** Unified logger of multiple observable streams using registered stream mappers.
@@ -191,7 +195,13 @@ export class MergedStreamLogger {
 	}
 
 	/** Register component streams the logger should listen to
+	 * 
 	 * @param streams Array of StreamInfo objects containing streams to process
+	 * @param customKey Optional custom key for the subscription, defaults to component name
+	 *  - Mostly intended for use with anonymous functions or arrow functions where the constructor name is not available.
+	 * @returns void
+	 * @throws Error if registration or mapping fails (e.g. invalid stream type, missing component, etc.)
+	 * 
 	 * @remark This method subscribes to the provided streams and processes their events using the registered mappers.
 	 * @remark If a mapper is not found for a stream type, a warning is logged and the stream is ignored.
 	 * @remark If an error occurs during mapping, it is logged and the stream continues to be monitored.
@@ -213,7 +223,7 @@ export class MergedStreamLogger {
 		streams: StreamInfo[],
 	): void {
 		// Subscribe to each stream individually
-		for (const { streamType, component } of streams) {
+		for (const { streamType, component, customKey } of streams) {
 			if (!component) {
 				this.logger.warn(
 					`No component provided for stream type "${streamType}"`, 
@@ -232,18 +242,29 @@ export class MergedStreamLogger {
 				continue;
 			}
 			
+			// Get the mapper for this stream type
 			const mapper = this.mappers.get(streamType);      
 			if (mapper) {
-				const componentName = component.constructor?.name;
-				if (!componentName) {
+				// Check if the mapper is a valid instance of StreamMapper
+				if (!(mapper instanceof StreamMapper)) {
 					this.logger.warn(
-						`Component name not found for stream type "${streamType}"`, 
+						`Mapper for stream type "${streamType}" is not a valid StreamMapper`, 
 						this.constructor.name
 					);
 					continue;
 				}
 
-				const streamKey = `${componentName}:${streamType}`;
+				// Get the component name, or use the custom key if provided
+				const componentKey = customKey ?? component.constructor?.name;
+				if (!componentKey) {
+					this.logger.warn(
+						`Component name or key not found for stream type "${streamType}"`, 
+						this.constructor.name
+					);
+					continue;
+				}
+
+				const streamKey = `${componentKey}:${streamType}`;
 				
 				// Track failures for this stream
 				if (!this.streamFailureCounts.has(streamKey)) {
@@ -254,7 +275,7 @@ export class MergedStreamLogger {
 				const processEvent = (event: any) => {
 					try {
 						// Try to map the event
-						const result = mapper.mapToLogEvents(of(event), componentName); // Pass the component name as context
+						const result = mapper.mapToLogEvents(of(event), componentKey); // Pass the component name as context
 			
 						// Reset failure count on success
 						if (this.streamFailureCounts.get(streamKey)! > 0) {
@@ -316,24 +337,25 @@ export class MergedStreamLogger {
 	}
 
 	/** Unsubscribe all subscriptions for a specific component
-	 * @param key The subscription key or context to unsubscribe
+	 * @param componentOrKey The component instance to unsubscribe from, or the custom key used for the subscription
+	 * @param customKey Optional custom key for the subscription, defaults to component name
 	 * @returns true if subscriptions were found and unsubscribed, false otherwise
 	 * @remark This is useful for properly cleaning up subscriptions when a component is destroyed or no longer needs logging.
 	 */
-	public unsubscribeComponent(component: any): boolean {
-		const componentName = component.constructor?.name;
-		if (!componentName) {
+	public unsubscribeComponent(componentOrKey: any | string): boolean {
+		const componentKey = typeof componentOrKey === 'string' ? componentOrKey : componentOrKey.constructor?.name;
+		if (!componentKey) {
 			this.logger.warn(
 				`No component name found for unsubscription`, 
 				this.constructor.name
 			);
 			return false;
 		}
-		// get the keys in componentSubscriptions that start with the component name
-		const streamKeys = Array.from(this.componentSubscriptions.keys()).filter(key => key.startsWith(componentName));
+		// get the keys in componentSubscriptions that start with the component key
+		const streamKeys = Array.from(this.componentSubscriptions.keys()).filter(key => key.startsWith(componentKey));
 		if (streamKeys.length === 0) {
 			this.logger.warn(
-				`No subscriptions found for component "${componentName}"`, 
+				`No subscriptions found for component "${componentKey}"`, 
 				this.constructor.name
 			);
 			return false;

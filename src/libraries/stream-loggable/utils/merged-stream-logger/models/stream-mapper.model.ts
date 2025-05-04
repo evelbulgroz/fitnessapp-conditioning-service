@@ -2,11 +2,15 @@ import { Observable } from 'rxjs';
 
 import UnifiedLogEntry from '../../../models/unified-log-event.model';
 
-/**Interface for a stream mapper that transforms a source observable into a stream of unified log events.
+/** Base type for a stream mapper that transforms a source observable into a stream of unified log events.
+ * 
  * @template T - The type of the source observable.
  * @property {string} streamType - The type of the stream being mapped.
  * @property {function} mapToLogEvents - A function that takes a source observable and an optional context string, and returns an observable of unified log events.
  * @returns {Observable<UnifiedLogEntry>} - An observable of unified log events.
+ * 
+ * @remarks Class rather than to enable type detection using instanceof operator.
+ * 
  * @example
  * const streamMapper: StreamMapper<MyType> = {
  *  streamType: 'myStream',
@@ -24,12 +28,15 @@ import UnifiedLogEntry from '../../../models/unified-log-event.model';
  * 	}
  * };
  */ 
-export interface StreamMapper<T> {
+export abstract class StreamMapper<T> {
 	/** The type of the stream being mapped
+	 * 
 	 * @type {string}
+	 * 
 	 * @remark Generally the variable name of the stream this mapper supports.
 	 * @remark This is used to match the stream to the correct mapper in the stream logger.
 	 * @remark Clients should chooen a name that is descriptive and unique to the stream being mapped.
+	 * 
 	 * @example 'repoLog$', 'componentState$', 'myStream$'
 	*/
 	readonly streamType: string;
@@ -50,6 +57,8 @@ export interface StreamMapper<T> {
 	 * @remark The source$ observable is expected to emit values of type T, which will be transformed into unified log events.
 	 * @remark The returned observable will emit unified log events that include the source, timestamp, level, message, context, and data properties
 	 */
-	mapToLogEvents(source$: Observable<T>, context?: string): Observable<UnifiedLogEntry>;
+	mapToLogEvents(source$: Observable<T>, context?: string): Observable<UnifiedLogEntry> {
+		throw new Error('Method not implemented.');
+	}
 }
 export default StreamMapper;
