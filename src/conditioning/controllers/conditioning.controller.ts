@@ -42,7 +42,6 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 @UseGuards(
 	JwtAuthGuard, // require authentication of Jwt token
 	RolesGuard, // require role-based access control
-	//LoggingGuard // log all requests
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200

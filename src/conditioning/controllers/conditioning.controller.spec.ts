@@ -9,7 +9,7 @@ import { v4 as uuid } from 'uuid';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
-import { StreamLogger } from '../../libraries/stream-loggable';
+import { MergedStreamLogger, StreamLogger } from '../../libraries/stream-loggable';
 
 import { AggregationQueryDTO, AggregationQueryDTOProps } from '../dtos/aggregation-query.dto';
 import { BooleanDTO } from '../../shared/dtos/responses/boolean.dto';
@@ -58,6 +58,15 @@ describe('ConditioningController', () => {
 			controllers: [ConditioningController],
 			providers: [
 				ConfigService,
+				{ // MergedStreamLogger
+					provide: MergedStreamLogger,
+					useValue: {
+						registerMapper: jest.fn(),
+						subscribeToStreams: jest.fn(),
+						unsubscribeComponent: jest.fn(),
+						unsubscribeAll: jest.fn(),
+					}
+				},
 				{ // CryptoService
 					provide: CryptoService,
 					useClass: BcryptCryptoService,

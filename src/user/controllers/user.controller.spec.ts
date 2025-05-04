@@ -7,7 +7,7 @@ import { lastValueFrom, of, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
 import { Result } from '@evelbulgroz/ddd-base';
-import { StreamLogger } from '../../libraries/stream-loggable';
+import { MergedStreamLogger, StreamLogger } from '../../libraries/stream-loggable';
 
 import { BcryptCryptoService } from '../../authentication/services/crypto/bcrypt-crypto.service';
 import { createTestingModule } from '../../test/test-utils';
@@ -49,6 +49,15 @@ describe('UserController', () => {
 			controllers: [UserController],
 			providers: [
 				ConfigService,
+				{ // MergedStreamLogger
+					provide: MergedStreamLogger,
+					useValue: {
+						registerMapper: jest.fn(),
+						subscribeToStreams: jest.fn(),
+						unsubscribeComponent: jest.fn(),
+						unsubscribeAll: jest.fn(),
+					}
+				},								
 				{ // CryptoService
 					provide: CryptoService,
 					useClass: BcryptCryptoService,
