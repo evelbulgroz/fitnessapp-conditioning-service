@@ -2,10 +2,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { Global, Module }  from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
-import { AppHealthModule } from './app-health/app-health.module';
+
 
 import { Logger } from "./libraries/stream-loggable";
 
+import AppHealthModule from './app-health/app-health.module';
 import AuthenticationModule from './authentication/authentication.module';
 import AuthService from './authentication/domain/auth-service.class';
 import ConditioningController  from './conditioning/controllers/conditioning.controller';

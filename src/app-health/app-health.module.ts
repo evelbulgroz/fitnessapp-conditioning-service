@@ -13,3 +13,4 @@ import AppHealthService from './services/health/app-health.service';
 	],
 })
 export class AppHealthModule {}
+export default AppHealthModule;

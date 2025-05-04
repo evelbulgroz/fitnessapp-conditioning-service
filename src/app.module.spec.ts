@@ -2,9 +2,10 @@ import { TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 
-import { Logger }  from '@evelbulgroz/logger';
-
 import { jest } from '@jest/globals';
+
+import { Logger } from "./libraries/stream-loggable";
+import { MergedStreamLogger } from './libraries/stream-loggable';
 
 import AppModule from './app.module';
 import AuthService from './authentication/domain/auth-service.class';
@@ -59,11 +60,20 @@ describe('AppModule', () => {
 		.overrideProvider(Logger)
 		.useValue({
 			log: jest.fn(),
-				error: jest.fn(),
-				warn: jest.fn(),
-				debug: jest.fn(),
-				verbose: jest.fn(),
+			error: jest.fn(),
+			warn: jest.fn(),
+			debug: jest.fn(),
+			verbose: jest.fn(),
+			info: jest.fn()
 		})
+		.overrideProvider(MergedStreamLogger) // Mock the MergedStreamLogger
+		.useValue({
+			registerMapper: jest.fn(),
+			subscribeToStreams: jest.fn(),
+			unsubscribeComponent: jest.fn(),
+			unsubscribeAll: jest.fn(),
+		})
+				
 		.overrideProvider(RegistrationService)
 		.useValue({
 			register: jest.fn(),
