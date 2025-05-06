@@ -152,202 +152,204 @@ describe('AppModule', () => {
 		expect(appModule).toBeDefined();
 	});
 
-	describe('Server initialization - onModuleInit', () => {
-		let accessToken: string;
-		let registrationSpy: any;
-		let testError: string;
-		let tokenServiceSpy: any;
-		beforeEach(() => {
-			accessToken = 'test-access-token';
-			registrationSpy = jest.spyOn(registrationService, 'register');//.mockImplementation(() => Promise.resolve(true));
-			testError = 'test-error';
-			tokenServiceSpy = jest.spyOn(authService, 'getAuthData');//.mockImplementation(() => Promise.resolve(accessToken));
-		});
-
-		afterEach(() => {
-			registrationSpy && registrationSpy.mockRestore();
-			tokenServiceSpy && tokenServiceSpy.mockRestore();
-		});
-
-		describe('Authentication', () => {
-			it('logs in to the authentication microservice', async () => {
-				// arrange
-				
-				// act
-				await appModule.onModuleInit();
-
-				// assert
-				expect(tokenServiceSpy).toHaveBeenCalledTimes(1);
+	describe('Lifecycle Hooks', () => {
+		describe('onModuleInit', () => {
+			let accessToken: string;
+			let registrationSpy: any;
+			let testError: string;
+			let tokenServiceSpy: any;
+			beforeEach(() => {
+				accessToken = 'test-access-token';
+				registrationSpy = jest.spyOn(registrationService, 'register');//.mockImplementation(() => Promise.resolve(true));
+				testError = 'test-error';
+				tokenServiceSpy = jest.spyOn(authService, 'getAuthData');//.mockImplementation(() => Promise.resolve(accessToken));
 			});
 
-			it('logs error and warning if login fails', async () => {
-				// arrange
-				tokenServiceSpy.mockImplementation(() => Promise.reject(testError));
-				const loggerErrorSpy = jest.spyOn(appModule['logger'], 'error')
-				const loggerWarnSpy = jest.spyOn(appModule['logger'], 'warn');
-				
-				// act
-				void await appModule.onModuleInit();
-
-				// assert
-				expect(tokenServiceSpy).toHaveBeenCalledTimes(1);
-				expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
-				expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
-				expect(loggerErrorSpy).toHaveBeenCalledWith("Failed to get access token from auth microservice", testError, "AppModule.onModuleInit");
-				expect(loggerWarnSpy).toHaveBeenCalledWith("Continuing startup without authentication.", "AppModule.onModuleInit");
-
-				// clean up
-				loggerErrorSpy.mockRestore();
-				loggerWarnSpy.mockRestore();
+			afterEach(() => {
+				registrationSpy && registrationSpy.mockRestore();
+				tokenServiceSpy && tokenServiceSpy.mockRestore();
 			});
 
-			it('continues startup if login fails', async () => {
-				// arrange
-				tokenServiceSpy.mockImplementation(() => Promise.reject(testError));
-				
-				// act/assert
-				expect(async () => await appModule.onModuleInit()).not.toThrow();
+			describe('Authentication', () => {
+				it('logs in to the authentication microservice', async () => {
+					// arrange
+					
+					// act
+					await appModule.onModuleInit();
 
-				// assert
-				expect(tokenServiceSpy).toHaveBeenCalledTimes(1);
-			});
-		});
+					// assert
+					expect(tokenServiceSpy).toHaveBeenCalledTimes(1);
+				});
 
-		describe('Registration', () => {
-			it('registers with the registry service', async () => {
-				// arrange
-				
-				// act
-				await appModule.onModuleInit();
+				it('logs error and warning if login fails', async () => {
+					// arrange
+					tokenServiceSpy.mockImplementation(() => Promise.reject(testError));
+					const loggerErrorSpy = jest.spyOn(appModule['logger'], 'error')
+					const loggerWarnSpy = jest.spyOn(appModule['logger'], 'warn');
+					
+					// act
+					void await appModule.onModuleInit();
 
-				// assert
-				expect(registrationSpy).toHaveBeenCalledTimes(1);
-			});
+					// assert
+					expect(tokenServiceSpy).toHaveBeenCalledTimes(1);
+					expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+					expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
+					expect(loggerErrorSpy).toHaveBeenCalledWith("Failed to get access token from auth microservice", testError, "AppModule.onModuleInit");
+					expect(loggerWarnSpy).toHaveBeenCalledWith("Continuing startup without authentication.", "AppModule.onModuleInit");
 
-			it('logs error and warning if registration fails', async () => {
-				// arrange
-				registrationSpy.mockImplementation(() => Promise.reject(testError));
-				const loggerErrorSpy = jest.spyOn(appModule['logger'], 'error')
-				const loggerWarnSpy = jest.spyOn(appModule['logger'], 'warn');
-				
-				// act
-				void await appModule.onModuleInit();
+					// clean up
+					loggerErrorSpy.mockRestore();
+					loggerWarnSpy.mockRestore();
+				});
 
-				// assert
-				expect(registrationSpy).toHaveBeenCalledTimes(1);
-				expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
-				expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
-				expect(loggerErrorSpy).toHaveBeenCalledWith("Failed to register with microservice registry", testError, "AppModule.onModuleInit");
-				expect(loggerWarnSpy).toHaveBeenCalledWith("Continuing startup without registry registration.", "AppModule.onModuleInit");
+				it('continues startup if login fails', async () => {
+					// arrange
+					tokenServiceSpy.mockImplementation(() => Promise.reject(testError));
+					
+					// act/assert
+					expect(async () => await appModule.onModuleInit()).not.toThrow();
 
-				// clean up
-				loggerErrorSpy.mockRestore();
-				loggerWarnSpy.mockRestore();
-			});
-
-			it('continues startup if registration fails', async () => {
-				// arrange
-				registrationSpy.mockImplementation(() => Promise.reject(testError));
-				
-				// act/assert
-				expect(async () => await appModule.onModuleInit()).not.toThrow();
-			});
-		});
-	});
-
-	describe('Server shutdown - onModuleDestroy', () => {
-		let deregistrationSpy: any;
-		let logoutSpy: any;
-		let testError: string;
-		beforeEach(() => {
-			deregistrationSpy = jest.spyOn(registrationService, 'deregister').mockImplementation(() => Promise.resolve(true));
-			logoutSpy = jest.spyOn(authService, 'logout').mockImplementation(() => Promise.resolve('Service logout successful'));
-			testError = 'test-error';
-		});
-
-		afterEach(() => {
-			deregistrationSpy && deregistrationSpy.mockRestore();
-		});
-
-		describe('Deregistration', () => {		
-			it('deregisters from the registry service', async () => {
-				// arrange
-
-				// act
-				await appModule.onModuleDestroy();
-
-				// assert
-				expect(deregistrationSpy).toHaveBeenCalledTimes(1);
+					// assert
+					expect(tokenServiceSpy).toHaveBeenCalledTimes(1);
+				});
 			});
 
-			it('logs error and warning if deregistration fails', async () => {
-				// arrange
-				deregistrationSpy.mockImplementation(() => Promise.reject(testError));
-				const loggerErrorSpy = jest.spyOn(appModule['logger'], 'error')
-				const loggerWarnSpy = jest.spyOn(appModule['logger'], 'warn');
-				
-				// act
-				void await appModule.onModuleDestroy();
+			describe('Registration', () => {
+				it('registers with the registry service', async () => {
+					// arrange
+					
+					// act
+					await appModule.onModuleInit();
 
-				// assert
-				expect(deregistrationSpy).toHaveBeenCalledTimes(1);
-				expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
-				expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
-				expect(loggerErrorSpy).toHaveBeenCalledWith("Failed to deregister from microservice registry", testError, "AppModule.onModuleDestroy");
-				expect(loggerWarnSpy).toHaveBeenCalledWith("Continuing shutdown without deregistration.", "AppModule.onModuleDestroy");
+					// assert
+					expect(registrationSpy).toHaveBeenCalledTimes(1);
+				});
 
-				// clean up
-				loggerErrorSpy.mockRestore();
-				loggerWarnSpy.mockRestore();
-			});
+				it('logs error and warning if registration fails', async () => {
+					// arrange
+					registrationSpy.mockImplementation(() => Promise.reject(testError));
+					const loggerErrorSpy = jest.spyOn(appModule['logger'], 'error')
+					const loggerWarnSpy = jest.spyOn(appModule['logger'], 'warn');
+					
+					// act
+					void await appModule.onModuleInit();
 
-			it('continues shutdown if deregistration fails', async () => {
-				// arrange
-				deregistrationSpy.mockImplementation(() => Promise.reject(testError));
-				
-				// act/assert
-				expect(async () => await appModule.onModuleDestroy()).not.toThrow();
+					// assert
+					expect(registrationSpy).toHaveBeenCalledTimes(1);
+					expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+					expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
+					expect(loggerErrorSpy).toHaveBeenCalledWith("Failed to register with microservice registry", testError, "AppModule.onModuleInit");
+					expect(loggerWarnSpy).toHaveBeenCalledWith("Continuing startup without registry registration.", "AppModule.onModuleInit");
+
+					// clean up
+					loggerErrorSpy.mockRestore();
+					loggerWarnSpy.mockRestore();
+				});
+
+				it('continues startup if registration fails', async () => {
+					// arrange
+					registrationSpy.mockImplementation(() => Promise.reject(testError));
+					
+					// act/assert
+					expect(async () => await appModule.onModuleInit()).not.toThrow();
+				});
 			});
 		});
 
-		describe('Logout', () => {
-			it('logs out of the authentication microservice', async () => {
-				// arrange
-
-				// act
-				await appModule.onModuleDestroy();
-
-				// assert
-				expect(logoutSpy).toHaveBeenCalledTimes(1);
+		describe('onModuleDestroy', () => {
+			let deregistrationSpy: any;
+			let logoutSpy: any;
+			let testError: string;
+			beforeEach(() => {
+				deregistrationSpy = jest.spyOn(registrationService, 'deregister').mockImplementation(() => Promise.resolve(true));
+				logoutSpy = jest.spyOn(authService, 'logout').mockImplementation(() => Promise.resolve('Service logout successful'));
+				testError = 'test-error';
 			});
 
-			it('logs error and warning if logout fails', async () => {
-				// arrange
-				logoutSpy.mockImplementation(() => Promise.reject(testError));
-				const loggerErrorSpy = jest.spyOn(appModule['logger'], 'error')
-				const loggerWarnSpy = jest.spyOn(appModule['logger'], 'warn');
-				
-				// act
-				void await appModule.onModuleDestroy();
-
-				// assert
-				expect(logoutSpy).toHaveBeenCalledTimes(1);
-				expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
-				expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
-				expect(loggerErrorSpy).toHaveBeenCalledWith("Failed to log out from auth service", testError, "AppModule.onModuleDestroy");
-				expect(loggerWarnSpy).toHaveBeenCalledWith("Continuing shutdown without logout.", "AppModule.onModuleDestroy");
-
-				// clean up
-				loggerErrorSpy.mockRestore();
-				loggerWarnSpy.mockRestore();
+			afterEach(() => {
+				deregistrationSpy && deregistrationSpy.mockRestore();
 			});
 
-			it('continues shutdown if logout fails', async () => {
-				// arrange
-				logoutSpy.mockImplementation(() => Promise.reject(testError));
-				
-				// act/assert
-				expect(async () => await appModule.onModuleDestroy()).not.toThrow();
+			describe('Deregistration', () => {		
+				it('deregisters from the registry service', async () => {
+					// arrange
+
+					// act
+					await appModule.onModuleDestroy();
+
+					// assert
+					expect(deregistrationSpy).toHaveBeenCalledTimes(1);
+				});
+
+				it('logs error and warning if deregistration fails', async () => {
+					// arrange
+					deregistrationSpy.mockImplementation(() => Promise.reject(testError));
+					const loggerErrorSpy = jest.spyOn(appModule['logger'], 'error')
+					const loggerWarnSpy = jest.spyOn(appModule['logger'], 'warn');
+					
+					// act
+					void await appModule.onModuleDestroy();
+
+					// assert
+					expect(deregistrationSpy).toHaveBeenCalledTimes(1);
+					expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+					expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
+					expect(loggerErrorSpy).toHaveBeenCalledWith("Failed to deregister from microservice registry", testError, "AppModule.onModuleDestroy");
+					expect(loggerWarnSpy).toHaveBeenCalledWith("Continuing shutdown without deregistration.", "AppModule.onModuleDestroy");
+
+					// clean up
+					loggerErrorSpy.mockRestore();
+					loggerWarnSpy.mockRestore();
+				});
+
+				it('continues shutdown if deregistration fails', async () => {
+					// arrange
+					deregistrationSpy.mockImplementation(() => Promise.reject(testError));
+					
+					// act/assert
+					expect(async () => await appModule.onModuleDestroy()).not.toThrow();
+				});
+			});
+
+			describe('Logout', () => {
+				it('logs out of the authentication microservice', async () => {
+					// arrange
+
+					// act
+					await appModule.onModuleDestroy();
+
+					// assert
+					expect(logoutSpy).toHaveBeenCalledTimes(1);
+				});
+
+				it('logs error and warning if logout fails', async () => {
+					// arrange
+					logoutSpy.mockImplementation(() => Promise.reject(testError));
+					const loggerErrorSpy = jest.spyOn(appModule['logger'], 'error')
+					const loggerWarnSpy = jest.spyOn(appModule['logger'], 'warn');
+					
+					// act
+					void await appModule.onModuleDestroy();
+
+					// assert
+					expect(logoutSpy).toHaveBeenCalledTimes(1);
+					expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+					expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
+					expect(loggerErrorSpy).toHaveBeenCalledWith("Failed to log out from auth service", testError, "AppModule.onModuleDestroy");
+					expect(loggerWarnSpy).toHaveBeenCalledWith("Continuing shutdown without logout.", "AppModule.onModuleDestroy");
+
+					// clean up
+					loggerErrorSpy.mockRestore();
+					loggerWarnSpy.mockRestore();
+				});
+
+				it('continues shutdown if logout fails', async () => {
+					// arrange
+					logoutSpy.mockImplementation(() => Promise.reject(testError));
+					
+					// act/assert
+					expect(async () => await appModule.onModuleDestroy()).not.toThrow();
+				});
 			});
 		});
 	});
