@@ -1,10 +1,10 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule, HttpService } from '@nestjs/axios';
-import { Global, Module }  from '@nestjs/common';
+import { Global, Module, OnModuleDestroy, OnModuleInit }  from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 
-
-import { Logger } from "./libraries/stream-loggable";
+import { ManagedStatefulComponentMixin } from './libraries/managed-stateful-component';
+import { Logger, StreamLoggableMixin } from "./libraries/stream-loggable";
 
 import AppHealthModule from './app-health/app-health.module';
 import AuthenticationModule from './authentication/authentication.module';
@@ -88,15 +88,15 @@ import developmentConfig from '../config/development.config';
 		UserModule,
 	]
 })
-export class AppModule {
+export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleInit, OnModuleDestroy {
 	private readonly appConfig: any;
 	
 	constructor(
 		private readonly configService: ConfigService,
-		private readonly logger: Logger,
 		private readonly registrationService: RegistrationService,
 		private readonly authService: AuthService
 	) {
+		super();
 		this.appConfig = this.configService.get<any>('app') ?? {};
 	}	
 

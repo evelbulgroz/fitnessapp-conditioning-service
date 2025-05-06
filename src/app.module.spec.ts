@@ -3,13 +3,16 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 
 import { jest } from '@jest/globals';
+import { Observable, firstValueFrom, take, Subject } from 'rxjs';
 
-import { Logger } from "./libraries/stream-loggable";
+import { ComponentState, ComponentStateInfo, ManagedStatefulComponentMixin } from './libraries/managed-stateful-component';
+import { Logger, StreamLogger } from "./libraries/stream-loggable";
 import { MergedStreamLogger } from './libraries/stream-loggable';
 
 import AppModule from './app.module';
 import AuthService from './authentication/domain/auth-service.class';
 import ConditioningLogRepository from './conditioning/repositories/conditioning-log.repo';
+import ConditioningController from './conditioning/controllers/conditioning.controller';
 import createTestingModule from './test/test-utils';
 import EventDispatcherService from './shared/services/utils/event-dispatcher/event-dispatcher.service';
 import RegistrationService from './authentication/services/registration/registration.service';
@@ -17,7 +20,42 @@ import RetryHttpService from './shared/services/utils/retry-http/retry-http.serv
 import SwaggerController from './api-docs/swagger.controller';
 import TokenService from './authentication/services/token/token.service';
 import UserController from './user/controllers/user.controller';
-import ConditioningController from './conditioning/controllers/conditioning.controller';
+
+// Stand-alone component using the mixin
+class TestComponent extends ManagedStatefulComponentMixin(class {}) {
+	public initCount = 0;
+	public shutdownCount = 0;
+	public shouldFailInit = false;
+	public shouldFailShutdown = false;
+	public initDelay = 0;
+	public shutdownDelay = 0;
+
+	public onInitialize(): Promise<void> {
+		this.initCount++;
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				if (this.shouldFailInit) {
+					reject(new Error('Initialization failed'));
+				} else {
+					resolve();
+				}
+			}, this.initDelay);
+		});
+	}
+
+	public onShutdown(): Promise<void> {
+		this.shutdownCount++;
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				if (this.shouldFailShutdown) {
+					reject(new Error('Shutdown failed'));
+				} else {
+					resolve();
+				}
+			}, this.shutdownDelay);
+		});
+	}
+}
 
 describe('AppModule', () => {
 	let appModule: AppModule;	
@@ -310,6 +348,226 @@ describe('AppModule', () => {
 				
 				// act/assert
 				expect(async () => await appModule.onModuleDestroy()).not.toThrow();
+			});
+		});
+	});
+
+	describe('Management API', () => {
+			// NOTE: no need to fully retest ManagedStatefulComponentMixin methods,
+				// as they are already tested in the mixin.
+				// Just do a few checks that things are hooked up correctly,
+				// and that local implementations work correctly.									
+				
+			beforeEach(async () => {
+				// Reset ConditioningModule to UNINITIALIZED state properly
+				appModule['msc_zh7y_ownState'] = {
+					name: appModule.constructor.name,
+					state: ComponentState.UNINITIALIZED,
+					reason: 'Component reset for test',
+					updatedOn: new Date()
+				};
+				
+				// Update the state subject with the new state
+				appModule['msc_zh7y_stateSubject'].next({...appModule['msc_zh7y_ownState']});
+				
+				// Also reset initialization and shutdown promises
+				appModule['msc_zh7y_initializationPromise'] = undefined;
+				appModule['msc_zh7y_shutdownPromise'] = undefined;
+			});	
+			
+			describe('ManagedStatefulComponentMixin Members', () => {
+				it('inherits componentState$ ', () => {
+					expect(appModule).toHaveProperty('componentState$');
+					expect(appModule.componentState$).toBeDefined();
+					expect(appModule.componentState$).toBeInstanceOf(Observable);
+				});
+	
+				it('inherits initialize method', () => {
+					expect(appModule).toHaveProperty('initialize');
+					expect(appModule.initialize).toBeDefined();
+					expect(appModule.initialize).toBeInstanceOf(Function);
+				});
+	
+				it('inherits shutdown method', () => {
+					expect(appModule).toHaveProperty('shutdown');
+					expect(appModule.shutdown).toBeDefined();
+					expect(appModule.shutdown).toBeInstanceOf(Function);
+				});
+	
+				it('inherits isReady method', () => {
+					expect(appModule).toHaveProperty('isReady');
+					expect(appModule.isReady).toBeDefined();
+					expect(appModule.isReady).toBeInstanceOf(Function);
+				});
+	
+				it('inherits registerSubcomponent method', () => {
+					expect(appModule).toHaveProperty('registerSubcomponent');
+					expect(appModule.registerSubcomponent).toBeDefined();
+					expect(appModule.registerSubcomponent).toBeInstanceOf(Function);
+				});
+	
+				it('inherits unregisterSubcomponent method', () => {
+					expect(appModule).toHaveProperty('unregisterSubcomponent');
+					expect(appModule.unregisterSubcomponent).toBeDefined();
+					expect(appModule.unregisterSubcomponent).toBeInstanceOf(Function);
+				});			
+			});
+	
+			describe('State Transitions', () => {
+				it('is in UNINITIALIZED state before initialization', async () => {
+					// arrange
+					const stateInfo = await firstValueFrom(appModule.componentState$.pipe(take (1))) as ComponentStateInfo; // get the initial state
+	
+					// act
+					
+					// assert
+					expect(stateInfo).toBeDefined();
+					expect(stateInfo.state).toBe(ComponentState.UNINITIALIZED);
+				});
+	
+				it('is in OK state after initialization', async () => {
+					// arrange
+					let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+					const sub = appModule.componentState$.subscribe((s) => {
+						state = s.state;
+					});
+	
+					expect(state).toBe(ComponentState.UNINITIALIZED); // sanity check
+	
+					// act
+					await appModule.initialize();
+	
+					// assert
+					expect(state).toBe(ComponentState.OK);
+	
+					// clean up
+					sub.unsubscribe();
+				});
+	
+				it('is in SHUT_DOWN state after shutdown', async () => {
+					// arrange
+					let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+					const sub = appModule.componentState$.subscribe((s: ComponentStateInfo) => {
+						state = s.state;
+					});
+					expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
+					
+					await appModule.initialize();
+					expect(state).toBe(ComponentState.OK); // sanity check
+					
+					// act			
+					await appModule.shutdown();
+	
+					// assert
+					expect(state).toBe(ComponentState.SHUT_DOWN);
+	
+					// clean up
+					sub.unsubscribe();
+				});
+			});
+			
+			describe('initialize', () => {	
+				it('calls onInitialize', async () => {				
+					// arrange
+					let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
+					const sub = appModule.componentState$.subscribe((s: ComponentStateInfo) => {
+						state = s.state;
+					});
+					expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
+					
+					const onInitializeSpy = jest.spyOn(appModule, 'onInitialize').mockReturnValue(Promise.resolve());
+		
+					// act
+					await appModule.initialize();
+					expect(state).toBe(ComponentState.OK); // sanity check
+		
+					// assert
+					expect(onInitializeSpy).toHaveBeenCalledTimes(1);
+					expect(onInitializeSpy).toHaveBeenCalledWith(undefined);
+	
+					// clean up
+					sub.unsubscribe();
+					onInitializeSpy?.mockRestore();
+				});
+			});
+	
+			describe('isReady', () => {		
+				it('reports if/when it is initialized (i.e. ready)', async () => {
+					// arrange
+					await appModule.initialize(); // initialize the ConditioningModule
+	
+					// act
+					const result = await appModule.isReady();
+	
+					// assert
+					expect(result).toBe(true);
+				});
+			});		
+	
+			describe('shutdown', () => {
+				it('calls onShutdown', async () => {				
+					// arrange
+					const onShutdownSpy = jest.spyOn(appModule, 'onShutdown').mockReturnValue(Promise.resolve());
+					
+					// act
+					await appModule.shutdown();
+		
+					// assert
+					expect(onShutdownSpy).toHaveBeenCalledTimes(1);
+					expect(onShutdownSpy).toHaveBeenCalledWith(undefined);
+	
+					// clean up
+					onShutdownSpy?.mockRestore();
+				});
+			});
+	
+			describe('Integration with Subcomponents', () => {
+				it('gets aggregated state for itself and its registered subcomponents', async () => {
+					// arrange
+					const subcomponent1 = new TestComponent();
+					const subcomponent2 = new TestComponent();
+					const subcomponent3 = new TestComponent();
+	
+					appModule.registerSubcomponent(subcomponent1);
+					appModule.registerSubcomponent(subcomponent2);
+					appModule.registerSubcomponent(subcomponent3);
+	
+					// act
+					await appModule.initialize();
+	
+					// assert
+					 // note: just verify basic aggregation of state, this is fully tested in the mixin
+					const stateInfo = await firstValueFrom(appModule.componentState$.pipe(take (1))) as ComponentStateInfo;
+					expect(stateInfo).toBeDefined();
+					expect(stateInfo.state).toBe(ComponentState.OK);
+					expect(stateInfo.components).toHaveLength(3);
+					expect(stateInfo.components![0].state).toBe(ComponentState.OK);
+					expect(stateInfo.components![1].state).toBe(ComponentState.OK);
+					expect(stateInfo.components![2].state).toBe(ComponentState.OK);
+	
+					// clean up
+					appModule.unregisterSubcomponent(subcomponent1);
+					appModule.unregisterSubcomponent(subcomponent2);
+					appModule.unregisterSubcomponent(subcomponent3);
+				});
+			});
+	});
+		
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(appModule.log$).toBeDefined();
+				expect(appModule.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(appModule.logger).toBeDefined();
+				expect(appModule.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(appModule.logToStream).toBeDefined();
+				expect(typeof appModule.logToStream).toBe('function');
 			});
 		});
 	});
