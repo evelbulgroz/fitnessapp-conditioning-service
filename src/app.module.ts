@@ -98,7 +98,31 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	) {
 		super();
 		this.appConfig = this.configService.get<any>('app') ?? {};
-	}	
+	}
+
+	//-------------------------------------- LIFECYCLE HOOKS ---------------------------------------//
+
+	/** Initialize the module and its components
+	 * @returns Promise that resolves to void when the module is fully initialized
+	 * @throws Error if initialization fails
+	 * @todo Add error handling for initialization failures
+	 */
+	public async onModuleInit(): Promise<void> {
+		// Triggers ManagedStatefulComponentMixin to call onInitialize() in the correct order
+		await this.initialize(); 
+	};
+
+	/** Clean up the module and its components
+	 * @returns Promise that resolves to void when the module is fully cleaned up
+	 * @throws Error if cleanup fails
+	 * @todo Add error handling for cleanup failures
+	 */
+	public async onModuleDestroy(): Promise<void> {
+		// Triggers ManagedStatefulComponentMixin to call onShutdown() in the correct order
+		await this.shutdown(); 
+	}
+
+	//------------------------------------- MANAGEMENT API --------------------------------------//
 
 	/** Initialize the server by logging in to the auth service and registering with the microservice registry
 	 * @returns Promise that resolves to void when the server initialization is complete
@@ -107,7 +131,7 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	 * @todo Add an app controller with a health check endpoint, backed by service, to check if server is initialized and running
 	 * @todo Add "degraded" status to health check endpoint if initialization fails
 	 */
-	public async onModuleInit() {
+	public async onInitialize() {
 		this.logger.info('Initializing server...', `${this.constructor.name}.onModuleInit`);
 		// todo : set health check status to initializing
 
@@ -138,7 +162,7 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	 * @returns Promise that resolves to void when the server has been shut down
 	 * @throws Error if deregistration or logout fails
 	 */
-	public async onModuleDestroy() {
+	public async onShutdown() {
 		this.logger.info('Destroying server...', `${this.constructor.name}.onModuleDestroy`);		
 		// todo : set health check status to shutting down
 		
