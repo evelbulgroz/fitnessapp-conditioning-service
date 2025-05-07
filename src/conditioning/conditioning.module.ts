@@ -72,7 +72,7 @@ import QueryMapper from './mappers/query.mapper';
 		ConditioningLogRepository,
 		ConditioningLogUndeletedHandler,
 		ConditioningLogUpdatedHandler,
-		{
+		{ //Persistence adapter for file system storage
 			provide: PersistenceAdapter,
 			useFactory: (configService: ConfigService) => {
 				const dataDir = configService.get<string>('modules.conditioning.repos.fs.dataDir') ?? 'no-such-dir';
@@ -81,7 +81,7 @@ import QueryMapper from './mappers/query.mapper';
 			inject: [ConfigService],
 		},
 		QueryMapper,
-		{
+		{ //REPOSITORY_THROTTLETIME
 			provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
 			useValue: 100
 		},		

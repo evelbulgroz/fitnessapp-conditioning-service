@@ -4,7 +4,7 @@ import { Global, Module, OnModuleDestroy, OnModuleInit }  from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 
 import { ManagedStatefulComponentMixin } from './libraries/managed-stateful-component';
-import { Logger, StreamLoggableMixin } from "./libraries/stream-loggable";
+import { Logger, MergedStreamLogger, StreamLoggableMixin } from "./libraries/stream-loggable";
 
 import AppHealthModule from './app-health/app-health.module';
 import AuthenticationModule from './authentication/authentication.module';
@@ -23,6 +23,7 @@ import UserModule from './user/user.module';
 
 import productionConfig from './../config/production.config';
 import developmentConfig from '../config/development.config';
+import { first, firstValueFrom, take } from 'rxjs';
 
 @Global()
 @Module({
@@ -94,7 +95,8 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	constructor(
 		private readonly configService: ConfigService,
 		private readonly registrationService: RegistrationService,
-		private readonly authService: AuthService
+		private readonly authService: AuthService,
+		private readonly streamLogger: MergedStreamLogger,
 	) {
 		super();
 		this.appConfig = this.configService.get<any>('app') ?? {};
@@ -103,16 +105,21 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	//-------------------------------------- LIFECYCLE HOOKS ---------------------------------------//
 
 	/** Initialize the module and its components
+	 * 
 	 * @returns Promise that resolves to void when the module is fully initialized
 	 * @throws Error if initialization fails
 	 * @todo Add error handling for initialization failures
 	 */
 	public async onModuleInit(): Promise<void> {
 		// Triggers ManagedStatefulComponentMixin to call onInitialize() in the correct order
-		await this.initialize(); 
+		await this.initialize();
+
+		const state = firstValueFrom(this.componentState$.pipe(take(1)));
+		console.log('Component state:', JSON.stringify(state, null, 2)); // for debugging		
 	};
 
 	/** Clean up the module and its components
+	 * 
 	 * @returns Promise that resolves to void when the module is fully cleaned up
 	 * @throws Error if cleanup fails
 	 * @todo Add error handling for cleanup failures
@@ -125,6 +132,7 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	//------------------------------------- MANAGEMENT API --------------------------------------//
 
 	/** Initialize the server by logging in to the auth service and registering with the microservice registry
+	 * 
 	 * @returns Promise that resolves to void when the server initialization is complete
 	 * @throws Error if initialization fails
 	 * @todo Fail with warning, rather than error, if initialization fails, e.g. to support manual testing and graceful degradation
@@ -132,28 +140,24 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	 * @todo Add "degraded" status to health check endpoint if initialization fails
 	 */
 	public async onInitialize() {
-		this.logger.info('Initializing server...', `${this.constructor.name}.onModuleInit`);
-		// todo : set health check status to initializing
+		// Set up logging
+		this.initializeLogging();
 
+		this.logger.info('Initializing server...', `${this.constructor.name}.onModuleInit`);
+		
 		// Log in to the auth microservice (internally gets and stores access token)
 		try {
-			void await this.authService.getAuthData();
+			void await this.authenticate();
 		}
 		catch (error) {
-			this.logger.error(`Failed to get access token from auth microservice`, error, `${this.constructor.name}.onModuleInit`);
-			this.logger.warn(`Continuing startup without authentication.`, `${this.constructor.name}.onModuleInit`);
-			// todo: set health check status to degraded
+			void error;
+			// do nothing: authenticate() method handles error messaging and health check status
 		}
+
+		// Register subcomponents for lifecycle management
+		//this.registerSubcomponent(this.conditioningModule);
+		//this.registerSubcomponent(this.userModule);
 		
-		// Register with the microservice registry (internally gets access token from auth service)
-		try {
-			void await this.registrationService.register();
-		}
-		catch (error) {
-			this.logger.error(`Failed to register with microservice registry`, error, `${this.constructor.name}.onModuleInit`);
-			this.logger.warn(`Continuing startup without registry registration.`, `${this.constructor.name}.onModuleInit`);
-			// todo: set health check status to degraded
-		}
 		
 		this.logger.info(`Server initialized with instance id ${this.appConfig.serviceid}`, `${this.constructor.name}.onModuleInit`);
 	}
@@ -189,6 +193,51 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 		this.logger.info('Server destroyed', `${this.constructor.name}.onModuleDestroy`);
 		// todo : set health check status to destroyed
 		// todo : close all connections and clean up resources
+	}
+	
+	//------------------------------------- PRIVATE METHODS -------------------------------------//
+
+	/** Authenticate with the auth service and register with the microservice registry
+	 * 
+	 * Registers with the microservice registry (internally gets and stores access token from auth service)
+	 * @todo Set health check status to degraded if authentication or registration fails
+	 */
+	private async authenticate() {
+		try {
+			void await this.authService.getAuthData();
+		}
+		catch (error) {
+			this.logger.error(`Failed to get access token from auth microservice`, error, `${this.constructor.name}.onModuleInit`);
+			this.logger.warn(`Continuing startup without authentication.`, `${this.constructor.name}.onModuleInit`);
+			// todo: set health check status to degraded
+		}
+
+		// Register with the microservice registry (internally gets access token from auth service)
+		try {
+			void await this.registrationService.register();
+		}
+		catch (error) {
+			this.logger.error(`Failed to register with microservice registry`, error, `${this.constructor.name}.onModuleInit`);
+			this.logger.warn(`Continuing startup without registry registration.`, `${this.constructor.name}.onModuleInit`);
+			// todo: set health check status to degraded
+		}
+	}
+	
+	/* Initialize logging for the module and its components.
+	 * 
+	This method subscribes to the log streams of the module and its components, allowing for centralized logging.
+	 * It also logs the initialization status of the logging system.
+	 */
+	private initializeLogging() {
+		this.streamLogger.subscribeToStreams([
+			// For now, submodules handle their own logging, no need to subscribe to their components here
+			// AppController, if provided, is not a managed component, so we don't subscribe to its componentState$ stream
+			
+			{ streamType: 'log$', component: this },
+			{ streamType: 'log$', component: this.authService },
+			// AppController: Cannot get a reference to the active instance here, so it subscribes itself (if needed)
+		]);
+		this.logger.info('Logging enabled', `${this.constructor.name}.onModuleInit`);
 	}
 }
 
