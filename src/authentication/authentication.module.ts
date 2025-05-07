@@ -11,25 +11,25 @@ import JsonWebtokenService from './services/jwt/json-webtoken.service';
 @Module({
 	imports: [],
 	providers: [
-		{
-		provide: CryptoService,
-		useClass: BcryptCryptoService,
+		{ // CryptoService
+			provide: CryptoService,
+			useClass: BcryptCryptoService,
 		},
 		JwtAuthStrategy,
-		{
-		provide: JwtService,
-		useFactory: (secretService: JwtSecretService) => {
-			return new JsonWebtokenService(secretService);
+		{ // JwtService
+			provide: JwtService,
+			useFactory: (secretService: JwtSecretService) => {
+				return new JsonWebtokenService(secretService);
+			},
+			inject: [JwtSecretService],
 		},
-		inject: [JwtSecretService],
-		},
-		{
-		provide: JwtSecretService,
-		useFactory: (configService: ConfigService) => {
-			const secret = configService.get<string>('security.authentication.jwt.accessToken.secret') ?? 'secret-not-found';
-			return new JwtSecretService(secret);
-		},
-		inject: [ConfigService],
+		{ // JwtSecretService
+			provide: JwtSecretService,
+			useFactory: (configService: ConfigService) => {
+				const secret = configService.get<string>('security.authentication.jwt.accessToken.secret') ?? 'secret-not-found';
+				return new JwtSecretService(secret);
+			},
+			inject: [ConfigService],
 		},
 		// later: add registration and token services
 	],
