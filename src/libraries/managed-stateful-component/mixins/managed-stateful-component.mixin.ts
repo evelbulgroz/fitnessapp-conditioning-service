@@ -4,7 +4,6 @@ import ComponentState from '../models/component-state.enum';
 import ComponentStateInfo from '../models/component-state-info.model';
 import ManagedStatefulComponent from '../models/managed-stateful-component.model';
 import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
-import DomainStateManager from '../helpers/domain-state-manager.class';
 
 // Fixed prefix for internal members to avoid name collisions with parent classes or other libraries.
  // Applied dynamically to all internal methods, and is hard coded into property names for simplicity.
