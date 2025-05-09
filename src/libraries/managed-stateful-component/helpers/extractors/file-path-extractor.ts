@@ -1,4 +1,3 @@
-import e from "express";
 import DomainPathExtractor from "../../models/domain-path-extractor.model";
 import DomainStateManager from "../domain-state-manager.class";
 
@@ -13,22 +12,35 @@ import DomainStateManager from "../domain-state-manager.class";
 export const filePathExtractor: DomainPathExtractor = (manager: DomainStateManager, appRootName: string = 'app'): string => {
 	// The file location must be attached to the manager instance
 	const filePath = (manager as any).__filename;
-
+	
 	// If file path is missing, fall back to constructor name
 	if (!filePath) {
 		return manager.constructor.name.replace(/Manager$/, '').toLowerCase();
 	}
-
+	
 	// Extract portion after project root to create hierarchical path
-	const projectRoot = 'my-fantastic-app';
+	const projectRoot = 'fitnessapp-conditioning-service';
 	const relativePath = filePath.split(projectRoot)[1];
-
+	
 	// Create dotted path, removing file extension and normalizing names
-	return appRootName + relativePath
-		.replace(/\\/g, '.')
-		.replace(/\//g, '.')
-		.replace(/\.ts$/, '')
-		.replace(/\.module/g, '')
+	let normalizedPath = (appRootName + relativePath)
+		.replace(/\\/g, '.') // Replace backslashes with dots for Windows compatibility
+		.replace(/\//g, '.') // Replace slashes with dots
+		.replace(/^\./, '') // Remove leading dot
+		.replace(/\.$/, '') // Remove trailing dot
+		.replace(/\.js$/, '') // Remove .js extension
+		.replace(/\.ts$/, '') // Remove .ts extension
+		.replace(/\.dist\.src\./g, '.') // Remove .dist.src.
 		.toLowerCase();
+	
+	// Remove the file name from the path - this is the key change
+	const pathSegments = normalizedPath.split('.');
+	if (pathSegments.length > 1) {
+		// Remove the last segment (file name)
+		pathSegments.pop();
+		normalizedPath = pathSegments.join('.');
+	}
+	
+	return normalizedPath;
 };
 export default filePathExtractor;

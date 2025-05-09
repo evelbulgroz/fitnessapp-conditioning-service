@@ -18,29 +18,45 @@ import DomainStateManager from "../helpers/domain-state-manager.class";
  * @param manager - The domain state manager to locate in the hierarchy
  * @param appRootName - Root prefix for all paths (default: "app")
  * @returns A dot-separated string representing the manager's position in the hierarchy (e.g., "app.conditioning")
+ *   Skips the file name in favour of the enclosing directory name, plus 'app' for the root.
  *
  * @example
  * // File system location strategy (automatically reflects code organization)
- * const filePathExtractor: DomainPathExtractor = (manager, appRootName = 'app') => {
- *   // Get filepath attached by discovery service
- *   const filePath = (manager as any).__filename;
- *
- *   // Fallback for testing or unknown filepath
- *   if (!filePath) {
- *     return `${appRootName}.${manager.constructor.name.replace(/Manager$/, '').toLowerCase()}`;
- *   }
- *
- *   // Convert filepath to dotted hierarchy
- *   const projectRoot = 'fitnessapp-conditioning-service';
- *   const relativePath = filePath.split(projectRoot)[1];
- *
- *   return appRootName + relativePath
- *     .replace(/\\/g, '.')
- *     .replace(/\//g, '.')
- *     .replace(/\.ts$/, '')
- *     .replace(/\.module/g, '')
- *     .toLowerCase();
- * };
+ * export const filePathExtractor: DomainPathExtractor = (manager: DomainStateManager, appRootName: string = 'app'): string => {
+	// The file location must be attached to the manager instance
+	const filePath = (manager as any).__filename;
+	
+	// If file path is missing, fall back to constructor name
+	if (!filePath) {
+		return manager.constructor.name.replace(/Manager$/, '').toLowerCase();
+	}
+	
+	// Extract portion after project root to create hierarchical path
+	const projectRoot = 'fitnessapp-conditioning-service';
+	const relativePath = filePath.split(projectRoot)[1];
+	
+	// Create dotted path, removing file extension and normalizing names
+	let normalizedPath = (appRootName + relativePath)
+		.replace(/\\/g, '.') // Replace backslashes with dots for Windows compatibility
+		.replace(/\//g, '.') // Replace slashes with dots
+		.replace(/^\./, '') // Remove leading dot
+		.replace(/\.$/, '') // Remove trailing dot
+		.replace(/\.js$/, '') // Remove .js extension
+		.replace(/\.ts$/, '') // Remove .ts extension
+		.replace(/\.dist\.src\./g, '.') // Remove .dist.src.
+		.toLowerCase();
+	
+	// Remove the file name from the path - this is the key change
+	const pathSegments = normalizedPath.split('.');
+	if (pathSegments.length > 1) {
+		// Remove the last segment (file name)
+		pathSegments.pop();
+		normalizedPath = pathSegments.join('.');
+	}
+	
+	console.log("filePathExtractor", normalizedPath);
+	return normalizedPath;
+};
  */
 export type DomainPathExtractor = (manager: DomainStateManager, appRootName?: string) => string;
 export default DomainPathExtractor;

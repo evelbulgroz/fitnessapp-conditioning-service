@@ -36,7 +36,7 @@ import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.
  *   }
  * }
  */
-export abstract class DomainStateManager extends ManagedStatefulComponentMixin(class {}) {
+export class DomainStateManager extends ManagedStatefulComponentMixin(class {}) {
 	protected readonly options?: DomainStateManagerOptions;
 	
 	/** Creates a new instance of the DomainStateManager.

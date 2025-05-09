@@ -2,8 +2,12 @@ import { BehaviorSubject, filter, firstValueFrom, Observable, Subscription, take
 
 import ComponentState from '../models/component-state.enum';
 import ComponentStateInfo from '../models/component-state-info.model';
+import DomainHierarchyWirer from '../helpers/domain-hierarchy-wirer.class';
 import ManagedStatefulComponent from '../models/managed-stateful-component.model';
 import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
+import DomainStateManager from '../helpers/domain-state-manager.class';
+import DomainPathExtractor from '../models/domain-path-extractor.model';
+import filePathExtractor from '../helpers/extractors/file-path-extractor';
 
 // Fixed prefix for internal members to avoid name collisions with parent classes or other libraries.
  // Applied dynamically to all internal methods, and is hard coded into property names for simplicity.
@@ -122,7 +126,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 	options: ManagedStatefulComponentOptions = {
 		initializationStrategy: 'parent-first',
 		shutDownStrategy: 'parent-first',
-		subcomponentStrategy: 'parallel'
+		subcomponentStrategy:  'parallel'
 	},
 	unshadowPrefix: string = MSC_PREFIX
 ) {
@@ -160,6 +164,9 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		/* @internal *///readonly componentId: string;
 		/* @internal */ // readonly domainName: string;
 		/* @internal */ // readonly domainManager: DomainStateManager;
+
+		// Domain hierarchy management utility
+		/* @internal */ static msc_zh7y_domainHierarchyWirer: DomainHierarchyWirer;
 		
 		// Initialization and shutdown promises
 		/* @internal */ msc_zh7y_initializationPromise?: Promise<void>;
@@ -187,6 +194,23 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		}		
 
 		//------------------------------------- PUBLIC API --------------------------------------//
+
+		// EXPERIMENTAL: This method is not part of the public API and is subject to change
+		// TODO: Promote to property of mixin, inner class not visible outside of this file
+		public static async wireDomains(
+			managers: DomainStateManager[],
+			pathExtractor: DomainPathExtractor,
+			pathSeparator: string = "."
+		): Promise<void> {
+			if (!this.msc_zh7y_domainHierarchyWirer) {
+				// Lazy-load the DomainHierarchyWirer to avoid circular dependencies
+				const { default: DomainHierarchyWirer } = await import('../helpers/domain-hierarchy-wirer.class');
+				this.msc_zh7y_domainHierarchyWirer = new DomainHierarchyWirer();
+			}
+			  // this[`${MSC_PREFIX}domainHierarchyWirer`] as DomainHierarchyWirer;
+			return this.msc_zh7y_domainHierarchyWirer.wireDomains(managers, pathExtractor = filePathExtractor, pathSeparator = '.');
+		}
+
 		
 		/** Observable stream of state changes for the component and its subcomponents (if any)
 		 * @returns Observable that emits the current state of the component and its subcomponents (if any) whenever the state changes

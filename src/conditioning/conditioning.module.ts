@@ -1,7 +1,7 @@
 import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { ComponentStateInfo, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
+import { DomainStateManager, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLoggableMixin } from '../libraries/stream-loggable';
 
@@ -18,6 +18,7 @@ import ConditioningLogUndeletedHandler from './handlers/conditioning-log-undelet
 import ConditioningLogUpdatedHandler from './handlers/conditioning-log-updated.handler';
 import LoggingModule from '../logging/logging.module';
 import QueryMapper from './mappers/query.mapper';
+import ConditioningDomainStateManager from './conditioning-domain-state-manager';
 
 /** Main module for components managing and serving conditioning logs.
  * 
@@ -67,6 +68,13 @@ import QueryMapper from './mappers/query.mapper';
 		AggregatorService,
 		AggregationQueryMapper,
 		ConditioningDataService,
+		{ // ConditioningDomainStateManager
+			// Must be provided here in order for root manager to be able to detect it
+			// and register it as a subcomponent.
+			// But no need to inject it into this module itself.
+			provide: DomainStateManager,
+			useClass: ConditioningDomainStateManager,
+		},
 		ConditioningLogCreatedHandler,
 		ConditioningLogDeletedHandler,
 		ConditioningLogRepository,
@@ -95,7 +103,7 @@ import QueryMapper from './mappers/query.mapper';
 		ConditioningLogUpdatedHandler,
 	],
 })
-export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleInit, OnModuleDestroy {
+export class ConditioningModule extends StreamLoggableMixin(class {}) implements OnModuleInit, OnModuleDestroy {
 	constructor(
 		private readonly repository: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly dataService: ConditioningDataService,
@@ -115,11 +123,6 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 	 * management system, setting the component and module to FAILED state with detailed error information.
 	 */
 	public async onModuleInit(): Promise<void> {
-		// Register subcomponents for lifecycle management
-		this.registerSubcomponent(this.repository); // repo handles persistence initialization internally
-		this.registerSubcomponent(this.dataService);
-		// ConditioningController is not a managed component, so we don't register it as a subcomponent
-
 		// Subscribe to log streams for logging
 		this.streamLogger.subscribeToStreams([
 			{ streamType: 'componentState$', component: this.repository },
@@ -131,10 +134,7 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 			// ConditioningController: Cannot get a reference to the active instance here, so it subscribes itself
 		]);
 		
-		// Initialize module and all managed subcomponents
-		await this.initialize(); 
-
-		this.logModuleMetadata(); // Log module metadata for debugging and analysis
+		//await this.stateManager.initialize(); // Initialize the state manager
 	}
 
 	/** Cleans up the module and its components
@@ -145,13 +145,7 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 	 * @returns {Promise<void>} A promise that resolves to void when the module is fully shut down.
 	 */
 	public async onModuleDestroy(): Promise<void> {
-		// Shutdown module and all managed subcomponents
-		await this.shutdown();
-
-		// Unregister subcomponents for lifecycle management
-		// ConditioningController is not a managed component, so we don't unregister it as a subcomponent
-		this.unregisterSubcomponent(this.repository); // repo handles persistence shutdown internally
-		this.unregisterSubcomponent(this.dataService);
+		//await this.stateManager.shutdown();
 
 		// Unsubscribe from log streams for logging
 		this.streamLogger.unsubscribeAll(); // unsubscribe from all streams

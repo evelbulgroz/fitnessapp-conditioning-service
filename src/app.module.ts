@@ -3,8 +3,8 @@ import { HttpModule, HttpService } from '@nestjs/axios';
 import { Global, Module, OnModuleDestroy, OnModuleInit }  from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 
-import { ManagedStatefulComponentMixin } from './libraries/managed-stateful-component';
-import { Logger, MergedStreamLogger, StreamLoggableMixin } from "./libraries/stream-loggable";
+import { DomainStateManager, ManagedStatefulComponentMixin } from './libraries/managed-stateful-component';
+import { MergedStreamLogger, StreamLoggableMixin } from "./libraries/stream-loggable";
 
 import AppHealthModule from './app-health/app-health.module';
 import AuthenticationModule from './authentication/authentication.module';
@@ -23,7 +23,9 @@ import UserModule from './user/user.module';
 
 import productionConfig from './../config/production.config';
 import developmentConfig from '../config/development.config';
-import { first, firstValueFrom, take } from 'rxjs';
+import { firstValueFrom, Subscription, take } from 'rxjs';
+import { DiscoveryService } from '@nestjs/core';
+import AppDomainStateManager from './app-domain-state-manager';
 
 @Global()
 @Module({
@@ -51,6 +53,12 @@ import { first, firstValueFrom, take } from 'rxjs';
 	],
 	providers: [		
 		ConfigService,
+		DiscoveryService,
+		{ // DomainStateManager
+			// Provide the AppDomainStateManager implementation of the DomainStateManager interface
+			provide: DomainStateManager,
+			useClass: AppDomainStateManager
+		},
 		EventDispatcherService,
 		RequestLoggingInterceptor,
 		RegistrationService,
@@ -89,14 +97,16 @@ import { first, firstValueFrom, take } from 'rxjs';
 		UserModule,
 	]
 })
-export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleInit, OnModuleDestroy {
+export class AppModule  extends StreamLoggableMixin(class {}) implements OnModuleInit, OnModuleDestroy {
 	private readonly appConfig: any;
+	private readonly subs: Subscription[] = [];
 	
 	constructor(
 		private readonly configService: ConfigService,
 		private readonly registrationService: RegistrationService,
 		private readonly authService: AuthService,
 		private readonly streamLogger: MergedStreamLogger,
+		private readonly stateManager: DomainStateManager,
 	) {
 		super();
 		this.appConfig = this.configService.get<any>('app') ?? {};
@@ -111,40 +121,14 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	 * @todo Add error handling for initialization failures
 	 */
 	public async onModuleInit(): Promise<void> {
-		// Triggers ManagedStatefulComponentMixin to call onInitialize() in the correct order
-		await this.initialize();
-
-		const state = firstValueFrom(this.componentState$.pipe(take(1)));
-		console.log('Component state:', JSON.stringify(state, null, 2)); // for debugging		
-	};
-
-	/** Clean up the module and its components
-	 * 
-	 * @returns Promise that resolves to void when the module is fully cleaned up
-	 * @throws Error if cleanup fails
-	 * @todo Add error handling for cleanup failures
-	 */
-	public async onModuleDestroy(): Promise<void> {
-		// Triggers ManagedStatefulComponentMixin to call onShutdown() in the correct order
-		await this.shutdown(); 
-	}
-
-	//------------------------------------- MANAGEMENT API --------------------------------------//
-
-	/** Initialize the server by logging in to the auth service and registering with the microservice registry
-	 * 
-	 * @returns Promise that resolves to void when the server initialization is complete
-	 * @throws Error if initialization fails
-	 * @todo Fail with warning, rather than error, if initialization fails, e.g. to support manual testing and graceful degradation
-	 * @todo Add an app controller with a health check endpoint, backed by service, to check if server is initialized and running
-	 * @todo Add "degraded" status to health check endpoint if initialization fails
-	 */
-	public async onInitialize() {
 		// Set up logging
 		this.initializeLogging();
 
 		this.logger.info('Initializing server...', `${this.constructor.name}.onModuleInit`);
 		
+		// Initialize state management of the module and its components
+		await this.stateManager.initialize();
+
 		// Log in to the auth microservice (internally gets and stores access token)
 		try {
 			void await this.authenticate();
@@ -154,19 +138,21 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 			// do nothing: authenticate() method handles error messaging and health check status
 		}
 
-		// Register subcomponents for lifecycle management
-		//this.registerSubcomponent(this.conditioningModule);
-		//this.registerSubcomponent(this.userModule);
-		
-		
 		this.logger.info(`Server initialized with instance id ${this.appConfig.serviceid}`, `${this.constructor.name}.onModuleInit`);
-	}
+		
+		const sub = this.stateManager.componentState$.subscribe((state) => { // for debugging	
+			console.info({ name: state.name, state: state.state, reason: state.reason, });
+		});
+		this.subs.push(sub);			
+	};
 
-	/** Shut down the server by deregistering from the microservice registry and logging out from the auth service
-	 * @returns Promise that resolves to void when the server has been shut down
-	 * @throws Error if deregistration or logout fails
+	/** Clean up the module and its components
+	 * 
+	 * @returns Promise that resolves to void when the module is fully cleaned up
+	 * @throws Error if cleanup fails
+	 * @todo Add error handling for cleanup failures
 	 */
-	public async onShutdown() {
+	public async onModuleDestroy(): Promise<void> {
 		this.logger.info('Destroying server...', `${this.constructor.name}.onModuleDestroy`);		
 		// todo : set health check status to shutting down
 		
@@ -189,10 +175,46 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 			this.logger.warn('Continuing shutdown without logout.', `${this.constructor.name}.onModuleDestroy`);
 			// todo: set health check status to degraded
 		}
+		
+		// Shut down the state management of the module and its components
+		await this.stateManager.shutdown();
+
+		this.subs.forEach((sub) => {
+			sub && sub.unsubscribe();
+		});		
 
 		this.logger.info('Server destroyed', `${this.constructor.name}.onModuleDestroy`);
 		// todo : set health check status to destroyed
 		// todo : close all connections and clean up resources
+	}
+
+	//------------------------------------- MANAGEMENT API --------------------------------------//
+
+	/** Initialize the server by logging in to the auth service and registering with the microservice registry
+	 * 
+	 * @returns Promise that resolves to void when the server initialization is complete
+	 * @throws Error if initialization fails
+	 * @todo Fail with warning, rather than error, if initialization fails, e.g. to support manual testing and graceful degradation
+	 * @todo Add an app controller with a health check endpoint, backed by service, to check if server is initialized and running
+	 * @todo Add "degraded" status to health check endpoint if initialization fails
+	 */
+	public async onInitialize() {
+		return;
+
+		// Register subcomponents for lifecycle management
+		//this.registerSubcomponent(this.conditioningModule);
+		//this.registerSubcomponent(this.userModule);
+		
+		
+		this.logger.info(`Server initialized with instance id ${this.appConfig.serviceid}`, `${this.constructor.name}.onModuleInit`);
+	}
+
+	/** Shut down the server by deregistering from the microservice registry and logging out from the auth service
+	 * @returns Promise that resolves to void when the server has been shut down
+	 * @throws Error if deregistration or logout fails
+	 */
+	public async onShutdown() {
+		
 	}
 	
 	//------------------------------------- PRIVATE METHODS -------------------------------------//
@@ -242,46 +264,3 @@ export class AppModule  extends StreamLoggableMixin(ManagedStatefulComponentMixi
 }
 
 export default AppModule;
-
-/* Scaffold for implementing ManagedStatefulComponent interface
-@Module({
-  imports: [
-    ConditioningModule,
-    UserModule,
-    // other modules
-  ],
-  providers: [AppHealthService]
-})
-export class AppModule implements OnApplicationBootstrap, OnApplicationShutdown {
-  constructor(
-    private readonly conditioningModule: ConditioningModule,
-    private readonly userModule: UserModule,
-    private readonly healthService: AppHealthService,
-    private readonly logger: Logger
-  ) {
-    // Register modules with health service
-    this.healthService.registerModule('conditioning', this.conditioningModule);
-    this.healthService.registerModule('users', this.userModule);
-  }
-
-  async onApplicationBootstrap() {
-    this.logger.log('Application bootstrapping, initializing modules...');
-    
-    // Initialize modules in dependency order
-    await this.userModule.initialize();
-    await this.conditioningModule.initialize();
-    
-    this.logger.log('All modules initialized successfully');
-  }
-
-  async onApplicationShutdown(signal?: string) {
-    this.logger.log(`Application shutting down (signal: ${signal})`);
-    
-    // Shutdown in reverse dependency order
-    await this.conditioningModule.shutdown();
-    await this.userModule.shutdown();
-    
-    this.logger.log('All modules shut down successfully');
-  }
-}
-  */

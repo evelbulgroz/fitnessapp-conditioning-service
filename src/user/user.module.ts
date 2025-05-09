@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
-import { ComponentStateInfo, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
+import { DomainStateManager, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLoggableMixin } from '../libraries/stream-loggable';
 
@@ -12,6 +12,7 @@ import UserDeletedHandler from './handlers/user-deleted.handler';
 import UserRepository from './repositories/user.repo';
 import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
+import UserDomainStateManager from './user-domain-state-manager';
 
 /** Main module for components managing and serving user information.
  * 
@@ -57,7 +58,7 @@ import UserUpdatedHandler from './handlers/user-updated.handler';
 	imports: [LoggingModule], // Import the LoggingModule to use MergedStreamLogger
 	controllers: [UserController],
 	providers: [
-		{
+		{ // PersistenceAdapter
 			provide: PersistenceAdapter,
 			useFactory: (configService: ConfigService) => {
 				const dataDir = configService.get<string>('modules.user.repos.fs.dataDir') ?? 'no-such-dir';
@@ -65,12 +66,19 @@ import UserUpdatedHandler from './handlers/user-updated.handler';
 			},
 			inject: [ConfigService],
 		},
-		{
+		{ // REPOSITORY_THROTTLETIME
 			provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
 			useValue: 100
 		},
 		UserCreatedHandler,
 		UserDeletedHandler,
+		{ // UserDomainStateManager
+			// Must be provided here in order for root manager to be able to detect it
+			// and register it as a subcomponent.
+			// But no need to inject it into this module itself.			
+			provide: DomainStateManager,
+			useClass: UserDomainStateManager,
+		},
 		UserRepository,
 		UserDataService,
 		UserUpdatedHandler,
@@ -83,7 +91,7 @@ import UserUpdatedHandler from './handlers/user-updated.handler';
 		UserUpdatedHandler,
 	],
 })
-export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleInit, OnModuleDestroy {
+export class UserModule extends StreamLoggableMixin(class {}) implements OnModuleInit, OnModuleDestroy {
 	constructor(
 		private readonly repo: UserRepository,
 		private readonly dataService: UserDataService,
@@ -103,11 +111,6 @@ export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	 * management system, setting the component and module to FAILED state with detailed error information.
 	 */
 	public async onModuleInit(): Promise<void> {
-		// Register subcomponents for lifecycle management
-		this.registerSubcomponent(this.repo); // repo handles persistence initialization internally
-		this.registerSubcomponent(this.dataService);
-		// UserController is not a managed component, , so we don't register it as a subcomponent
-		
 		// Subscribe to log streams for logging
 		this.streamLogger.subscribeToStreams([
 			{ streamType: 'componentState$', component: this.repository },
@@ -118,9 +121,6 @@ export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixi
 			{ streamType: 'log$', component: this.dataService },
 			// UserController: Cannot get a reference to the active instance here, so it subscribes itself
 		]);
-		
-		// Initialize module and all subcomponents
-		await this.initialize();
 	}
 
 	/** Cleans up the module and its components
@@ -130,11 +130,7 @@ export class UserModule extends StreamLoggableMixin(ManagedStatefulComponentMixi
 	 * 
 	 * @returns {Promise<void>} A promise that resolves to void when the module is fully shut down.
 	 */
-	public async onModuleDestroy(): Promise<void> {		
-		await this.shutdown(); // shutdown module and all subcomponents
-		// UserController is not a managed component, so we don't unregister it as a subcomponent
-		this.unregisterSubcomponent(this.repo); // repo handles persistence shutdown internally
-		this.unregisterSubcomponent(this.dataService);
+	public async onModuleDestroy(): Promise<void> {	
 	}
 
 }
