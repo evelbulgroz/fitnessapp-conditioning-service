@@ -140,8 +140,8 @@ export class DomainHierarchyWirer {
 		for (const [path, manager] of pathToManager.entries()) {
 			const childPaths = pathToChildren.get(path) || [];
 			const childManagers = childPaths
-			.map(childPath => pathToManager.get(childPath))
-			.filter(Boolean) as DomainStateManager[];
+				.map(childPath => pathToManager.get(childPath))
+				.filter(Boolean) as DomainStateManager[];
 			
 			if (childManagers.length > 0) {
 				result.set(manager, childManagers);
