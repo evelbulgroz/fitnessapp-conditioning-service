@@ -13,7 +13,7 @@ import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.
  *    (e.g. file structure or virtual paths)
  * 3. Managing the lifecycle and state of components within its domain
  * 4. Enabling the streaming of aggregated state information up the component hierarchy,
- *    using the ManagedStatefulComponentMixin's built-in features.
+ *    using the {@link ManagedStatefulComponentMixin}'s built-in features.
  * 5. Enabling library consumers to focus on simply registering their components.
  * 
  * DomainStateManager solves the practical challenge of accessing framework module

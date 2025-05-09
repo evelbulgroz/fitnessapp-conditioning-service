@@ -32,7 +32,7 @@ import DomainStateManager from "./domain-state-manager.class";
  * @see {@link DomainStateManager} for details on individual domain managers
  * @see {@link DomainPathExtractor} for path determination strategies
  * 
- * @todo Refactor so that flat structure returns a tree structure with all nodes branching from the root
+ * @todo Refactor so that flat structure returns a tree structure with all nodes branching from the default root
  */
 export class DomainHierarchyWirer {
 	//--------------------------------------- PUBLIC API ----------------------------------------//

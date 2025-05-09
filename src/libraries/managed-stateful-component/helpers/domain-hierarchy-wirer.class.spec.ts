@@ -163,7 +163,7 @@ describe('DomainHierarchyWirer', () => {
 					expect(hierarchy.size).toBe(0);
 				});
 
-				xit('returns hierarchy with single root member if there is only a single root manager', () => {});
+				xit('returns hierarchy with single root member if there is only a single manager, the root', () => {});
 
 				xit('returns artificial hierarchy if there are multiple root managers (flat structure)', () => {
 					// This test demonstrates the alternative implementation

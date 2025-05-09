@@ -5,7 +5,7 @@ import DomainStateManager from "../helpers/domain-state-manager.class";
  * DomainPathExtractor is a key part of the automatic domain hierarchy building process. It generates
  * a dot-notation path (e.g., "app.user.profile") that:
  *
- * 1. Establishes parent-child relationships between domain managers
+ * 1. Establishes parent-child relationships between domain state managers
  * 2. Creates a consistent, navigable structure for health reporting and monitoring
  * 3. Enables automatic component registration without manual wiring
  *
