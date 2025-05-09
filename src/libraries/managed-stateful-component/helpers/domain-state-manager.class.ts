@@ -1,4 +1,4 @@
-import DomainStateManagerOptions from "./domain-state-manager-options.model";
+import DomainStateManagerOptions from "../models/domain-state-manager-options.model";
 import ManagedStatefulComponent from "../models/managed-stateful-component.model";
 import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.mixin";
 
