@@ -4,6 +4,7 @@ import ComponentState from '../models/component-state.enum';
 import ComponentStateInfo from '../models/component-state-info.model';
 import ManagedStatefulComponent from '../models/managed-stateful-component.model';
 import ManagedStatefulComponentOptions from '../models/managed-stateful-component-options.model';
+import DomainStateManager from '../helpers/domain-state-manager.class';
 
 // Fixed prefix for internal members to avoid name collisions with parent classes or other libraries.
  // Applied dynamically to all internal methods, and is hard coded into property names for simplicity.
@@ -143,8 +144,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			reason: 'Component created', 
 			updatedOn: new Date() 
 		});
-		
-		
+				
 		/* Isolated state for the component itself, without subcomponents */
 		/* @internal */ msc_zh7y_ownState: ComponentStateInfo = { 
 			name: this.constructor.name, 
@@ -152,11 +152,16 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			reason: 'Component created', 
 			updatedOn: new Date() 
 		};
-		
+
 		// Optional subcomponent support
 		/* @internal */ msc_zh7y_subcomponents: ManagedStatefulComponent[] = [];
 		/* @internal */ msc_zh7y_componentSubscriptions: Map<ManagedStatefulComponent, Subscription> = new Map();
 
+		// State management properties for subcomponents
+		/* @internal *///readonly componentId: string;
+		/* @internal */ // readonly domainName: string;
+		/* @internal */ // readonly domainManager: DomainStateManager;
+		
 		// Initialization and shutdown promises
 		/* @internal */ msc_zh7y_initializationPromise?: Promise<void>;
 		/* @internal */ msc_zh7y_shutdownPromise?: Promise<void>;
@@ -172,8 +177,14 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 		public constructor(...args: any[]) {
 			super(...args); // Call parent constructor, passing any arguments
+			
 			this.msc_zh7y_options = { ...this.msc_zh7y_options, ...options }; // Merge options with defaults
 			this.msc_zh7y_unshadowPrefix = unshadowPrefix; // Set the unshadow prefix for internal members
+
+			// Auto-register with domain manager
+			//this.domainName = options.domain ?? this.constructor.name;
+			//this.domainManager = ComponentStateRegistry.getInstance().getOrCreateDomainManager(this.domainName);
+			//.componentId = this.domainManager.registerComponent(this);
 		}		
 
 		//------------------------------------- PUBLIC API --------------------------------------//
