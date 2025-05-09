@@ -125,10 +125,14 @@ export class ConditioningModule extends StreamLoggableMixin(class {}) implements
 	public async onModuleInit(): Promise<void> {
 		// Subscribe to log streams for logging
 		this.streamLogger.subscribeToStreams([
+			// Subscribe to component state streams for logging
+			{ streamType: 'componentState$', component: this.repository },
+			{ streamType: 'componentState$', component: this.dataService },
 			{ streamType: 'componentState$', component: this.repository },
 			{ streamType: 'componentState$', component: this.dataService },
 			// ConditioningController is not a managed component, so we don't subscribe to its componentState$ stream
 			
+			// Subscribe to log streams for logging
 			{ streamType: 'repoLog$', component: this.repository },
 			{ streamType: 'log$', component: this.dataService },
 			// ConditioningController: Cannot get a reference to the active instance here, so it subscribes itself

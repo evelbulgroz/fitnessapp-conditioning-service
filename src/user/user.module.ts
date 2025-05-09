@@ -93,7 +93,7 @@ import UserDomainStateManager from './user-domain-state-manager';
 })
 export class UserModule extends StreamLoggableMixin(class {}) implements OnModuleInit, OnModuleDestroy {
 	constructor(
-		private readonly repo: UserRepository,
+		private readonly repository: UserRepository,
 		private readonly dataService: UserDataService,
 		private readonly streamLogger: MergedStreamLogger, // Inject the MergedStreamLogger for logging
 	) {
@@ -113,10 +113,12 @@ export class UserModule extends StreamLoggableMixin(class {}) implements OnModul
 	public async onModuleInit(): Promise<void> {
 		// Subscribe to log streams for logging
 		this.streamLogger.subscribeToStreams([
+			// Subscribe to component state streams for logging
 			{ streamType: 'componentState$', component: this.repository },
 			{ streamType: 'componentState$', component: this.dataService },
 			// ConditioningController is not a managed component, so we don't subscribe to its componentState$ stream
 			
+			// Subscribe to log streams for logging
 			{ streamType: 'repoLog$', component: this.repository },
 			{ streamType: 'log$', component: this.dataService },
 			// UserController: Cannot get a reference to the active instance here, so it subscribes itself
