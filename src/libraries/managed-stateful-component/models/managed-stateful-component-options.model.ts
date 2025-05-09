@@ -1,6 +1,14 @@
 /** Options controlling the behavior of ManagedStatefulComponentMixin */
 
 export interface ManagedStatefulComponentOptions {
+	/** The domain of the component, used for state management and logging
+	 * @default Client constructor name
+	 * @remark If not provided, the component should be registered under the constructor name of the class
+	 * @example 'UserRepository'
+	 * @example 'UserService'
+	 */
+	domain?: string;
+
 	/**  Strategy for initializing the component and its subcomponents
 	 * - `parent-first`: Initialize the parent component first, then its subcomponents
 	 * - `children-first`: Initialize the subcomponents first, then the parent component
