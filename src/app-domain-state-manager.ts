@@ -18,8 +18,8 @@ export class AppDomainStateManager extends DomainStateManager {
 	}
 	
 	public async onInitialize() {
+		console.log("AppDomainStateManager.onInitialize()");
 		await this.wireDomains();
-
 	}
 
 	public async onShutdown(...args: any[]): Promise<void> {
