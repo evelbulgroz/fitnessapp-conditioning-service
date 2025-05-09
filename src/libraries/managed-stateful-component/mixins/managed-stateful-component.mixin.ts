@@ -10,9 +10,23 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
 const MSC_PREFIX = 'msc_zh7y_';
 
 /** A mixin that provides a standard implementation of the {@link ManagedStatefulComponent} interface.
+ * 
  * This mixin follows the stateful component pattern for lifecycle management with built-in
  * state tracking, hierarchical composition, and standardized initialization/shutdown flows.
  * 
+ * The mixin is intended for focused projects where unified, global state management is suitable,
+ * e.g. microservices serving a single, cohesive domain.
+ * 
+ * It is not intended for large, complex applications that may require separate state management
+ * strategies for different components, domains, or name spaces, though name space support could be
+ * added with relatively little effort.
+ *  
+ * The implementation internally uses a static singleton registry for state management, and a state
+ * manager construct, supporting a framework-agnostic approach to hierarchical state management.
+ * 
+ * In most cases, clients should not have to worry about these details, but should simply use the
+ * basic API for registering, unregistering, and managing subcomponents, and subscribing to state changes.
+ *  
  * @param Parent The immediate parent class to extend, or `class {}` if no inheritance is needed
  * @typeparam TParent The type of the parent class
  * @param options Configuration options for initialization, shutdown, and subcomponent strategies
