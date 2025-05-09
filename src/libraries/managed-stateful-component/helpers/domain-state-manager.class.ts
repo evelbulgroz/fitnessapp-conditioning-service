@@ -1,21 +1,7 @@
+import DomainStateManagerOptions from "./domain-state-manager-options.model";
 import ManagedStatefulComponent from "../models/managed-stateful-component.model";
 import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.mixin";
 
-/** Options for the {@link DomainStateManager} */
-export interface DomainStateManagerOptions {
-	/** Optional virtual path for the domain, used for hierarchical state management.
-	 * 
-	 * When provided, enables override of automatic path inference by {@link DomainPathExtractor}s.
-	 * Useful for special cases where components need custom positioning
-	 * in the domain hierarchy regardless of their actual file location.
-	 * 
-	 * Format: Dot-separated path segments (e.g., "app.features.user")
-	 */
-	virtualPath?: string;
-
-	// Add any future options here...
-}
-	
 /** Represents a domain-specific state container that manages components within
  * a logical boundary of the application.
  * 

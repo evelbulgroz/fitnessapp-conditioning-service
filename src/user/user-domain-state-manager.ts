@@ -1,11 +1,8 @@
-import { Injectable, Optional, Inject } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 
-import { ManagedStatefulComponentMixin } from "../libraries/managed-stateful-component";
-
-import UserRepository from "./repositories/user.repo";
+import DomainStateManager from "../libraries/managed-stateful-component/helpers/domain-state-manager.class";
 import UserDataService from "./services/user-data.service";
-import e from "express";
-import DomainStateManager from "src/libraries/managed-stateful-component/helpers/domain-state-manager.class";
+import UserRepository from "./repositories/user.repo";
 
 // Domain proxy that stands in for user module to enable hierarchical state management
 @Injectable()

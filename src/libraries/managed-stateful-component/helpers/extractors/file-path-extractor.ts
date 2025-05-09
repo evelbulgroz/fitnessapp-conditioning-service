@@ -1,0 +1,34 @@
+import e from "express";
+import DomainPathExtractor from "../../models/domain-path-extractor.model";
+import DomainStateManager from "../domain-state-manager.class";
+
+// Example implementation of the DomainPathExtractor function:
+/** Extract domain path from file location in project structure
+ *
+ * This function is used to parse the hierarchical path of a domain state manager
+ * within the application structure based on its file location.
+ *
+ * Note: The file location must be attached to the manager instance in the __filename property.
+ */
+export const filePathExtractor: DomainPathExtractor = (manager: DomainStateManager, appRootName: string = 'app'): string => {
+	// The file location must be attached to the manager instance
+	const filePath = (manager as any).__filename;
+
+	// If file path is missing, fall back to constructor name
+	if (!filePath) {
+		return manager.constructor.name.replace(/Manager$/, '').toLowerCase();
+	}
+
+	// Extract portion after project root to create hierarchical path
+	const projectRoot = 'my-fantastic-app';
+	const relativePath = filePath.split(projectRoot)[1];
+
+	// Create dotted path, removing file extension and normalizing names
+	return appRootName + relativePath
+		.replace(/\\/g, '.')
+		.replace(/\//g, '.')
+		.replace(/\.ts$/, '')
+		.replace(/\.module/g, '')
+		.toLowerCase();
+};
+export default filePathExtractor;
