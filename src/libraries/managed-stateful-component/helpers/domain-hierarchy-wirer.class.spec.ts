@@ -126,105 +126,154 @@ describe('DomainHierarchyWirer', () => {
 
 	describe('Protected Methods', () => {		
 		describe('buildHierarchy', () => {
-			it('correctly builds hierarchy based on paths', () => {
-				// Access the protected method for testing
-				const hierarchy = (wirer as any).buildHierarchy(
-					mockManagers, 
-					mockPathExtractor,
-					'.'
-				);
-				
-				// Verify the correct number of parent managers
-				expect(hierarchy.size).toBe(2);
-				
-				// The root app should have 3 children: user, auth, conditioning
-				const appChildren = hierarchy.get(mockManagers[0]);
-				expect(appChildren).toBeDefined();
-				expect(appChildren?.length).toBe(3);
-				expect(appChildren).toContain(mockManagers[1]); // userModule
-				expect(appChildren).toContain(mockManagers[3]); // authModule
-				expect(appChildren).toContain(mockManagers[4]); // conditioningModule
-				
-				// The user module should have 1 child: profile
-				const userChildren = hierarchy.get(mockManagers[1]);
-				expect(userChildren).toBeDefined();
-				expect(userChildren?.length).toBe(1);
-				expect(userChildren).toContain(mockManagers[2]); // profileService
-			});
+			describe('hierarchy', () => {
+				it('correctly builds hierarchy based on paths', () => {
+					// Access the protected method for testing
+					const hierarchy = (wirer as any).buildHierarchy(
+						mockManagers, 
+						mockPathExtractor,
+						'.'
+					);
+					
+					// Verify the correct number of parent managers
+					expect(hierarchy.size).toBe(2);
+					
+					// The root app should have 3 children: user, auth, conditioning
+					const appChildren = hierarchy.get(mockManagers[0]);
+					expect(appChildren).toBeDefined();
+					expect(appChildren?.length).toBe(3);
+					expect(appChildren).toContain(mockManagers[1]); // userModule
+					expect(appChildren).toContain(mockManagers[3]); // authModule
+					expect(appChildren).toContain(mockManagers[4]); // conditioningModule
+					
+					// The user module should have 1 child: profile
+					const userChildren = hierarchy.get(mockManagers[1]);
+					expect(userChildren).toBeDefined();
+					expect(userChildren?.length).toBe(1);
+					expect(userChildren).toContain(mockManagers[2]); // profileService
+				});
 
-			it('returns empty hierarchy from empty manager list', () => {
-				const hierarchy = (wirer as any).buildHierarchy(
-					[], 
-					mockPathExtractor,
-					'.'
-				);
-				
-				expect(hierarchy.size).toBe(0);
-			});
+				it('returns empty hierarchy from empty manager list', () => {
+					const hierarchy = (wirer as any).buildHierarchy(
+						[], 
+						mockPathExtractor,
+						'.'
+					);
+					
+					expect(hierarchy.size).toBe(0);
+				});
 
-			xit('returns hierarchy with single root member if there is only a root manager', () => {});
+				xit('returns hierarchy with single root member if there is only a single root manager', () => {});
 
-			xit('returns hierarchy with default root member if there are multiple root managers', () => {});
-
-			xit('it handles hierarchies of arbitrary depth (tested at 10 levels)', () => {});
-
-			xit('INCORRECT? handles flat structure with no hierarchy', () => {
-				// Mock extractor that returns the same level for all managers
-				const flatExtractor = jest.fn(() => 'app');
-				
-				const hierarchy = (wirer as any).buildHierarchy(
-					mockManagers, 
-					flatExtractor,
-					'.'
-				);
-				
-				expect(hierarchy.size).toBe(0); // No parent-child relationships
-			});
-			
-			it('handles custom path separator', () => {
-				// Create a path extractor that uses / instead of .
-				const slashPathExtractor = jest.fn((manager: DomainStateManager) => {
-					const mockManager = manager as MockDomainManager;
-					switch (mockManager.managerId) {
-						case 'app': return 'app';
-						case 'userModule': return 'app/user';
-						case 'profileService': return 'app/user/profile';
-						default: return 'unknown';
+				xit('returns artificial hierarchy if there are multiple root managers (flat structure)', () => {
+					// This test demonstrates the alternative implementation
+					// Mock extractor that returns the same path for all managers
+					const flatExtractor = jest.fn(() => 'app');
+					
+					// Call the protected method
+					let hierarchy = (wirer as any).buildHierarchy(
+						mockManagers, 
+						flatExtractor,
+						'.'
+					);
+					
+					// Implement forgiving approach (simulating the enhancement)
+					if (hierarchy.size === 0 && mockManagers.length > 0) {
+						const rootManager = mockManagers[0];
+						const childManagers = mockManagers.slice(1);
+						
+						// Create artificial hierarchy map
+						hierarchy = new Map([[rootManager, childManagers]]);
 					}
+					
+					// Expected: first manager becomes root with all others as children
+					expect(hierarchy.size).toBe(1);
+					const rootEntry = Array.from(hierarchy.entries())[0] as [DomainStateManager, DomainStateManager[]];
+					expect(rootEntry[0]).toBe(mockManagers[0]);
+					expect(rootEntry[1].length).toBe(mockManagers.length - 1);
+					expect(rootEntry[1]).toEqual(mockManagers.slice(1));
+				});
+
+				xit('it handles hierarchies of arbitrary depth (tested at 10 levels)', () => {});			
+				
+				xit('throws if two managers claim the same path', () => {});
+			});
+
+			describe('paths', () => {
+				xit('handles paths case-insensitively ', () => { });
+			
+				it('handles custom path separator', () => {
+					// Create a path extractor that uses / instead of .
+					const slashPathExtractor = jest.fn((manager: DomainStateManager) => {
+						const mockManager = manager as MockDomainManager;
+						switch (mockManager.managerId) {
+							case 'app': return 'app';
+							case 'userModule': return 'app/user';
+							case 'profileService': return 'app/user/profile';
+							default: return 'unknown';
+						}
+					});
+					
+					const hierarchy = (wirer as any).buildHierarchy(
+						mockManagers, 
+						slashPathExtractor,
+						'/'
+					);
+					
+					expect(hierarchy.size).toBe(2);
 				});
 				
-				const hierarchy = (wirer as any).buildHierarchy(
-					mockManagers, 
-					slashPathExtractor,
-					'/'
-				);
+				xit('handles duplicate separators in paths', () => { });
+
+				xit('handles leading separators in paths', () => { });
+
+				xit('handles trailing separators in paths', () => { });
+
+				xit('handles whitespace in paths', () => { });
+
+				xit('handles empty segments in paths', () => {
+					// Create a path extractor that returns empty segments
+					const emptySegmentExtractor = jest.fn((manager: DomainStateManager) => {
+						const mockManager = manager as MockDomainManager;
+						switch (mockManager.managerId) {
+							case 'app': return 'app';
+							case 'userModule': return 'app..user';
+							case 'profileService': return 'app/user/profile';
+							default: return 'unknown';
+						}
+					});
+					
+					const hierarchy = (wirer as any).buildHierarchy(
+						mockManagers, 
+						emptySegmentExtractor,
+						'.'
+					);
+					
+					expect(hierarchy.size).toBe(2);
+				});
+
+				xit('handles symbols in paths', () => { });
 				
-				expect(hierarchy.size).toBe(2);
-			});
+				xit('handles numbers in paths', () => { });
 
-			xit('handles symbols in paths', () => { });
-			
-			xit('handles numbers in paths', () => { });
+				xit('throws if path extractor is not a function', () => {});
 
-			xit('throws if path extractor is not a function', () => {});
+				xit('throws if path separator is not a string', () => {});
 
-			xit('throws if path separator is not a string', () => {});
+				xit('throws if path is malformed', () => {});
 
-			xit('throws if path is malformed', () => {});
+				xit('throws if path extractor returns an empty string', () => {});
 
-			xit('throws if path extractor returns an empty string', () => {});
+				xit('throws if path references non-existing parent', () => {});
 
-			xit('throws if path references non-existing parent', () => {});
+				xit('throws if path references a parent that is not a domain state manager', () => {});
 
-			xit('throws if path references a parent that is not a domain state manager', () => {});
+				xit('throws if path references non-existing child', () => {});
 
-			xit('throws if path references non-existing child', () => {});
+				xit('throws if path references a child that is not a registered component', () => {});
 
-			xit('throws if path references a child that is not a registered component', () => {});
-
-			xit('throws if path references a child that is not a domain manager', () => {});
-
-			xit('throws if two managers claim the same path', () => {});
+				xit('throws if path references a child that is not a domain manager', () => {});
+			});			
 		});
 	});
 

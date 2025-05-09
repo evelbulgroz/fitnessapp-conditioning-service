@@ -103,6 +103,8 @@ export class DomainHierarchyWirer {
 	 * // - app.user (child of app)
 	 * // - app.conditioning (child of app)
 	 * // The result will connect app manager to both user and conditioning managers
+	 * 
+	 * @todo Normalize paths to lower case to avoid case sensitivity issues
 	 */
 	protected buildHierarchy(
 		managers: DomainStateManager[],
