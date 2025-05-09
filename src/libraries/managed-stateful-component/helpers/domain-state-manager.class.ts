@@ -1,51 +1,66 @@
-import { v4 as uuidv4 } from "uuid";
 import ManagedStatefulComponent from "../models/managed-stateful-component.model";
+import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.mixin";
 
-/** State manager for a domain, managing components and their hierarchical relationships.
+/** Options for the {@link DomainStateManager} */
+export interface DomainStateManagerOptions {
+	/** Optional virtual path for the domain, used for hierarchical state management.
+	 * 
+	 * When provided, enables override of automatic path inference by {@link DomainPathExtractor}s.
+	 * Useful for special cases where components need custom positioning
+	 * in the domain hierarchy regardless of their actual file location.
+	 * 
+	 * Format: Dot-separated path segments (e.g., "app.features.user")
+	 */
+	virtualPath?: string;
+
+	// Add any future options here...
+}
+	
+/** Represents a domain-specific state container that manages components within
+ * a logical boundary of the application.
  * 
- * This class provides a namespace-specific container for components belonging to a 
- * particular domain or feature area within the application. It serves as a middle layer 
- * between individual components and the global ComponentStateRegistry.
+ * This class bridges the gap between framework-specific module systems and
+ * framework-agnostic state management by:
  * 
- * Key features:
- * - Assigns unique IDs to registered components within the domain
- * - Tracks parent-child relationships between components
- * - Maintains the hierarchical context of component states
- * - Provides state snapshots that preserve the domain structure
+ * 1. Serving as a discoverable proxy for framework specific domain containers (e.g., NestJS modules)
+ * 2. Establishing hierarchical relationships based on customizable DomainPathExtractors
+ *    (e.g. file structure or virtual paths)
+ * 3. Managing the lifecycle and state of components within its domain
+ * 4. Enabling the streaming of aggregated state information up the component hierarchy,
+ *    using the ManagedStatefulComponentMixin's built-in features.
+ * 5. Enabling library consumers to focus on simply registering their components.
  * 
- * Intended for use in conjunction with {@link ComponentStateRegistry} to create a
- * framework-agnostic state management system that supports hierarchical health
- * reporting while keeping client code simple.
+ * DomainStateManager solves the practical challenge of accessing framework module
+ * instances by creating parallel, discoverable containers that can be automatically
+ * wired together e.g., based on their location in the project.
  * 
  * @example
- * // Register components with domain manager
- * const userDomain = new DomainStateManager('user');
- * const parentId = userDomain.registerComponent(userService);
- * const childId = userDomain.registerComponent(userRepository);
- * userDomain.registerHierarchy(parentId, childId);
+ * // Create a domain manager for the user feature
+ * @Injectable()
+ * export class UserDomainManager extends DomainStateManager {
+ *   constructor(
+ *     private userService: UserService,
+ *     private userRepository: UserRepository
+ *   ) {
+ *     super();
+ *     
+ *     // Register domain components
+ *     this.registerDomainComponent(userService);
+ *     this.registerDomainComponent(userRepository);
+ *   }
+ * }
  */
-export class DomainStateManager {
-	private components = new Map<string, ManagedStatefulComponent>();
-	private hierarchyMap = new Map<string, string[]>(); // parent -> children
+export abstract class DomainStateManager extends ManagedStatefulComponentMixin(class {}) {
+	protected readonly options?: DomainStateManagerOptions;
 	
-	constructor(private readonly domain: string) {}
-	
-	registerComponent(component: ManagedStatefulComponent, id?: string): string {
-		const componentId = id || `${this.domain}_${component.constructor.name}_${uuidv4()}`;
-		this.components.set(componentId, component);
-		return componentId;
-	}
-	
-	registerHierarchy(parentId: string, childId: string): void {
-		if (!this.hierarchyMap.has(parentId)) {
-			this.hierarchyMap.set(parentId, []);
-		}
-		this.hierarchyMap.get(parentId)!.push(childId);
-	}
-	
-	getStateSnapshot(): any {
-		// Build hierarchical state representation
-		// ...
-	}
+	/** Creates a new instance of the DomainStateManager.
+	 * 
+	 * @param options - Optional configuration for the domain state manager.
+	 * @returns A new instance of the DomainStateManager.
+	 */
+	public constructor(options?: DomainStateManagerOptions) {
+		super();
+		this.options = options;
+	}	
 }
 export default DomainStateManager;

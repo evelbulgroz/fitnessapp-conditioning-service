@@ -31,7 +31,7 @@ export class ComponentStateRegistry {
 	
 	public getOrCreateDomainManager(domain: string): DomainStateManager {
 		if (!this.domainManagers.has(domain)) {
-			this.domainManagers.set(domain, new DomainStateManager(domain));
+			//this.domainManagers.set(domain, new DomainStateManager(domain));
 		}
 		return this.domainManagers.get(domain)!;
 	}

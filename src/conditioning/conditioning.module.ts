@@ -133,6 +133,8 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 		
 		// Initialize module and all managed subcomponents
 		await this.initialize(); 
+
+		this.logModuleMetadata(); // Log module metadata for debugging and analysis
 	}
 
 	/** Cleans up the module and its components
@@ -153,5 +155,8 @@ export class ConditioningModule extends StreamLoggableMixin(ManagedStatefulCompo
 
 		// Unsubscribe from log streams for logging
 		this.streamLogger.unsubscribeAll(); // unsubscribe from all streams
-	}}
+	}
+}
+
+	
 export default ConditioningModule;
