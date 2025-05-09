@@ -14,6 +14,11 @@ import DomainStateManager from "./domain-state-manager.class";
  * This automated wiring enables consolidated health monitoring, state propagation, and 
  * hierarchical lifecycle management with minimal configuration.
  * 
+ * It fails gracefully if the domain managers are not perfectly registered in the application,
+ * so that the most complete health monitoring possible can be achieved. Note that this may hide
+ * some issues in the application: check your health endpoints to see if all domains are
+ * registered in the correct hierarchy.
+ * 
  * Typical usage:
  * ```typescript
  * // In your application bootstrap
