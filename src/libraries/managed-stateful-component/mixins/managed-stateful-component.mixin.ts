@@ -246,7 +246,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			this.msc_zh7y_initializationPromise = new Promise<void>(async (resolve, reject) => {
 				try {
 					// Set own state and update the state subject with the new componentState$
-					this. msc_zh7y_ownState = ({
+					this.msc_zh7y_ownState = ({
 						name: this.constructor.name,
 						state: ComponentState.INITIALIZING,
 						reason: 'Component initialization in progress',

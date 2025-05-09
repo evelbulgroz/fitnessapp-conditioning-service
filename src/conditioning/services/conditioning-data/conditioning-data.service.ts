@@ -6,7 +6,7 @@ import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { LogLevel, StreamLoggable, StreamLoggableMixin } from '../../../libraries/stream-loggable';
-import { ManagedStatefulComponentMixin } from '../../../libraries/managed-stateful-component';
+import { ComponentState, ManagedStatefulComponentMixin } from '../../../libraries/managed-stateful-component';
 
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
@@ -95,6 +95,33 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	}
 	
 	//---------------------------------------- DATA API -----------------------------------------//
+
+	/** Force reset state if cache is empty
+	 * Workaround for asynchronicity in repo and data service initialization:
+	 * A fix using the 'sequential' option should be sought after investigating the issue further.
+	 */
+	public override async isReady(): Promise<boolean> {
+		await super.isReady(); // call base class isReady() method
+		return new Promise(async (resolve) => {
+			if (this.msc_zh7y_ownState.state === ComponentState.OK && this.cache.value.length > 0) {
+				resolve(true);
+			}
+			else if (this.state === ComponentState.FAILED) {
+				resolve(false);
+			}
+			else {
+				this.msc_zh7y_ownState = ({
+					name: this.constructor.name,
+					state: ComponentState.UNINITIALIZED,
+					reason: 'Component initialization reset',
+					updatedOn: new Date()
+				});
+				await this.msc_zh7y_updateState(this. msc_zh7y_ownState); // returns when state change is observed
+				await this.initialize();
+				resolve(this.msc_zh7y_ownState.state === ComponentState.OK && this.cache.value.length > 0);
+			}
+		});
+	}
 
 	/** New API: Create a new conditioning log for a user in the system
 	 * @param ctx User context for the request (includes user id and roles)
@@ -382,7 +409,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		includeDeleted = false
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
-
+		
 		// check if provided user id matches context decoded from access token
 		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
 			if (userIdDTO?.value !== ctx.userId) { // user id does not match -> throw UnauthorizedAccessError

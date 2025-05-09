@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
 import { EntityId } from '@evelbulgroz/ddd-base';
-import { ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component";
+import { ComponentState, ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component";
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
@@ -45,6 +45,33 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	
 	//---------------------------------------- DATA API ---------------------------------------//
 	
+	/** Force reset state if cache is empty
+	 * Workaround for asynchronicity in repo and data service initialization:
+	 * A fix using the 'sequential' option should be sought after investigating the issue further.
+	 */
+	public override async isReady(): Promise<boolean> {
+		await super.isReady(); // call base class isReady() method
+		return new Promise(async (resolve) => {
+			if (this.msc_zh7y_ownState.state === ComponentState.OK && this.cache.value.length > 0) {
+				resolve(true);
+			}
+			else if (this.state === ComponentState.FAILED) {
+				resolve(false);
+			}
+			else {
+				this.msc_zh7y_ownState = ({
+					name: this.constructor.name,
+					state: ComponentState.UNINITIALIZED,
+					reason: 'Component initialization reset',
+					updatedOn: new Date()
+				});
+				await this.msc_zh7y_updateState(this. msc_zh7y_ownState); // returns when state change is observed
+				await this.initialize();
+				resolve(this.msc_zh7y_ownState.state === ComponentState.OK && this.cache.value.length > 0);
+			}
+		});
+	}
+		
 	/** Create a new user
 	 * @param ctx The user context for the user to be created
 	 * @param userIdDTO The user id in the user microservice of the user to be created

@@ -61,7 +61,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		}
 		
 		// If/when needed, add local initialization here
-        
+		
 		this.log(RepoLogLevel.INFO, `Initialization executed successfully`);
         return Promise.resolve();
     }
