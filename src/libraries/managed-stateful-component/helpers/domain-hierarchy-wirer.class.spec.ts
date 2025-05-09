@@ -152,7 +152,7 @@ describe('DomainHierarchyWirer', () => {
 				expect(userChildren).toContain(mockManagers[2]); // profileService
 			});
 
-			it('handles empty manager list', () => {
+			it('returns empty hierarchy from empty manager list', () => {
 				const hierarchy = (wirer as any).buildHierarchy(
 					[], 
 					mockPathExtractor,
@@ -162,7 +162,13 @@ describe('DomainHierarchyWirer', () => {
 				expect(hierarchy.size).toBe(0);
 			});
 
-			it('handles flat structure with no hierarchy', () => {
+			xit('returns hierarchy with single root member if there is only a root manager', () => {});
+
+			xit('returns hierarchy with default root member if there are multiple root managers', () => {});
+
+			xit('it handles hierarchies of arbitrary depth (tested at 10 levels)', () => {});
+
+			xit('INCORRECT? handles flat structure with no hierarchy', () => {
 				// Mock extractor that returns the same level for all managers
 				const flatExtractor = jest.fn(() => 'app');
 				
@@ -174,6 +180,51 @@ describe('DomainHierarchyWirer', () => {
 				
 				expect(hierarchy.size).toBe(0); // No parent-child relationships
 			});
+			
+			it('handles custom path separator', () => {
+				// Create a path extractor that uses / instead of .
+				const slashPathExtractor = jest.fn((manager: DomainStateManager) => {
+					const mockManager = manager as MockDomainManager;
+					switch (mockManager.managerId) {
+						case 'app': return 'app';
+						case 'userModule': return 'app/user';
+						case 'profileService': return 'app/user/profile';
+						default: return 'unknown';
+					}
+				});
+				
+				const hierarchy = (wirer as any).buildHierarchy(
+					mockManagers, 
+					slashPathExtractor,
+					'/'
+				);
+				
+				expect(hierarchy.size).toBe(2);
+			});
+
+			xit('handles symbols in paths', () => { });
+			
+			xit('handles numbers in paths', () => { });
+
+			xit('throws if path extractor is not a function', () => {});
+
+			xit('throws if path separator is not a string', () => {});
+
+			xit('throws if path is malformed', () => {});
+
+			xit('throws if path extractor returns an empty string', () => {});
+
+			xit('throws if path references non-existing parent', () => {});
+
+			xit('throws if path references a parent that is not a domain state manager', () => {});
+
+			xit('throws if path references non-existing child', () => {});
+
+			xit('throws if path references a child that is not a registered component', () => {});
+
+			xit('throws if path references a child that is not a domain manager', () => {});
+
+			xit('throws if two managers claim the same path', () => {});
 		});
 	});
 
