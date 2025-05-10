@@ -216,7 +216,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				const { default: DomainHierarchyWirer } = await import('../helpers/domain-hierarchy-wirer.class');
 				this.msc_zh7y_domainHierarchyWirer = new DomainHierarchyWirer();
 			}
-			  // this[`${MSC_PREFIX}domainHierarchyWirer`] as DomainHierarchyWirer;
 			return this.msc_zh7y_domainHierarchyWirer.wireDomains(managers, pathExtractor, pathSeparator);
 		}
 		
