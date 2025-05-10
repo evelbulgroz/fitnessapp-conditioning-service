@@ -1,5 +1,6 @@
 import DomainPathExtractor from "../models/domain-path-extractor.model";
 import DomainStateManager from "./domain-state-manager.class";
+import filePathExtractor from "./extractors/file-path-extractor";
 
 /**
  *  Utility class responsible for automatically wiring domain state managers into a hierarchical structure.
@@ -15,7 +16,7 @@ export class DomainHierarchyWirer {
 		 */
 		public async wireDomains(
 				managers: DomainStateManager[],
-				pathExtractor: DomainPathExtractor,
+				pathExtractor: DomainPathExtractor = filePathExtractor,
 				pathSeparator: string = "."
 		): Promise<void> {
 				const domainManagers = this.filterDomainManagers(managers);
