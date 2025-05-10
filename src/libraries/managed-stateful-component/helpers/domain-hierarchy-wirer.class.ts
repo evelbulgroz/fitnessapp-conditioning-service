@@ -1,7 +1,12 @@
 import DomainPathExtractor from "../models/domain-path-extractor.model";
 import DomainStateManager from "./domain-state-manager.class";
 
-/** Utility class responsible for automatically wiring domain state managers into a hierarchical structure. */
+/**
+ *  Utility class responsible for automatically wiring domain state managers into a hierarchical structure.
+ * 
+ * @todo Refactor to use internal mixin options for path extraction
+ *
+ */
 export class DomainHierarchyWirer {
 		//--------------------------------------- PUBLIC API ----------------------------------------//
 		

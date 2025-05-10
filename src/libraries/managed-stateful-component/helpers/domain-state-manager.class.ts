@@ -36,6 +36,8 @@ import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.
  *     this.registerDomainComponent(userRepository);
  *   }
  * }
+ * 
+ * @todo Refactor to merge options into internal mixin options
  */
 export class DomainStateManager extends ManagedStatefulComponentMixin(class {}) {
 	protected readonly options?: DomainStateManagerOptions;
@@ -47,7 +49,7 @@ export class DomainStateManager extends ManagedStatefulComponentMixin(class {}) 
 	 */
 	public constructor(options?: DomainStateManagerOptions) {
 		super();
-		this.options = options;
+		this.options = options; // todo: merge with mixin options to make available to all of mixin code
 	}	
 }
 export default DomainStateManager;

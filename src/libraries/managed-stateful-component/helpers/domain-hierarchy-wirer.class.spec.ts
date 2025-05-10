@@ -7,8 +7,8 @@ class MockDomainManager extends DomainStateManager {
 	public readonly managerId: string;
 	public registeredComponents: DomainStateManager[] = [];
 
-	constructor(managerId: string, options?: any) {
-		super(options);
+	constructor(managerId: string) {
+		super();
 		this.managerId = managerId;
 	}
 
@@ -280,9 +280,9 @@ describe('DomainHierarchyWirer', () => {
 	describe('integration', () => {
 		xit('builds a complete hierarchy with virtual paths', async () => {
 			// Add a manager with a virtual path option
-			const virtualPathManager = new MockDomainManager('virtualModule', {
-				virtualPath: 'app.virtual.custom'
-			});
+			// TODO: set this via mixin options
+			const virtualPathManager = new MockDomainManager('virtualModule', //{virtualPath: 'app.virtual.custom'}
+			);
 			
 			// Update the mock extractor to use the virtual path
 			mockPathExtractor.mockImplementation((manager: DomainStateManager) => {
