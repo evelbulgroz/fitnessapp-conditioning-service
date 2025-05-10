@@ -27,9 +27,10 @@ import {ManagedStatefulComponentMixin, MSC_PREFIX} from "../mixins/managed-state
  * export class UserDomainManager extends DomainStateManager {
  *   constructor(
  *     private userService: UserService,
- *     private userRepository: UserRepository
+ *     private userRepository: UserRepository,
+ *     options?: DomainStateManagerOptions,
  *   ) {
- *     super();
+ *     super(options);
  *     
  *     // Register domain components
  *     this.registerDomainComponent(userService);
@@ -43,10 +44,8 @@ export class DomainStateManager extends ManagedStatefulComponentMixin(class {}) 
 	/**
 	 * Creates a new instance of the DomainStateManager.
 	 * 
-	 * @param options - Optional configuration for the domain state manager.
+	 * @param options - Optional configuration for the domain state manager. Will be merged into the internal mixin options.
 	 * @returns A new instance of the DomainStateManager.
-	 * 
-	 * @remark Any options provided will be merged into the internal mixin options.
 	 *
 	 */
 	public constructor(options?: DomainStateManagerOptions) {
