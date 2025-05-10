@@ -32,6 +32,17 @@ export class AppDomainStateManager extends DomainStateManager {
 		this.subcomponents = [];
 	}
 
+	/**
+	 * Wire the domain hierarchy by finding all domain state managers in the app
+	 * and connecting them to their parent managers.
+	 * 
+	 * This is done by using the filePathExtractor to determine the path of each manager
+	 * and connecting them based on their paths.
+	 * 
+	 * @returns {Promise<void>} A promise that resolves when the wiring is complete.
+	 * 
+	 * @see {@link DomainStateManager} for more information on how domain state managers work.
+	 */
 	protected async wireDomains(): Promise<void> {
 		// Find all domain state managers in the app
 		const managers = this.discoveryService.getProviders().filter(provider => {

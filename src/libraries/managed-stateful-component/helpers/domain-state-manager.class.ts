@@ -2,7 +2,8 @@ import DomainStateManagerOptions from "../models/domain-state-manager-options.mo
 import ManagedStatefulComponent from "../models/managed-stateful-component.model";
 import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.mixin";
 
-/** Represents a domain-specific state container that manages components within
+/**
+ * Represents a domain-specific state container that manages components within
  * a logical boundary of the application.
  * 
  * This class bridges the gap between framework-specific module systems and

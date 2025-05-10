@@ -13,7 +13,7 @@ import filePathExtractor from '../helpers/extractors/file-path-extractor';
  // Applied dynamically to all internal methods, and is hard coded into property names for simplicity.
 const MSC_PREFIX = 'msc_zh7y_';
 
-// Default state for the component when created
+// Unified default state for the component when created
 const now = new Date();
 const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInfo => ({
 	name: component.constructor.name,
@@ -22,7 +22,8 @@ const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInf
 	updatedOn: now
 });
 
-/** A mixin that provides a standard implementation of the {@link ManagedStatefulComponent} interface.
+/**
+ * A mixin that provides a standard implementation of the {@link ManagedStatefulComponent} interface.
  * 
  * This mixin follows the stateful component pattern for lifecycle management with built-in
  * state tracking, hierarchical composition, and standardized initialization/shutdown flows.
@@ -191,9 +192,23 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 		// EXPERIMENTAL: This method is not part of the public API and is subject to change
 		// TODO: Promote to property of mixin, inner class not visible outside of this file
+		
+		/**
+		 * Wire the domain hierarchy by finding all domain state managers in the app
+		 * and connecting them to their parent managers.
+		 * 
+		 * Utility method that should be called once when initializing the app's root container, e.g. a NestJS app module.
+		 * 
+		 * @param managers An array of domain state managers to wire together
+		 * @param pathExtractor A function to extract the path from the domain state manager (default is filePathExtractor)
+		 * @param pathSeparator The separator to use for the path (default is period, '.')
+		 * @returns {Promise<void>} A promise that resolves when the wiring is complete.
+		 * 
+		 * @see {@link DomainStateManager} for more information on how domain state managers work.
+		 */
 		public static async wireDomains(
 			managers: DomainStateManager[],
-			pathExtractor: DomainPathExtractor,
+			pathExtractor: DomainPathExtractor = filePathExtractor,
 			pathSeparator: string = "."
 		): Promise<void> {
 			if (!this.msc_zh7y_domainHierarchyWirer) {
@@ -202,11 +217,12 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				this.msc_zh7y_domainHierarchyWirer = new DomainHierarchyWirer();
 			}
 			  // this[`${MSC_PREFIX}domainHierarchyWirer`] as DomainHierarchyWirer;
-			return this.msc_zh7y_domainHierarchyWirer.wireDomains(managers, pathExtractor = filePathExtractor, pathSeparator = '.');
+			return this.msc_zh7y_domainHierarchyWirer.wireDomains(managers, pathExtractor, pathSeparator);
 		}
-
 		
-		/** Observable stream of state changes for the component and its subcomponents (if any)
+		/**
+		 * Observable stream of state changes for the component and its subcomponents (if any)
+		 * 
 		 * @returns Observable that emits the current state of the component and its subcomponents (if any) whenever the state changes
 		 * @remark The observable is a BehaviorSubject, so it will emit the current state immediately upon subscription
 		 * @remark The observable will emit the aggregated state if subcomponents are present, otherwise it will emit the component's own componentState$
@@ -214,10 +230,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 */
 		public readonly componentState$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
 		
-		/** Initialize the component and all of its subcomponents (if any) if it is not already initialized
+		/**
+		 * Initialize the component and all of its subcomponents (if any) if it is not already initialized
+		 * 
 		 * @param args Optional arguments to pass to parent initialize methods 
 		 * @returns Promise that resolves when the component and all of its subcomponents are initialized
 		 * @throws Error if initialization fails
+		 * 
 		 * @remark Executes any inherited initialize() method before executing subclass initialize() logic
 		 * @remark Subclasses may optionally override `onInitialize()` to provide component-specific initialization logic
 		 * @remark Transitions state to `INITIALIZING` during the process and to `OK` when complete
@@ -290,9 +309,12 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return this.msc_zh7y_initializationPromise;
 		}		
 
-		/** Check if the component, including any subcomponents, is ready to serve requests
+		/**
+		 * Check if the component, including any subcomponents, is ready to serve requests
+		 * 
 		 * @returns Promise that resolves to true if ready, false otherwise
 		 * @throws Error if the component or any of its subcomponents is not ready
+		 * 
 		 * @remark Ignores any inherited isReady() method, as isReady() is considered purely informational
 		 * @remark May trigger initialization if the component supports lazy initialization
 		 * @remark A component is typically ready when it and all of its subcomponents are in the `OK` or `DEGRADED` componentState$
@@ -334,10 +356,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 		}
 
-		/** Shutdown the component and all of its subcomponents (if any) if it is not already shut down
+		/**
+		 * Shutdown the component and all of its subcomponents (if any) if it is not already shut 
+		 * 
 		 * @param args Optional arguments to pass to parent shutdown methods
 		 * @returns Promise that resolves when the component and all of its subcomponents are shut down
 		 * @throws Error if shutdown fails
+		 * 
 		 * @remark Executes any inherited shutdown() method before executing subclass shutdown() logic
 		 * @remark Subclasses may optionally override `onShutdown()` to provide component-specific shutdown logic
 		 * @remark Transitions state to `SHUTTING_DOWN` during the process and to `SHUT_DOWN` when complete
@@ -411,15 +436,18 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return this.msc_zh7y_shutdownPromise;
 		}
 
-		/** Register a subcomponent to be managed by this component
+		/**
+		 * Register a subcomponent to be managed by this component
+		 * 
 		 * @param component The subcomponent to register
 		 * @returns void
 		 * @throws Error if the component is null, undefined, or already registered
+		 * 
 		 * @remark This method is intended for internal use and should not be called directly by clients.
 		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
 		 * @remark The component must be an instance of ManagedStatefulComponent.
+		 * 
 		 * @required by {@link ComponentContainer} interface
-		 * @todo Refactor to return boolean to indicate success/failure of registration
 		 */
 		public registerSubcomponent(component: ManagedStatefulComponent): boolean {
 			if (!component) {
@@ -456,13 +484,17 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 		}
 
-		/** Unregister a subcomponent from this component
+		/**
+		 * Unregister a subcomponent from this component
+		 * 
 		 * @param component The subcomponent to unregister
 		 * @returns true if the component was successfully unregistered, false otherwise
 		 * @throws Error if the component is null or undefined
+		 * 
 		 * @remark This method is intended for internal use and should not be called directly by clients.
 		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
 		 * @remark The component must be an instance of ManagedStatefulComponent.
+		 * 
 		 * @required by {@link ComponentContainer} interface
 		 */
 		public unregisterSubcomponent(component: ManagedStatefulComponent): boolean {
@@ -485,15 +517,19 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			this[`${unshadowPrefix}updateAggregatedState`]();
 			
 			return true;
-		}	
+		}
+
 		//---------------------------------- TEMPLATE METHODS -----------------------------------//
 
 		// NOTE: TS does not support protected members in abstract classes, so we use public with @internal tag
 
-		/** Execute component-specific initialization
+		/**
+		 * Execute component-specific initialization
+		 * 
 		 * @param args Result of parent class initialize() call (if any, passed in from initialize())
 		 * @returns Promise that resolves when initialization is complete
 		 * @throws Error if initialization fails
+		 * 
 		 * @remark This method can be overridden by subclasses that have specific initialization needs.
 		 * @remark It is called from `initialize()` and should contain the component-specific logic for initialization.
 		 * @remark It should leave it to initialize() to handle the state management and observable emissions.
@@ -501,10 +537,13 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 */
 		/* @internal */ onInitialize(...args: any[]): Promise<void> { void args; return Promise.resolve(); }
 		
-		/** Execute component-specific shutdown
+		/**
+		 * Execute component-specific shutdown
+		 * 
 		 * @param args Result of parent class shutdown() call (if any, passed in from shutdown())
 		 * @returns Promise that resolves when shutdown is complete
 		 * @throws Error if shutdown fails
+		 * 
 		 * @remark This method can be overridden by subclasses that have specific shutdown needs.
 		 * @remark It is called from `shutdown()` and should contain the component-specific logic for shutdown.
 		 * @remark It should leave it to shutdown() to handle the state management and observable emissions.
@@ -516,7 +555,9 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		
 		// NOTE: TS does not support protected members in abstract classes, so we use public with @internal tag
 		
-		/* Calculate the current aggregated component state */
+		/*
+		 * Calculate the current aggregated component state
+		 */
 		/* @internal */ [`${unshadowPrefix}calculateState`](): ComponentStateInfo {
 			// If no subcomponents, just return the current componentState$
 			if (this.msc_zh7y_subcomponents.length === 0) {
@@ -542,7 +583,9 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			};
 		}
 		
-		/* Call parent method shadowed by this mixin
+		/*
+		 * Call parent method shadowed by this mixin
+
 		 * @param method The method to call in the parent class hierarchy
 		 * @returns The result of the parent method call, or undefined if not found
 		 * @throws Error if the method is not found in the parent class hierarchy
@@ -574,12 +617,15 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return undefined; // No parent method found, return undefined
 		}
 		
-		/* Calculate the worst state from a collection of states
+		/*
+		 * Calculate the worst state from a collection of states
+
 		 * @param states Collection of component states
 		 * @returns The worst state from known states
 		 * @returns The worst of known states or either DEGRADED, if unknown states are present
 		 * @returns DEGRADED if no known states are present
 		 * @throws Error if states array is empty
+		 * 
 		 * @remark Logs a warning if unknown states are encountered
 		 */
 		/* @internal */ [`${unshadowPrefix}calculateWorstState`](states: ComponentStateInfo[]): ComponentStateInfo {
@@ -666,7 +712,9 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return worstState;
 		}
 		
-		/* Create a human-readable reason string for aggregated component states
+		/*
+		 * Create a human-readable reason string for aggregated component states
+		 *
 		 * @param states Collection of component states
 		 * @param worstState The worst state from the collection
 		 * @returns A human-readable reason string
@@ -699,7 +747,9 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return `Aggregated state [${stateSummary}]. Worst: ${worstReason}`;
 		}
 
-		/** Find a method in the parent class hierarchy that may be shadowed by this mixin
+		/*
+		 * Find a method in the parent class hierarchy that may be shadowed by this mixin
+		 * 
 		 * @param method The method to find in the parent class hierarchy
 		 * @returns The parent method if found, undefined otherwise
 		 * @internal
@@ -733,9 +783,12 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return undefined;
 		}
 
-		/* Initialize subcomponents
+		/*
+		 * Initialize subcomponents
+
 		 * @returns Promise that resolves when all subcomponents are initialized
 		 * @throws Error if initialization fails
+		 * 
 		 * @remark defaults to parallel initialization
 		 * @remark Sequential initialization is slower but guarantees that subcomponents are initialized in the order they were registered
 		 */
@@ -752,9 +805,12 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 		}
 
-		/* Check if the object is a valid managed component using duck typing
+		/*
+		 * Check if the object is a valid managed component (using duck typing)
+		 *
 		 * @param obj The object to check
 		 * @returns true if the object is a valid managed component, false otherwise
+		 * 
 		 * @remark This method is used to check if the object is a valid managed component before registering it as a subcomponent
 		 * @remark Using `instanceof` may fail because the module system may load different copies of the same class
 		 */
@@ -772,9 +828,12 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			);
 		}
 		
-		/* Shut down subcomponents
+		/*
+		 * Shut down subcomponents
+		 *
 		 * @returns Promise that resolves when all subcomponents are shut down
 		 * @throws Error if shutdown fails
+		 * 
 		 * @remark defaults to parallel shutdown
 		 * @remark Sequential shutdown is slower but guarantees that subcomponents are shut down in the reverse order they were registered
 		 */
@@ -791,9 +850,12 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 		}
 		
-		/* DEPRECATED Update state when registering ir unregistering subcomponents
+		/*
+		 * DEPRECATED Update state when registering ir unregistering subcomponents
+		 *
 		 * @returns void
 		 * @remark New code should possibly not rely on this method
+		 * 
 		 * @todo Remove this method in future versions
 		 */
 		/* @internal */ [`${unshadowPrefix}updateAggregatedState`](): void {
@@ -808,9 +870,12 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			this.msc_zh7y_stateSubject.next(aggregatedState);
 		}
 
-		/* Update the state of the component and optionally its subcomponents
+		/*
+		 * Update the state of the component and optionally its subcomponents
+		 *
 		 * @param state The new state to set
 		 * @returns Promise that resolves when the state update has fully propagated
+		 * 
 		 * @remark Waits for state change to propagate before resolving (i.e. "Wait for Your Own Events" pattern to ensure consistency)
 		 */
 		/* @internal */ async [`${unshadowPrefix}updateState`](newState: Partial<ComponentStateInfo>): Promise<void> {

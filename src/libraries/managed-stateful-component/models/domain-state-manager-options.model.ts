@@ -1,6 +1,7 @@
-/** Options for the {@link DomainStateManager} */
+import ManagedStatefulComponentOptions from "./managed-stateful-component-options.model";
 
-export interface DomainStateManagerOptions {
+/** Options for the {@link DomainStateManager} */
+export interface DomainStateManagerOptions extends ManagedStatefulComponentOptions {
 	/** Optional virtual path for the domain, used for hierarchical state management.
 	 *
 	 * When provided, enables override of automatic path inference by {@link DomainPathExtractor}s.
