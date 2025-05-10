@@ -27,7 +27,18 @@ import UserModule from './user/user.module';
 
 import productionConfig from './../config/production.config';
 import developmentConfig from '../config/development.config';
-
+/**
+ * Main module for the application.
+ * 
+ * This module serves as the entry point for the application and is responsible for
+ * importing and configuring all other modules, services, and components.
+ * 
+ * It includes the following key features:
+ * - Globally providing configuration and other widely used services
+ * - Setting up state management and logging for the application
+ * - Authenticating with the auth service and registering with the microservice registry
+ * - More generally securing ordered initialization and shutdown of the application
+ */
 @Global()
 @Module({
 	imports: [
@@ -119,6 +130,7 @@ export class AppModule  extends StreamLoggableMixin(class {}) implements OnModul
 	 * 
 	 * @returns Promise that resolves to void when the module is fully initialized
 	 * @throws Error if initialization fails
+	 * 
 	 * @todo Add error handling for initialization failures
 	 */
 	public async onModuleInit(): Promise<void> {
@@ -141,7 +153,7 @@ export class AppModule  extends StreamLoggableMixin(class {}) implements OnModul
 
 		this.logger.info(`Server initialized with instance id ${this.appConfig.serviceid}`, `${this.constructor.name}.onModuleInit`);
 		
-		const sub = this.stateManager.componentState$.subscribe((state) => { // for debugging	
+		const sub = this.stateManager.componentState$.subscribe((state) => { // debugging	
 			console.info({ name: state.name, state: state.state, reason: state.reason, });
 		});
 		this.subs.push(sub);			
@@ -151,11 +163,15 @@ export class AppModule  extends StreamLoggableMixin(class {}) implements OnModul
 	 * 
 	 * @returns Promise that resolves to void when the module is fully cleaned up
 	 * @throws Error if cleanup fails
+	 * 
 	 * @todo Add error handling for cleanup failures
 	 */
 	public async onModuleDestroy(): Promise<void> {
 		this.logger.info('Destroying server...', `${this.constructor.name}.onModuleDestroy`);		
-		// todo : set health check status to shutting down
+		
+		// Shut down the module's state managed components
+		// Note: This will make all health check endpoints return "unavailable" status
+		await this.stateManager.shutdown();
 		
 		// Deregister from the microservice registry
 		try {
@@ -177,52 +193,26 @@ export class AppModule  extends StreamLoggableMixin(class {}) implements OnModul
 			// todo: set health check status to degraded
 		}
 		
-		// Shut down the state management of the module and its components
-		await this.stateManager.shutdown();
-
-		this.subs.forEach((sub) => {
+		this.subs.forEach((sub) => { // debug
 			sub && sub.unsubscribe();
 		});		
 
 		this.logger.info('Server destroyed', `${this.constructor.name}.onModuleDestroy`);
-		// todo : set health check status to destroyed
-		// todo : close all connections and clean up resources
+
+		this.streamLogger.unsubscribeAll();
 	}
 
 	//------------------------------------- MANAGEMENT API --------------------------------------//
 
-	/** Initialize the server by logging in to the auth service and registering with the microservice registry
-	 * 
-	 * @returns Promise that resolves to void when the server initialization is complete
-	 * @throws Error if initialization fails
-	 * @todo Fail with warning, rather than error, if initialization fails, e.g. to support manual testing and graceful degradation
-	 * @todo Add an app controller with a health check endpoint, backed by service, to check if server is initialized and running
-	 * @todo Add "degraded" status to health check endpoint if initialization fails
-	 */
-	public async onInitialize() {
-		return;
-
-		// Register subcomponents for lifecycle management
-		//this.registerSubcomponent(this.conditioningModule);
-		//this.registerSubcomponent(this.userModule);
-		
-		
-		this.logger.info(`Server initialized with instance id ${this.appConfig.serviceid}`, `${this.constructor.name}.onModuleInit`);
-	}
-
-	/** Shut down the server by deregistering from the microservice registry and logging out from the auth service
-	 * @returns Promise that resolves to void when the server has been shut down
-	 * @throws Error if deregistration or logout fails
-	 */
-	public async onShutdown() {
-		
-	}
+	// TODO - Consider moving stuff from onModuleInit and onModuleDestroy to this API
 	
 	//------------------------------------- PRIVATE METHODS -------------------------------------//
 
-	/** Authenticate with the auth service and register with the microservice registry
+	/*
+	 * Authenticate with the auth service and register with the microservice registry
 	 * 
 	 * Registers with the microservice registry (internally gets and stores access token from auth service)
+	 * 
 	 * @todo Set health check status to degraded if authentication or registration fails
 	 */
 	private async authenticate() {
@@ -246,9 +236,10 @@ export class AppModule  extends StreamLoggableMixin(class {}) implements OnModul
 		}
 	}
 	
-	/* Initialize logging for the module and its components.
+	/* 
+	 * Initialize logging for the module and its components.
 	 * 
-	This method subscribes to the log streams of the module and its components, allowing for centralized logging.
+	 * This method subscribes to the log streams of the module and its components, allowing for centralized logging.
 	 * It also logs the initialization status of the logging system.
 	 */
 	private initializeLogging() {
