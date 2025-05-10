@@ -1,11 +1,15 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DiscoveryService } from '@nestjs/core';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { Global, Module, OnModuleDestroy, OnModuleInit }  from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 
-import { DomainStateManager, ManagedStatefulComponentMixin } from './libraries/managed-stateful-component';
+import { Subscription, } from 'rxjs';
+
+import { DomainStateManager } from './libraries/managed-stateful-component';
 import { MergedStreamLogger, StreamLoggableMixin } from "./libraries/stream-loggable";
 
+import AppDomainStateManager from './app-domain-state-manager';
 import AppHealthModule from './app-health/app-health.module';
 import AuthenticationModule from './authentication/authentication.module';
 import AuthService from './authentication/domain/auth-service.class';
@@ -23,9 +27,6 @@ import UserModule from './user/user.module';
 
 import productionConfig from './../config/production.config';
 import developmentConfig from '../config/development.config';
-import { firstValueFrom, Subscription, take } from 'rxjs';
-import { DiscoveryService } from '@nestjs/core';
-import AppDomainStateManager from './app-domain-state-manager';
 
 @Global()
 @Module({

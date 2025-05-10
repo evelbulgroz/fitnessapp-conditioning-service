@@ -33,7 +33,7 @@ export class AppHealthService {
 		const unhealthyComponents: ComponentStateInfo[] = [];
 	
 		for (const component of this.components) {
-			await component.initialize();
+			//await component.initialize();
 			const stateInfo = await firstValueFrom(component.componentState$.pipe(take(1))) as ComponentStateInfo;
 
 			const isHealthy = stateInfo.state === ComponentState.OK || stateInfo.state === ComponentState.DEGRADED;

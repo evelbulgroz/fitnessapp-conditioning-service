@@ -43,6 +43,7 @@ import RepoLogMapper from './mappers/repo-log.mapper';
 		{ // Register ConsoleLogger as a provider
 			provide: Logger,
 			useFactory: () => {
+				// todo: get app name from config
 				return new ConsoleLogger(LogLevel.DEBUG, 'fitnessapp-conditioning-service');
 			}
 		},		

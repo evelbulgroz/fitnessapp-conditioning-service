@@ -84,7 +84,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		protected readonly userRepo: UserRepository
 	) {
 		super();
-		this.subscribeToRepoEvents(); // deps not intialized in onModuleInit, so subscribe here
+		//this.subscribeToRepoEvents(); // deps not intialized in onModuleInit, so subscribe here
 	}
 
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
@@ -95,33 +95,6 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	}
 	
 	//---------------------------------------- DATA API -----------------------------------------//
-
-	/** Force reset state if cache is empty
-	 * Workaround for asynchronicity in repo and data service initialization:
-	 * A fix using the 'sequential' option should be sought after investigating the issue further.
-	 */
-	public override async isReady(): Promise<boolean> {
-		await super.isReady(); // call base class isReady() method
-		return new Promise(async (resolve) => {
-			if (this.msc_zh7y_ownState.state === ComponentState.OK && this.cache.value.length > 0) {
-				resolve(true);
-			}
-			else if (this.state === ComponentState.FAILED) {
-				resolve(false);
-			}
-			else {
-				this.msc_zh7y_ownState = ({
-					name: this.constructor.name,
-					state: ComponentState.UNINITIALIZED,
-					reason: 'Component initialization reset',
-					updatedOn: new Date()
-				});
-				await this.msc_zh7y_updateState(this. msc_zh7y_ownState); // returns when state change is observed
-				await this.initialize();
-				resolve(this.msc_zh7y_ownState.state === ComponentState.OK && this.cache.value.length > 0);
-			}
-		});
-	}
 
 	/** New API: Create a new conditioning log for a user in the system
 	 * @param ctx User context for the request (includes user id and roles)
@@ -697,6 +670,10 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		// execute initialization
 		try {
 			this.logToStream(LogLevel.INFO, 'Executing initialization...');
+
+			// Wait for both repos to be ready to ensure they are initialized before fetching data
+			// NOTE: This may trigger initialization if the repos are not already initialized
+			await Promise.all([this.logRepo.isReady(), this.userRepo.isReady()]);
 			
 			// fetch all logs from conditioning log repo
 			let allLogs: ConditioningLog<any, ConditioningLogDTO>[] = [];
@@ -728,6 +705,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 				return { userId: user.userId!, logs: logs, lastAccessed: now };
 			});
 			this.cache.next(userLogs);
+
+			// subscribe to user and log repo events
+			this.subscribeToRepoEvents();
 			
 			this.logToStream(LogLevel.INFO, `Initialization execution complete: Cached ${allLogs.length} logs for ${users.length} users.`);
 			return Promise.resolve();

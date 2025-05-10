@@ -18,12 +18,11 @@ export class AppDomainStateManager extends DomainStateManager {
 	}
 	
 	public async onInitialize() {
-		console.log("AppDomainStateManager.onInitialize()");
 		await this.wireDomains();
 	}
 
 	public async onShutdown(...args: any[]): Promise<void> {
-		console.log("AppDomainStateManager.onShutdown()");
+		//console.log("AppDomainStateManager.onShutdown()"); // debug
 
 		// Unregister all subcomponents
 		for (const subcomponent of this.subcomponents) {

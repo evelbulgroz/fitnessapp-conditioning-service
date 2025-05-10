@@ -13,6 +13,15 @@ import filePathExtractor from '../helpers/extractors/file-path-extractor';
  // Applied dynamically to all internal methods, and is hard coded into property names for simplicity.
 const MSC_PREFIX = 'msc_zh7y_';
 
+// Default state for the component when created
+const now = new Date();
+const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInfo => ({
+	name: component.constructor.name,
+	state: ComponentState.UNINITIALIZED,
+	reason: 'Component created',
+	updatedOn: now
+});
+
 /** A mixin that provides a standard implementation of the {@link ManagedStatefulComponent} interface.
  * 
  * This mixin follows the stateful component pattern for lifecycle management with built-in
@@ -141,20 +150,10 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		// State management properties
 
 		/* BehaviorSubject to track the aggregated state of the component and its subcomponents */
-		/* @internal */ readonly  msc_zh7y_stateSubject = new BehaviorSubject<ComponentStateInfo>({ 
-			name: this.constructor.name, 
-			state: ComponentState.UNINITIALIZED, 
-			reason: 'Component created', 
-			updatedOn: new Date() 
-		});
+		/* @internal */ readonly  msc_zh7y_stateSubject = new BehaviorSubject<ComponentStateInfo>(getDefaultState(this));
 				
 		/* Isolated state for the component itself, without subcomponents */
-		/* @internal */ msc_zh7y_ownState: ComponentStateInfo = { 
-			name: this.constructor.name, 
-			state: ComponentState.UNINITIALIZED, 
-			reason: 'Component created', 
-			updatedOn: new Date() 
-		};
+		/* @internal */ msc_zh7y_ownState: ComponentStateInfo = getDefaultState(this);
 
 		// Optional subcomponent support
 		/* @internal */ msc_zh7y_subcomponents: ManagedStatefulComponent[] = [];
@@ -186,11 +185,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			
 			this.msc_zh7y_options = { ...this.msc_zh7y_options, ...options }; // Merge options with defaults
 			this.msc_zh7y_unshadowPrefix = unshadowPrefix; // Set the unshadow prefix for internal members
-
-			// Auto-register with domain manager
-			//this.domainName = options.domain ?? this.constructor.name;
-			//this.domainManager = ComponentStateRegistry.getInstance().getOrCreateDomainManager(this.domainName);
-			//.componentId = this.domainManager.registerComponent(this);
 		}		
 
 		//------------------------------------- PUBLIC API --------------------------------------//

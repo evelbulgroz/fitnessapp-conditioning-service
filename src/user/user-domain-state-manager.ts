@@ -21,13 +21,13 @@ export class UserDomainStateManager extends DomainStateManager {
 	
 	async onInitialize() {
 		// Register subcomponents for lifecycle management
-		this.registerSubcomponent(this.repository);
+		//this.registerSubcomponent(this.repository);
 		this.registerSubcomponent(this.dataService);
 		// UserController is not a managed component, , so we don't register it as a subcomponent
 	}
 
 	async onShutdown(...args: any[]): Promise<void> {
-		console.log("UserDomainStateManager.onShutdown()");
+		//console.log("UserDomainStateManager.onShutdown()"); // debug
 		// UserController is not a managed component, so we don't unregister it as a subcomponent		
 		this.stateManager.unregisterSubcomponent(this.dataService);
 		this.stateManager.unregisterSubcomponent(this.repository); // repo handles persistence shutdown internally
