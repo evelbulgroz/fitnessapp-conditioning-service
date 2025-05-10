@@ -1,6 +1,7 @@
 import DomainStateManager from "../helpers/domain-state-manager.class";
 
-/** Function that determines the hierarchical location of a {@link DomainStateManager} in the application's domain tree.
+/**
+ * Function that determines the hierarchical location of a {@link DomainStateManager} in the application's domain tree.
  *
  * DomainPathExtractor is a key part of the automatic domain hierarchy building process. It generates
  * a dot-notation path (e.g., "app.user.profile") that:

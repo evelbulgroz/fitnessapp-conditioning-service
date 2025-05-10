@@ -1,13 +1,18 @@
 import DomainPathExtractor from "../../models/domain-path-extractor.model";
 import DomainStateManager from "../domain-state-manager.class";
 
-// Example implementation of the DomainPathExtractor function:
-/** Extract domain path from file location in project structure
+/**
+ * Extract domain path from file location in project structure
  *
  * This function is used to parse the hierarchical path of a domain state manager
  * within the application structure based on its file location.
+ * 
+ * Default implementation {@link DomainPathExtractor} for most situations when
+ * the file location is used to determine the path.
  *
  * Note: The file location must be attached to the manager instance in the __filename property.
+ * 
+ * @todo Make project root configurable in the constructor
  */
 export const filePathExtractor: DomainPathExtractor = (manager: DomainStateManager, appRootName: string = 'app'): string => {
 	// The file location must be attached to the manager instance

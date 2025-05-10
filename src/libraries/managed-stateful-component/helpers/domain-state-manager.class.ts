@@ -23,6 +23,7 @@ import {ManagedStatefulComponentMixin, MSC_PREFIX} from "../mixins/managed-state
  * 
  * @example
  * // Create a domain manager for the user feature
+ * // In a NestJS application, this would co-located with the user module
  * @Injectable()
  * export class UserDomainManager extends DomainStateManager {
  *   constructor(
@@ -37,8 +38,6 @@ import {ManagedStatefulComponentMixin, MSC_PREFIX} from "../mixins/managed-state
  *     this.registerDomainComponent(userRepository);
  *   }
  * }
- * 
- * @todo Refactor to merge options into internal mixin options
  */
 export class DomainStateManager extends ManagedStatefulComponentMixin(class {}) { // note: mixin takes options as constructor arg, but we don't know them yet for subclasses
 	/**

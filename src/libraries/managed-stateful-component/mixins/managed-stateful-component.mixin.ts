@@ -130,6 +130,8 @@ const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInf
  *   }
  * }
  * ```
+ * 
+ * @todo Rewrite documentation to reflect new use of domain state managers
  */
 export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(
 	Parent: TParent,
