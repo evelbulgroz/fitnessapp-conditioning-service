@@ -90,7 +90,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
 	onModuleDestroy() {
-		this.logToStream(LogLevel.INFO, `Shutting down...`);
+		this.logger.info(`Shutting down...`);
 		this.shutdown(); // call shutdown method from mixin
 	}
 	
@@ -669,7 +669,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 
 		// execute initialization
 		try {
-			this.logToStream(LogLevel.INFO, 'Executing initialization...');
+			this.logger.info('Executing initialization...');
 
 			// Wait for both repos to be ready to ensure they are initialized before fetching data
 			// NOTE: This may trigger initialization if the repos are not already initialized
@@ -709,11 +709,11 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 			// subscribe to user and log repo events
 			this.subscribeToRepoEvents();
 			
-			this.logToStream(LogLevel.INFO, `Initialization execution complete: Cached ${allLogs.length} logs for ${users.length} users.`);
+			this.logger.info(`Initialization execution complete: Cached ${allLogs.length} logs for ${users.length} users.`);
 			return Promise.resolve();
 		}
 		catch (error) {
-			this.logToStream(LogLevel.ERROR, `Cache initialization failed:`, error instanceof Error ? error.message : String(error));
+			this.logger.error(`Cache initialization failed:`, error instanceof Error ? error.message : String(error));
 			return Promise.reject(error);
 		}
 	}
@@ -732,7 +732,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 */
 	public override onShutdown(): Promise<void> {		
 		try {
-			this.logToStream(LogLevel.INFO, `Executing shutdown...`);
+			this.logger.info(`Executing shutdown...`);
 			
 			// clean up resources
 			while (this.subscriptions.length > 0) { // unsubscribe all subscriptions
@@ -745,11 +745,11 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 			this.cache.complete(); // complete the cache observable to release resources
 			this.cache.next([]); // emit empty array to clear cache
 			
-			this.logToStream(LogLevel.INFO, 'Shutdown execution complete.');
+			this.logger.info('Shutdown execution complete.');
 			return Promise.resolve();
 		} 
 		catch (error) {
-			this.logToStream(LogLevel.ERROR, `Shutdown execution failed:`, error instanceof Error ? error.message : String(error));
+			this.logger.error(`Shutdown execution failed:`, error instanceof Error ? error.message : String(error));
 			return Promise.reject(error);
 		}
 	}
@@ -770,7 +770,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 				await this.rollbackLogCreation(logId, softDelete, retries - 1, delay);
 			}
 			else {
-				this.logToStream(LogLevel.ERROR, `Error rolling back log creation for ${logId}`, deleteResult.error.toString());
+				this.logger.error(`Error rolling back log creation for ${logId}`, deleteResult.error.toString());
 			}
 		}
 
@@ -790,7 +790,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 				await this.rollBackUserUpdate(originalPersistenceDTO, retries - 1, delay);
 			}
 			else {
-				this.logToStream(LogLevel.ERROR, `Error rolling back user update for ${originalPersistenceDTO.userId}`, result.error.toString());
+				this.logger.error(`Error rolling back user update for ${originalPersistenceDTO.userId}`, result.error.toString());
 			}
 		}
 	}
@@ -816,7 +816,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		// filter out any logs that do not have a start date, log id of logs missing start date
 		const logsWithDates = logs.filter(log => {
 			if (log.start !== undefined) return true;
-			this.logToStream(LogLevel.WARN, `Conditioning log ${log.entityId} has no start date, excluding from ConditioningLogSeries.`);
+			this.logger.warn(`Conditioning log ${log.entityId} has no start date, excluding from ConditioningLogSeries.`);
 			return false;
 		});
 		
