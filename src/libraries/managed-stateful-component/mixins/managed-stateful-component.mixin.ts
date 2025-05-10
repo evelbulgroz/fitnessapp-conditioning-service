@@ -11,7 +11,7 @@ import filePathExtractor from '../helpers/extractors/file-path-extractor';
 
 // Fixed prefix for internal members to avoid name collisions with parent classes or other libraries.
  // Applied dynamically to all internal methods, and is hard coded into property names for simplicity.
-const MSC_PREFIX = 'msc_zh7y_';
+export const MSC_PREFIX = 'msc_zh7y_';
 
 // Unified default state for the component when created
 const now = new Date();
@@ -183,7 +183,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 		public constructor(...args: any[]) {
 			super(...args); // Call parent constructor, passing any arguments
-			
+			this[`${unshadowPrefix}mergeOptions`](options); // Merge options with defaults
 			this.msc_zh7y_options = { ...this.msc_zh7y_options, ...options }; // Merge options with defaults
 			this.msc_zh7y_unshadowPrefix = unshadowPrefix; // Set the unshadow prefix for internal members
 		}		
@@ -826,6 +826,18 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				obj.componentState$ instanceof Observable
 			);
 		}
+
+		/*
+		 * Merge new options into the existing options
+		 * 
+		 * @param newOptions The new options to merge
+		 * @returns void
+		 * 
+		 * @remark This method is used to update the options for the component and its subcomponents
+		 */
+		/* @internal */ [`${unshadowPrefix}mergeOptions`](newOptions: ManagedStatefulComponentOptions): void {
+			Object.assign(this.msc_zh7y_options ?? {}, newOptions);
+		  }
 		
 		/*
 		 * Shut down subcomponents

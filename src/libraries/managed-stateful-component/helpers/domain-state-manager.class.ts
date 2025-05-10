@@ -1,6 +1,6 @@
 import DomainStateManagerOptions from "../models/domain-state-manager-options.model";
 import ManagedStatefulComponent from "../models/managed-stateful-component.model";
-import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.mixin";
+import {ManagedStatefulComponentMixin, MSC_PREFIX} from "../mixins/managed-stateful-component.mixin";
 
 /**
  * Represents a domain-specific state container that manages components within
@@ -39,17 +39,19 @@ import ManagedStatefulComponentMixin from "../mixins/managed-stateful-component.
  * 
  * @todo Refactor to merge options into internal mixin options
  */
-export class DomainStateManager extends ManagedStatefulComponentMixin(class {}) {
-	protected readonly options?: DomainStateManagerOptions;
-	
-	/** Creates a new instance of the DomainStateManager.
+export class DomainStateManager extends ManagedStatefulComponentMixin(class {}) { // note: mixin takes options as constructor arg, but we don't know them yet for subclasses
+	/**
+	 * Creates a new instance of the DomainStateManager.
 	 * 
 	 * @param options - Optional configuration for the domain state manager.
 	 * @returns A new instance of the DomainStateManager.
+	 * 
+	 * @remark Any options provided will be merged into the internal mixin options.
+	 *
 	 */
 	public constructor(options?: DomainStateManagerOptions) {
 		super();
-		this.options = options; // todo: merge with mixin options to make available to all of mixin code
+		this[`${MSC_PREFIX}mergeOptions`](options ?? {}); // merge options into mixin
 	}	
 }
 export default DomainStateManager;
