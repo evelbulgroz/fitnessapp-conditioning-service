@@ -59,5 +59,5 @@ import DomainStateManager from "../helpers/domain-state-manager.class";
 	return normalizedPath;
 };
  */
-export type DomainPathExtractor = (manager: DomainStateManager, appRootName?: string) => string;
+export type DomainPathExtractor = (manager: DomainStateManager, appRootName?: string, ...args: any[]) => string;
 export default DomainPathExtractor;

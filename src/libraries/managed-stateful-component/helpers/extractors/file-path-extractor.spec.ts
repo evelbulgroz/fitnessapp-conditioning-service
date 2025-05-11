@@ -1,5 +1,6 @@
 import { filePathExtractor } from './file-path-extractor';
 import DomainStateManager from '../domain-state-manager.class';
+import { normalize } from 'path';
 
 // Mock DomainStateManager for testing
 class MockDomainManager extends DomainStateManager {
@@ -19,8 +20,12 @@ describe('filePathExtractor', () => {
 				'd:\\version-control\\projects\\fitnessapp-conditioning-service\\src\\conditioning\\conditioning-domain-state-manager.ts'
 			);
 			
-			// Act
-			const result = filePathExtractor(manager);
+			// Act - specify a matching source root
+			const result = filePathExtractor(
+				manager,
+				'app',
+				'd:\\version-control\\projects\\fitnessapp-conditioning-service'
+			);
 			
 			// Assert
 			expect(result).toBe('app.src.conditioning');
@@ -32,8 +37,12 @@ describe('filePathExtractor', () => {
 				'/home/user/fitnessapp-conditioning-service/src/user/user-domain-state-manager.ts'
 			);
 			
-			// Act
-			const result = filePathExtractor(manager);
+			// Act - specify a matching source root
+			const result = filePathExtractor(
+				manager,
+				'app',
+				'/home/user/fitnessapp-conditioning-service'
+			);
 			
 			// Assert
 			expect(result).toBe('app.src.user');
@@ -51,7 +60,7 @@ describe('filePathExtractor', () => {
 		});
 	});
 
-	describe('Path normalization', () => {
+	describe('Path Normalization', () => {
 		it('handles different file extensions', () => {
 			// Arrange
 			const tsManager = new MockDomainManager(
@@ -62,25 +71,37 @@ describe('filePathExtractor', () => {
 			);
 			
 			// Act
-			const tsResult = filePathExtractor(tsManager);
-			const jsResult = filePathExtractor(jsManager);
+			const tsResult = filePathExtractor(
+				tsManager, 
+				'app',
+				'd:\\fitnessapp-conditioning-service'
+			);
+			const jsResult = filePathExtractor(
+				jsManager,
+				'app',
+				'd:\\fitnessapp-conditioning-service'
+			);
 			
 			// Assert
 			expect(tsResult).toBe('app.src.auth');
 			expect(jsResult).toBe('app.src.auth');
 		});
 
-		it('handles .dist.src patterns in path', () => {
+		it('handles paths with dist in them', () => {
 			// Arrange
 			const manager = new MockDomainManager(
 				'd:\\fitnessapp-conditioning-service\\dist\\src\\conditioning\\manager.ts'
 			);
 			
 			// Act
-			const result = filePathExtractor(manager);
+			const result = filePathExtractor(
+				manager,
+				'app',
+				'd:\\fitnessapp-conditioning-service'
+			);
 			
 			// Assert
-			expect(result).toBe('app.conditioning');
+			expect(result).toBe('app.dist.src.conditioning');
 		});
 
 		it('normalizes paths to lowercase', () => {
@@ -90,25 +111,33 @@ describe('filePathExtractor', () => {
 			);
 			
 			// Act
-			const result = filePathExtractor(manager);
+			const result = filePathExtractor(
+				manager,
+				'app',
+				'd:\\fitnessapp-conditioning-service'
+			);
 			
 			// Assert
 			expect(result).toBe('app.src.auth');
 		});
 	});
 
-	describe('Edge cases', () => {
-		it('handles leading and trailing separators', () => {
+	describe('Edge Cases', () => {
+		it('handles leading and trailing separators in file paths', () => {
 			// Arrange
 			const manager = new MockDomainManager(
 				'd:\\fitnessapp-conditioning-service\\\\src\\auth\\'
 			);
 			
 			// Act
-			const result = filePathExtractor(manager);
+			const result = filePathExtractor(
+				manager,
+				'app', 
+				'd:\\fitnessapp-conditioning-service'
+			);
 			
 			// Assert
-			expect(result).toBe('app.auth');
+			expect(result).toBe('app.src.auth');
 		});
 
 		it('supports custom appRootName', () => {
@@ -118,7 +147,11 @@ describe('filePathExtractor', () => {
 			);
 			
 			// Act
-			const result = filePathExtractor(manager, 'fitness');
+			const result = filePathExtractor(
+				manager, 
+				'fitness',
+				'd:\\fitnessapp-conditioning-service',
+			);
 			
 			// Assert
 			expect(result).toBe('fitness.src.analytics');
@@ -130,11 +163,113 @@ describe('filePathExtractor', () => {
 				'd:\\other-project\\src\\feature\\manager.ts'
 			);
 			
-			// Act
-			const result = filePathExtractor(manager);
+			// Act - use a root that doesn't match
+			const result = filePathExtractor(
+				manager,
+				'app',
+				'c:\\completely-different'
+			);
 			
 			// Assert - should still produce a reasonable result
-			expect(result.startsWith('app')).toBeTruthy();
+			expect(result).toBe('app.d.other-project.src.feature');
+		});
+	});
+
+	describe('Separator Parameter', () => {
+		it('uses custom separator when provided', () => {
+			// Arrange
+			const manager = new MockDomainManager(
+				'd:\\fitnessapp-conditioning-service\\src\\auth\\manager.ts'
+			);
+			
+			// Act
+			const result = filePathExtractor(
+				manager, 
+				'app',
+				'd:\\fitnessapp-conditioning-service',
+				'/'
+			);
+			
+			// Assert
+			expect(result).toBe('app/src/auth');
+		});
+		
+
+		it('handles different custom separators', () => {
+			// Arrange
+			const manager = new MockDomainManager(
+				'd:\\fitnessapp-conditioning-service\\src\\auth\\manager.ts'
+			);
+			
+			// Act - test with different separators
+			const dashResult = filePathExtractor(
+				manager, 
+				'app',
+				'd:\\fitnessapp-conditioning-service',
+				'-'
+			);
+			const colonResult = filePathExtractor(
+				manager, 
+				'app',
+				'd:\\fitnessapp-conditioning-service',
+				':'
+			);
+			
+			// Assert
+			expect(dashResult).toBe('app-src-auth');
+			expect(colonResult).toBe('app:src:auth');
+		});
+		
+		it('sanitizes multiple consecutive separators', () => {
+			// Arrange
+			const manager = new MockDomainManager(
+				'd:\\fitnessapp-conditioning-service\\src\\\\auth\\\\\\manager.ts'
+			);
+			
+			// Act
+			const result = filePathExtractor(
+				manager, 
+				'app',
+				'd:\\fitnessapp-conditioning-service',
+				'.'
+			);
+			
+			// Assert - should have no double dots
+			expect(result).toBe('app.src.auth');
+			expect(result).not.toContain('..');
+		});
+	});
+	
+	describe('Cross-Platform Compatibility', () => {
+		it('handles mixed path separators', () => {
+			// Arrange - path with mixed separators
+			const manager = new MockDomainManager(
+				'd:\\fitnessapp-conditioning-service/src\\auth/manager.ts'
+			);
+			
+			// Act
+			const result = filePathExtractor(
+				manager,
+				'app',
+				'd:\\fitnessapp-conditioning-service'
+			);
+			
+			// Assert
+			expect(result).toBe('app.src.auth');
+		});
+		
+		it('works with current working directory as default source root', () => {
+			// Arrange
+			const manager = new MockDomainManager(
+				`${process.cwd()}\\src\\feature\\manager.ts`
+			);
+			
+			// Act - don't specify sourceRoot to use default
+			const result = filePathExtractor(manager);
+			
+			// Assert - should have src and feature in the path
+			expect(result.includes('src')).toBeTruthy();
+			expect(result.includes('feature')).toBeTruthy();
 		});
 	});
 });
