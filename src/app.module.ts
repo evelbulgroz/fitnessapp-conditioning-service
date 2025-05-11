@@ -6,7 +6,7 @@ import axios, { AxiosInstance } from 'axios';
 
 import { Subscription, } from 'rxjs';
 
-import { DomainStateManager } from './libraries/managed-stateful-component';
+import { domainPathExtractor, DomainStateManager, filePathExtractor, FilePathExtractorOptions } from './libraries/managed-stateful-component';
 import { MergedStreamLogger, StreamLoggableMixin } from "./libraries/stream-loggable";
 
 import AppDomainStateManager from './app-domain-state-manager';
@@ -66,12 +66,13 @@ import developmentConfig from '../config/development.config';
 	providers: [		
 		ConfigService,
 		DiscoveryService,
+		// todo: domainPathExtractor
 		{ // DomainStateManager
 			// Provide the AppDomainStateManager implementation of the DomainStateManager interface
 			provide: DomainStateManager,
 			useClass: AppDomainStateManager
 		},
-		EventDispatcherService,
+		EventDispatcherService,		
 		RequestLoggingInterceptor,
 		RegistrationService,
 		{ // AuthService

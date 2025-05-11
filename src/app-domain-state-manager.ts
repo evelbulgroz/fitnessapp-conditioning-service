@@ -1,7 +1,7 @@
 import { DiscoveryService } from "@nestjs/core";
 import { Injectable } from "@nestjs/common";
 
-import { DomainStateManager } from './libraries/managed-stateful-component/index';
+import { domainPathExtractor, DomainStateManager } from './libraries/managed-stateful-component/index';
 
 import DomainHierarchyWirer from "./libraries/managed-stateful-component/helpers/domain-hierarchy-wirer.class";
 
@@ -20,12 +20,15 @@ import DomainHierarchyWirer from "./libraries/managed-stateful-component/helpers
  * @see {@link DomainStateManager} for more information on how domain state managers work.
  * @see {@link DomainHierarchyWirer} for more information on how domain hierarchy wiring works.
  * 
+ * @todo Get extractor from DI container instead of using default filePathExtractor
  */
 @Injectable()
 export class AppDomainStateManager extends DomainStateManager {	
 	public readonly __filename: string = __filename; // filePathExtractor requires __filename to be defined on the state manager
 
-	constructor(private readonly discoveryService: DiscoveryService) {
+	constructor(
+		private readonly discoveryService: DiscoveryService,
+	) {
 		super();
 	}
 	
@@ -66,7 +69,7 @@ export class AppDomainStateManager extends DomainStateManager {
 
 		// Wire the domain hierarchy
 		const wirer = new DomainHierarchyWirer();
-		await wirer.wireDomains(managers);
+		await wirer.wireDomains(managers); // todo: use injected file extractor set up with options from config service 
 	}
 }
 export default AppDomainStateManager;

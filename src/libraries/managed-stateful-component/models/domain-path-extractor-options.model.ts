@@ -11,3 +11,5 @@ export interface DomainPathExtractorOptions {
 	 */
 	separator: string;
 }
+
+export default DomainPathExtractorOptions;

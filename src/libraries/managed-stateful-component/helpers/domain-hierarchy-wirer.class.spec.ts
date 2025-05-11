@@ -1,6 +1,6 @@
 import DomainHierarchyWirer from './domain-hierarchy-wirer.class';
 import DomainStateManager from './domain-state-manager.class';
-import DomainPathExtractor from '../models/domain-path-extractor.model';
+import domainPathExtractor from '../models/domain-path-extractor.model';
 
 // Create mock implementation of DomainStateManager for testing
 class MockDomainManager extends DomainStateManager {
@@ -30,7 +30,7 @@ class MockDomainManager extends DomainStateManager {
 describe('DomainHierarchyWirer', () => {
 	let wirer: DomainHierarchyWirer;
 	let mockManagers: MockDomainManager[];
-	let mockPathExtractor: jest.MockedFunction<DomainPathExtractor>;
+	let mockPathExtractor: jest.MockedFunction<domainPathExtractor>;
 
 	// Setup test data with a simulated file structure hierarchy
 	beforeEach(() => {
@@ -112,7 +112,9 @@ describe('DomainHierarchyWirer', () => {
 				await wirer.wireDomains(
 					[mockManagers[0], mockManagers[1], mockManagers[2]], 
 					slashPathExtractor,
-					'/'
+					{
+						separator: '/'
+					}
 				);
 				
 				// Check that app has registered user module
@@ -217,7 +219,9 @@ describe('DomainHierarchyWirer', () => {
 					const hierarchy = (wirer as any).buildHierarchy(
 						mockManagers, 
 						slashPathExtractor,
-						'/'
+						{
+							separator: '/'
+						}
 					);
 					
 					expect(hierarchy.size).toBe(2);
@@ -231,7 +235,7 @@ describe('DomainHierarchyWirer', () => {
 
 				xit('handles whitespace in paths', () => { });
 
-				xit('handles empty segments in paths', () => {
+				it('handles empty segments in paths', () => {
 					// Create a path extractor that returns empty segments
 					const emptySegmentExtractor = jest.fn((manager: DomainStateManager) => {
 						const mockManager = manager as MockDomainManager;
@@ -246,7 +250,9 @@ describe('DomainHierarchyWirer', () => {
 					const hierarchy = (wirer as any).buildHierarchy(
 						mockManagers, 
 						emptySegmentExtractor,
-						'.'
+						{
+							separator: '.'
+						}
 					);
 					
 					expect(hierarchy.size).toBe(2);
@@ -310,6 +316,259 @@ describe('DomainHierarchyWirer', () => {
 			
 			// Virtual path should make this manager a child of app
 			expect(mockManagers[0].registeredComponents).toContain(virtualPathManager);
+		});
+	});
+
+	describe('Utility Methods', () => {
+		class MockManager extends DomainStateManager {
+			constructor(options: any = {}) {
+				super();
+				Object.assign(this, options);
+			}
+		}
+
+		class ManagerWithVirtualPath extends DomainStateManager {
+			getVirtualPath() {
+				return 'virtual.path.manager';
+			}
+		}
+		
+		let wirer: DomainHierarchyWirer;
+		beforeEach(() => {
+			wirer = new DomainHierarchyWirer();
+		});
+
+		describe('getManagerIdentifier', () => {
+			it('uses managerId when available', () => {
+			// Arrange
+			const manager = new MockManager({ managerId: 'test-123' });
+			
+			// Act
+			const result = (wirer as any).getManagerIdentifier(manager);
+			
+			// Assert
+			expect(result).toBe('MockManager:test-123');
+			});
+			
+			it('uses path when managerId is not available', () => {
+			// Arrange
+			const manager = new MockManager({ path: 'app.domain.subdomain' });
+			
+			// Act
+			const result = (wirer as any).getManagerIdentifier(manager);
+			
+			// Assert
+			expect(result).toBe('MockManager:app.domain.subdomain');
+			});
+			
+			it('generates random suffix when neither managerId nor path is available', () => {
+			// Arrange
+			const manager = new MockManager();
+			
+			// Act
+			const result = (wirer as any).getManagerIdentifier(manager);
+			
+			// Assert
+			expect(result).toMatch(/^MockManager:[a-z0-9]{5}$/);
+			});
+		});
+
+		describe('getManagerPath', () => {
+			it('retrieves path property when available', () => {
+			// Arrange
+			const manager = new MockManager({ path: 'app.domain.path' });
+			
+			// Act
+			const result = (wirer as any).getManagerPath(manager);
+			
+			// Assert
+			expect(result).toBe('app.domain.path');
+			});
+			
+			it('retrieves __path property when available', () => {
+			// Arrange
+			const manager = new MockManager({ __path: 'app.domain.__path' });
+			
+			// Act
+			const result = (wirer as any).getManagerPath(manager);
+			
+			// Assert
+			expect(result).toBe('app.domain.__path');
+			});
+			
+			it('calls getVirtualPath method when available', () => {
+			// Arrange
+			const manager = new ManagerWithVirtualPath();
+			
+			// Act
+			const result = (wirer as any).getManagerPath(manager);
+			
+			// Assert
+			expect(result).toBe('virtual.path.manager');
+			});
+			
+			it('retrieves virtualPath from options when available', () => {
+			// Arrange
+			const manager = new MockManager({ 
+				options: { virtualPath: 'app.domain.options.virtualPath' } 
+			});
+			
+			// Act
+			const result = (wirer as any).getManagerPath(manager);
+			
+			// Assert
+			expect(result).toBe('app.domain.options.virtualPath');
+			});
+			
+			it('returns undefined when no path is available', () => {
+			// Arrange
+			const manager = new MockManager();
+			
+			// Act
+			const result = (wirer as any).getManagerPath(manager);
+			
+			// Assert
+			expect(result).toBeUndefined();
+			});
+			
+			it('prioritizes path over __path', () => {
+			// Arrange
+			const manager = new MockManager({ 
+				path: 'app.domain.path',
+				__path: 'app.domain.__path' 
+			});
+			
+			// Act
+			const result = (wirer as any).getManagerPath(manager);
+			
+			// Assert
+			expect(result).toBe('app.domain.path');
+			});
+			
+			it('prioritizes explicit properties over getVirtualPath method', () => {
+			// Arrange
+			class PrioritizedManager extends ManagerWithVirtualPath {
+				constructor() {
+				super();
+				(this as any).path = 'app.domain.prioritized';
+				}
+			}
+			const manager = new PrioritizedManager();
+			
+			// Act
+			const result = (wirer as any).getManagerPath(manager);
+			
+			// Assert
+			expect(result).toBe('app.domain.prioritized');
+			});
+		});
+
+		describe('serializeHierarchy', () => {
+			it('correctly serializes an empty hierarchy', () => {
+			// Arrange
+			const hierarchy = new Map();
+			
+			// Act
+			const result = (wirer as any).serializeHierarchy(hierarchy);
+			
+			// Assert
+			expect(result).toEqual({});
+			});
+			
+			it('correctly serializes a hierarchy with one parent and no children', () => {
+				// Arrange
+				const parent = new MockManager({ path: 'app.parent' });
+				const hierarchy = new Map([[parent, []]]);
+				
+				// Act
+				const result = (wirer as any).serializeHierarchy(hierarchy);
+				
+				// Assert
+				const parentId = (wirer as any).getManagerIdentifier(parent);
+				expect(result[parentId]).toBeDefined(); // Changed from toHaveProperty
+				expect(result[parentId]).toEqual({
+					name: 'MockManager',
+					path: 'app.parent',
+					children: []
+				});
+			});
+			
+			it('correctly serializes a hierarchy with one parent and multiple children', () => {
+				// Arrange
+				const parent = new MockManager({ path: 'app.parent' });
+				const child1 = new MockManager({ path: 'app.parent.child1' });
+				const child2 = new MockManager({ path: 'app.parent.child2' });
+				const hierarchy = new Map([[parent, [child1, child2]]]);
+				
+				// Act
+				const result = (wirer as any).serializeHierarchy(hierarchy);
+				
+				// Assert
+				const parentId = (wirer as any).getManagerIdentifier(parent);
+				const child1Id = (wirer as any).getManagerIdentifier(child1);
+				const child2Id = (wirer as any).getManagerIdentifier(child2);
+				
+				expect(result[parentId]).toBeDefined(); // Changed from toHaveProperty
+				expect(result[parentId].children).toHaveLength(2);
+				expect(result[parentId].children[0]).toEqual({
+					id: child1Id,
+					name: 'MockManager',
+					path: 'app.parent.child1'
+				});
+				expect(result[parentId].children[1]).toEqual({
+					id: child2Id,
+					name: 'MockManager',
+					path: 'app.parent.child2'
+				});
+			});
+			
+			it('correctly serializes a complex hierarchy with multiple parents', () => {
+				// Arrange
+				const parent1 = new MockManager({ path: 'app.parent1' });
+				const parent2 = new MockManager({ path: 'app.parent2' });
+				const child1 = new MockManager({ path: 'app.parent1.child1' });
+				const child2 = new MockManager({ path: 'app.parent2.child2' });
+				
+				const hierarchy = new Map([
+					[parent1, [child1]],
+					[parent2, [child2]]
+				]);
+				
+				// Act
+				const result = (wirer as any).serializeHierarchy(hierarchy);
+				
+				// Assert
+				const parent1Id = (wirer as any).getManagerIdentifier(parent1);
+				const parent2Id = (wirer as any).getManagerIdentifier(parent2);
+				
+				expect(Object.keys(result)).toHaveLength(2);
+				expect(result[parent1Id]).toBeDefined(); // Changed from toHaveProperty
+				expect(result[parent2Id]).toBeDefined(); // Changed from toHaveProperty
+				expect(result[parent1Id].children).toHaveLength(1);
+				expect(result[parent2Id].children).toHaveLength(1);
+			});
+			
+			it('handles managers with various path retrieval mechanisms', () => {
+			// Arrange
+			const pathManager = new MockManager({ path: 'app.path' });
+			const virtualPathManager = new ManagerWithVirtualPath();
+			const optionsManager = new MockManager({ 
+				options: { virtualPath: 'app.options.virtual' } 
+			});
+			
+			const hierarchy = new Map([
+				[pathManager, [virtualPathManager, optionsManager]]
+			]);
+			
+			// Act
+			const result = (wirer as any).serializeHierarchy(hierarchy);
+			
+			// Assert
+			const parentId = (wirer as any).getManagerIdentifier(pathManager);
+			expect(result[parentId].children).toHaveLength(2);
+			expect(result[parentId].children[0].path).toBe('virtual.path.manager');
+			expect(result[parentId].children[1].path).toBe('app.options.virtual');
+			});
 		});
 	});
 });

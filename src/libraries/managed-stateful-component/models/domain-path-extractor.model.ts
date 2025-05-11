@@ -25,8 +25,8 @@ import { DomainPathExtractorOptions } from "./domain-path-extractor-options.mode
  *
  * @see {@link filePathExtractor} for a default implementation that uses the file system location.
  */
-export type DomainPathExtractor = (
+export type domainPathExtractor = (
 	manager: DomainStateManager,
 	options?: Partial<DomainPathExtractorOptions>,
 ) => string;
-export default DomainPathExtractor;
+export default domainPathExtractor;
