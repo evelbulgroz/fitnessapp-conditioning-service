@@ -5,7 +5,7 @@ export { ManagedStatefulComponentMixin } from './mixins/managed-stateful-compone
 export { ComponentContainer } from './models/component-container.model';
 export { ComponentState } from './models/component-state.enum';
 export { ComponentStateInfo } from './models/component-state-info.model';
-export { DomainPathExtractor as domainPathExtractor } from './models/domain-path-extractor.model';
+export { DomainPathExtractor } from './models/domain-path-extractor.model';
 export { DomainPathExtractorOptions } from './models/domain-path-extractor-options.model';
 export { DomainStateManager } from './helpers/domain-state-manager.class';
 export { DomainStateManagerOptions } from './models/domain-state-manager-options.model';

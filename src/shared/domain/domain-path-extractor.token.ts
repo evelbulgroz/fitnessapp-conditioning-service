@@ -5,3 +5,4 @@
  * so a custom DI token is needed to inject it into a class.
  */
 export const DOMAIN_PATH_EXTRACTOR = Symbol('DOMAIN_PATH_EXTRACTOR');
+export default DOMAIN_PATH_EXTRACTOR;

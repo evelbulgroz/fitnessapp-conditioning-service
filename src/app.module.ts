@@ -6,7 +6,7 @@ import axios, { AxiosInstance } from 'axios';
 
 import { Subscription, } from 'rxjs';
 
-import { domainPathExtractor, DomainStateManager, filePathExtractor, FilePathExtractorOptions } from './libraries/managed-stateful-component';
+import { DomainPathExtractor, DomainStateManager, filePathExtractor, FilePathExtractorOptions } from './libraries/managed-stateful-component';
 import { MergedStreamLogger, StreamLoggableMixin } from "./libraries/stream-loggable";
 
 import AppDomainStateManager from './app-domain-state-manager';
@@ -15,6 +15,7 @@ import AuthenticationModule from './authentication/authentication.module';
 import AuthService from './authentication/domain/auth-service.class';
 import ConditioningController  from './conditioning/controllers/conditioning.controller';
 import ConditioningModule from './conditioning/conditioning.module';
+import DOMAIN_PATH_EXTRACTOR from './shared/domain/domain-path-extractor.token';
 import EventDispatcherService  from './shared/services/utils/event-dispatcher/event-dispatcher.service';
 import LoggingModule from './logging/logging.module';
 import RegistrationService from './authentication/services/registration/registration.service';
@@ -66,7 +67,29 @@ import developmentConfig from '../config/development.config';
 	providers: [		
 		ConfigService,
 		DiscoveryService,
-		// todo: domainPathExtractor
+		{ // TODO: DomainPathExtractor
+			provide: DOMAIN_PATH_EXTRACTOR,
+			useFactory: (configService: ConfigService) => {
+			  // Get any config values you need
+			  const config = configService.get('app') || {};
+			  
+			  // Create a preconfigured extractor with defaults from config
+			  return (
+				manager: DomainStateManager,
+				options: Partial<FilePathExtractorOptions> = {}
+			  ) => {
+				return filePathExtractor(
+					manager,
+					{
+						appRootName: config.appRootName || 'app',
+						sourceRoot: config.sourceRoot || process.cwd(),
+						separator: config.separator || '.'
+			  		} as Partial<FilePathExtractorOptions>
+				);
+			  };
+			},
+			inject: [ConfigService]
+		},
 		{ // DomainStateManager
 			// Provide the AppDomainStateManager implementation of the DomainStateManager interface
 			provide: DomainStateManager,

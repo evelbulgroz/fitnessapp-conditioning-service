@@ -1,7 +1,8 @@
 import { DiscoveryService } from "@nestjs/core";
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 
-import { domainPathExtractor, DomainStateManager } from './libraries/managed-stateful-component/index';
+import { DomainPathExtractor, DomainStateManager } from './libraries/managed-stateful-component/index';
+import DOMAIN_PATH_EXTRACTOR from './shared/domain/domain-path-extractor.token';
 
 import DomainHierarchyWirer from "./libraries/managed-stateful-component/helpers/domain-hierarchy-wirer.class";
 
@@ -13,9 +14,8 @@ import DomainHierarchyWirer from "./libraries/managed-stateful-component/helpers
  * It wires up the domain hierarchy by finding all domain state managers in the app
  * and connecting them to their parent managers.
  * 
- * Uses the default filePathExtractor and period ('.) separator to determine
- * the path of each manager. Sets a custom __filename property to the current file name
- * in order to enable the filePathExtractor to work correctly.
+ * Sets a custom __filename property on itself the current file, as this is required
+ * by the filePathExtractor which is expected to be injected into the class.
  * 
  * @see {@link DomainStateManager} for more information on how domain state managers work.
  * @see {@link DomainHierarchyWirer} for more information on how domain hierarchy wiring works.
@@ -28,6 +28,7 @@ export class AppDomainStateManager extends DomainStateManager {
 
 	constructor(
 		private readonly discoveryService: DiscoveryService,
+		@Inject(DOMAIN_PATH_EXTRACTOR) private readonly pathExtractor: DomainPathExtractor
 	) {
 		super();
 	}
@@ -51,14 +52,14 @@ export class AppDomainStateManager extends DomainStateManager {
 	 * Wire the domain hierarchy by finding all domain state managers in the app
 	 * and connecting them to their parent managers.
 	 * 
-	 * This is done by using the filePathExtractor to determine the path of each manager
-	 * and connecting them based on their paths.
-	 * 
-	 * @returns {Promise<void>} A promise that resolves when the wiring is complete.
-	 * 
+	 * This is done by using the `DomainHierarchyWirer` to determine the path of each
+	 * manager and connecting them based on their paths.
+	 *  
 	 * @see {@link DomainStateManager} for more information on how domain state managers work.
+	 * @see {@link DomainHierarchyWirer} for more information on how domain hierarchy wiring works.
 	 * 
 	 * @todo Figure out how to access static wireDomains method from the mixin
+	 * @returns {Promise<void>} A promise that resolves when the wiring is complete.
 	 */
 	protected async initializeStateManagers(): Promise<void> {
 		// Find all domain state managers in the app
@@ -69,7 +70,7 @@ export class AppDomainStateManager extends DomainStateManager {
 
 		// Wire the domain hierarchy
 		const wirer = new DomainHierarchyWirer();
-		await wirer.wireDomains(managers); // todo: use injected file extractor set up with options from config service 
+		await wirer.wireDomains(managers, this.pathExtractor);
 	}
 }
 export default AppDomainStateManager;
