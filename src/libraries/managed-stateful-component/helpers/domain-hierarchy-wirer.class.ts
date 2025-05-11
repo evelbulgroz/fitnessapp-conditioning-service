@@ -1,5 +1,5 @@
 import { DomainPathExtractorOptions } from "../models/domain-path-extractor-options.model";
-import domainPathExtractor from "../models/domain-path-extractor.model";
+import DomainPathExtractor from "../models/domain-path-extractor.model";
 import DomainStateManager from "./domain-state-manager.class";
 import filePathExtractor from "./extractors/file-path-extractor";
 
@@ -17,7 +17,7 @@ export class DomainHierarchyWirer {
 		 */
 		public async wireDomains(
 			managers: DomainStateManager[],
-			pathExtractor: domainPathExtractor = filePathExtractor,
+			pathExtractor: DomainPathExtractor = filePathExtractor,
 			extractorOptions: Partial<DomainPathExtractorOptions> = { appRootName: 'app', separator: '.' },
 		): Promise<void> {
 			const domainManagers = this.filterDomainManagers(managers);
@@ -47,7 +47,7 @@ export class DomainHierarchyWirer {
 		 */
 		protected buildHierarchy(
 			managers: DomainStateManager[],
-			pathExtractor: domainPathExtractor,
+			pathExtractor: DomainPathExtractor,
 			extractorOptions: Partial<DomainPathExtractorOptions>
 		): Map<DomainStateManager, DomainStateManager[]> {
 			// Return empty map for empty input
@@ -76,7 +76,7 @@ export class DomainHierarchyWirer {
 		 */
 		protected extractPathMappings(
 			managers: DomainStateManager[],
-			pathExtractor: domainPathExtractor,
+			pathExtractor: DomainPathExtractor,
 			extractorOptions: Partial<DomainPathExtractorOptions> = { appRootName: 'app', separator: '.' }
 		): { pathToManager: Map<string, DomainStateManager>, pathToChildren: Map<string, string[]> } {
 			const pathToManager = new Map<string, DomainStateManager>();

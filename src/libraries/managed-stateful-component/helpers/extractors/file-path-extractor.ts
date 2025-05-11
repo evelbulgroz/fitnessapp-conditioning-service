@@ -1,6 +1,6 @@
 import { normalize, sep } from 'path';
 
-import domainPathExtractor from "../../models/domain-path-extractor.model";
+import DomainPathExtractor from "../../models/domain-path-extractor.model";
 import DomainStateManager from "../domain-state-manager.class";
 import FilePathExtractorOptions from './file-path-extractor-options.model';
 
@@ -37,7 +37,7 @@ import FilePathExtractorOptions from './file-path-extractor-options.model';
  * @param {string} separator - The separator used to create the hierarchical path (default: period, '.')
  * @returns {string} - The hierarchical path of the domain state manager
  */
-export const filePathExtractor: domainPathExtractor = (
+export const filePathExtractor: DomainPathExtractor = (
 	manager: DomainStateManager,
 	extractorOptions: Partial<FilePathExtractorOptions>
 ): string => {
