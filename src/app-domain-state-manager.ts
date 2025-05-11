@@ -6,10 +6,11 @@ import { DomainStateManager } from './libraries/managed-stateful-component/index
 import DomainHierarchyWirer from "./libraries/managed-stateful-component/helpers/domain-hierarchy-wirer.class";
 
 /**
- * Domain proxy that stands in for app module to enable hierarchical state management.
+ * Domain proxy that stands in for {@link AppModule} to enable hierarchical state management.
  * 
- * This class is responsible for managing the state of the application
- * and wiring the domain hierarchy by finding all domain state managers in the app
+ * This class is the root manager responsible for managing the state of the whole application.
+ * 
+ * It wires up the domain hierarchy by finding all domain state managers in the app
  * and connecting them to their parent managers.
  * 
  * Uses the default filePathExtractor and period ('.) separator to determine

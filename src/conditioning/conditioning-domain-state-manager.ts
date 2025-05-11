@@ -7,7 +7,7 @@ import ConditioningLogDTO from "./dtos/conditioning-log.dto";
 import ConditioningLogRepository from "./repositories/conditioning-log.repo";
 
 /**
- * Domain proxy that stands in for conditioning module to enable hierarchical state management.
+ * Domain proxy that stands in for {@link ConditioningModule} to enable hierarchical state management.
  * 
  * This class is responsible for managing registering and unregistering subcomponents
  * at the appropriate times in the lifecycle of the application.

@@ -5,7 +5,7 @@ import UserDataService from "./services/user-data.service";
 import UserRepository from "./repositories/user.repo";
 
 /**
- * Domain proxy that stands in for user module to enable hierarchical state management.
+ * Domain proxy that stands in for {@link UserModule} to enable hierarchical state management.
  * 
  * This class is responsible for managing registering and unregistering subcomponents
  * at the appropriate times in the lifecycle of the application.
