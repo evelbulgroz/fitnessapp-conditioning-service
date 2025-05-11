@@ -1,6 +1,7 @@
 import { filePathExtractor } from './file-path-extractor';
 import DomainStateManager from '../domain-state-manager.class';
 import { normalize } from 'path';
+import FilePathExtractorOptions from './file-path-extractor-options.model';
 
 // Mock DomainStateManager for testing
 class MockDomainManager extends DomainStateManager {
@@ -23,8 +24,9 @@ describe('filePathExtractor', () => {
 			// Act - specify a matching source root
 			const result = filePathExtractor(
 				manager,
-				'app',
-				'd:\\version-control\\projects\\fitnessapp-conditioning-service'
+				{
+					sourceRoot: 'd:\\version-control\\projects\\fitnessapp-conditioning-service'
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert
@@ -40,8 +42,9 @@ describe('filePathExtractor', () => {
 			// Act - specify a matching source root
 			const result = filePathExtractor(
 				manager,
-				'app',
-				'/home/user/fitnessapp-conditioning-service'
+				{
+					sourceRoot: '/home/user/fitnessapp-conditioning-service'
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert
@@ -73,13 +76,15 @@ describe('filePathExtractor', () => {
 			// Act
 			const tsResult = filePathExtractor(
 				tsManager, 
-				'app',
-				'd:\\fitnessapp-conditioning-service'
+				{
+					sourceRoot: 'd:\\fitnessapp-conditioning-service'
+				} as Partial<FilePathExtractorOptions>
 			);
 			const jsResult = filePathExtractor(
 				jsManager,
-				'app',
-				'd:\\fitnessapp-conditioning-service'
+				{
+					sourceRoot: 'd:\\fitnessapp-conditioning-service'
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert
@@ -96,8 +101,9 @@ describe('filePathExtractor', () => {
 			// Act
 			const result = filePathExtractor(
 				manager,
-				'app',
-				'd:\\fitnessapp-conditioning-service'
+				{
+					sourceRoot: 'd:\\fitnessapp-conditioning-service'
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert
@@ -113,8 +119,9 @@ describe('filePathExtractor', () => {
 			// Act
 			const result = filePathExtractor(
 				manager,
-				'app',
-				'd:\\fitnessapp-conditioning-service'
+				{
+					sourceRoot: 'd:\\fitnessapp-conditioning-service'
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert
@@ -132,8 +139,9 @@ describe('filePathExtractor', () => {
 			// Act
 			const result = filePathExtractor(
 				manager,
-				'app', 
-				'd:\\fitnessapp-conditioning-service'
+				{
+					sourceRoot: 'd:\\fitnessapp-conditioning-service'
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert
@@ -149,8 +157,10 @@ describe('filePathExtractor', () => {
 			// Act
 			const result = filePathExtractor(
 				manager, 
-				'fitness',
-				'd:\\fitnessapp-conditioning-service',
+				{
+					appRootName: 'fitness', // Custom app root name
+					sourceRoot: 'd:\\fitnessapp-conditioning-service'
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert
@@ -166,8 +176,9 @@ describe('filePathExtractor', () => {
 			// Act - use a root that doesn't match
 			const result = filePathExtractor(
 				manager,
-				'app',
-				'c:\\completely-different'
+				{
+					sourceRoot: 'c:\\completely-different'
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert - should still produce a reasonable result
@@ -185,9 +196,10 @@ describe('filePathExtractor', () => {
 			// Act
 			const result = filePathExtractor(
 				manager, 
-				'app',
-				'd:\\fitnessapp-conditioning-service',
-				'/'
+				{
+					sourceRoot: 'd:\\fitnessapp-conditioning-service',
+					separator: '/' // Custom separator
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert
@@ -204,15 +216,18 @@ describe('filePathExtractor', () => {
 			// Act - test with different separators
 			const dashResult = filePathExtractor(
 				manager, 
-				'app',
-				'd:\\fitnessapp-conditioning-service',
-				'-'
+				{
+					sourceRoot: 'd:\\fitnessapp-conditioning-service',
+					separator: '-' // Custom separator
+				} as Partial<FilePathExtractorOptions>
 			);
+
 			const colonResult = filePathExtractor(
 				manager, 
-				'app',
-				'd:\\fitnessapp-conditioning-service',
-				':'
+				{
+					sourceRoot: 'd:\\fitnessapp-conditioning-service',
+					separator: ':' // Custom separator
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert
@@ -228,10 +243,10 @@ describe('filePathExtractor', () => {
 			
 			// Act
 			const result = filePathExtractor(
-				manager, 
-				'app',
-				'd:\\fitnessapp-conditioning-service',
-				'.'
+				manager,
+				{
+					sourceRoot: 'd:\\fitnessapp-conditioning-service',
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert - should have no double dots
@@ -250,8 +265,9 @@ describe('filePathExtractor', () => {
 			// Act
 			const result = filePathExtractor(
 				manager,
-				'app',
-				'd:\\fitnessapp-conditioning-service'
+				{
+					sourceRoot: 'd:\\fitnessapp-conditioning-service'
+				} as Partial<FilePathExtractorOptions>
 			);
 			
 			// Assert

@@ -8,6 +8,8 @@ import ManagedStatefulComponentOptions from '../models/managed-stateful-componen
 import DomainStateManager from '../helpers/domain-state-manager.class';
 import DomainPathExtractor from '../models/domain-path-extractor.model';
 import filePathExtractor from '../helpers/extractors/file-path-extractor';
+import FilePathExtractorOptions from '../helpers/extractors/file-path-extractor-options.model';
+import { DomainPathExtractorOptions } from '../models/domain-path-extractor-options.model';
 
 /**
  * Fixed prefix for internal members to avoid name collisions with parent classes or other libraries.
@@ -216,14 +218,14 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		public static async wireDomains(
 			managers: DomainStateManager[],
 			pathExtractor: DomainPathExtractor = filePathExtractor,
-			pathSeparator: string = "."
+			extractorOptions: Partial<DomainPathExtractorOptions>,
 		): Promise<void> {
 			if (!this.msc_zh7y_domainHierarchyWirer) {
 				// Lazy-load the DomainHierarchyWirer to avoid circular dependencies
 				const { default: DomainHierarchyWirer } = await import('../helpers/domain-hierarchy-wirer.class');
 				this.msc_zh7y_domainHierarchyWirer = new DomainHierarchyWirer();
 			}
-			return this.msc_zh7y_domainHierarchyWirer.wireDomains(managers, pathExtractor, pathSeparator);
+			return this.msc_zh7y_domainHierarchyWirer.wireDomains(managers, pathExtractor, extractorOptions);
 		}
 		
 		/**

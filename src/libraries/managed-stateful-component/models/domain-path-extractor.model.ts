@@ -1,4 +1,5 @@
 import DomainStateManager from "../helpers/domain-state-manager.class";
+import { DomainPathExtractorOptions } from "./domain-path-extractor-options.model";
 
 /**
  * Function that determines the hierarchical location of a {@link DomainStateManager} in the application's domain tree.
@@ -17,47 +18,15 @@ import DomainStateManager from "../helpers/domain-state-manager.class";
  * - Class naming conventions
  *
  * @param manager - The domain state manager to locate in the hierarchy
- * @param appRootName - Root prefix for all paths (default: "app")
+ * @param options - Optional configuration for the path extraction process
+ *   The extractor should provide defaults internally so clients can use it with no or partial options.
  * @returns A dot-separated string representing the manager's position in the hierarchy (e.g., "app.conditioning")
  *   Skips the file name in favour of the enclosing directory name, plus 'app' for the root.
  *
- * @example
- * // File system location strategy (automatically reflects code organization)
- * export const filePathExtractor: DomainPathExtractor = (manager: DomainStateManager, appRootName: string = 'app'): string => {
-	// The file location must be attached to the manager instance
-	const filePath = (manager as any).__filename;
-	
-	// If file path is missing, fall back to constructor name
-	if (!filePath) {
-		return manager.constructor.name.replace(/Manager$/, '').toLowerCase();
-	}
-	
-	// Extract portion after project root to create hierarchical path
-	const projectRoot = 'fitnessapp-conditioning-service';
-	const relativePath = filePath.split(projectRoot)[1];
-	
-	// Create dotted path, removing file extension and normalizing names
-	let normalizedPath = (appRootName + relativePath)
-		.replace(/\\/g, '.') // Replace backslashes with dots for Windows compatibility
-		.replace(/\//g, '.') // Replace slashes with dots
-		.replace(/^\./, '') // Remove leading dot
-		.replace(/\.$/, '') // Remove trailing dot
-		.replace(/\.js$/, '') // Remove .js extension
-		.replace(/\.ts$/, '') // Remove .ts extension
-		.replace(/\.dist\.src\./g, '.') // Remove .dist.src.
-		.toLowerCase();
-	
-	// Remove the file name from the path - this is the key change
-	const pathSegments = normalizedPath.split('.');
-	if (pathSegments.length > 1) {
-		// Remove the last segment (file name)
-		pathSegments.pop();
-		normalizedPath = pathSegments.join('.');
-	}
-	
-	console.log("filePathExtractor", normalizedPath);
-	return normalizedPath;
-};
+ * @see {@link filePathExtractor} for a default implementation that uses the file system location.
  */
-export type DomainPathExtractor = (manager: DomainStateManager, appRootName?: string, ...args: any[]) => string;
+export type DomainPathExtractor = (
+	manager: DomainStateManager,
+	options?: Partial<DomainPathExtractorOptions>,
+) => string;
 export default DomainPathExtractor;

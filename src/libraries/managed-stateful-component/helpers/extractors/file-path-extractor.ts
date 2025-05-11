@@ -1,6 +1,8 @@
 import { normalize, sep } from 'path';
+
 import DomainPathExtractor from "../../models/domain-path-extractor.model";
 import DomainStateManager from "../domain-state-manager.class";
+import FilePathExtractorOptions from './file-path-extractor-options.model';
 
 /**
  * Extract domain path from file location in project structure
@@ -37,10 +39,18 @@ import DomainStateManager from "../domain-state-manager.class";
  */
 export const filePathExtractor: DomainPathExtractor = (
 	manager: DomainStateManager,
-	appRootName: string = 'app',
-	sourceRoot: string = process.cwd(),
-	separator: string = '.',
+	extractorOptions: Partial<FilePathExtractorOptions>
 ): string => {
+	// Merge default options with any provided options
+	const options = {
+		...{ // Default options
+		appRootName: 'app',
+		sourceRoot: process.cwd(),
+		separator: '.',
+		},
+		...(extractorOptions || {}), // Provided options
+	} as FilePathExtractorOptions;
+
 	// If file path is missing, fall back to constructor name
 	const filePath = (manager as any).__filename;
 	if (!filePath) {
@@ -49,7 +59,7 @@ export const filePathExtractor: DomainPathExtractor = (
 	
 	// Normalize the paths to handle different OS path formats
 	const normalizedFilePath = normalize(filePath);
-	const normalizedSourceRoot = normalize(sourceRoot);
+	const normalizedSourceRoot = normalize(options.sourceRoot);
 	
 	// Extract portion after source root to create hierarchical path
 	let relativePath = '';
@@ -62,7 +72,7 @@ export const filePathExtractor: DomainPathExtractor = (
 	
 	// Create separated path, removing file extension and normalizing names
 	// Start with the appRootName
-	let pathSegments = [appRootName];
+	let pathSegments = [options.appRootName];
 	
 	// Split the path into segments using the OS-specific separator
 	const relativeSegments = relativePath
@@ -99,11 +109,11 @@ export const filePathExtractor: DomainPathExtractor = (
 	
 	// Create a safe regex pattern for the separator
 	// Need to escape special regex characters
-	const escapedSeparator = separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const escapedSeparator = options.separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 	
 	// Join segments with the provided separator and normalize multiple separators
-	let result = pathSegments.join(separator)
-		.replace(new RegExp(`${escapedSeparator}+`, 'g'), separator) // Replace multiple separators
+	let result = pathSegments.join(options.separator)
+		.replace(new RegExp(`${escapedSeparator}+`, 'g'), options.separator) // Replace multiple separators
 		.replace(new RegExp(`^${escapedSeparator}`), '') // Remove leading separator
 		.replace(new RegExp(`${escapedSeparator}$`), ''); // Remove trailing separator
 	
