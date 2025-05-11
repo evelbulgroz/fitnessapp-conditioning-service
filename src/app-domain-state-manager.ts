@@ -20,7 +20,7 @@ import DomainHierarchyWirer from "./libraries/managed-stateful-component/helpers
  * @see {@link DomainStateManager} for more information on how domain state managers work.
  * @see {@link DomainHierarchyWirer} for more information on how domain hierarchy wiring works.
  * 
- * @todo Get extractor from DI container instead of using default filePathExtractor
+ * @todo Figure out why the user components are not reporting being shut down when the app is shut down.
  */
 @Injectable()
 export class AppDomainStateManager extends DomainStateManager {	
