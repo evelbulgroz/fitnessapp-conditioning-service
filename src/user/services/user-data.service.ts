@@ -16,19 +16,27 @@ import UserContext from '../../shared/domain/user-context.model';
 import UserDTO from '../dtos/user.dto';
 import UserRepository from '../repositories/user.repo';
 
-/** Processes User CRUD events received via requests from the User microservice.
+/**
+ * Processes {@link User} CRUD events received via requests from the User microservice.
+ * 
  * @remark The user microservice holds all business data for the user, name, contact info, etc.
  * @remark The user entity in this microservice serves only to match a user's id in the user microservice to the ids of the logs the user has created here.
  * @remark This microservice acts as slave to the user microservice re. user management.
  * @remark Clients have no reason to request user retrieval from this microservice, only logs.
  * @remark Therefore, this service only needs to process create, delete and undelete events received from the user microservice.
  * @remark Depends on the User repository for caching and persistence of user entities.
+ * @remark It applies the {@link ManagedStatefulComponentMixin} mixin as it is a key component whose state needs to be managed.
  */
 @Injectable()
 export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent, OnModuleDestroy {
 
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
+	/**
+	 * Constructor for the UserDataService class
+	 * @param config The configuration service to use for retrieving configuration values
+	 * @param userRepo The user repository to use for persisting and retrieving user entities
+	 */
 	constructor(
 		protected readonly config: ConfigService,
 		protected readonly userRepo: UserRepository
@@ -38,6 +46,8 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
+	// NOTE: onModuleInit() does not seem to be called?
+
 	onModuleDestroy() {
 		this.logger.log(`Shutting down...`, this.constructor.name);
 		this.shutdown(); // call shutdown method from mixin
@@ -45,12 +55,15 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	
 	//---------------------------------------- DATA API ---------------------------------------//
 	
-	/** Create a new user
+	/**
+	 * Create a new user
+	 * 
 	 * @param ctx The user context for the user to be created
 	 * @param userIdDTO The user id in the user microservice of the user to be created
 	 * @returns A promise that resolves to the new (local) user id when the user has been created
 	 * @throws An error if the user id is not defined
-	 * @throws An error if the user entity could not be created in the repository
+	 * @throws An error if the user entity could not be created in the 
+	 * 
 	 * @remark Intended to be mostly triggered by a user create event received from the user microservice
 	 * @remark Created user holds both entity unique to this microservice and the user id from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
@@ -79,11 +92,14 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		return user.entityId!;
 	}
 
-	/** Delete a user
+	/**
+	 * Delete a user
+	 * 
 	 * @param ctx The user context for the user to be deleted
 	 * @param userIdDTO The user id in the user microservice of the user to be deleted
 	 * @param softDelete Whether to soft delete (default) or hard delete the user entity
 	 * @returns A promise that resolves when the user entity has been deleted
+	 * 
 	 * @remark Intended to be mostly triggered by a user delete event received from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	 */
@@ -109,13 +125,16 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		return Promise.resolve();
 	}
 
-	/** Undelete a user (if soft deleted)
+	/**
+	 * Undelete a user (if soft deleted)
+	 * 
 	 * @param ctx The user context for the user to be undeleted
 	 * @param userIdDTO The user id in the user microservice of the user to be undeleted
 	 * @returns A promise that resolves when the user entity has been undeleted
 	 * @throws An error if the user id is not defined
 	 * @throws An error if the user entity could not be undeleted in the repository
 	 * @throws An error if the user entity is not soft deleted
+	 * 
 	 * @remark Intended to be mostly triggered by a user undelete event received from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	 */
@@ -145,11 +164,15 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	
 	/** @see ManagedStatefulComponentMixin for management API methods */
 
-	/* Execute component initialization (required by ManagedStatefulComponentMixin)
+	/**
+	 * Execute component initialization (called by ManagedStatefulComponentMixin)
+	 *
 	 * @returns Promise that resolves when the component is initialized
 	 * @throws Error if initialization fails
+	 * 
 	 * @remark ManagedStatefulComponentMixin.initialize() caller already handles concurrency and updates state, so no need to replicate that here
 	 * @remark For now basically a placeholder, as Repository handles all initialization
+	 * 
 	 * @todo Refactor to use cache library, when available
 	 */
 	public async onInitialize(): Promise<void> {
@@ -169,15 +192,20 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		}
 	}
 
-	/** Execute component shutdown (required by ManagedStatefulComponentMixin)
+	/**
+	 * Execute component shutdown (required by ManagedStatefulComponentMixin)
+	 * 
 	 * @returns Promise that resolves when the component is shut down
 	 * @throws Error if shutdown fails
+	 * 
 	 * @remark Cleans up resources and unsubscribes from all subscriptions
 	 * @remark Sets the state to SHUT_DOWN to indicate that the component is no longer active
-	 * @todo ManagedStatefulComponentMixin.shutdown() caller already handles concurrency and updates state, so no need to replicate that here
+	 * @remark ManagedStatefulComponentMixin.shutdown() caller already handles concurrency and updates state,
+	 *   so no need to replicate that here
+	 * 
 	 * @todo Refactor to use cache library, when available
 	 */
-	public onShutdown(): Promise<void> {		
+	public async onShutdown(): Promise<void> {		
 		try {
 			this.logger.log(`Executing shutdown...`, this.constructor.name);
 			
@@ -199,12 +227,15 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
-	/* Check if caller is authorized to access a method
+	/*
+	 * Check if caller is authorized to access a method
+	 *
 	 * @param ctx The user context for the caller
 	 * @param userIdDTO The user id in the user microservice of the user to be accessed
 	 * @param callerName The name of the method being accessed
 	 * @returns True if the caller is authorized, false if not
 	 * @throws An error if the caller is not authorized to access the method
+	 * 
 	 * @remark Intended to be used by other methods to check if the caller is authorized to access the method
 	 */
 	protected checkIsValidCaller(ctx: UserContext, callerName: string): boolean {
@@ -215,7 +246,9 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		return true;
 	}
 
-	/* Check if provided user id is valid
+	/*
+	 * Check if provided user id is valid
+	 *
 	 * @param userIdDTO The user id in the user microservice of the user to be accessed
 	 * @param callerName The name of the method being accessed
 	 * @returns True if the user id is valid, false if not
@@ -229,10 +262,13 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		return true;
 	}
 
-	/* Find user by microservice id
+	/*
+	 * Find user by microservice id
+	 *
 	 * @param userId The user id in the user microservice
 	 * @returns A promise that resolves to the user entity if found, or undefined if not found
 	 * @throws An error if the user entity could not be fetched from the repository
+	 * 
 	 * @remark Intended to be used by other methods to find a user entity by its user id in the user microservice
 	 */
 	protected async findUserByMicroserviceId(userId: EntityId): Promise<User[] | undefined> {
@@ -258,11 +294,14 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		return users;
 	}
 
-	/* Check if user exists in persistence layer
+	/*
+	 * Check if user exists in persistence layer
+	 *
 	 * @param userIdDTO The user id in the user microservice of the user to be accessed
 	 * @param callerName The name of the method being accessed
 	 * @returns True if the user exists, false if not
 	 * @throws An error if the user entity does not exist
+	 * 
 	 * @remark Intended to be used by other methods to check if the user entity exists in the persistence layer
 	 */
 	protected async getUniqueUser(userIdDTO: EntityIdDTO, callerName: string): Promise<User> {

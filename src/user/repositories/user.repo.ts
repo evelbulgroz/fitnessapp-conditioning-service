@@ -15,9 +15,13 @@ import UserDeletedEvent from "../events/user-deleted.event";
 import UserUndeletedEvent from "../events/user-undeleted.event";
 import UserPersistenceDTO from "../dtos/user-persistence.dto";
 
-/** Concrete implementation of an injectable UserRepository that uses an adapter to interact with a persistence layer
- * @remark This class is a repository for User entities, and is intended to be injected into other classes, e.g. services.
- * @remark Implements a few method overrides but otherwise relies on the base class for most of its functionality.
+/**
+ * Concrete implementation of an injectable UserRepository that uses an adapter to interact with a persistence layer
+ * 
+ * @remark This class is a {@link Repository} for {@link User} entities, and is intended to be injected into other classes, e.g. services. 
+ * @remark It implements a few method overrides but otherwise relies on the base class for most of its functionality.
+ * @remark It applies the {@link ManagedStatefulComponentMixin} mixin as it is a key component whose state needs to be managed.
+ * 
  */
 @Injectable()
 export class UserRepository extends ManagedStatefulComponentMixin(Repository<User, UserDTO>) implements ManagedStatefulComponent {
@@ -36,9 +40,12 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	
 	//---------------------------------------- DATA API ---------------------------------------//
 
-	/** Get the class constructor from a class name
+	/**
+	 * Get the class constructor from a class name
+	 * 
 	 * @param className The name of the class to get
 	 * @returns A Result wrapping the class constructor if successful, otherwise a failure result
+	 * 
 	 * @remark Exists to enable the generic creation of User entities from DTOs, while staying DRY
 	 * @remark Placeholder until base class is refactored to use a public static rather than a protected method
 	 */
@@ -52,10 +59,13 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 		}
 	}
 
-	/* Find user by microservice id
+	/**
+	 * Find user by microservice id
+	 * 
 	 * @param userId The user id in the user microservice
 	 * @returns A Result wrapping a promise that resolves to matching user entity/s if found, or undefined if not found
 	 * @returns {failure} If fetching user from the repository fails
+	 * 
 	 * @remark Internally calls fetchByQuery with a query that searches by userId
 	 */
 	public fetchByUserId(userId: EntityId, includeDeleted = false): Promise<Result<Observable<User[]>>> {
@@ -78,10 +88,13 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	
 	/** @see ManagedStatefulComponentMixin for public management API methods */
 
-	/** Execute repository initialization (required by ManagedStatefulComponentMixin)
+	/**
+	 * Execute repository initialization (called by ManagedStatefulComponentMixin)
+	 * 
 	 * @param superResult The result of the base class initialization
 	 * @returns Promise that resolves when initialization is complete
 	 * @throws Error if initialization fails
+	 * 
 	 * @remark Called from {@link ManagedStatefulComponentMixin}.initialize() method
 	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
 	 * use initialize() instead for public API
@@ -101,9 +114,12 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
         return Promise.resolve();
     }
     
-    /** Execute repository shutdown (required by ManagedStatefulComponentMixin)
+    /**
+	 * Execute repository shutdown (called by ManagedStatefulComponentMixin)
+	 * 
 	 * @returns Promise that resolves when shutdown is complete
 	 * @throws Error if shutdown fails
+	 * 
 	 * @remark Called from {@link ManagedStatefulComponentMixin}.shutdown() method
 	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
 	 * use shutdown() instead for public API
@@ -134,9 +150,12 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 
 	//-------------------------------- PROTECTED METHOD OVERRIDES -------------------------------//
 
-	/** Create user created event
+	/*
+	 * Create user created event
+	 * 
 	 * @param user The user to create the event for
 	 * @returns The user created event
+	 * 
 	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityCreatedEvent(user?: User): UserCreatedEvent {
@@ -148,9 +167,12 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 		});
 	}
 
-	/** Create user updated event
+	/*
+	 * Create user updated event
+	 *
 	 * @param user The user to create the event for
 	 * @returns The user updated event
+	 * 
 	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityUpdatedEvent(user: User): UserUpdatedEvent {
@@ -162,9 +184,12 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 		});
 	}
 
-	/** Create user deleted event
+	/*
+	 * Create user deleted event
+	 * 
 	 * @param entityId The user id to create the event for
 	 * @returns The user deleted event
+	 * 
 	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityDeletedEvent(entityId?: EntityId): UserDeletedEvent {
@@ -176,10 +201,13 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 		});
 	}
 
-	/** Create user undeleted event
+	/*
+	 * Create user undeleted event
+	 * 
 	 * @param entityId The user id to create the event for
 	 * @param undeletionDate The date the user was undeleted
 	 * @returns The user undeleted event
+	 * 
 	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityUndeletedEvent(entityId: EntityId, undeletionDate: Date): UserUndeletedEvent {

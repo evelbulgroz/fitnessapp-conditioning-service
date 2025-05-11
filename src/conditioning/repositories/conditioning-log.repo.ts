@@ -15,20 +15,30 @@ import ConditioningLogPersistenceDTO from "../dtos/conditioning-log-persistence.
 import ConditioningLogUndeletedEvent from "../events/conditioning-log-undeleted.event";
 import ConditioningLogUpdatedEvent from "../events/conditioning-log-updated.event";
 
-/** Concrete implementation of an injectable ConditioningLogRepository that uses an adapter to interact with a persistence layer
+/**
+ * Concrete implementation of an injectable ConditioningLogRepository that uses an adapter to interact with a persistence layer.
+ * 
  * @template T The type of the log, e.g. ConditioningLog
  * @template U The type of the DTO, e.g. ConditioningLogDTO
+ * 
  * @remark This class is a repository for ConditioningLog entities, and is intended to be injected into other classes, e.g. services.
  * @remark Implements a few method overrides but otherwise relies on the base class for most of its functionality.
+ * @remark It applies the {@link ManagedStatefulComponentMixin} mixin as it is a key component whose state needs to be managed.
  */
 @Injectable()
 export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO>
 	extends ManagedStatefulComponentMixin(TrainingLogRepo)<ConditioningLog<T,U>, U>
 	 implements ManagedStatefulComponent {
-	// implements OnModuleInit, OnModuleDestroy {
+	// TODO: implements OnModuleInit, OnModuleDestroy {
 
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 
+	/**
+	 * Constructor for ConditioningLogRepository
+	 * 
+	 * @param adapter The adapter to use for persistence
+	 * @param throttleTime The time to wait before executing the next operation
+	 */
 	public constructor(
 		protected readonly adapter: PersistenceAdapter<ConditioningLogPersistenceDTO<any, EntityMetadataDTO>>,
 		@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
@@ -44,10 +54,13 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	
 	/** @see ManagedStatefulComponentMixin for public management API methods */
 
-	/** Execute repository initialization (required by ManagedStatefulComponentMixin)
+	/**
+	 * Execute repository initialization (required by ManagedStatefulComponentMixin)
+	 * 
 	 * @param initializeResult Result from the base class initialize method, if any
 	 * @returns Promise that resolves when initialization is complete
-	 * @throws Error if initialization fails
+	 * @throws Error if initialization 
+	 * 
 	 * @remark Called from {@link ManagedStatefulComponentMixin}.initialize() method
 	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
 	 * use initialize() instead for public API
@@ -67,10 +80,13 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
         return Promise.resolve();
     }
     
-    /** Execute repository shutdown (required by ManagedStatefulComponentMixin)
+    /**
+	 * Execute repository shutdown (required by ManagedStatefulComponentMixin)
+	 * 
 	 * @param shutdownResult Result from the base class shutdown method, if any
 	 * @returns Promise that resolves when shutdown is complete
 	 * @throws Error if shutdown fails
+	 * 
 	 * @remark Called from {@link ManagedStatefulComponentMixin}.shutdown() method
 	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
 	 * use shutdown() instead for public API
@@ -92,9 +108,12 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 
 	//-------------------------------- TEMPLATE METHOD OVERRIDES --------------------------------//
 	
-	/** Create log created event
+	/**
+	 * Create log created event
+	 * 
 	 * @param user The log to create the event for
 	 * @returns The log created event
+	 * 
 	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityCreatedEvent(log: ConditioningLog<T,U>): ConditioningLogCreatedEvent {
@@ -106,9 +125,12 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		});
 	}
 
-	/** Create log updated event
+	/**
+	 * Create log updated event
+	 * 
 	 * @param user The log to create the event for
 	 * @returns The log updated event
+	 * 
 	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityUpdatedEvent(log: ConditioningLog<T,U>): ConditioningLogUpdatedEvent {
@@ -120,9 +142,12 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		});
 	}
 
-	/** Create log deleted event
+	/**
+	 * Create log deleted event
+	 * 
 	 * @param entityId The log id to create the event for
 	 * @returns The log deleted event
+	 * 
 	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityDeletedEvent(entityId?: EntityId): ConditioningLogDeletedEvent {
@@ -134,10 +159,13 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 		});
 	}
 
-	/** Create log undeleted event
+	/**
+	 * Create log undeleted event
+	 * 
 	 * @param entityId The log id to create the event for
 	 * @param undeletionDate The date the log was undeleted
 	 * @returns The log undeleted event
+	 * 
 	 * @remark Overriding base class method to return domain specific event type
 	 */
 	protected override createEntityUndeletedEvent(entityId: EntityId, undeletionDate: Date): ConditioningLogUndeletedEvent {

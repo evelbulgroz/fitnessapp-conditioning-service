@@ -33,22 +33,30 @@ import UserContext from '../../../shared/domain/user-context.model';
 import UserPersistenceDTO from '../../../user/dtos/user-persistence.dto';
 import UserRepository from '../../../user/repositories/user.repo';
 
-/** Helper function to default sort logs ascending by start date and time */
+/**
+ * Helper function to default sort logs ascending by start date and time
+ */
 function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: ConditioningLog<any, ConditioningLogDTO>): number {
 	return (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0);
 }
 
-/** Represents a query for conditioning logs (typing shorthand) */
+/**
+ * Represents a query for conditioning logs (typing shorthand)
+ */
 type QueryType = Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>;
 
-/** Specifies the properties of a user logs cache entry **/
+/**
+ * Specifies the properties of a user logs cache entry
+ */
 export interface UserLogsCacheEntry {
 	userId: EntityId;
 	logs: ConditioningLog<any, ConditioningLogDTO>[];
 	lastAccessed?: Date;
 }
 
-/** Provides access to data from conditioning training sessions, as intermediary between controller and repositories.
+/**
+ * Provides access to data from conditioning training sessions, as intermediary between controller and repositories.
+ * 
  * @remark Handles enforcement of business rules, aggregation and other data processing unrelated to either persistence or request data sanitization.
  * @remark Uses a local cache to store logs by user id, to avoid repeated fetches from the persistence layer.
  * @remark Relies on repositories for persistence, and on controller(s) for request authentication, user context, data sanitization, and error logging.
@@ -56,9 +64,11 @@ export interface UserLogsCacheEntry {
  * @remark Admins can access all logs, other users can only access their own logs.
  * @remark Local cache is kept in sync with repository data via subscriptions to log and user repo events.
  * @remark Provides {@link StreamLoggable} API via {@link StreamLoggableMixin}, compatible with streaming Logger service.
- * @remark Provides {@link ManagedStatefulComponent} API for lifecycle management and state tracking, using {@link ManagedStatefulComponentMixin}.
- * @todo Break each public method out into separate service class, to make this class more manageable and testable by simply providing a facade to the new sub-services.
- * @todo Use shared cache library when available
+ * @remark It applies the {@link ManagedStatefulComponentMixin} mixin as it is a key component whose state needs to be managed.
+ *
+ * @todo Consider breaking up into separate, smaller service classes, to make this class more manageable and testable
+ *  by simply providing a facade to the new sub-services.
+ * @todo Use shared cache library when available.
  */
 @Injectable()
 export class ConditioningDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent, OnModuleDestroy {
@@ -76,6 +86,14 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
+	/**
+	 * Constructor for ConditioningDataService
+	 * 
+	 * @param aggregator Aggregator service for aggregating time series data
+	 * @param eventDispatcher Event dispatcher service for dispatching domain events
+	 * @param logRepo Conditioning log repository for persisting and retrieving logs
+	 * @param userRepo User repository for persisting and retrieving users
+	 */
 	public constructor(
 		protected readonly aggregator: AggregatorService,
 		@Inject(forwardRef(() => EventDispatcherService)) // forwardRef to handle circular dependency
@@ -89,6 +107,8 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
+	// NOTE: onModuleInit() does not seem to be called?
+
 	onModuleDestroy() {
 		this.logger.info(`Shutting down...`);
 		this.shutdown(); // call shutdown method from mixin
@@ -96,7 +116,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	
 	//---------------------------------------- DATA API -----------------------------------------//
 
-	/** New API: Create a new conditioning log for a user in the system
+	/**
+	 * New API: Create a new conditioning log for a user in the system
+	 * 
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param userIdDTO User id of the user for whom to create the log, wrapped in a DTO
 	 * @param log Conditioning log to create in the system
@@ -105,6 +127,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @throws NotFoundError if user does not exist in persistence
 	 * @throws PersistenceError if error occurs while creating log or updating user in persistence
 	 * @logs Error if error occurs while rolling back log creation 
+	 * 
 	 * @remark Logs and users are created/updated in the persistence layer, and propagated to cache via subscription to user repo updates
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
 	 */
@@ -157,13 +180,16 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		
 	}
 	
-	/** New API: Get list of the number of times each conditioning activity has been logged for a single user, or all users (admin only)
+	/**
+	 * New API: Get list of the number of times each conditioning activity has been logged for a single user, or all users (admin only)
+	 * 
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to retrieve the activity counts, wrapped in a DTO (optional for admin)
 	 * @param queryDTO Optional query to filter logs (else all accessible logs are counted)
 	 * @param includeDeletedDTO Optional flag to include soft deleted logs in the response
 	 * @returns Record of activity types and the number of times each has been logged
 	 * @throws UnauthorizedAccessError if user is not authorized to access logs
+	 * 
 	 * @remark Admins can access logs for all users, other users can only access their own logs
 	 */
 	public async fetchActivityCounts(
@@ -226,12 +252,15 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		return Promise.resolve(activityCountsObj);
 	} 
 
-	/** New API: Get aggregated time series of conditioning logs
+	/**
+	 * New API: Get aggregated time series of conditioning logs
+	 * 
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param aggregationQueryDTO Validated aggregation query DTO speficifying aggregation parameters
 	 * @param queryDTO Optional query to select logs to aggregate (else all accessible logs are aggregated)
 	 * @returns Aggregated time series of conditioning logs
 	 * @throws UnauthorizedAccessError if user attempts unauthorized access to logs
+	 * 
 	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
 	 */
 	public async fetchAggretagedLogs(
@@ -285,7 +314,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		return Promise.resolve(aggregatedSeries);		
 	}
 
-	/** New API: Get single, detailed conditioning log by log entity id
+	/**
+	 * New API: Get single, detailed conditioning log by log entity id
+	 * 
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to retrieve the log, wrapped in a DTO
 	 * @param logIdDTO Entity id of the conditioning log to retrieve, wrapped in a DTO
@@ -294,6 +325,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @throws UnauthorizedAccessError if user is not authorized to access log
 	 * @throws NotFoundError if log is not initialized in cache or not found in persistence
 	 * @throws PersistenceError if error occurs while fetching log from persistence
+	 * 
 	 * @remark Replaces overview log in cache with detailed log from persistence on demand, and updates cache subscribers
 	 */
 	public async fetchLog(ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO, includeDeleted = false): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
@@ -364,13 +396,16 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		});
 	}
 
-	/** New API: Get all conditioning logs for user and matching query (if provided)
+	/**
+	 * New API: Get all conditioning logs for user and matching query (if provided)
+	 * 
 	 * @param ctx user context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to retrieve logs, wrapped in a DTO (optional for admin)
 	 * @param queryDTO Optional query to filter logs (else all accessible logs for role are returned)
 	 * @param includeDeleted Optional flag to include soft deleted logs in the response, default is false
 	 * @returns Array of conditioning logs (constrained by user context and query)
 	 * @throws UnauthorizedAccessError if user attempts authorized access to logs
+	 * 
 	 * @remark Overview logs are guaranteed to be available
 	 * @remark Full logs are loaded into cache from persistence on demand using conditioningLogDetails(), and may be replaced in cache with overview logs to save memory
 	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
@@ -422,7 +457,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		return Promise.resolve(sortedLogs);
 	}
 
-	/** New API: Update an existing conditioning log for a user
+	/**
+	 * New API: Update an existing conditioning log for a user
+	 * 
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param logIdDTO Entity id of the conditioning log to update, wrapped in a DTO
 	 * @param log Partial conditioning log with updated properties
@@ -430,6 +467,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @throws UnauthorizedAccessError if user is not authorized to update log
 	 * @throws NotFoundError if log is not found in persistence while excluding soft deleted logs
 	 * @throws PersistenceError if error occurs while updating log in persistence
+	 * 
 	 * @remark Logs are updated in the persistence layer, and propagated to cache via subscription to user repo updates
 	 * @remark Admins can update logs for any user, other users can only update logs for themselves
 	 * @remark Log entity id must be set in the DTO, else the update will fail
@@ -470,13 +508,16 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		return Promise.resolve();		
 	}
 
-	/** New API: Delete a conditioning log by entity id
+	/**
+	 * New API: Delete a conditioning log by entity id
+	 * 
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param logIdDTO Entity id of the conditioning log to delete, wrapped in a DTO
 	 * @returns void
 	 * @throws UnauthorizedAccessError if user is not authorized to delete log
 	 * @throws NotFoundError if either log or user is not found in persistence
 	 * @throws PersistenceError if error occurs while deleting log or updating user in persistence
+	 * 
 	 * @remark Logs are deleted from the persistence layer, and propagated to cache via subscription to user repo updates
 	 * @remark Admins can delete logs for any user, other users can only delete logs for themselves
 	 */
@@ -530,7 +571,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		return Promise.resolve();
 	}
 
-	/** New API: Undelete a conditioning log by entity id (soft delete only)
+	/**
+	 * New API: Undelete a conditioning log by entity id (soft delete only)
+	 * 
 	 * @param ctx User context for the request (includes user id and roles)
 	 * @param userIdDTO Entity id of the user for whom to undelete the log, wrapped in a DTO
 	 * @param logIdDTO Entity id of the conditioning log to undelete, wrapped in a DTO
@@ -538,6 +581,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @throws UnauthorizedAccessError if user is not authorized to undelete log
 	 * @throws NotFoundError if log is not found in persistence
 	 * @throws PersistenceError if error occurs while undeleting log in persistence
+	 * 
 	 * @remark Logs are undeleted in the persistence layer, and propagated to cache via subscription to user repo updates
 	 * @remark Admins can undelete logs for any user, other users can only undelete logs for themselves
 	 * @remark Does not support direct undelete of hard deleted logs, use createLog() instead
@@ -571,10 +615,13 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		return Promise.resolve();
 	}
 
-	/** Get user logs cache for domain event handlers
+	/**
+	 * Get user logs cache for domain event handlers
+	 * 
 	 * @param caller Domain event handler requesting access to user logs cache
 	 * @returns Array of user logs cache entries (shallow copy of cache)
 	 * @throws UnauthorizedAccessError if caller is not a domain event handler
+	 * 
 	 * @remark Used by domain event handlers to access user logs cache
 	 */
 	public getCacheSnapshot(caller: DomainEventHandler<any>): UserLogsCacheEntry[] {
@@ -584,11 +631,14 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		return [...this.cache.value];
 	}
 
-	/** Update user logs cache for domain event handlers
+	/**
+	 * Update user logs cache for domain event handlers
+	 * 
 	 * @param newCache New cache to replace existing cache
 	 * @param caller Domain event handler updating user logs cache
 	 * @returns void
 	 * @throws UnauthorizedAccessError if caller is not a domain event handler
+	 * 
 	 * @remark Used by domain event handlers to update user logs cache
 	 */
 	public updateCache(newCache: UserLogsCacheEntry[], caller: DomainEventHandler<any>): void {
@@ -598,7 +648,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		this.cache.next(newCache);
 	}
 	
-	/** In production: Get aggregated conditioning data with series from all activities */
+	/**
+	 * In production: Get aggregated conditioning data with series from all activities
+	  */
 	public async conditioningData(userId?: EntityId): Promise<ConditioningData> {	
 		await this.isReady(); // lazy load logs if necessary
 		let logs: ConditioningLog<any, ConditioningLogDTO>[];
@@ -649,16 +701,20 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	
 	/** @see ManagedStatefulComponentMixin for management API methods */
 	
-	/** Execute component specific initialization (required by {@link ManagedStatefulComponentMixin})
+	/**
+	 * Execute component specific initialization (called by {@link ManagedStatefulComponentMixin})
+	 * 
 	 * @returns Promise that resolves when the component is initialized
 	 * @throws Error if initialization fails
+	 * 
 	 * @remark Initializes the cache with all conditioning logs and users from the respective repositories
 	 * @remark Cache is initialized lazily on first access to avoid unnecessary overhead
 	 * @remark Cache is populated with all logs from conditioning log repo and all users from user repo
 	 * @remark ManagedStatefulComponentMixin.initialize() caller already handles concurrency and updates state,
-	 * so no need to replicate that here
+	 *   so no need to replicate that here
 	 * @remark Not really intended as a public API, but {@link ManagedStatefulComponentMixin} requires it to be public:
-	 * use initialize() instead for public API
+	 *  use initialize() instead for public API
+	 * 
 	 * @todo Refactor to use cache library, when available
 	 */
 	public override async onInitialize(): Promise<void> {
@@ -718,9 +774,12 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		}
 	}
 	
-	/** Execute component shutdown (required by ManagedStatefulComponentMixin)
+	/**
+	 * Execute component shutdown (called by ManagedStatefulComponentMixin)
+	 * 
 	 * @returns Promise that resolves when the component is shut down
 	 * @throws Error if shutdown fails
+	 * 
 	 * @remark Cleans up resources and unsubscribes from all subscriptions
 	 * @remark Completes the cache observable to release resources
 	 * @remark Unsubscribes from all subscriptions to avoid memory leaks
@@ -756,7 +815,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
-	/* Purge log from log repo that has been orphaned by failed user update (log creation helper)
+	/*
+	 * Purge log from log repo that has been orphaned by failed user update (log creation helper)
+	 *
 	 * @param logId Entity id of the log to purge from the log repo
 	 * @param softDelete Flag to indicate whether to soft delete the log (default: false since log is orphaned by other CRUD error)
 	 * @param retries Number of retries before giving up
@@ -777,7 +838,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		// NOTE: cache is updated via subscription to log repo updates, no need to update cache here
 	}
 
-	/* Roll back user update by updating user with original data (helper for log deletion)
+	/*
+	 * Roll back user update by updating user with original data (helper for log deletion)
+	 *
 	 * @param originalPersistenceDTO Original user DTO to roll back to
 	 * @param retries Number of retries before giving up
 	 * @param delay Delay in milliseconds between retries
@@ -795,7 +858,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		}
 	}
 
-	/* Subscribe to and dispatch handling of log and user repo events (constructor helper)
+	/*
+	 * Subscribe to and dispatch handling of log and user repo events (constructor helper)
+	 *
 	 * @remark Uses events from user repo for log creation and deletion, as logs repo events have no user context
 	 * @remark Uses events from log repo for log updates, as user repo events do not contain log data
 	 */
@@ -811,7 +876,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		}));
 	}	
 	
-	/* Convert array of conditioning logs into time series (aggregation helper) */
+	/*
+	 * Convert array of conditioning logs into time series (aggregation helper)
+	 */
 	protected toConditioningLogSeries(logs: ConditioningLog<any, ConditioningLogDTO>[]): ConditioningLogSeries<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO> {
 		// filter out any logs that do not have a start date, log id of logs missing start date
 		const logsWithDates = logs.filter(log => {

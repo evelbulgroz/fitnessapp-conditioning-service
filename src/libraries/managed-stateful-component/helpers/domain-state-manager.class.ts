@@ -3,8 +3,7 @@ import ManagedStatefulComponent from "../models/managed-stateful-component.model
 import {ManagedStatefulComponentMixin, MSC_PREFIX} from "../mixins/managed-stateful-component.mixin";
 
 /**
- * Represents a domain-specific state container that manages components within
- * a logical boundary of the application.
+ * Domain-specific state container that manages components within a logical boundary of the application
  * 
  * This class bridges the gap between framework-specific module systems and
  * framework-agnostic state management by:
@@ -20,6 +19,11 @@ import {ManagedStatefulComponentMixin, MSC_PREFIX} from "../mixins/managed-state
  * DomainStateManager solves the practical challenge of accessing framework module
  * instances by creating parallel, discoverable containers that can be automatically
  * wired together e.g., based on their location in the project.
+ * 
+ * It's use is optional but may be necessary for some applications, e.g. when using
+ * a framework that does not provide a module system (e.g. React), or when 
+ * using a framework that does not provide a way to access the module instances
+ * (e.g. NestJS).
  * 
  * @example
  * // Create a domain manager for the user feature
