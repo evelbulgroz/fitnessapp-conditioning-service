@@ -39,7 +39,7 @@ import {ManagedStatefulComponentMixin, MSC_PREFIX} from "../mixins/managed-state
  *   }
  * }
  */
-export class DomainStateManager extends ManagedStatefulComponentMixin(class {}) { // note: mixin takes options as constructor arg, but we don't know them yet for subclasses
+export class DomainStateManager extends ManagedStatefulComponentMixin(class {}) implements ManagedStatefulComponent {
 	/**
 	 * Creates a new instance of the DomainStateManager.
 	 * 

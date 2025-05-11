@@ -9,11 +9,15 @@ import DomainStateManager from '../helpers/domain-state-manager.class';
 import DomainPathExtractor from '../models/domain-path-extractor.model';
 import filePathExtractor from '../helpers/extractors/file-path-extractor';
 
-// Fixed prefix for internal members to avoid name collisions with parent classes or other libraries.
- // Applied dynamically to all internal methods, and is hard coded into property names for simplicity.
+/**
+ * Fixed prefix for internal members to avoid name collisions with parent classes or other libraries.
+ * 
+ * Applied dynamically to all internal methods, and is hard coded into property names for simplicity.
+ * 
+ */
 export const MSC_PREFIX = 'msc_zh7y_';
 
-// Unified default state for the component when created
+// Get unified default state for the component when created
 const now = new Date();
 const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInfo => ({
 	name: component.constructor.name,
@@ -32,21 +36,36 @@ const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInf
  * e.g. microservices serving a single, cohesive domain.
  * 
  * It is not intended for large, complex applications that may require separate state management
- * strategies for different components, domains, or name spaces, though name space support could be
- * added with relatively little effort.
- *  
- * The implementation internally uses a static singleton registry for state management, and a state
- * manager construct, supporting a framework-agnostic approach to hierarchical state management.
+ * strategies for different components, domains, or name spaces.
  * 
- * In most cases, clients should not have to worry about these details, but should simply use the
+ * In most cases, clients should not have to worry about implementation details, but should simply use the
  * basic API for registering, unregistering, and managing subcomponents, and subscribing to state changes.
  *  
  * @param Parent The immediate parent class to extend, or `class {}` if no inheritance is needed
  * @typeparam TParent The type of the parent class
  * @param options Configuration options for initialization, shutdown, and subcomponent strategies
- * @param unshadowPrefix Prefix for internal methods to avoid name collisions. Defaults to MSC_PREFIX. Leave as is in most cases.
- * @returns A class that implements {@link ManagedStatefulComponent} and extends the provided parent
- * @todo If/when TypeScript supports it, add a decorator to apply this mixin to a class (see below).
+ * @param unshadowPrefix Prefix for internal methods to avoid name collisions. Defaults to value of MSC_PREFIX. Leave as is in most cases.
+ * @returns A class that implements {@link ManagedStatefulComponent} and extends the provided parent, if any.
+ * 
+ * @todo Provide a decorator to apply this mixin to a class, if/when TypeScript supports it (see implementation notes)
+ * 
+ * @remark PUBLIC API
+ * - *`componentState$`* - Observable that emits state changes
+ * - *`initialize()`* - Initializes the component and its subcomponents
+ * - *`shutdown()`* - Shuts down the component and its subcomponents
+ * - *`isReady()`* - Checks if component is ready to serve requests
+ * - *`onInitialize()`* - Template method for component-specific initialization logic, called by `initialize()`
+ * - *`onShutdown()`* - Template method for component-specific shutdown logic, called by `shutdown()` 
+ * - *`registerSubcomponent()`* - Registers a subcomponent for lifecycle management and subscribes to its state changes
+ * - *`unregisterSubcomponent()`* - Removes a subcomponent from management and unsubscribes from its state changes
+ * - *`updateState()`* - Updates the component's state and emits the new state
+ *
+ * Notes:
+ * - All public members except initialize() and shutdown() are reserved for the mixin and may shadow parent members
+ * - Subclasses should override the `onInitialize()` and `onShutdown()` methods to provide any component-specific logic:
+ *   they should **not** override the initialize() and shutdown() methods directly, as these are reserved for the mixin
+ * - Subclasses can provide additional options (e.g., `virtualPath`) via their constructor,
+ *   which are merged into the mixin's options and available throughout the component lifecycle.
  * 
  * @remark COMPONENT STATES
  * Components move through the following states:
@@ -56,50 +75,38 @@ const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInf
  * - Any state → FAILED (on error)
  * 
  * @remark STATE MANAGEMENT
- * - Component's own state is tracked in `msc_zh7y_ownState`
- * - All internal properties use the fixed prefix `msc_zh7y_` to avoid name collisions
  * - Component state changes are observable through the `componentState$` Observable
+ * - Component state is set using the `updateState()` method, which updates the internal state and emits the new state
+ * - If the component has subcomponents, the observable emits the aggregated state
  * - Aggregated state includes all subcomponents, with the "worst" state propagating upward
- * - The mixin uses the "Wait for Your Own Events" pattern to ensure state changes are propagated before resolving promises
- * 
- * @remark INHERITANCE BEHAVIOR
- * - Preserves inheritance chain and passes calls up through class hierarchy
- * - All members specified by {@link ManagedStatefulComponent} are reserved for the mixin:
- * 
- * {@link ManageableComponent} members:
- * - `initialize()` - Initializes the component and its subcomponents, passing calls up the hierarchy
- * - `shutdown()` - Shuts down the component and its subcomponents, passing calls up the hierarchy
- * - `isReady()` - Checks if component is ready to serve requests, shadows any parent method
- * - `onInitialize()` - Template method for component-specific initialization logic, called by `initialize()`, shadows any parent method
- * - `onShutdown()` - Template method for component-specific shutdown logic, called by `shutdown()`, shadows any parent method 
- * 
- * {@link StatefulComponent} members:
- * - `componentState$` - Observable that emits state changes, shadows any parent property
- * 
- * {@link ComponentContainer} members:
- * - `registerSubcomponent()` - Registers a subcomponent for lifecycle management and subscribes to its state changes
- *                            - Shadows any parent method
- * - `unregisterSubcomponent()` - Removes a subcomponent from management and unsubscribes from its state changes
- *                              - Shadows any parent method
- * 
- * Notes:
- * - Concrete classes may optionally override template methods `onInitialize()` and `onShutdown()`
- *   if they have specific initialization/shutdown needs
- * - The protected method prefix is configurable via the `unshadowPrefix` parameter, but should be left as is in most cases for compatibility
- * - The protected property prefix is hard coded to `msc_zh7y_` for simplicity
  * 
  * @remark COMPONENT HIERARCHY
  * - Parent-child relationships are supported via `registerSubcomponent()` and `unregisterSubcomponent()` methods
  * - State is automatically aggregated across the component hierarchy
+ * - When used, this enables getting complete, aggregated app state from a single observable on a root component
  * - Initialization order is configurable in options (parent-first or children-first, default: parent-first)
  * - Shutdown order is configurable in options (parent-first or children-first, default: parent-first)
  * - Subcomponent operations are configurable in options (parallel or sequential, default: parallel)
  * 
+ * Notes:
+ * - A {@link DomainStateManager} utility construct is provided as an intermediary class that applies this mixin.
+ *   It enables runtime type detection and aggregated health reporting, and can serve as a proxy for framework-specific
+ *   domain containers (e.g., NestJS modules) that are not directly compatible with the managed stateful component pattern.
+ * - Utility method `wireDomains()` and utility function `filePathExtractor()` are provided make this
+ *   easy to wire up, when needed 
+ * 
  * @remark IMPLEMENTATION NOTES
+ * - Members intended to not be public are annotated with @internal and prefixed with the value of MSC_PREFIX:
+ *   Typescript does not support private/protected members in mixins, so this is a workaround
+ * - The protected method prefix is configurable via the `unshadowPrefix` parameter,
+ *   but should be left as is in most cases for compatibility
+ * - The protected property prefix is hard coded to the value of MSC_PREFIX for simplicity
  * - All asynchronous methods follow the async/await pattern
- * - Concurrent calls to initialization/shutdown methods share a promise
- * - State changes are observable and wait for propagation to complete
- * - TypeScript limitations: members intended to not be public are marked with @internal annotation, but are public in reality
+ * - Concurrent calls to initialization/shutdown methods share a promise to prevent race conditions
+ * - State changes are observable and wait for propagation to complete, using the "Wait for Your Own Events" pattern
+ * - TypeScript does not currently support decorators for mixins. A sample decorator is provided at
+ *   the end of this file, but cannot currently be used. It would be very desirable to be able to apply
+ *   the mixin using a decorator, rather than inheritance syntax, so this is a future enhancement to watch for.
  * 
  * @remark USAGE AND EXAMPLES
  * - Target class should extend the mixin to gain {@link ManagedStatefulComponent} functionality
@@ -107,7 +114,7 @@ const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInf
  *  
  * @example Basic component with no parent class:
  * ```typescript
- * class MyComponent extends ManagedStatefulComponentMixin(class {}) {
+ * class MyComponent extends ManagedStatefulComponentMixin(class {}) implements ManagedStatefulComponent {
  *   public async onInitialize(): Promise<void> {
  *     // Initialize resources, open connections, etc.
  *   }
@@ -120,7 +127,7 @@ const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInf
  * 
  * @example Component with inheritance:
  * ```typescript
- * class MyComponent extends ManagedStatefulComponentMixin(ParentClass) {
+ * class MyComponent extends ManagedStatefulComponentMixin(ParentClass) implements ManagedStatefulComponent {
  *   public async onInitialize(): Promise<void> {
  *     // Component-specific initialization logic
  *   }
@@ -130,8 +137,6 @@ const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInf
  *   }
  * }
  * ```
- * 
- * @todo Rewrite documentation to reflect new use of domain state managers
  */
 export function ManagedStatefulComponentMixin<TParent extends new (...args: any[]) => any>(
 	Parent: TParent,
@@ -358,7 +363,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		}
 
 		/**
-		 * Shutdown the component and all of its subcomponents (if any) if it is not already shut 
+		 * Shut down the component and all of its subcomponents (if any) if it is not already shut down
 		 * 
 		 * @param args Optional arguments to pass to parent shutdown methods
 		 * @returns Promise that resolves when the component and all of its subcomponents are shut down
@@ -518,6 +523,19 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			this[`${unshadowPrefix}updateAggregatedState`]();
 			
 			return true;
+		}
+
+		/**
+		 * Update the state of the component with the specified state information
+		 * 
+		 * @param newState New state information to set, optionally partial
+		 * @returns Promise that resolves when the state update has fully propagated
+		 * 
+		 * @remarks State changes are aggregated with subcomponent states
+		 * @remarks The method waits for state change to propagate before resolving
+		 */
+		public async updateState(newState: Partial<ComponentStateInfo>): Promise<void> {
+			return this[`${unshadowPrefix}updateState`](newState);
 		}
 
 		//---------------------------------- TEMPLATE METHODS -----------------------------------//
@@ -864,7 +882,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		}
 		
 		/*
-		 * DEPRECATED Update state when registering ir unregistering subcomponents
+		 * DEPRECATED Update state when registering or unregistering subcomponents
 		 *
 		 * @returns void
 		 * @remark New code should possibly not rely on this method

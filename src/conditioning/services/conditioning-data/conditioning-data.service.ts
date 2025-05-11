@@ -6,7 +6,7 @@ import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { LogLevel, StreamLoggable, StreamLoggableMixin } from '../../../libraries/stream-loggable';
-import { ComponentState, ManagedStatefulComponentMixin } from '../../../libraries/managed-stateful-component';
+import { ComponentState, ManagedStatefulComponent, ManagedStatefulComponentMixin } from '../../../libraries/managed-stateful-component';
 
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
@@ -61,7 +61,7 @@ export interface UserLogsCacheEntry {
  * @todo Use shared cache library when available
  */
 @Injectable()
-export class ConditioningDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleDestroy {
+export class ConditioningDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent, OnModuleDestroy {
 	
 	//----------------------------------- PROPERTIES ------------------------------------//
 	

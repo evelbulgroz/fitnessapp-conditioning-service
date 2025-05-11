@@ -1,7 +1,7 @@
 import { DiscoveryService } from "@nestjs/core";
 import { Injectable } from "@nestjs/common";
 
-import { DomainStateManager, ManagedStatefulComponentMixin } from './libraries/managed-stateful-component/index';
+import { DomainStateManager } from './libraries/managed-stateful-component/index';
 
 import DomainHierarchyWirer from "./libraries/managed-stateful-component/helpers/domain-hierarchy-wirer.class";
 

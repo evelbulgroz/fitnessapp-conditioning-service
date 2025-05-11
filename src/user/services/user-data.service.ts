@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
 import { EntityId } from '@evelbulgroz/ddd-base';
-import { ComponentState, ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component";
+import { ComponentState, ManagedStatefulComponent, ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component";
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
@@ -25,7 +25,7 @@ import UserRepository from '../repositories/user.repo';
  * @remark Depends on the User repository for caching and persistence of user entities.
  */
 @Injectable()
-export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements OnModuleDestroy {
+export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent, OnModuleDestroy {
 
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 

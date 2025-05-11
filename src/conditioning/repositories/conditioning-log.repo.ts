@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
 import { EntityId, EntityMetadataDTO, RepoLogLevel, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
-import { ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component/";
+import { ManagedStatefulComponent, ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component/";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
 import ConditioningLog from "../domain/conditioning-log.entity";
@@ -23,7 +23,8 @@ import ConditioningLogUpdatedEvent from "../events/conditioning-log-updated.even
  */
 @Injectable()
 export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO>
-	extends ManagedStatefulComponentMixin(TrainingLogRepo)<ConditioningLog<T,U>, U> {
+	extends ManagedStatefulComponentMixin(TrainingLogRepo)<ConditioningLog<T,U>, U>
+	 implements ManagedStatefulComponent {
 	// implements OnModuleInit, OnModuleDestroy {
 
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
