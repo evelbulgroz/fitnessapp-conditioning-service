@@ -10,9 +10,11 @@ import DomainStateManager from "../domain-state-manager.class";
  * Default implementation {@link DomainPathExtractor} for most situations when
  * the file location is used to determine the path.
  *
- * Note: The file location must be attached to the manager instance in the __filename property.
+ * Note: The file location must be attached to the manager instance in the `__filename` property.
  * 
  * @todo Make project root configurable in the constructor
+ * @todo Replace multiple path separators with a single dot
+ * @todo Consider using Node.js `path` module for path normalization and manipulation
  */
 export const filePathExtractor: DomainPathExtractor = (manager: DomainStateManager, appRootName: string = 'app'): string => {
 	// The file location must be attached to the manager instance
