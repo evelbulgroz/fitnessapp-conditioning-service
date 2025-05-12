@@ -178,7 +178,7 @@ export class AppModule  extends StreamLoggableMixin(class {}) implements OnModul
 		this.logger.info(`Server initialized with instance id ${this.appConfig.serviceid}`, `${this.constructor.name}.onModuleInit`);
 		
 		const sub = this.stateManager.componentState$.subscribe((state) => { // debugging	
-			//console.info({ name: state.name, state: state.state, reason: state.reason, });
+			console.info({ name: state.name, state: state.state, reason: state.reason, });
 		});
 		this.subs.push(sub);
 	};
