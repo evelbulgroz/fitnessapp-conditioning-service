@@ -35,20 +35,21 @@ export class AppDomainStateManager extends DomainStateManager {
 	
 	public async onInitialize() {
 		await this.initializeStateManagers();
-		console.log("AppDomainStateManager.onInitialize()", JSON.stringify(this.toJSON(), null, 2)); // debug: correctly report whole hierarchy, including repos and data services
+		//console.log("AppDomainStateManager.onInitialize()", JSON.stringify(this.toJSON(), null, 2)); // debug: correctly report whole hierarchy, including repos and data services
 	}
 
 	public async onShutdown(): Promise<void> {
-		console.log("AppDomainStateManager.onShutdown()", JSON.stringify(this.toJSON, null, 2)); // debug: reports undefined, so cannot see hierarchy
+		//console.log("AppDomainStateManager.onShutdown()", JSON.stringify(this.toJSON(), null, 2)); // debug: correctly report whole hierarchy, including repos and data services
 
-		// Unregister all 
-		this.subcomponents = this.subcomponents || [];
-		await Promise.all(this.subcomponents.map((subcomponent: ManagedStatefulComponent) => {
+		// Shut down all subcomponents
+		const subcomponents = this.msc_zh7y_subcomponents || []; // todo: Find at way to do this without referring to internal properties
+		await Promise.all(subcomponents.map((subcomponent: ManagedStatefulComponent) => {
 			console.log("AppDomainStateManager.onShutdown() - shutting down subcomponent", subcomponent.constructor.name); // debug
 			return subcomponent.shutdown();
 		}));
 
-		for (const subcomponent of this.subcomponents) {
+		//Unregister all subcomponents
+		for (const subcomponent of subcomponents) {
 			console.log("AppDomainStateManager.onShutdown() - unregistering subcomponent", subcomponent.constructor.name); // debug
 			this.unregisterSubcomponent(subcomponent);
 		}

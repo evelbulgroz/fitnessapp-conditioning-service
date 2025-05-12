@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-import { DomainStateManager } from '../libraries/managed-stateful-component/index';
+import { DomainStateManager, ManagedStatefulComponent } from '../libraries/managed-stateful-component/index';
 import UserDataService from "./services/user-data.service";
 import UserRepository from "./repositories/user.repo";
 
@@ -47,10 +47,22 @@ export class UserDomainStateManager extends DomainStateManager {
 	}
 
 	async onShutdown(...args: any[]): Promise<void> {
-		//console.log("UserDomainStateManager.onShutdown()", JSON.stringify(this.toJSON(), null, 2)); // debug
+		// Shut down all subcomponents
+		const subcomponents = this.msc_zh7y_subcomponents || []; // todo: Find at way to do this without referring to internal properties
+		await Promise.all(subcomponents.map((subcomponent: ManagedStatefulComponent) => {
+			console.log("UserDomainStateManager.onShutdown() - shutting down subcomponent", subcomponent.constructor.name); // debug
+			return subcomponent.shutdown();
+		}));
+
+		// Unregister all subcomponents
+		for (const subcomponent of subcomponents) {
+			console.log("UserDomainStateManager.onShutdown() - unregistering subcomponent", subcomponent.constructor.name); // debug
+			this.unregisterSubcomponent(subcomponent);
+		}
+		
 		// UserController is not a managed component, so we don't unregister it as a subcomponent		
-		this.stateManager.unregisterSubcomponent(this.dataService);
-		this.stateManager.unregisterSubcomponent(this.repository); // repo handles persistence shutdown internally
+		//this.unregisterSubcomponent(this.dataService);
+		//this.unregisterSubcomponent(this.repository); // repo handles persistence shutdown internally
 	}
 }
 export default UserDomainStateManager;

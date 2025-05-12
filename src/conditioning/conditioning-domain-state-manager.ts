@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-import { DomainStateManager } from '../libraries/managed-stateful-component/index';
+import { DomainStateManager, ManagedStatefulComponent } from '../libraries/managed-stateful-component/index';
 import ConditioningDataService from "./services/conditioning-data/conditioning-data.service";
 import ConditioningLog from "./domain/conditioning-log.entity";
 import ConditioningLogDTO from "./dtos/conditioning-log.dto";
@@ -49,11 +49,18 @@ export class ConditioningDomainStateManager extends DomainStateManager {
 	}
 
 	async onShutdown(...args: any[]): Promise<void> {
-		//console.log("ConditioningDomainStateManager.onShutdown()", JSON.stringify(this.toJSON(), null, 2)); // debug
-		// ConditioningController is not a managed component, so we don't unregister it as a subcomponent
-		this.unregisterSubcomponent(this.dataService);
-		this.unregisterSubcomponent(this.repository); // repo handles persistence shutdown internally
-		
+		// Shut down all subcomponents
+		const subcomponents = this.msc_zh7y_subcomponents || []; // todo: Find at way to do this without referring to internal properties
+		await Promise.all(subcomponents.map((subcomponent: ManagedStatefulComponent) => {
+			console.log("ConditioningDomainStateManager.onShutdown() - shutting down subcomponent", subcomponent.constructor.name); // debug
+			return subcomponent.shutdown();
+		}));
+
+		// Unregister all subcomponents
+		for (const subcomponent of subcomponents) {
+			console.log("ConditioningDomainStateManager.onShutdown() - unregistering subcomponent", subcomponent.constructor.name); // debug
+			this.unregisterSubcomponent(subcomponent);
+		}		
 	}
 }
 export default ConditioningDomainStateManager;
