@@ -29,19 +29,30 @@ import {ManagedStatefulComponentMixin, MSC_PREFIX} from "../mixins/managed-state
  * // Create a domain manager for the user feature
  * // In a NestJS application, this would co-located with the user module
  * @Injectable()
- * export class UserDomainManager extends DomainStateManager {
- *   constructor(
- *     private userService: UserService,
- *     private userRepository: UserRepository,
- *     options?: DomainStateManagerOptions,
- *   ) {
- *     super(options);
- *     
- *     // Register domain components
- *     this.registerDomainComponent(userService);
- *     this.registerDomainComponent(userRepository);
- *   }
- * }
+ * export class UserDomainStateManager extends DomainStateManager {
+	// filePathExtractor requires __filename to be defined on the state manager
+	public readonly __filename: string;
+ 
+	constructor(
+		// Inject services from this domain that should be monitored
+		private dataService: UserDataService,
+		private repository: UserRepository,
+	) {
+		super({
+			subcomponentStrategy: 'sequential',  // components must initialize in order
+		});
+		this.__filename = __filename;
+	}
+	
+	async onInitialize() {
+		// Register subcomponents for lifecycle management
+		this.registerSubcomponent(this.repository); // repo needs to initialize before data service
+		this.registerSubcomponent(this.dataService);
+		// UserController is not a managed component, , so we don't register it as a subcomponent
+	}
+ 
+	// NOTE: No need to implement onShutdown() here, as the root manager is sufficient.
+ }
  */
 export class DomainStateManager extends ManagedStatefulComponentMixin(class {}) implements ManagedStatefulComponent {
 	/**

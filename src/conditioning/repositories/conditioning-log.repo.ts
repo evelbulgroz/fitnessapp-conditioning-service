@@ -100,8 +100,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${shutdownResult.error}`);
 		}
 		
-		console.log(`Shutdown executed successfully`); // log directly to the console, repo log stream is closed at this point
-        return Promise.resolve();
+		return Promise.resolve();
     }	
 
 	// NOTE: Repository.isReady() is basically a call to initialize(), so no need to override or call it here. The mixin is sufficient.

@@ -376,12 +376,8 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Handles concurrent calls by returning the same promise for all callers during shutdown
 		 * @remark If the component is already shut down, resolves immediately
 		 * @remark Required by {@link ManageableComponent} interface
-		 * 
-		 * @todo Unregister subcomponents from the component container, after shutting them down
-		 * @todo Unsubscribe from subcomponent state changes?
 		 */
 		public async shutdown(...args: any[]): Promise<any> {
-			console.log('shutdown() called on:', this.constructor.name); // debug
 			// If already shut down, resolve immediately
 			if (this. msc_zh7y_stateSubject.value.state === ComponentState.SHUT_DOWN) {
 				return Promise.resolve();
@@ -394,7 +390,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 			this.msc_zh7y_shutdownPromise = new Promise<void>(async (resolve, reject) => {
 				try {
-					console.log('Executing shutdown():', this.constructor.name); // debug
 					// Set own state and update the state subject with the new componentState$
 					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
@@ -406,15 +401,16 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 					// Call parent shutdown method if found (preserving inheritance)
 					const superResult = await this[`${unshadowPrefix}callParentMethod`](this.shutdown, ...args);
-
+					
 					// Shut down main component and any subcomponents in the order specified in options
-					//console.log('Calling onShutDown on:', this.constructor.name); // debug
 					if (this.msc_zh7y_options.shutDownStrategy === 'parent-first') {
 						await this.onShutdown(superResult);
-						await this[`${unshadowPrefix}shutdownSubcomponents`];
+						await this[`${unshadowPrefix}shutdownSubcomponents`]();
+						await this[`${unshadowPrefix}unregisterSubcomponents`]();
 					}
 					else { // 'children-first'
-						await this[`${unshadowPrefix}shutdownSubcomponents`];
+						await this[`${unshadowPrefix}shutdownSubcomponents`]();
+						await this[`${unshadowPrefix}unregisterSubcomponents`]();
 						await this.onShutdown(superResult);
 					}
 
@@ -530,7 +526,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			this[`${unshadowPrefix}updateAggregatedState`]();
 			
 			return true;
-		}
+		}		
 
 		/**
 		 * Update the state of the component with the specified state information
@@ -891,12 +887,10 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Sequential shutdown is slower but guarantees that subcomponents are shut down in the reverse order they were registered
 		 */
 		/* @internal */ async [`${unshadowPrefix}shutdownSubcomponents`](): Promise<void> {
-			console.log('Entering shutdownSubcomponents()', this.constructor.name); // debug
 			if (this. msc_zh7y_subcomponents.length === 0) return;
 			
 			if (this.msc_zh7y_options.subcomponentStrategy === 'parallel') { // fastest
 				await Promise.all(this. msc_zh7y_subcomponents.map(component => {
-					console.log('Calling shutdown() on:', component.constructor.name); // debug
 					return component.shutdown()
 				}));
 			}
@@ -905,6 +899,21 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					await component.shutdown();
 				}
 			}
+		}
+		
+		/**
+		 * Unregister all subcomponents from this component
+		 * 
+		 * @returns void
+		 * @throws Error if the component is null or undefined
+		 *
+		 */
+		/* @internal */ async [`${unshadowPrefix}unregisterSubcomponents`](): Promise<void> {
+			// Unsubscribe from all subcomponents
+			this.msc_zh7y_componentSubscriptions.forEach(subscription => subscription.unsubscribe());
+			this.msc_zh7y_componentSubscriptions.clear();
+			this. msc_zh7y_subcomponents = [];
+			this[`${unshadowPrefix}updateAggregatedState`]();
 		}
 		
 		/*

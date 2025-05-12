@@ -6,7 +6,7 @@ import axios, { AxiosInstance } from 'axios';
 
 import { Subscription, } from 'rxjs';
 
-import { DomainPathExtractor, DomainStateManager, filePathExtractor, FilePathExtractorOptions } from './libraries/managed-stateful-component';
+import { DomainStateManager, filePathExtractor, FilePathExtractorOptions } from './libraries/managed-stateful-component';
 import { MergedStreamLogger, StreamLoggableMixin } from "./libraries/stream-loggable";
 
 import AppDomainStateManager from './app-domain-state-manager';
@@ -177,12 +177,10 @@ export class AppModule  extends StreamLoggableMixin(class {}) implements OnModul
 
 		this.logger.info(`Server initialized with instance id ${this.appConfig.serviceid}`, `${this.constructor.name}.onModuleInit`);
 		
-		/*
 		const sub = this.stateManager.componentState$.subscribe((state) => { // debugging	
-			console.info({ name: state.name, state: state.state, reason: state.reason, });
+			//console.info({ name: state.name, state: state.state, reason: state.reason, });
 		});
 		this.subs.push(sub);
-		*/			
 	};
 
 	/** Clean up the module and its components
@@ -191,14 +189,12 @@ export class AppModule  extends StreamLoggableMixin(class {}) implements OnModul
 	 * @throws Error if cleanup fails
 	 * 
 	 * @todo Add error handling for cleanup failures
+	 * @todo Add health check status updates for cleanup failures
 	 */
 	public async onModuleDestroy(): Promise<void> {
-		console.log('AppModule.onModuleDestroy() called'); // debug
 		this.logger.info('Destroying server...', `${this.constructor.name}.onModuleDestroy`);		
 		
-		// Shut down the module's state managed components
-		// Note: This will make all health check endpoints return "unavailable" status
-		// Bug: method terminates before this has time to complete
+		// Shut down the module and its state managed subcomponents, if any
 		await this.stateManager.shutdown();
 		
 		// Deregister from the microservice registry
@@ -232,7 +228,7 @@ export class AppModule  extends StreamLoggableMixin(class {}) implements OnModul
 
 	//------------------------------------- MANAGEMENT API --------------------------------------//
 
-	// TODO - Consider moving stuff from onModuleInit and onModuleDestroy to this API
+	// NestJS modules cannot be managed by the state management system, no need to implement here.
 	
 	//------------------------------------- PRIVATE METHODS -------------------------------------//
 

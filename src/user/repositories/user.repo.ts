@@ -136,8 +136,7 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 		// Clean up subscriptions
 		this.subscriptions.forEach((sub: Subscription) => sub?.unsubscribe());
 		
-		console.log(`Shutdown executed successfully`); // log to the console, repo log stream is closed at this point
-        return Promise.resolve();
+		return Promise.resolve();
     }
 
 	// NOTE: Repository.isReady() is basically a call to initialize(), so no need to override or call it here. The mixin is sufficient.

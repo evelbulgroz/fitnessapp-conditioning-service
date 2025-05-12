@@ -1,14 +1,13 @@
 import { Injectable } from "@nestjs/common";
 
-import { DomainStateManager, ManagedStatefulComponent } from '../libraries/managed-stateful-component/index';
+import { DomainStateManager } from '../libraries/managed-stateful-component/index';
 import UserDataService from "./services/user-data.service";
 import UserRepository from "./repositories/user.repo";
 
 /**
  * Domain proxy that stands in for {@link UserModule} to enable hierarchical state management.
  * 
- * This class is responsible for managing registering and unregistering subcomponents
- * at the appropriate times in the lifecycle of the application.
+ * This class is responsible for registering subcomponents for lifecycle management.
  * 
  * This enables the root manager to wire the domain hierarchy by finding all domain
  * state managers in the app, and managing their state.
@@ -34,35 +33,19 @@ export class UserDomainStateManager extends DomainStateManager {
 		private dataService: UserDataService,
 		private repository: UserRepository,
 	) {
-		super();
+		super({
+			subcomponentStrategy: 'sequential', // components must initialize in order
+		});
 		this.__filename = __filename;
 	}
 	
 	async onInitialize() {
 		// Register subcomponents for lifecycle management
-		this.registerSubcomponent(this.repository);
+		this.registerSubcomponent(this.repository); // repo needs to initialize before data service
 		this.registerSubcomponent(this.dataService);
 		// UserController is not a managed component, , so we don't register it as a subcomponent
-		//console.log("UserDomainStateManager.onInitialize()", JSON.stringify(this.toJSON(), null, 2)); // debug
 	}
 
-	async onShutdown(...args: any[]): Promise<void> {
-		// Shut down all subcomponents
-		const subcomponents = this.msc_zh7y_subcomponents || []; // todo: Find at way to do this without referring to internal properties
-		await Promise.all(subcomponents.map((subcomponent: ManagedStatefulComponent) => {
-			console.log("UserDomainStateManager.onShutdown() - shutting down subcomponent", subcomponent.constructor.name); // debug
-			return subcomponent.shutdown();
-		}));
-
-		// Unregister all subcomponents
-		for (const subcomponent of subcomponents) {
-			console.log("UserDomainStateManager.onShutdown() - unregistering subcomponent", subcomponent.constructor.name); // debug
-			this.unregisterSubcomponent(subcomponent);
-		}
-		
-		// UserController is not a managed component, so we don't unregister it as a subcomponent		
-		//this.unregisterSubcomponent(this.dataService);
-		//this.unregisterSubcomponent(this.repository); // repo handles persistence shutdown internally
-	}
+	// NOTE: No need to implement onShutdown() here, as the root manager is sufficient.
 }
 export default UserDomainStateManager;

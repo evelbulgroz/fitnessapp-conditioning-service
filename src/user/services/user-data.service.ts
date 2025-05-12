@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { firstValueFrom, Observable, Subscription, take } from 'rxjs';
@@ -28,7 +28,7 @@ import UserRepository from '../repositories/user.repo';
  * @remark It applies the {@link ManagedStatefulComponentMixin} mixin as it is a key component whose state needs to be managed.
  */
 @Injectable()
-export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent {//, OnModuleDestroy {
+export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent {
 
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
@@ -46,15 +46,7 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
-	// NOTE: onModuleInit() does not seem to be called?
-
-	/*
-	onModuleDestroy() {
-		console.log(`UserDataService.onModuleDestroy() called`);
-		this.logger.log(`Shutting down...`, this.constructor.name);
-		this.shutdown(); // call shutdown method from mixin
-	}
-		*/
+	// NOTE: Lifecycle hooks are not used in this class, as the service is a managed component
 	
 	//---------------------------------------- DATA API ---------------------------------------//
 	

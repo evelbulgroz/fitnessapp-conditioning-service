@@ -1,4 +1,4 @@
-import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { DomainStateManager, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
@@ -103,7 +103,10 @@ import ConditioningDomainStateManager from './conditioning-domain-state-manager'
 		ConditioningLogUpdatedHandler,
 	],
 })
-export class ConditioningModule extends StreamLoggableMixin(class {}) implements OnModuleInit, OnModuleDestroy {
+export class ConditioningModule extends StreamLoggableMixin(class {}) implements OnModuleInit {
+	
+	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
+
 	constructor(
 		private readonly repository: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
 		private readonly dataService: ConditioningDataService,
@@ -112,10 +115,12 @@ export class ConditioningModule extends StreamLoggableMixin(class {}) implements
 		super();		
 	}
 
+	//------------------------------------ LIFECYCLE HOOKS --------------------------------------//
+
 	/** Initializes the module and its components
 	 * 
-	 * This method is called by NestJS during the module's initialization phase. It registers the repository and data service
-	 * as subcomponents, ensuring that they are properly initialized and managed within the module's lifecycle.
+	 * This method is called by NestJS during the module's initialization phase. It sets up the logger
+	 * for the module and subscribes to the log streams for logging.
 	 * 
 	 * @returns {Promise<void>} A promise that resolves to void when the module is fully initialized.
 	 * 
@@ -137,23 +142,12 @@ export class ConditioningModule extends StreamLoggableMixin(class {}) implements
 			{ streamType: 'log$', component: this.dataService },
 			// ConditioningController: Cannot get a reference to the active instance here, so it subscribes itself
 		]);
-		
-		//await this.stateManager.initialize(); // Initialize the state manager
 	}
+	// NOTE: No need for onModuleDestroy() here: clean up is handled by the root module
 
-	/** Cleans up the module and its components
-	 * 
-	 * This method is called by NestJS during the module's destruction phase. It unregisters the repository and data service
-	 * as subcomponents, ensuring that they are properly cleaned up and released from memory.
-	 * 
-	 * @returns {Promise<void>} A promise that resolves to void when the module is fully shut down.
-	 */
-	public async onModuleDestroy(): Promise<void> {
-		//await this.stateManager.shutdown();
+	//------------------------------------- MANAGEMENT API --------------------------------------//
 
-		// Unsubscribe from log streams for logging
-		this.streamLogger.unsubscribeAll(); // unsubscribe from all streams
-	}
+	// NestJS modules cannot be managed by the state management system, no need to implement here.
 }
 
 	

@@ -19,8 +19,6 @@ import DomainHierarchyWirer from "./libraries/managed-stateful-component/helpers
  * 
  * @see {@link DomainStateManager} for more information on how domain state managers work.
  * @see {@link DomainHierarchyWirer} for more information on how domain hierarchy wiring works.
- * 
- * @todo Figure out why the user components are not reporting being shut down when the app is shut down.
  */
 @Injectable()
 export class AppDomainStateManager extends DomainStateManager {	
@@ -35,25 +33,9 @@ export class AppDomainStateManager extends DomainStateManager {
 	
 	public async onInitialize() {
 		await this.initializeStateManagers();
-		//console.log("AppDomainStateManager.onInitialize()", JSON.stringify(this.toJSON(), null, 2)); // debug: correctly report whole hierarchy, including repos and data services
 	}
 
-	public async onShutdown(): Promise<void> {
-		//console.log("AppDomainStateManager.onShutdown()", JSON.stringify(this.toJSON(), null, 2)); // debug: correctly report whole hierarchy, including repos and data services
-
-		// Shut down all subcomponents
-		const subcomponents = this.msc_zh7y_subcomponents || []; // todo: Find at way to do this without referring to internal properties
-		await Promise.all(subcomponents.map((subcomponent: ManagedStatefulComponent) => {
-			console.log("AppDomainStateManager.onShutdown() - shutting down subcomponent", subcomponent.constructor.name); // debug
-			return subcomponent.shutdown();
-		}));
-
-		//Unregister all subcomponents
-		for (const subcomponent of subcomponents) {
-			console.log("AppDomainStateManager.onShutdown() - unregistering subcomponent", subcomponent.constructor.name); // debug
-			this.unregisterSubcomponent(subcomponent);
-		}
-	}
+	// NOTE: No need for onModuleDestroy() here: the base mixin class will take care of shutting down all subcomponents.
 
 	/**
 	 * Wire the domain hierarchy by finding all domain state managers in the app
@@ -64,8 +46,6 @@ export class AppDomainStateManager extends DomainStateManager {
 	 *  
 	 * @see {@link DomainStateManager} for more information on how domain state managers work.
 	 * @see {@link DomainHierarchyWirer} for more information on how domain hierarchy wiring works.
-	 * 
-	 * @todo Figure out how to access static wireDomains method from the mixin
 	 * @returns {Promise<void>} A promise that resolves when the wiring is complete.
 	 */
 	protected async initializeStateManagers(): Promise<void> {
@@ -78,13 +58,6 @@ export class AppDomainStateManager extends DomainStateManager {
 		// Wire the domain hierarchy
 		const wirer = new DomainHierarchyWirer();
 		await wirer.wireDomains(managers, this.pathExtractor);
-
-		// Initialize subdomain state managers
-		 // todo: Find at way to do this without referring to internal properties
-		await Promise.all(this.msc_zh7y_subcomponents?.map(async (manager: DomainStateManager) => {
-			return manager.initialize();
-		}));
-		
 	}
 }
 export default AppDomainStateManager;

@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 import { BehaviorSubject, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
@@ -71,7 +71,7 @@ export interface UserLogsCacheEntry {
  * @todo Use shared cache library when available.
  */
 @Injectable()
-export class ConditioningDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent {//, OnModuleDestroy {
+export class ConditioningDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent {
 	
 	//----------------------------------- PROPERTIES ------------------------------------//
 	
@@ -107,15 +107,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 
 	//------------------------------------- LIFECYCLE HOOKS -------------------------------------//
 
-	// NOTE: onModuleInit() does not seem to be called?
-
-	/*
-	onModuleDestroy() {
-		console.log(`ConditioningDataService.onModuleDestroy() called`);
-		this.logger.info(`Shutting down...`);
-		this.shutdown(); // call shutdown method from mixin
-	}
-	*/
+	// NOTE: Lifecycle hooks are not used in this class, as the service is a managed component
 	
 	//---------------------------------------- DATA API -----------------------------------------//
 

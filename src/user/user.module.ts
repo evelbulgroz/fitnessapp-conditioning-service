@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 
 import { DomainStateManager, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
 import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
@@ -91,7 +91,10 @@ import UserDomainStateManager from './user-domain-state-manager';
 		UserUpdatedHandler,
 	],
 })
-export class UserModule extends StreamLoggableMixin(class {}) implements OnModuleInit, OnModuleDestroy {
+export class UserModule extends StreamLoggableMixin(class {}) implements OnModuleInit {
+	
+	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
+	
 	constructor(
 		private readonly repository: UserRepository,
 		private readonly dataService: UserDataService,
@@ -100,10 +103,12 @@ export class UserModule extends StreamLoggableMixin(class {}) implements OnModul
 		super();
 	}
 
+	//------------------------------------ LIFECYCLE HOOKS --------------------------------------//
+
 	/** Initializes the module and its components
 	 * 
-	 * This method is called by NestJS during the module's initialization phase. It registers the repository and data service
-	 * as subcomponents, ensuring that they are properly initialized and managed within the module's lifecycle.
+	 * This method is called by NestJS during the module's initialization phase. It sets up the logger
+	 * for the module and subscribes to the log streams for logging.
 	 * 
 	 * @returns {Promise<void>} A promise that resolves to void when the module is fully initialized.
 	 * 
@@ -125,15 +130,10 @@ export class UserModule extends StreamLoggableMixin(class {}) implements OnModul
 		]);
 	}
 
-	/** Cleans up the module and its components
-	 * 
-	 * This method is called by NestJS during the module's destruction phase. It unregisters the repository and data service
-	 * as subcomponents, ensuring that they are properly cleaned up and released from memory.
-	 * 
-	 * @returns {Promise<void>} A promise that resolves to void when the module is fully shut down.
-	 */
-	public async onModuleDestroy(): Promise<void> {	
-	}
+	// NOTE: No need for onModuleDestroy() here: clean up is handled by the root module
 
+	//------------------------------------- MANAGEMENT API --------------------------------------//
+
+	// NestJS modules cannot be managed by the state management system, no need to implement here.
 }
 export default UserModule;
