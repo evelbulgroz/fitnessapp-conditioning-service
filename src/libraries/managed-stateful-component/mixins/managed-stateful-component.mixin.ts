@@ -376,6 +376,9 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Handles concurrent calls by returning the same promise for all callers during shutdown
 		 * @remark If the component is already shut down, resolves immediately
 		 * @remark Required by {@link ManageableComponent} interface
+		 * 
+		 * @todo Unregister subcomponents from the component container, after shutting them down
+		 * @todo Unsubscribe from subcomponent state changes?
 		 */
 		public async shutdown(...args: any[]): Promise<any> {
 			console.log('shutdown() called on:', this.constructor.name); // debug
