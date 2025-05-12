@@ -28,7 +28,7 @@ import UserRepository from '../repositories/user.repo';
  * @remark It applies the {@link ManagedStatefulComponentMixin} mixin as it is a key component whose state needs to be managed.
  */
 @Injectable()
-export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent, OnModuleDestroy {
+export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent {//, OnModuleDestroy {
 
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
@@ -48,10 +48,13 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 
 	// NOTE: onModuleInit() does not seem to be called?
 
+	/*
 	onModuleDestroy() {
+		console.log(`UserDataService.onModuleDestroy() called`);
 		this.logger.log(`Shutting down...`, this.constructor.name);
 		this.shutdown(); // call shutdown method from mixin
 	}
+		*/
 	
 	//---------------------------------------- DATA API ---------------------------------------//
 	

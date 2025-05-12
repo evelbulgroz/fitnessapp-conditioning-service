@@ -191,10 +191,12 @@ export class AppModule  extends StreamLoggableMixin(class {}) implements OnModul
 	 * @todo Add error handling for cleanup failures
 	 */
 	public async onModuleDestroy(): Promise<void> {
+		console.log('AppModule.onModuleDestroy() called'); // debug
 		this.logger.info('Destroying server...', `${this.constructor.name}.onModuleDestroy`);		
 		
 		// Shut down the module's state managed components
 		// Note: This will make all health check endpoints return "unavailable" status
+		// Bug: method terminates before this has time to complete
 		await this.stateManager.shutdown();
 		
 		// Deregister from the microservice registry

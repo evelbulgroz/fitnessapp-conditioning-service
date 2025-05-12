@@ -1,7 +1,7 @@
 import { DiscoveryService } from "@nestjs/core";
 import { Inject, Injectable } from "@nestjs/common";
 
-import { DomainPathExtractor, DomainStateManager } from './libraries/managed-stateful-component/index';
+import { DomainPathExtractor, DomainStateManager, ManagedStatefulComponent } from './libraries/managed-stateful-component/index';
 import DOMAIN_PATH_EXTRACTOR from './shared/domain/domain-path-extractor.token';
 
 import DomainHierarchyWirer from "./libraries/managed-stateful-component/helpers/domain-hierarchy-wirer.class";
@@ -35,17 +35,23 @@ export class AppDomainStateManager extends DomainStateManager {
 	
 	public async onInitialize() {
 		await this.initializeStateManagers();
+		console.log("AppDomainStateManager.onInitialize()", JSON.stringify(this.toJSON(), null, 2)); // debug: correctly report whole hierarchy, including repos and data services
 	}
 
-	public async onShutdown(...args: any[]): Promise<void> {
-		//console.log("AppDomainStateManager.onShutdown()"); // debug
+	public async onShutdown(): Promise<void> {
+		console.log("AppDomainStateManager.onShutdown()", JSON.stringify(this.toJSON, null, 2)); // debug: reports undefined, so cannot see hierarchy
 
-		// Unregister all subcomponents
+		// Unregister all 
+		this.subcomponents = this.subcomponents || [];
+		await Promise.all(this.subcomponents.map((subcomponent: ManagedStatefulComponent) => {
+			console.log("AppDomainStateManager.onShutdown() - shutting down subcomponent", subcomponent.constructor.name); // debug
+			return subcomponent.shutdown();
+		}));
+
 		for (const subcomponent of this.subcomponents) {
-			await subcomponent.shutdown(...args);
+			console.log("AppDomainStateManager.onShutdown() - unregistering subcomponent", subcomponent.constructor.name); // debug
 			this.unregisterSubcomponent(subcomponent);
 		}
-		this.subcomponents = [];
 	}
 
 	/**
@@ -71,6 +77,13 @@ export class AppDomainStateManager extends DomainStateManager {
 		// Wire the domain hierarchy
 		const wirer = new DomainHierarchyWirer();
 		await wirer.wireDomains(managers, this.pathExtractor);
+
+		// Initialize subdomain state managers
+		 // todo: Find at way to do this without referring to internal properties
+		await Promise.all(this.msc_zh7y_subcomponents?.map(async (manager: DomainStateManager) => {
+			return manager.initialize();
+		}));
+		
 	}
 }
 export default AppDomainStateManager;

@@ -42,13 +42,14 @@ export class ConditioningDomainStateManager extends DomainStateManager {
 	
 	async onInitialize() {
 		// Register subcomponents for lifecycle management
-		//this.registerSubcomponent(this.repository); // repo needs to initialize before data service
+		this.registerSubcomponent(this.repository); // repo needs to initialize before data service
 		this.registerSubcomponent(this.dataService);
 		// ConditioningController is not a managed component, so we don't register it as a subcomponent
+		//console.log("ConditioningDomainStateManager.onInitialize()", JSON.stringify(this.toJSON(), null, 2)); // debug
 	}
 
 	async onShutdown(...args: any[]): Promise<void> {
-		//console.log("ConditioningDomainStateManager.onShutdown()"); // debug
+		//console.log("ConditioningDomainStateManager.onShutdown()", JSON.stringify(this.toJSON(), null, 2)); // debug
 		// ConditioningController is not a managed component, so we don't unregister it as a subcomponent
 		this.unregisterSubcomponent(this.dataService);
 		this.unregisterSubcomponent(this.repository); // repo handles persistence shutdown internally

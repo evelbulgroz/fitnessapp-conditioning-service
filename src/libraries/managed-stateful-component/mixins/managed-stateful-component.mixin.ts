@@ -378,6 +378,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Required by {@link ManageableComponent} interface
 		 */
 		public async shutdown(...args: any[]): Promise<any> {
+			console.log('shutdown() called on:', this.constructor.name); // debug
 			// If already shut down, resolve immediately
 			if (this. msc_zh7y_stateSubject.value.state === ComponentState.SHUT_DOWN) {
 				return Promise.resolve();
@@ -390,6 +391,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 			this.msc_zh7y_shutdownPromise = new Promise<void>(async (resolve, reject) => {
 				try {
+					console.log('Executing shutdown():', this.constructor.name); // debug
 					// Set own state and update the state subject with the new componentState$
 					this. msc_zh7y_ownState = ({
 						name: this.constructor.name,
@@ -403,6 +405,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					const superResult = await this[`${unshadowPrefix}callParentMethod`](this.shutdown, ...args);
 
 					// Shut down main component and any subcomponents in the order specified in options
+					//console.log('Calling onShutDown on:', this.constructor.name); // debug
 					if (this.msc_zh7y_options.shutDownStrategy === 'parent-first') {
 						await this.onShutdown(superResult);
 						await this[`${unshadowPrefix}shutdownSubcomponents`];
@@ -537,6 +540,21 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 */
 		public async updateState(newState: Partial<ComponentStateInfo>): Promise<void> {
 			return this[`${unshadowPrefix}updateState`](newState);
+		}
+
+		/**
+		 * Serialize the component and its subcomponents to a JSON-friendly structure.
+		 * Includes constructor name, own state, aggregated state, and subcomponent hierarchy.
+		 */
+		public toJSON(): any {
+			return {
+				name: this.constructor.name,
+				ownState: { ...this.msc_zh7y_ownState },
+				aggregatedState: { ...this.msc_zh7y_stateSubject.value },
+				subcomponents: this.msc_zh7y_subcomponents.map(
+					(c: any) => (typeof c.toJSON === 'function' ? c.toJSON() : undefined)
+				)
+			};
 		}
 
 		//---------------------------------- TEMPLATE METHODS -----------------------------------//
@@ -870,10 +888,14 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark Sequential shutdown is slower but guarantees that subcomponents are shut down in the reverse order they were registered
 		 */
 		/* @internal */ async [`${unshadowPrefix}shutdownSubcomponents`](): Promise<void> {
+			console.log('Entering shutdownSubcomponents()', this.constructor.name); // debug
 			if (this. msc_zh7y_subcomponents.length === 0) return;
 			
 			if (this.msc_zh7y_options.subcomponentStrategy === 'parallel') { // fastest
-				await Promise.all(this. msc_zh7y_subcomponents.map(component => component.shutdown()));
+				await Promise.all(this. msc_zh7y_subcomponents.map(component => {
+					console.log('Calling shutdown() on:', component.constructor.name); // debug
+					return component.shutdown()
+				}));
 			}
 			else { // sequential, slower but guaranteed to respect registration order
 				for (const component of this. msc_zh7y_subcomponents.reverse()) {
