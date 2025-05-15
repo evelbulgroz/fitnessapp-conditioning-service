@@ -14,6 +14,10 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 /** Controller for serving health check requests
  * @remark This controller is used to check the health of the micoservice, e.g. by load balancers or monitoring tools.
  * @todo Add a status page that shows the health of all services and dependencies
+ * @todo use z suffix for health check endpoints intended for automated health checks
+ *   e.g. /healthz, /readinessz, /livenessz
+ *   this is a common convention in Kubernetes and other container orchestration platforms
+ *   reserves the /health endpoint for human-readable status pages
  */
 @ApiTags('health')
 @Controller('health') // version prefix set in main.ts
