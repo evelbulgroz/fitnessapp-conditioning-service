@@ -47,6 +47,11 @@ export class AppHealthController {
 	}
 
 	@Get('/readiness')
+	@Public() // debug: disable authentication during development
+	@ApiOperation({
+		summary: 'Readiness check',
+		description: 'Returns HTTP 200 if the app is ready to serve requests. Used by load balancers and monitoring tools.'
+	})
 	public async isReady(): Promise<{ status: string; details?: any }> {
 		const state = await this.appHealthService.getState();
 		const status = state.state === AppState.OK ? 'healthy' : 'unhealthy';
@@ -64,7 +69,5 @@ export class AppHealthController {
 	checkLiveness(@Res() res: Response) {
 		res.status(HttpStatus.OK).send({ alive: true });
 	}
-
-	
 }
 export default AppHealthController;
