@@ -13,11 +13,12 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 
 /** Controller for serving health check requests
  * @remark This controller is used to check the health of the micoservice, e.g. by load balancers or monitoring tools.
+ * @remark Uses 'z' suffix for health check endpoints intended for automated health checks
+ * - E.g. /healthz, /readinessz, /livenessz
+ * - This is a common convention in Kubernetes and other container orchestration platforms
+ * - This reserves the /health endpoint for human-readable status pages
+ * 
  * @todo Add a status page that shows the health of all services and dependencies
- * @todo use z suffix for health check endpoints intended for automated health checks
- *   e.g. /healthz, /readinessz, /livenessz
- *   this is a common convention in Kubernetes and other container orchestration platforms
- *   reserves the /health endpoint for human-readable status pages
  */
 @ApiTags('health')
 @Controller('health') // version prefix set in main.ts
@@ -33,7 +34,7 @@ export class AppHealthController {
 	constructor(private readonly appHealthService: AppHealthService) {}
 
 	// Health check: Returns 200 if healthy, 503 if degraded/unavailable
-	@Get()
+	@Get('healthz')
 	@Public() // debug: disable authentication during development
 	@ApiOperation({
 		summary: 'Health check',
@@ -50,7 +51,7 @@ export class AppHealthController {
 		}
 	}
 
-	@Get('/readiness')
+	@Get('/readinessz')
 	@Public() // debug: disable authentication during development
 	@ApiOperation({
 		summary: 'Readiness check',
@@ -63,7 +64,7 @@ export class AppHealthController {
 	}
 	
 	// Liveness check: Simply returns HTTP 200 if the app is running
-	@Get('liveness')
+	@Get('livenessz')
 	@Public() // debug: disable authentication during development
 	@ApiOperation({
 		summary: 'Liveness check',
