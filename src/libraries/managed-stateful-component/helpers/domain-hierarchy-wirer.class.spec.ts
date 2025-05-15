@@ -74,7 +74,7 @@ describe('DomainHierarchyWirer', () => {
 	
 	describe('Public API', () => {
 		describe('wireDomains', () => {
-			xit('registers child components with their parent managers', async () => {
+			it('registers child components with their parent managers', async () => {
 				await wirer.wireDomains(mockManagers, mockPathExtractor);
 				
 				// Check that app has registered its children
@@ -100,7 +100,7 @@ describe('DomainHierarchyWirer', () => {
 				// Test passes if no exception is thrown
 			});
 
-			xit('handles custom path separator', async () => {
+			it('handles custom path separator', async () => {
 				// Create a path extractor that uses / instead of .
 				const slashPathExtractor = jest.fn((manager: DomainStateManager) => {
 					const mockManager = manager as MockDomainManager;
