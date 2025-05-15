@@ -47,6 +47,8 @@ export class AppDomainStateManager extends DomainStateManager {
 	 * @see {@link DomainStateManager} for more information on how domain state managers work.
 	 * @see {@link DomainHierarchyWirer} for more information on how domain hierarchy wiring works.
 	 * @returns {Promise<void>} A promise that resolves when the wiring is complete.
+	 * 
+	 * @toto Use static wireDomains() method on self instead of creating a new instance of DomainHierarchyWirer.
 	 */
 	protected async initializeStateManagers(): Promise<void> {
 		// Find all domain state managers in the app
