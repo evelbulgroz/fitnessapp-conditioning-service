@@ -23,7 +23,9 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		 * @returns A promise that resolves when the wiring is complete
 		 * @throws {Error} If the wiring process fails
 		 * 
-		 * 
+		 * @remark If using virtual paths, every domain state manager must have a unique virtual path.
+		 *   Virtual path is set in the options when creating the domain state manager.
+		 *   Althougn mixed paths may work, this is currently not comprehensively tested.
 		 */
 		public async wireDomains(
 			managers: DomainStateManager[],
@@ -49,6 +51,7 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		 * @param pathExtractor - Function to extract the path from a domain state manager
 		 * @param extractorOptions - Options for the path extractor
 		 * @returns A map where each key is a parent manager and the value is an array of child managers
+		 * @todo Improve error handling and logging
 		 * 
 		 */
 		protected buildHierarchy(
@@ -74,6 +77,11 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		
 		/*
 		 * Construct hierarchy map from path mappings
+		 *
+		 * @param pathToManager - Map of paths to their corresponding domain state managers
+		 * @param pathToChildren - Map of paths to their child paths
+		 * @returns A map where each key is a parent manager and the value is an array of child managers
+		 * 
 		 */
 		protected constructHierarchyMap(
 			pathToManager: Map<string, DomainStateManager>,
@@ -135,6 +143,10 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		
 		/*
 		 * Filter input to ensure we only process DomainStateManager instances
+		 *
+		 * @param managers - Array of domain state managers to wire
+		 * @returns An array of filtered domain state managers
+		 * @todo Throw {Error} If the input is not an array or if no valid managers are found
 		 */
 		protected filterDomainManagers(managers: any[]): DomainStateManager[] {
 			return managers
@@ -145,6 +157,11 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 
 		/*
 		 * Register components based on the hierarchy map
+		 *
+		 * @param hierarchy - The hierarchy map where each key is a parent manager and the value is an array of child managers
+		 * @returns void
+		 * @logs warning if registration fails
+		 * 
 		 */
 		protected registerHierarchicalComponents(
 			hierarchy: Map<DomainStateManager, DomainStateManager[]>
@@ -165,6 +182,13 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		
 		/*
 		 * Register parent-child relationship based on path
+		 *
+		 * @param path - The path of the child manager
+		 * @param pathSeparator - The separator used in the path
+		 * @param pathToChildren - Map of paths to their child managers
+		 * @returns void
+		 * @todo throw {Error} If the path is invalid or if the parent path cannot be determined
+		 * 
 		 */
 		protected registerParentChildRelationship(
 			path: string, 
@@ -193,6 +217,10 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		
 		/*
 		 * Get a unique identifier for a manager
+		 *
+		 * @param manager - The domain state manager to identify
+		 * @returns A unique identifier string for the manager
+		 * @todo Throw {Error} If the manager does not have a unique identifier
 		 */
 		protected getManagerIdentifier(manager: DomainStateManager): string {
 			// Use the constructor name plus a unique property if available
@@ -209,6 +237,10 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		
 		/*
 		 * Get the path of a manager
+		 *
+		 * @param manager - The domain state manager to get the path for
+		 * @returns The path of the manager, or undefined if not found
+		 * @todo Throw {Error} If the manager does not have a path
 		 */
 		protected getManagerPath(manager: DomainStateManager): string | undefined {
 			// Try to get the path using common properties
@@ -250,6 +282,10 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		
 		/*
 		 * Serialize the hierarchy to a JSON-friendly format for inspection and debugging.
+		 *
+		 * @param hierarchy - The hierarchy map to serialize
+		 * @returns A JSON-friendly object representing the hierarchy
+		 * 
 		 */
 		protected serializeHierarchy(hierarchy: Map<DomainStateManager, DomainStateManager[]>): Record<string, any> {
 			const result: Record<string, any> = {};

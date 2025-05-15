@@ -3,16 +3,17 @@ import { Subject } from 'rxjs';
 import { StreamLogger } from '../../stream-loggable';
 
 import DomainHierarchyWirer from './domain-hierarchy-wirer.class';
-import DomainStateManager from './domain-state-manager.class';
 import domainPathExtractor from '../models/domain-path-extractor.model';
+import DomainStateManager from './domain-state-manager.class';
+import DomainStateManagerOptions from '../models/domain-state-manager-options.model';
 
 // Create mock implementation of DomainStateManager for testing
 class MockDomainManager extends DomainStateManager {
 	public readonly managerId: string;
 	public registeredComponents: DomainStateManager[] = [];
 
-	constructor(managerId: string) {
-		super();
+	constructor(managerId: string, options?: DomainStateManagerOptions) {
+		super(options);
 		this.managerId = managerId;
 	}
 
@@ -74,6 +75,89 @@ describe('DomainHierarchyWirer', () => {
 	
 	describe('Public API', () => {
 		describe('wireDomains', () => {
+			// NOTE: Could add more edge test cases here, but they are pretty well covered
+			// in the protected methods. This will do for now.
+
+			it('correctly builds hierarchy based on paths', async () => {
+				const wirer = new DomainHierarchyWirer();
+
+				// Arrange: create mock managers and a path extractor
+				const mockManagers = [
+					new MockDomainManager('app'),
+					new MockDomainManager('userModule'),
+					new MockDomainManager('profileService'),
+					new MockDomainManager('authModule'),
+					new MockDomainManager('conditioningModule')
+				];
+				const mockPathExtractor = jest.fn((manager: DomainStateManager) => {
+					const mockManager = manager as MockDomainManager;
+					switch (mockManager.managerId) {
+						case 'app': return 'app';
+						case 'userModule': return 'app.user';
+						case 'profileService': return 'app.user.profile';
+						case 'authModule': return 'app.auth';
+						case 'conditioningModule': return 'app.conditioning';
+						default: return 'unknown';
+					}
+				});
+
+				// Act
+				await wirer.wireDomains(mockManagers, mockPathExtractor);
+
+				// Assert: app has three children: user, auth, conditioning
+				const appManager = mockManagers[0];
+				expect(appManager.registeredComponents.length).toBe(3);
+				expect(appManager.registeredComponents).toContain(mockManagers[1]); // userModule
+				expect(appManager.registeredComponents).toContain(mockManagers[3]); // authModule
+				expect(appManager.registeredComponents).toContain(mockManagers[4]); // conditioningModule
+
+				// userModule has one child: profileService
+				const userManager = mockManagers[1];
+				expect(userManager.registeredComponents.length).toBe(1);
+				expect(userManager.registeredComponents).toContain(mockManagers[2]); // profileService
+
+				// Others have no children
+				expect(mockManagers[2].registeredComponents.length).toBe(0); // profileService
+				expect(mockManagers[3].registeredComponents.length).toBe(0); // authModule
+				expect(mockManagers[4].registeredComponents.length).toBe(0); // conditioningModule
+			});
+
+			it('correctly builds hierarchy based on virtual paths', async () => {
+				const wirer = new DomainHierarchyWirer();
+
+				// Arrange: create managers with virtual paths
+				const virtualManagers = [
+					new MockDomainManager('app', { virtualPath: 'app' }),
+					new MockDomainManager('userModule', { virtualPath: 'app/user' }),
+					new MockDomainManager('profileService', { virtualPath: 'app/user/profile' }),
+					new MockDomainManager('authModule', { virtualPath: 'app/auth' }),
+					new MockDomainManager('conditioningModule', { virtualPath: 'app/conditioning' })
+				];
+				const virtualPathExtractor = jest.fn((manager: DomainStateManager) => {
+					return (manager as any).msc_zh7y_options?.virtualPath;
+				});
+
+				// Act
+				await wirer.wireDomains(virtualManagers, virtualPathExtractor, { separator: '/' });
+
+				// Assert: app has three children: user, auth, conditioning
+				const appManager = virtualManagers[0];
+				expect(appManager.registeredComponents.length).toBe(3);
+				expect(appManager.registeredComponents).toContain(virtualManagers[1]); // userModule
+				expect(appManager.registeredComponents).toContain(virtualManagers[3]); // authModule
+				expect(appManager.registeredComponents).toContain(virtualManagers[4]); // conditioningModule
+
+				// userModule has one child: profileService
+				const userManager = virtualManagers[1];
+				expect(userManager.registeredComponents.length).toBe(1);
+				expect(userManager.registeredComponents).toContain(virtualManagers[2]); // profileService
+
+				// Others have no children
+				expect(virtualManagers[2].registeredComponents.length).toBe(0); // profileService
+				expect(virtualManagers[3].registeredComponents.length).toBe(0); // authModule
+				expect(virtualManagers[4].registeredComponents.length).toBe(0); // conditioningModule
+			});
+			
 			it('registers child components with their parent managers', async () => {
 				await wirer.wireDomains(mockManagers, mockPathExtractor);
 				
@@ -254,6 +338,42 @@ describe('DomainHierarchyWirer', () => {
 							currentParent = null;
 						}
 					}
+				});
+
+				it('correctly builds hierarchy based on virtual paths', () => {
+					// Arrange
+					const virtualManagers = [
+						new MockDomainManager('app', { virtualPath: 'app' }),
+						new MockDomainManager('userModule', { virtualPath: 'app/user' }),
+						new MockDomainManager('profileService', { virtualPath: 'app/user/profile' }),
+						new MockDomainManager('authModule', { virtualPath: 'app/auth' }),
+						new MockDomainManager('conditioningModule', { virtualPath: 'app/conditioning' })
+					];
+					const virtualPathExtractor = jest.fn((manager: DomainStateManager) => {
+						const options =  manager.msc_zh7y_options as DomainStateManagerOptions
+						return options?.virtualPath;
+					});
+
+					// Act
+					const hierarchy = (wirer as any).buildHierarchy(
+						virtualManagers, 
+						virtualPathExtractor,
+						{ separator: '/' }
+					);
+					
+					// Assert
+					expect(hierarchy.size).toBe(5);
+					const appChildren = hierarchy.get(virtualManagers[0]);
+					expect(appChildren).toBeDefined();
+					expect(appChildren?.length).toBe(3);
+					expect(appChildren).toContain(virtualManagers[1]); // userModule
+					expect(appChildren).toContain(virtualManagers[3]); // authModule
+					expect(appChildren).toContain(virtualManagers[4]); // conditioningModule
+					
+					const userChildren = hierarchy.get(virtualManagers[1]);
+					expect(userChildren).toBeDefined();
+					expect(userChildren?.length).toBe(1);
+					expect(userChildren).toContain(virtualManagers[2]); // profileService
 				});
 				
 				it('throws if two managers claim the same path', () => {
@@ -1261,42 +1381,6 @@ describe('DomainHierarchyWirer', () => {
 				expect(result[parentId].children[0].path).toBe('virtual.path.manager');
 				expect(result[parentId].children[1].path).toBe('app.options.virtual');
 			});
-		});
-	});
-	
-	describe('Integration', () => {
-		xit('builds a complete hierarchy with virtual paths', async () => {
-			// Add a manager with a virtual path option
-			// TODO: set this via mixin options
-			const virtualPathManager = new MockDomainManager('virtualModule', //{virtualPath: 'app.virtual.custom'}
-			);
-			
-			// Update the mock extractor to use the virtual path
-			mockPathExtractor.mockImplementation((manager: DomainStateManager) => {
-				const mockManager = manager as MockDomainManager;
-				// First check for virtual path
-				if ((mockManager as any).options?.virtualPath) {
-					return (mockManager as any).options.virtualPath;
-				}
-
-				// Otherwise use the previous implementation
-				switch (mockManager.managerId) {
-					case 'app': return 'app';
-					case 'userModule': return 'app.user';
-					case 'profileService': return 'app.user.profile';
-					case 'authModule': return 'app.auth';
-					case 'conditioningModule': return 'app.conditioning';
-					default: return 'unknown';
-				}
-			});
-			
-			// Add the virtual path manager to our test set
-			mockManagers.push(virtualPathManager);
-			
-			await wirer.wireDomains(mockManagers, mockPathExtractor);
-			
-			// Virtual path should make this manager a child of app
-			expect(mockManagers[0].registeredComponents).toContain(virtualPathManager);
 		});
 	});
 });
