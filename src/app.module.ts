@@ -133,7 +133,7 @@ import developmentConfig from '../config/development.config';
 		UserModule,
 	]
 })
-export class AppModule  extends StreamLoggableMixin(class {}) implements OnModuleInit, OnModuleDestroy {
+export class AppModule extends StreamLoggableMixin(class {}) implements OnModuleInit, OnModuleDestroy {
 	private readonly appConfig: any;
 	private readonly subs: Subscription[] = [];
 	

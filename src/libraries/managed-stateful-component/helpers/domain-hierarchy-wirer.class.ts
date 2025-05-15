@@ -1,4 +1,6 @@
-import { DomainPathExtractorOptions } from "../models/domain-path-extractor-options.model";
+import { StreamLoggableMixin } from "../../../libraries/stream-loggable";
+
+import DomainPathExtractorOptions from "../models/domain-path-extractor-options.model";
 import DomainPathExtractor from "../models/domain-path-extractor.model";
 import DomainStateManager from "./domain-state-manager.class";
 import filePathExtractor from "./extractors/file-path-extractor";
@@ -9,7 +11,7 @@ import filePathExtractor from "./extractors/file-path-extractor";
  * @todo Refactor to use internal mixin options for path extraction
  *
  */
-export class DomainHierarchyWirer {
+export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		//--------------------------------------- PUBLIC API ----------------------------------------//
 		
 		/** 
@@ -88,21 +90,27 @@ export class DomainHierarchyWirer {
 		 * Create a fallback hierarchy when all managers are at the same level
 		 */
 		protected createFallbackHierarchy(
-			managers: DomainStateManager[]
+			managers: DomainStateManager[],
+			rootManager?: DomainStateManager
 		): Map<DomainStateManager, DomainStateManager[]> {
-			console.warn('Flat domain structure detected - creating artificial hierarchy for monitoring');
+			this.logger.warn('Flat domain structure detected - creating artificial hierarchy for monitoring');
 			
 			if (managers.length === 0) {
-					return new Map();
+				return new Map();
 			}
 			
 			// Find or create a root manager
-			const rootManager = managers[0];
+			let finalRootManager = managers[0]; // Default to first manager
+			
+			// If a root manager is specified and it exists in the list, use it
+			if (rootManager && managers.includes(rootManager)) {
+				finalRootManager = rootManager;
+			}
 			
 			// Make all other managers children of the root
-			const children = managers.filter(m => m !== rootManager);
+			const children = managers.filter(m => m !== finalRootManager);
 			
-			return new Map([[rootManager, children]]);
+			return new Map([[finalRootManager, children]]);
 		}
 		
 		/*
@@ -149,9 +157,16 @@ export class DomainHierarchyWirer {
 			hierarchy: Map<DomainStateManager, DomainStateManager[]>
 		): void {
 			for (const [parentManager, childManagers] of hierarchy) {
-					for (const childManager of childManagers) {
-							parentManager.registerSubcomponent(childManager);
+				for (const childManager of childManagers) {
+					try {
+						const result = parentManager.registerSubcomponent(childManager);
+						if (result === false) {
+							this.logger.warn(`Failed to register subcomponent ${childManager.constructor.name} in ${parentManager.constructor.name}`);
+						}
+					} catch (err) {
+						this.logger.warn(`Exception during subcomponent registration of ${childManager.constructor.name} in ${parentManager.constructor.name}`);
 					}
+				}
 			}
 		}
 		
