@@ -65,14 +65,19 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 			const { pathToManager, pathToChildren } = this.extractPathMappings(
 					managers, pathExtractor, extractorOptions
 			);
+
+			console.debug('Path to Manager:', pathToManager); // logs Map(1) { 'singleroot' => MockDomainManager {...} }
+			console.debug('Path to Children:', pathToChildren); // logs Map(1) { 'singleroot' => [] }
 			
 			// Construct hierarchy map
 			const result = this.constructHierarchyMap(pathToManager, pathToChildren);
+
+			console.debug('hierarchy', result); // logs hierarchy Map(0) {}
 			
 			// Handle flat structure case (all managers at same level)
-			if (result.size === 0 && managers.length > 0) {
+			/*if (result.size === 0 && managers.length > 0) {
 					return this.createFallbackHierarchy(managers);
-			}
+			}*/
 			
 			return result;
 		}
@@ -85,25 +90,24 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 			pathToChildren: Map<string, string[]>
 		): Map<DomainStateManager, DomainStateManager[]> {
 			const result = new Map<DomainStateManager, DomainStateManager[]>();
-			
+
 			for (const [path, manager] of pathToManager.entries()) {
-					const childPaths = pathToChildren.get(path) || [];
-					const childManagers = childPaths
-							.map(childPath => pathToManager.get(childPath))
-							.filter(Boolean) as DomainStateManager[];
-					
-					if (childManagers.length > 0) {
-							result.set(manager, childManagers);
-					}
+				const childPaths = pathToChildren.get(path) || [];
+				const childManagers = childPaths
+					.map(childPath => pathToManager.get(childPath))
+					.filter(Boolean) as DomainStateManager[];
+
+				// Always include the manager, even if it has no children
+				result.set(manager, childManagers);
 			}
-			
+
 			return result;
 		}
 		
 		/*
 		 * Create a fallback hierarchy when all managers are at the same level
 		 */
-		protected createFallbackHierarchy(
+		/*protected createFallbackHierarchy(
 			managers: DomainStateManager[],
 			rootManager?: DomainStateManager
 		): Map<DomainStateManager, DomainStateManager[]> {
@@ -126,6 +130,7 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 			
 			return new Map([[finalRootManager, children]]);
 		}
+		*/
 		
 		/*
 		 * Extract path mappings from managers
