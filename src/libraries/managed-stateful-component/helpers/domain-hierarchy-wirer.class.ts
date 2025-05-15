@@ -115,12 +115,7 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 			for (const manager of managers) {
 				// Extract path using the provided extractor function, then normalize it
 				// to ensure consistent casing and formatting
-				const path = pathExtractor(manager, extractorOptions)
-					.split((extractorOptions.separator || '.'))
-					.map(segment => segment.trim())
-					.filter(Boolean) // Remove empty segments
-					.join(extractorOptions.separator || '.')
-					.toLowerCase();
+				const path = this.normalizePath(pathExtractor(manager, extractorOptions), extractorOptions.separator);
 				if (pathToManager.has(path)) {
 					throw new Error(`Two managers claim the same path: ${path}`);
 				}
@@ -176,7 +171,8 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 			pathSeparator: string,
 			pathToChildren: Map<string, string[]>
 		): void {
-			const segments = path
+			const normalizedPath = this.normalizePath(path, pathSeparator);
+			const segments = normalizedPath
 				.split(pathSeparator)
 				.map(segment => segment?.trim()) // Trim whitespace from segments
 				.filter(segment => segment); // Remove empty segments
@@ -229,6 +225,26 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 			}
 			
 			return undefined;
+		}
+
+		/*
+		 * Normalize a path by removing leading/trailing separators, trimming segments and converting to lowercase.
+		 * 
+		 * @param path - The path to normalize
+		 * @param separator - The separator used in the path
+		 * @returns The normalized path
+		 * 
+		 */
+		protected normalizePath(path: string, separator: string = '.'): string {
+			const escapedSeparator = separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			return path
+					.split(separator) // Split the path into segments using the separator
+					.map(segment => segment.trim()) // Trim whitespace from segments
+					.filter(Boolean) // Remove empty segments
+					.join(separator) // Join segments back together
+					.replace(new RegExp(`^${escapedSeparator}+|${escapedSeparator}+$`, 'g'), '') // Remove leading/trailing separators
+					.replace(new RegExp(`${escapedSeparator}+`, 'g'), separator) // Normalize multiple separators
+					.toLowerCase(); // Convert to lowercase for consistency
 		}
 		
 		/*

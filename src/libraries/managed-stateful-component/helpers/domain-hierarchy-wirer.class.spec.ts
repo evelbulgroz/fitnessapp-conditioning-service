@@ -150,8 +150,8 @@ describe('DomainHierarchyWirer', () => {
 
 	describe('Protected Methods', () => {		
 		describe('buildHierarchy', () => {
-			xdescribe('hierarchy', () => {
-				it('correctly builds hierarchy based on paths', () => {
+			describe('hierarchy', () => {
+				xit('correctly builds hierarchy based on paths', () => {
 					// Access the protected method for testing
 					const hierarchy = (wirer as any).buildHierarchy(
 						mockManagers, 
@@ -346,7 +346,7 @@ describe('DomainHierarchyWirer', () => {
 					expect(hierarchy.get(child)).toEqual([]);
 				});
 
-				xit('handles trailing separators in paths', () => {
+				it('handles trailing separators in paths', () => {
 					const managers = [
 						new MockDomainManager('A'),
 						new MockDomainManager('B')
@@ -922,8 +922,8 @@ describe('DomainHierarchyWirer', () => {
 				(wirer as any).registerParentChildRelationship(path, separator, pathToChildren);
 				
 				// Assert
-				expect(pathToChildren.has('app.')).toBe(true);
-				expect(pathToChildren.get('app.')).toContain('app..profile');
+				expect(pathToChildren.has('app')).toBe(true);
+				expect(pathToChildren.get('app')).toContain('app.profile');
 			});
 
 			it('handles multi-level hierarchy correctly', () => {
