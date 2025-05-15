@@ -224,84 +224,137 @@ describe('DomainHierarchyWirer', () => {
 			});
 
 			describe('paths', () => {
-				xit('handles paths case-insensitively ', () => { });
-			
+				// NOTE: Just testing the basic functionality of the path extractor,
+				// addressing edge cases and errors in the extractor itself.
+
+				it('handles paths case-insensitively', () => {
+					const managers = [
+						new MockDomainManager('A'),
+						new MockDomainManager('B')
+					];
+					const extractor = jest.fn((manager: DomainStateManager) => {
+						const id = (manager as MockDomainManager).managerId;
+						return id === 'A' ? 'App.User' : 'app.user.profile';
+					});
+					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
+					expect(hierarchy.size).toBe(1);
+					const parent = managers[0];
+					const children = hierarchy.get(parent);
+					expect(children).toContain(managers[1]);
+				});
+
 				it('handles custom path separator', () => {
-					// Create a path extractor that uses / instead of .
-					const slashPathExtractor = jest.fn((manager: DomainStateManager) => {
-						const mockManager = manager as MockDomainManager;
-						switch (mockManager.managerId) {
-							case 'app': return 'app';
-							case 'userModule': return 'app/user';
-							case 'profileService': return 'app/user/profile';
-							default: return 'unknown';
-						}
+					const managers = [
+						new MockDomainManager('A'),
+						new MockDomainManager('B')
+					];
+					const extractor = jest.fn((manager: DomainStateManager) => {
+						const id = (manager as MockDomainManager).managerId;
+						return id === 'A' ? 'app/user' : 'app/user/profile';
 					});
-					
-					const hierarchy = (wirer as any).buildHierarchy(
-						mockManagers, 
-						slashPathExtractor,
-						{
-							separator: '/'
-						}
-					);
-					
-					expect(hierarchy.size).toBe(2);
-				});
-				
-				xit('handles duplicate separators in paths', () => { });
-
-				xit('handles leading separators in paths', () => { });
-
-				xit('handles trailing separators in paths', () => { });
-
-				xit('handles whitespace in paths', () => { });
-
-				xit('handles empty segments in paths', () => {
-					// Create a path extractor that returns empty segments
-					const emptySegmentExtractor = jest.fn((manager: DomainStateManager) => {
-						const mockManager = manager as MockDomainManager;
-						switch (mockManager.managerId) {
-							case 'app': return 'app';
-							case 'userModule': return 'app..user';
-							case 'profileService': return 'app/user/profile';
-							default: return 'unknown';
-						}
-					});
-					
-					const hierarchy = (wirer as any).buildHierarchy(
-						mockManagers, 
-						emptySegmentExtractor,
-						{
-							separator: '.'
-						}
-					);
-					
-					expect(hierarchy.size).toBe(2);
+					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '/' });
+					expect(hierarchy.size).toBe(1);
+					const parent = managers[0];
+					const children = hierarchy.get(parent);
+					expect(children).toContain(managers[1]);
 				});
 
-				xit('handles symbols in paths', () => { });
-				
-				xit('handles numbers in paths', () => { });
+				it('handles duplicate separators in paths', () => {
+					const managers = [
+						new MockDomainManager('A'),
+						new MockDomainManager('B')
+					];
+					const extractor = jest.fn((manager: DomainStateManager) => {
+						const id = (manager as MockDomainManager).managerId;
+						return id === 'A' ? 'app..user' : 'app..user.profile';
+					});
+					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
+					expect(hierarchy.size).toBe(1);
+					const parent = managers[0];
+					const children = hierarchy.get(parent);
+					expect(children).toContain(managers[1]);
+				});
 
-				xit('throws if path extractor is not a function', () => {});
+				it('handles leading separators in paths', () => {
+					const managers = [
+						new MockDomainManager('A'),
+						new MockDomainManager('B')
+					];
+					const extractor = jest.fn((manager: DomainStateManager) => {
+						const id = (manager as MockDomainManager).managerId;
+						return id === 'A' ? '.app.user' : '.app.user.profile';
+					});
+					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
+					expect(hierarchy.size).toBe(1);
+					const parent = managers[0];
+					const children = hierarchy.get(parent);
+					expect(children).toContain(managers[1]);
+				});
 
-				xit('throws if path separator is not a string', () => {});
+				it('handles trailing separators in paths', () => {
+					const managers = [
+						new MockDomainManager('A'),
+						new MockDomainManager('B')
+					];
+					const extractor = jest.fn((manager: DomainStateManager) => {
+						const id = (manager as MockDomainManager).managerId;
+						return id === 'A' ? 'app.user.' : 'app.user.profile.';
+					});
+					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
+					expect(hierarchy.size).toBe(1);
+					const parent = managers[0];
+					const children = hierarchy.get(parent);
+					expect(children).toContain(managers[1]);
+				});
 
-				xit('throws if path is malformed', () => {});
+				it('handles whitespace in paths', () => {
+					const managers = [
+						new MockDomainManager('A'),
+						new MockDomainManager('B')
+					];
+					const extractor = jest.fn((manager: DomainStateManager) => {
+						const id = (manager as MockDomainManager).managerId;
+						return id === 'A' ? 'app . user' : 'app . user . profile';
+					});
+					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
+					expect(hierarchy.size).toBe(1);
+					const parent = managers[0];
+					const children = hierarchy.get(parent);
+					expect(children).toContain(managers[1]);
+				});
 
-				xit('throws if path extractor returns an empty string', () => {});
+				it('handles symbols in paths', () => {
+					const managers = [
+						new MockDomainManager('A'),
+						new MockDomainManager('B')
+					];
+					const extractor = jest.fn((manager: DomainStateManager) => {
+						const id = (manager as MockDomainManager).managerId;
+						return id === 'A' ? 'app@user' : 'app@user@profile';
+					});
+					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '@' });
+					expect(hierarchy.size).toBe(1);
+					const parent = managers[0];
+					const children = hierarchy.get(parent);
+					expect(children).toContain(managers[1]);
+				});
 
-				xit('throws if path references non-existing parent', () => {});
-
-				xit('throws if path references a parent that is not a domain state manager', () => {});
-
-				xit('throws if path references non-existing child', () => {});
-
-				xit('throws if path references a child that is not a registered component', () => {});
-
-				xit('throws if path references a child that is not a domain manager', () => {});
-			});			
+				it('handles numbers in paths', () => {
+					const managers = [
+						new MockDomainManager('A'),
+						new MockDomainManager('B')
+					];
+					const extractor = jest.fn((manager: DomainStateManager) => {
+						const id = (manager as MockDomainManager).managerId;
+						return id === 'A' ? 'app.1' : 'app.1.profile.2';
+					});
+					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
+					expect(hierarchy.size).toBe(1);
+					const parent = managers[0];
+					const children = hierarchy.get(parent);
+					expect(children).toContain(managers[1]);
+				});
+			});		
 		});
 
 		describe('constructHierarchyMap', () => {
