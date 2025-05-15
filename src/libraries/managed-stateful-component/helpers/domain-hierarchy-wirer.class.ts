@@ -6,10 +6,18 @@ import DomainStateManager from "./domain-state-manager.class";
 import filePathExtractor from "./extractors/file-path-extractor";
 
 /**
- *  Utility class responsible for automatically wiring domain state managers into a hierarchical structure.
- * 
- * @todo Refactor to use internal mixin options for path extraction
+ * Utility class responsible for automatically wiring domain state managers into a hierarchical structure.
  *
+ * Usage:
+ *   const wirer = new DomainHierarchyWirer();
+ *   await wirer.wireDomains(managers, pathExtractor, { separator: '.' });
+ *
+ * Notes:
+ * - If using virtual paths, every domain state manager must have a unique virtual path.
+ * - All managers must use the same path strategy (all virtual or all actual paths).
+ * - Mixing virtual and actual paths is not supported and may lead to undefined behavior.
+ *
+ * @todo Refactor to use internal mixin options for path extraction(?)
  */
 export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		//--------------------------------------- PUBLIC API ----------------------------------------//
