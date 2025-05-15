@@ -16,6 +16,14 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		
 		/** 
 		 * Wire domain state managers into a complete hierarchical structure.
+		 * 
+		 * @param managers - Array of domain state managers to wire
+		 * @param pathExtractor - Function to extract the path from a domain state manager
+		 * @param extractorOptions - Options for the path extractor
+		 * @returns A promise that resolves when the wiring is complete
+		 * @throws {Error} If the wiring process fails
+		 * 
+		 * 
 		 */
 		public async wireDomains(
 			managers: DomainStateManager[],

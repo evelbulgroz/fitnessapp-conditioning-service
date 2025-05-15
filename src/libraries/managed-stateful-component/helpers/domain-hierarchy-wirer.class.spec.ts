@@ -232,25 +232,46 @@ describe('DomainHierarchyWirer', () => {
 
 				it('it handles hierarchies of arbitrary depth (tested at 10 levels)', () => {
 					// Arrange
-					const deepManagers: MockDomainManager[] = [];
+					 // set up hierarchy with 10 levels, where each manager is a child of the previous one
+					 // by assigning successively deeper paths, e.g. 1, 1.1, 1.1.1, etc.
+					const deepManagers: DomainStateManager[] = [];
+					let parentId = '';
 					for (let i = 0; i < 10; i++) {
-						deepManagers.push(new MockDomainManager(`level${i}`));
+						const managerId = parentId ? `${parentId}.${i}` : `${i}`;
+						parentId = managerId;
+						deepManagers.push(new MockDomainManager(managerId));
 					}
-					
+
+					// Mock the path extractor to simulate deep paths
+					const deepPathExtractor = (manager: DomainStateManager) => {
+						const mockManager = manager as MockDomainManager;
+						return mockManager.managerId;
+					};
+
 					// Act
 					const hierarchy = (wirer as any).buildHierarchy(
 						deepManagers, 
-						mockPathExtractor,
+						deepPathExtractor,
 						'.'
 					);
-					console.debug('Hierarchy:', hierarchy);
 					
 					// Assert
-					expect(hierarchy.size).toBe(1);
+					expect(hierarchy.size).toBe(9); // 9 parents, 1 root
 					const rootEntry = Array.from(hierarchy.entries())[0] as [DomainStateManager, DomainStateManager[]];
-					expect(rootEntry[0]).toBe(deepManagers[0]);
-					expect(rootEntry[1].length).toBe(deepManagers.length - 1);
-				});			
+					expect(rootEntry[0]).toBe(deepManagers[0]); // root manager					
+					expect(rootEntry[1].length).toBe(1);// root manager should have 1 child
+
+					let currentParent: DomainStateManager | null = rootEntry[0];
+					while (currentParent) {
+						const children: DomainStateManager[] = hierarchy.get(currentParent);
+						if (children && children.length > 0) {
+							expect(children[0]).toBe(deepManagers[deepManagers.indexOf(currentParent) + 1]);
+							currentParent = children[0];
+						} else {
+							currentParent = null;
+						}
+					}
+				});
 				
 				xit('throws if two managers claim the same path', () => {});
 			});
