@@ -113,8 +113,14 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 			const pathToChildren = new Map<string, string[]>();
 			
 			for (const manager of managers) {
-				// Extract path using the provided extractor function
-				const path = pathExtractor(manager, extractorOptions).toLowerCase(); // Normalize to lowercase
+				// Extract path using the provided extractor function, then normalize it
+				// to ensure consistent casing and formatting
+				const path = pathExtractor(manager, extractorOptions)
+					.split((extractorOptions.separator || '.'))
+					.map(segment => segment.trim())
+					.filter(Boolean) // Remove empty segments
+					.join(extractorOptions.separator || '.')
+					.toLowerCase();
 				if (pathToManager.has(path)) {
 					throw new Error(`Two managers claim the same path: ${path}`);
 				}
@@ -170,7 +176,10 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 			pathSeparator: string,
 			pathToChildren: Map<string, string[]>
 		): void {
-			const segments = path.split(pathSeparator);
+			const segments = path
+				.split(pathSeparator)
+				.map(segment => segment?.trim()) // Trim whitespace from segments
+				.filter(segment => segment); // Remove empty segments
 			
 			if (segments.length > 1) {
 					segments.pop(); // Remove last segment to get parent path
