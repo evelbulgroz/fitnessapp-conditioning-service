@@ -18,7 +18,10 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
  * - This is a common convention in Kubernetes and other container orchestration platforms
  * - This reserves the /health endpoint for human-readable status pages
  * 
- * @todo Add a status page that shows the health of all services and dependencies
+ * @todo Figure out which endpoints should also return richer information, e.g. in JSON format
+ * @todo Decide whether to use terminus and combine with own stateful component, or use own stateful component only
+ * @todo Make sure we have endpoints meeting common conventions for health checks in Kubernetes and other container orchestration platforms
+ * @todo Add a status page that shows the health of all services and dependencies (later)
  */
 @ApiTags('health')
 @Controller('health') // version prefix set in main.ts
@@ -42,7 +45,7 @@ export class AppHealthController {
 	})
 	@ApiResponse({ status: 200, description: 'The app is healthy' })
 	async checkHealth(@Res() res: Response) {
-		const { state, reason } = await this.appHealthService.getState();
+		const { state, reason } = await this.appHealthService.getState(); // todo: needs refactoring to generate relevant return value
 		
 		if (state as unknown as AppState === AppState.OK) {
 			res.status(HttpStatus.OK).send({ state });
