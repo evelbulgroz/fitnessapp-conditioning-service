@@ -277,9 +277,6 @@ describe('DomainHierarchyWirer', () => {
 			});
 
 			describe('paths', () => {
-				// NOTE: Just testing the basic functionality of the path extractor,
-				// addressing edge cases and errors in the extractor itself.
-
 				it('handles paths case-insensitively', () => {
 					const managers = [
 						new MockDomainManager('A'),
@@ -290,10 +287,11 @@ describe('DomainHierarchyWirer', () => {
 						return id === 'A' ? 'App.User' : 'app.user.profile';
 					});
 					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
-					expect(hierarchy.size).toBe(1);
+					expect(hierarchy.size).toBe(2);
 					const parent = managers[0];
-					const children = hierarchy.get(parent);
-					expect(children).toContain(managers[1]);
+					const child = managers[1];
+					expect(hierarchy.get(parent)).toContain(child);
+					expect(hierarchy.get(child)).toEqual([]);
 				});
 
 				it('handles custom path separator', () => {
@@ -306,10 +304,11 @@ describe('DomainHierarchyWirer', () => {
 						return id === 'A' ? 'app/user' : 'app/user/profile';
 					});
 					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '/' });
-					expect(hierarchy.size).toBe(1);
+					expect(hierarchy.size).toBe(2);
 					const parent = managers[0];
-					const children = hierarchy.get(parent);
-					expect(children).toContain(managers[1]);
+					const child = managers[1];
+					expect(hierarchy.get(parent)).toContain(child);
+					expect(hierarchy.get(child)).toEqual([]);
 				});
 
 				it('handles duplicate separators in paths', () => {
@@ -322,10 +321,11 @@ describe('DomainHierarchyWirer', () => {
 						return id === 'A' ? 'app..user' : 'app..user.profile';
 					});
 					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
-					expect(hierarchy.size).toBe(1);
+					expect(hierarchy.size).toBe(2);
 					const parent = managers[0];
-					const children = hierarchy.get(parent);
-					expect(children).toContain(managers[1]);
+					const child = managers[1];
+					expect(hierarchy.get(parent)).toContain(child);
+					expect(hierarchy.get(child)).toEqual([]);
 				});
 
 				it('handles leading separators in paths', () => {
@@ -338,13 +338,14 @@ describe('DomainHierarchyWirer', () => {
 						return id === 'A' ? '.app.user' : '.app.user.profile';
 					});
 					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
-					expect(hierarchy.size).toBe(1);
+					expect(hierarchy.size).toBe(2);
 					const parent = managers[0];
-					const children = hierarchy.get(parent);
-					expect(children).toContain(managers[1]);
+					const child = managers[1];
+					expect(hierarchy.get(parent)).toContain(child);
+					expect(hierarchy.get(child)).toEqual([]);
 				});
 
-				xit('handles trailing separators in paths', () => {
+				it('handles trailing separators in paths', () => {
 					const managers = [
 						new MockDomainManager('A'),
 						new MockDomainManager('B')
@@ -354,13 +355,14 @@ describe('DomainHierarchyWirer', () => {
 						return id === 'A' ? 'app.user.' : 'app.user.profile.';
 					});
 					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
-					expect(hierarchy.size).toBe(1);
+					expect(hierarchy.size).toBe(2);
 					const parent = managers[0];
-					const children = hierarchy.get(parent);
-					expect(children).toContain(managers[1]);
+					const child = managers[1];
+					expect(hierarchy.get(parent)).toContain(child);
+					expect(hierarchy.get(child)).toEqual([]);
 				});
 
-				xit('handles whitespace in paths', () => {
+				it('handles whitespace in paths', () => {
 					const managers = [
 						new MockDomainManager('A'),
 						new MockDomainManager('B')
@@ -370,10 +372,11 @@ describe('DomainHierarchyWirer', () => {
 						return id === 'A' ? 'app . user' : 'app . user . profile';
 					});
 					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
-					expect(hierarchy.size).toBe(1);
+					expect(hierarchy.size).toBe(2);
 					const parent = managers[0];
-					const children = hierarchy.get(parent);
-					expect(children).toContain(managers[1]);
+					const child = managers[1];
+					expect(hierarchy.get(parent)).toContain(child);
+					expect(hierarchy.get(child)).toEqual([]);
 				});
 
 				it('handles symbols in paths', () => {
@@ -386,13 +389,14 @@ describe('DomainHierarchyWirer', () => {
 						return id === 'A' ? 'app@user' : 'app@user@profile';
 					});
 					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '@' });
-					expect(hierarchy.size).toBe(1);
+					expect(hierarchy.size).toBe(2);
 					const parent = managers[0];
-					const children = hierarchy.get(parent);
-					expect(children).toContain(managers[1]);
+					const child = managers[1];
+					expect(hierarchy.get(parent)).toContain(child);
+					expect(hierarchy.get(child)).toEqual([]);
 				});
 
-				xit('handles numbers in paths', () => {
+				it('handles numbers in paths', () => {
 					const managers = [
 						new MockDomainManager('A'),
 						new MockDomainManager('B')
@@ -402,12 +406,13 @@ describe('DomainHierarchyWirer', () => {
 						return id === 'A' ? 'app.1' : 'app.1.profile.2';
 					});
 					const hierarchy = (wirer as any).buildHierarchy(managers, extractor, { separator: '.' });
-					expect(hierarchy.size).toBe(1);
+					expect(hierarchy.size).toBe(2);
 					const parent = managers[0];
-					const children = hierarchy.get(parent);
-					expect(children).toContain(managers[1]);
+					const child = managers[1];
+					expect(hierarchy.get(parent)).toContain(child);
+					expect(hierarchy.get(child)).toEqual([]);
 				});
-			});		
+			});
 		});
 
 		describe('constructHierarchyMap', () => {
