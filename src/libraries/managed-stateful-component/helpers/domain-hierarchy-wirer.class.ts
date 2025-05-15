@@ -129,6 +129,12 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		
 		/*
 		 * Extract path mappings from managers
+		 *
+		 * @param managers - Array of domain state managers to wire
+		 * @param pathExtractor - Function to extract the path from a domain state manager
+		 * @param extractorOptions - Options for the path extractor
+		 * @returns An object containing two maps: pathToManager and pathToChildren
+		 *
 		 */
 		protected extractPathMappings(
 			managers: DomainStateManager[],

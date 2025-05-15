@@ -273,7 +273,25 @@ describe('DomainHierarchyWirer', () => {
 					}
 				});
 				
-				xit('throws if two managers claim the same path', () => {});
+				it('throws if two managers claim the same path', () => {
+					// Arrange
+					const conflictingManagers = [
+						new MockDomainManager('conflict1'),
+						new MockDomainManager('conflict2')
+					];
+					const conflictingPathExtractor = jest.fn((manager: DomainStateManager) => {
+						return 'app.user'; // Both managers return the same path
+					});
+
+					// Act & Assert
+					expect(() => {
+						(wirer as any).buildHierarchy(
+							conflictingManagers, 
+							conflictingPathExtractor,
+							'.'
+						);
+					}).toThrow('Two managers claim the same path: app.user');
+				});
 			});
 
 			describe('paths', () => {
