@@ -184,7 +184,8 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 					if (!pathToChildren.has(parentPath)) {
 							pathToChildren.set(parentPath, []);
 					}
-					pathToChildren.get(parentPath)!.push(path);
+					const normalizedChildPath = this.normalizePath(path, pathSeparator);
+    				pathToChildren.get(parentPath)!.push(normalizedChildPath);
 			}
 		}
 		
