@@ -178,47 +178,78 @@ describe('DomainHierarchyWirer', () => {
 				});
 
 				it('returns empty hierarchy from empty manager list', () => {
+					// Arrange
+					// Act
 					const hierarchy = (wirer as any).buildHierarchy(
 						[], 
 						mockPathExtractor,
 						'.'
 					);
 					
+					// Assert
 					expect(hierarchy.size).toBe(0);
 				});
 
-				xit('returns hierarchy with single root member if there is only a single manager, the root', () => {});
+				it('returns hierarchy with single root member if there is only a single manager, the root', () => {
+					// Arrange
+					const singleManager = new MockDomainManager('singleRoot');
 
-				xit('returns artificial hierarchy if there are multiple root managers (flat structure)', () => {
-					// This test demonstrates the alternative implementation
-					// Mock extractor that returns the same path for all managers
-					const flatExtractor = jest.fn(() => 'app');
-					
-					// Call the protected method
-					let hierarchy = (wirer as any).buildHierarchy(
-						mockManagers, 
-						flatExtractor,
+					// Act
+					const hierarchy = (wirer as any).buildHierarchy(
+						[singleManager], 
+						mockPathExtractor,
 						'.'
 					);
 					
-					// Implement forgiving approach (simulating the enhancement)
-					if (hierarchy.size === 0 && mockManagers.length > 0) {
-						const rootManager = mockManagers[0];
-						const childManagers = mockManagers.slice(1);
-						
-						// Create artificial hierarchy map
-						hierarchy = new Map([[rootManager, childManagers]]);
-					}
-					
-					// Expected: first manager becomes root with all others as children
+					// Assert
 					expect(hierarchy.size).toBe(1);
 					const rootEntry = Array.from(hierarchy.entries())[0] as [DomainStateManager, DomainStateManager[]];
-					expect(rootEntry[0]).toBe(mockManagers[0]);
-					expect(rootEntry[1].length).toBe(mockManagers.length - 1);
-					expect(rootEntry[1]).toEqual(mockManagers.slice(1));
+					expect(rootEntry[0]).toBe(singleManager);
+					expect(rootEntry[1].length).toBe(0);
 				});
 
-				xit('it handles hierarchies of arbitrary depth (tested at 10 levels)', () => {});			
+				it('returns artificial hierarchy if there are multiple root managers (flat structure)', () => {
+					// Arrange
+					const flatManagers = [
+						new MockDomainManager('root1'),
+						new MockDomainManager('root2'),
+						new MockDomainManager('root3')
+					];
+
+					// Act
+					const hierarchy = (wirer as any).buildHierarchy(
+						flatManagers, 
+						mockPathExtractor,
+						'.'
+					);
+					
+					// Assert
+					expect(hierarchy.size).toBe(1);
+					const rootEntry = Array.from(hierarchy.entries())[0] as [DomainStateManager, DomainStateManager[]];
+					expect(rootEntry[0]).toBe(flatManagers[0]);
+					expect(rootEntry[1].length).toBe(flatManagers.length - 1);
+				});
+
+				it('it handles hierarchies of arbitrary depth (tested at 10 levels)', () => {
+					// Arrange
+					const deepManagers: MockDomainManager[] = [];
+					for (let i = 0; i < 10; i++) {
+						deepManagers.push(new MockDomainManager(`level${i}`));
+					}
+					
+					// Act
+					const hierarchy = (wirer as any).buildHierarchy(
+						deepManagers, 
+						mockPathExtractor,
+						'.'
+					);
+					
+					// Assert
+					expect(hierarchy.size).toBe(1);
+					const rootEntry = Array.from(hierarchy.entries())[0] as [DomainStateManager, DomainStateManager[]];
+					expect(rootEntry[0]).toBe(deepManagers[0]);
+					expect(rootEntry[1].length).toBe(deepManagers.length - 1);
+				});			
 				
 				xit('throws if two managers claim the same path', () => {});
 			});
