@@ -15,7 +15,7 @@ import AuthenticationModule from './authentication/authentication.module';
 import AuthService from './authentication/domain/auth-service.class';
 import ConditioningController  from './conditioning/controllers/conditioning.controller';
 import ConditioningModule from './conditioning/conditioning.module';
-import DOMAIN_PATH_EXTRACTOR from './shared/domain/domain-path-extractor.token';
+import DOMAIN_PATH_EXTRACTOR from './infrastructure/tokens/domain-path-extractor.token';
 import EventDispatcherService  from './shared/services/utils/event-dispatcher/event-dispatcher.service';
 import LoggingModule from './logging/logging.module';
 import RegistrationService from './authentication/services/registration/registration.service';

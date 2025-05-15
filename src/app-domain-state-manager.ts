@@ -2,7 +2,7 @@ import { DiscoveryService } from "@nestjs/core";
 import { Inject, Injectable } from "@nestjs/common";
 
 import { DomainPathExtractor, DomainStateManager, ManagedStatefulComponent } from './libraries/managed-stateful-component/index';
-import DOMAIN_PATH_EXTRACTOR from './shared/domain/domain-path-extractor.token';
+import DOMAIN_PATH_EXTRACTOR from './infrastructure/tokens/domain-path-extractor.token';
 
 import DomainHierarchyWirer from "./libraries/managed-stateful-component/helpers/domain-hierarchy-wirer.class";
 
