@@ -36,6 +36,12 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		
 		/*
 		 * Build a hierarchical relationship map between domain state managers based on their paths.
+
+		 * @param managers - Array of domain state managers to wire
+		 * @param pathExtractor - Function to extract the path from a domain state manager
+		 * @param extractorOptions - Options for the path extractor
+		 * @returns A map where each key is a parent manager and the value is an array of child managers
+		 * 
 		 */
 		protected buildHierarchy(
 			managers: DomainStateManager[],

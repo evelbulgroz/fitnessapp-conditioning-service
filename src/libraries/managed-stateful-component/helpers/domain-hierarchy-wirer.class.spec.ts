@@ -243,6 +243,7 @@ describe('DomainHierarchyWirer', () => {
 						mockPathExtractor,
 						'.'
 					);
+					console.debug('Hierarchy:', hierarchy);
 					
 					// Assert
 					expect(hierarchy.size).toBe(1);
