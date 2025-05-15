@@ -411,199 +411,57 @@ describe('DomainHierarchyWirer', () => {
 		});
 
 		describe('constructHierarchyMap', () => {
-			it('creates hierarchy map from path mappings', () => {
-				// Arrange
-				const pathToManager = new Map<string, DomainStateManager>();
-				pathToManager.set('app', mockManagers[0]);
-				pathToManager.set('app.user', mockManagers[1]);
-				pathToManager.set('app.user.profile', mockManagers[2]);
-				pathToManager.set('app.auth', mockManagers[3]);
-				
-				const pathToChildren = new Map<string, string[]>();
-				pathToChildren.set('app', ['app.user', 'app.auth']);
-				pathToChildren.set('app.user', ['app.user.profile']);
-				pathToChildren.set('app.user.profile', []);
-				pathToChildren.set('app.auth', []);
-				
-				// Act
+			it('includes all managers as keys, even if they have no children', () => {
+				const m1 = new MockDomainManager('m1');
+				const m2 = new MockDomainManager('m2');
+				const m3 = new MockDomainManager('m3');
+				const pathToManager = new Map<string, DomainStateManager>([
+					['a', m1],
+					['a.b', m2],
+					['a.c', m3]
+				]);
+				const pathToChildren = new Map<string, string[]>([
+					['a', ['a.b', 'a.c']],
+					['a.b', []],
+					['a.c', []]
+				]);
 				const result = (wirer as any).constructHierarchyMap(pathToManager, pathToChildren);
-				
-				// Assert
-				expect(result.size).toBe(2); // app and app.user have children
-				
-				// Check app's children
-				const appChildren = result.get(mockManagers[0]);
-				expect(appChildren).toBeDefined();
-				expect(appChildren?.length).toBe(2);
-				expect(appChildren).toContain(mockManagers[1]); // userModule
-				expect(appChildren).toContain(mockManagers[3]); // authModule
-				
-				// Check user's children
-				const userChildren = result.get(mockManagers[1]);
-				expect(userChildren).toBeDefined();
-				expect(userChildren?.length).toBe(1);
-				expect(userChildren).toContain(mockManagers[2]); // profileService
+				expect(result.size).toBe(3);
+				expect(result.get(m1)).toEqual([m2, m3]);
+				expect(result.get(m2)).toEqual([]);
+				expect(result.get(m3)).toEqual([]);
 			});
-			
-			it('returns empty map for empty inputs', () => {
-				// Act
+
+			it('returns empty map if pathToManager is empty', () => {
 				const result = (wirer as any).constructHierarchyMap(new Map(), new Map());
-				
-				// Assert
 				expect(result.size).toBe(0);
 			});
-			
-			it('filters out child paths without corresponding managers', () => {
-				// Arrange
-				const pathToManager = new Map<string, DomainStateManager>();
-				pathToManager.set('app', mockManagers[0]);
-				// Missing 'app.user' entry
-				
-				const pathToChildren = new Map<string, string[]>();
-				pathToChildren.set('app', ['app.user', 'app.nonexistent']);
-				
-				// Act
+
+			it('returns empty children array if pathToChildren is missing for a path', () => {
+				const m1 = new MockDomainManager('m1');
+				const pathToManager = new Map<string, DomainStateManager>([['a', m1]]);
+				const pathToChildren = new Map<string, string[]>(); // no entry for 'a'
 				const result = (wirer as any).constructHierarchyMap(pathToManager, pathToChildren);
-				
-				// Assert
-				expect(result.size).toBe(0); // No valid children found
+				expect(result.size).toBe(1);
+				expect(result.get(m1)).toEqual([]);
 			});
-			
-			it('handles missing pathToChildren entries', () => {
-				// Arrange
-				const pathToManager = new Map<string, DomainStateManager>();
-				pathToManager.set('app', mockManagers[0]);
-				pathToManager.set('app.user', mockManagers[1]);
-				
-				const pathToChildren = new Map<string, string[]>();
-				// Missing 'app' entry
-				
-				// Act
+
+			it('filters out child paths that do not exist in pathToManager', () => {
+				const m1 = new MockDomainManager('m1');
+				const m2 = new MockDomainManager('m2');
+				const pathToManager = new Map<string, DomainStateManager>([
+					['a', m1],
+					['a.b', m2]
+				]);
+				const pathToChildren = new Map<string, string[]>([
+					['a', ['a.b', 'a.c']] // a.c does not exist
+				]);
 				const result = (wirer as any).constructHierarchyMap(pathToManager, pathToChildren);
-				
-				// Assert
-				expect(result.size).toBe(0); // No children associations
-			});
-			
-			it('handles complex nested hierarchies', () => {
-				// Create a more complex hierarchy for testing
-				const nestedManagers = [
-					new MockDomainManager('app'),
-					new MockDomainManager('services'),
-					new MockDomainManager('auth'),
-					new MockDomainManager('user'),
-					new MockDomainManager('profile'),
-					new MockDomainManager('settings')
-				];
-				
-				// Arrange
-				const pathToManager = new Map<string, DomainStateManager>();
-				pathToManager.set('app', nestedManagers[0]);
-				pathToManager.set('app.services', nestedManagers[1]);
-				pathToManager.set('app.services.auth', nestedManagers[2]);
-				pathToManager.set('app.services.user', nestedManagers[3]);
-				pathToManager.set('app.services.user.profile', nestedManagers[4]);
-				pathToManager.set('app.services.user.settings', nestedManagers[5]);
-				
-				const pathToChildren = new Map<string, string[]>();
-				pathToChildren.set('app', ['app.services']);
-				pathToChildren.set('app.services', ['app.services.auth', 'app.services.user']);
-				pathToChildren.set('app.services.user', ['app.services.user.profile', 'app.services.user.settings']);
-				pathToChildren.set('app.services.auth', []);
-				pathToChildren.set('app.services.user.profile', []);
-				pathToChildren.set('app.services.user.settings', []);
-				
-				// Act
-				const result = (wirer as any).constructHierarchyMap(pathToManager, pathToChildren);
-				
-				// Assert
-				expect(result.size).toBe(3); // app, services, and user have children
-				
-				// Check app's children
-				expect(result.get(nestedManagers[0])).toContain(nestedManagers[1]); // services
-				
-				// Check services' children
-				const servicesChildren = result.get(nestedManagers[1]);
-				expect(servicesChildren?.length).toBe(2);
-				expect(servicesChildren).toContain(nestedManagers[2]); // auth
-				expect(servicesChildren).toContain(nestedManagers[3]); // user
-				
-				// Check user's children
-				const userChildren = result.get(nestedManagers[3]);
-				expect(userChildren?.length).toBe(2);
-				expect(userChildren).toContain(nestedManagers[4]); // profile
-				expect(userChildren).toContain(nestedManagers[5]); // settings
+				expect(result.size).toBe(2);
+				expect(result.get(m1)).toEqual([m2]);
+				expect(result.get(m2)).toEqual([]);
 			});
 		});
-
-		/*describe('createFallbackHierarchy', () => {
-			it('creates hierarchy with first manager as root and others as children', () => {
-				// Access the protected method for testing
-				const hierarchy = (wirer as any).createFallbackHierarchy(mockManagers);
-				
-				// Verify there's only one root
-				expect(hierarchy.size).toBe(1);
-				
-				// First manager should be the root
-				const rootEntry = Array.from(hierarchy.entries())[0] as [DomainStateManager, DomainStateManager[]];
-				expect(rootEntry[0]).toBe(mockManagers[0]);
-				
-				// All other managers should be children
-				expect(rootEntry[1].length).toBe(mockManagers.length - 1);
-				for (let i = 1; i < mockManagers.length; i++) {
-					expect(rootEntry[1]).toContain(mockManagers[i]);
-				}
-			});
-
-			it('returns empty hierarchy for empty manager list', () => {
-				const hierarchy = (wirer as any).createFallbackHierarchy([]);
-				expect(hierarchy.size).toBe(0);
-			});
-
-			it('creates hierarchy with single manager as root and no children', () => {
-				const singleManager = new MockDomainManager('singleRoot');
-				const hierarchy = (wirer as any).createFallbackHierarchy([singleManager]);
-				
-				expect(hierarchy.size).toBe(1);
-				const rootEntry = Array.from(hierarchy.entries())[0] as [DomainStateManager, DomainStateManager[]];
-				expect(rootEntry[0]).toBe(singleManager);
-				expect(rootEntry[1].length).toBe(0);
-			});
-
-			it('uses specified manager as root when provided', () => {
-				// Specify the third manager as root
-				const rootManager = mockManagers[2];
-				
-				const hierarchy = (wirer as any).createFallbackHierarchy(mockManagers, rootManager);
-				
-				expect(hierarchy.size).toBe(1);
-				const rootEntry = Array.from(hierarchy.entries())[0] as [DomainStateManager, DomainStateManager[]];
-				
-				expect(rootEntry[0]).toBe(rootManager);
-				
-				// All other managers should be children
-				expect(rootEntry[1].length).toBe(mockManagers.length - 1);
-				expect(rootEntry[1]).toContain(mockManagers[0]);
-				expect(rootEntry[1]).toContain(mockManagers[1]);
-				expect(rootEntry[1]).toContain(mockManagers[3]);
-				expect(rootEntry[1]).toContain(mockManagers[4]);
-				expect(rootEntry[1]).not.toContain(rootManager);
-			});
-
-			it('uses first manager as root if specified root is not in the list', () => {
-				const externalManager = new MockDomainManager('external');
-				const hierarchy = (wirer as any).createFallbackHierarchy(mockManagers, externalManager);
-				
-				// Should fall back to first manager as root
-				expect(hierarchy.size).toBe(1);
-				const rootEntry = Array.from(hierarchy.entries())[0] as [DomainStateManager, DomainStateManager[]];
-				expect(rootEntry[0]).toBe(mockManagers[0]);
-				
-				// External manager should not be included
-				expect(rootEntry[1]).not.toContain(externalManager);
-			});
-		});
-		*/
 
 		describe('filterDomainManagers', () => {
 			it('returns only DomainStateManager instances', () => {

@@ -65,19 +65,9 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 			const { pathToManager, pathToChildren } = this.extractPathMappings(
 					managers, pathExtractor, extractorOptions
 			);
-
-			console.debug('Path to Manager:', pathToManager); // logs Map(1) { 'singleroot' => MockDomainManager {...} }
-			console.debug('Path to Children:', pathToChildren); // logs Map(1) { 'singleroot' => [] }
 			
 			// Construct hierarchy map
 			const result = this.constructHierarchyMap(pathToManager, pathToChildren);
-
-			console.debug('hierarchy', result); // logs hierarchy Map(0) {}
-			
-			// Handle flat structure case (all managers at same level)
-			/*if (result.size === 0 && managers.length > 0) {
-					return this.createFallbackHierarchy(managers);
-			}*/
 			
 			return result;
 		}
@@ -103,34 +93,6 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 
 			return result;
 		}
-		
-		/*
-		 * Create a fallback hierarchy when all managers are at the same level
-		 */
-		/*protected createFallbackHierarchy(
-			managers: DomainStateManager[],
-			rootManager?: DomainStateManager
-		): Map<DomainStateManager, DomainStateManager[]> {
-			this.logger.warn('Flat domain structure detected - creating artificial hierarchy for monitoring');
-			
-			if (managers.length === 0) {
-				return new Map();
-			}
-			
-			// Find or create a root manager
-			let finalRootManager = managers[0]; // Default to first manager
-			
-			// If a root manager is specified and it exists in the list, use it
-			if (rootManager && managers.includes(rootManager)) {
-				finalRootManager = rootManager;
-			}
-			
-			// Make all other managers children of the root
-			const children = managers.filter(m => m !== finalRootManager);
-			
-			return new Map([[finalRootManager, children]]);
-		}
-		*/
 		
 		/*
 		 * Extract path mappings from managers
