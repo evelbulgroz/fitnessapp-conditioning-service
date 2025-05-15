@@ -151,7 +151,7 @@ describe('DomainHierarchyWirer', () => {
 	describe('Protected Methods', () => {		
 		describe('buildHierarchy', () => {
 			describe('hierarchy', () => {
-				xit('correctly builds hierarchy based on paths', () => {
+				it('correctly builds hierarchy based on paths', () => {
 					// Access the protected method for testing
 					const hierarchy = (wirer as any).buildHierarchy(
 						mockManagers, 
@@ -725,6 +725,59 @@ describe('DomainHierarchyWirer', () => {
 						{ separator: '.' }
 					);
 				}).toThrow('Two managers claim the same path: app.user');
+			});
+		});
+
+		describe('normalizePath', () => {
+			let wirer: DomainHierarchyWirer;
+
+			beforeEach(() => {
+				wirer = new DomainHierarchyWirer();
+			});
+
+			it('trims whitespace from segments', () => {
+				const result = (wirer as any).normalizePath(' app . user . profile ', '.');
+				expect(result).toBe('app.user.profile');
+			});
+
+			it('removes empty segments (duplicate separators)', () => {
+				const result = (wirer as any).normalizePath('app..profile', '.');
+				expect(result).toBe('app.profile');
+			});
+
+			it('removes leading and trailing separators', () => {
+				const result = (wirer as any).normalizePath('.app.user.', '.');
+				expect(result).toBe('app.user');
+			});
+
+			it('normalizes multiple consecutive separators', () => {
+				const result = (wirer as any).normalizePath('app...user', '.');
+				expect(result).toBe('app.user');
+			});
+
+			it('converts to lowercase', () => {
+				const result = (wirer as any).normalizePath('App.User.Profile', '.');
+				expect(result).toBe('app.user.profile');
+			});
+
+			it('works with custom separator', () => {
+				const result = (wirer as any).normalizePath('app/user/profile', '/');
+				expect(result).toBe('app/user/profile');
+			});
+
+			it('removes leading/trailing custom separators', () => {
+				const result = (wirer as any).normalizePath('/app/user/', '/');
+				expect(result).toBe('app/user');
+			});
+
+			it('handles only separators', () => {
+				const result = (wirer as any).normalizePath('...', '.');
+				expect(result).toBe('');
+			});
+
+			it('returns empty string for empty input', () => {
+				const result = (wirer as any).normalizePath('', '.');
+				expect(result).toBe('');
 			});
 		});
 
