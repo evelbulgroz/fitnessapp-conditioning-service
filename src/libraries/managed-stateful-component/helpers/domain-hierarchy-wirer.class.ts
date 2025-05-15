@@ -30,17 +30,7 @@ export class DomainHierarchyWirer {
 			this.registerHierarchicalComponents(hierarchy);
 		}
 
-		//------------------------------------ PROTECTED METHODS ------------------------------------//
-		
-		/*
-		 * Filter input to ensure we only process DomainStateManager instances
-		 */
-		protected filterDomainManagers(managers: any[]): DomainStateManager[] {
-			return managers
-				.filter(provider => provider instanceof DomainStateManager || 
-							(provider.instance && provider.instance instanceof DomainStateManager))
-				.map(provider => provider instanceof DomainStateManager ? provider : provider.instance);
-		}
+		//------------------------------------ PROTECTED METHODS ------------------------------------//		
 		
 		/*
 		 * Build a hierarchical relationship map between domain state managers based on their paths.
@@ -69,54 +59,6 @@ export class DomainHierarchyWirer {
 			}
 			
 			return result;
-		}
-		
-		/*
-		 * Extract path mappings from managers
-		 */
-		protected extractPathMappings(
-			managers: DomainStateManager[],
-			pathExtractor: DomainPathExtractor,
-			extractorOptions: Partial<DomainPathExtractorOptions> = { appRootName: 'app', separator: '.' }
-		): { pathToManager: Map<string, DomainStateManager>, pathToChildren: Map<string, string[]> } {
-			const pathToManager = new Map<string, DomainStateManager>();
-			const pathToChildren = new Map<string, string[]>();
-			
-			for (const manager of managers) {
-					const path = pathExtractor(manager, extractorOptions).toLowerCase(); // Normalize to lowercase
-					pathToManager.set(path, manager);
-					
-					// Initialize empty children array for each path
-					if (!pathToChildren.has(path)) {
-						pathToChildren.set(path, []);
-					}
-					
-					// Determine parent path and register this path as its child
-					this.registerParentChildRelationship(path, extractorOptions.separator || '.', pathToChildren);
-			}
-			
-			return { pathToManager, pathToChildren };
-		}
-		
-		/*
-		 * Register parent-child relationship based on path
-		 */
-		protected registerParentChildRelationship(
-			path: string, 
-			pathSeparator: string,
-			pathToChildren: Map<string, string[]>
-		): void {
-			const segments = path.split(pathSeparator);
-			
-			if (segments.length > 1) {
-					segments.pop(); // Remove last segment to get parent path
-					const parentPath = segments.join(pathSeparator);
-			
-					if (!pathToChildren.has(parentPath)) {
-							pathToChildren.set(parentPath, []);
-					}
-					pathToChildren.get(parentPath)!.push(path);
-			}
 		}
 		
 		/*
@@ -164,6 +106,43 @@ export class DomainHierarchyWirer {
 		}
 		
 		/*
+		 * Extract path mappings from managers
+		 */
+		protected extractPathMappings(
+			managers: DomainStateManager[],
+			pathExtractor: DomainPathExtractor,
+			extractorOptions: Partial<DomainPathExtractorOptions> = { appRootName: 'app', separator: '.' }
+		): { pathToManager: Map<string, DomainStateManager>, pathToChildren: Map<string, string[]> } {
+			const pathToManager = new Map<string, DomainStateManager>();
+			const pathToChildren = new Map<string, string[]>();
+			
+			for (const manager of managers) {
+					const path = pathExtractor(manager, extractorOptions).toLowerCase(); // Normalize to lowercase
+					pathToManager.set(path, manager);
+					
+					// Initialize empty children array for each path
+					if (!pathToChildren.has(path)) {
+						pathToChildren.set(path, []);
+					}
+					
+					// Determine parent path and register this path as its child
+					this.registerParentChildRelationship(path, extractorOptions.separator || '.', pathToChildren);
+			}
+			
+			return { pathToManager, pathToChildren };
+		}
+		
+		/*
+		 * Filter input to ensure we only process DomainStateManager instances
+		 */
+		protected filterDomainManagers(managers: any[]): DomainStateManager[] {
+			return managers
+				.filter(provider => provider instanceof DomainStateManager || 
+							(provider?.instance && provider?.instance instanceof DomainStateManager))
+				.map(provider => provider instanceof DomainStateManager ? provider : provider?.instance);
+		}
+
+		/*
 		 * Register components based on the hierarchy map
 		 */
 		protected registerHierarchicalComponents(
@@ -173,6 +152,27 @@ export class DomainHierarchyWirer {
 					for (const childManager of childManagers) {
 							parentManager.registerSubcomponent(childManager);
 					}
+			}
+		}
+		
+		/*
+		 * Register parent-child relationship based on path
+		 */
+		protected registerParentChildRelationship(
+			path: string, 
+			pathSeparator: string,
+			pathToChildren: Map<string, string[]>
+		): void {
+			const segments = path.split(pathSeparator);
+			
+			if (segments.length > 1) {
+					segments.pop(); // Remove last segment to get parent path
+					const parentPath = segments.join(pathSeparator);
+			
+					if (!pathToChildren.has(parentPath)) {
+							pathToChildren.set(parentPath, []);
+					}
+					pathToChildren.get(parentPath)!.push(path);
 			}
 		}
 		
