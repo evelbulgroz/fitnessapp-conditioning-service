@@ -272,26 +272,6 @@ describe('DomainHierarchyWirer', () => {
 						}
 					}
 				});
-				
-				it('throws if two managers claim the same path', () => {
-					// Arrange
-					const conflictingManagers = [
-						new MockDomainManager('conflict1'),
-						new MockDomainManager('conflict2')
-					];
-					const conflictingPathExtractor = jest.fn((manager: DomainStateManager) => {
-						return 'app.user'; // Both managers return the same path
-					});
-
-					// Act & Assert
-					expect(() => {
-						(wirer as any).buildHierarchy(
-							conflictingManagers, 
-							conflictingPathExtractor,
-							'.'
-						);
-					}).toThrow('Two managers claim the same path: app.user');
-				});
 			});
 
 			describe('paths', () => {
@@ -424,6 +404,26 @@ describe('DomainHierarchyWirer', () => {
 					const parent = managers[0];
 					const children = hierarchy.get(parent);
 					expect(children).toContain(managers[1]);
+				});
+				
+				it('throws if two managers claim the same path', () => {
+					// Arrange
+					const conflictingManagers = [
+						new MockDomainManager('conflict1'),
+						new MockDomainManager('conflict2')
+					];
+					const conflictingPathExtractor = jest.fn((manager: DomainStateManager) => {
+						return 'app.user'; // Both managers return the same path
+					});
+
+					// Act & Assert
+					expect(() => {
+						(wirer as any).buildHierarchy(
+							conflictingManagers, 
+							conflictingPathExtractor,
+							'.'
+						);
+					}).toThrow('Two managers claim the same path: app.user');
 				});
 			});		
 		});
@@ -875,6 +875,26 @@ describe('DomainHierarchyWirer', () => {
 				expect(pathToChildren.get('app.user.profile')?.length).toBe(0);
 				expect(pathToChildren.get('app.auth')?.length).toBe(0);
 				expect(pathToChildren.get('app.conditioning')?.length).toBe(0);
+			});
+
+			it('throws if two managers claim the same path', () => {
+				// Arrange
+				const conflictingManagers = [
+					new MockDomainManager('conflict1'),
+					new MockDomainManager('conflict2')
+				];
+				const conflictingPathExtractor = jest.fn((manager: DomainStateManager) => {
+					return 'app.user'; // Both managers return the same path
+				});
+
+				// Act & Assert
+				expect(() => {
+					(wirer as any).extractPathMappings(
+						conflictingManagers, 
+						conflictingPathExtractor,
+						{ separator: '.' }
+					);
+				}).toThrow('Two managers claim the same path: app.user');
 			});
 		});
 

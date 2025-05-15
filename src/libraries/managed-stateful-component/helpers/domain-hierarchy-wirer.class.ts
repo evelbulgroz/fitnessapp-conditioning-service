@@ -134,6 +134,7 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 		 * @param pathExtractor - Function to extract the path from a domain state manager
 		 * @param extractorOptions - Options for the path extractor
 		 * @returns An object containing two maps: pathToManager and pathToChildren
+		 * @throws {Error} If two managers claim the same path
 		 *
 		 */
 		protected extractPathMappings(
@@ -145,16 +146,20 @@ export class DomainHierarchyWirer extends StreamLoggableMixin(class {}) {
 			const pathToChildren = new Map<string, string[]>();
 			
 			for (const manager of managers) {
-					const path = pathExtractor(manager, extractorOptions).toLowerCase(); // Normalize to lowercase
-					pathToManager.set(path, manager);
-					
-					// Initialize empty children array for each path
-					if (!pathToChildren.has(path)) {
-						pathToChildren.set(path, []);
-					}
-					
-					// Determine parent path and register this path as its child
-					this.registerParentChildRelationship(path, extractorOptions.separator || '.', pathToChildren);
+				// Extract path using the provided extractor function
+				const path = pathExtractor(manager, extractorOptions).toLowerCase(); // Normalize to lowercase
+				if (pathToManager.has(path)) {
+					throw new Error(`Two managers claim the same path: ${path}`);
+				}
+				pathToManager.set(path, manager);
+				
+				// Initialize empty children array for each path
+				if (!pathToChildren.has(path)) {
+					pathToChildren.set(path, []);
+				}
+				
+				// Determine parent path and register this path as its child
+				this.registerParentChildRelationship(path, extractorOptions.separator || '.', pathToChildren);
 			}
 			
 			return { pathToManager, pathToChildren };
