@@ -236,6 +236,20 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark required by {@link StatefulComponent} interface
 		 */
 		public readonly componentState$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
+
+		/**
+		 * Get the current component state as a snapshot
+		 * 
+		 * @returns Promise that resolves to the current state of the component
+		 * @throws Never - this method does not throw exceptions
+		 * 
+		 * @remark This is a convenience method for getting the current state without subscribing to componentState$
+		 * @remark For continuous state updates, use componentState$ observable instead
+		 * @remark For health checks and diagnostics, this method is preferred over subscribing to componentState$
+		 */
+		public async getState(): Promise<ComponentStateInfo> {
+			return firstValueFrom(this.componentState$);
+		}
 		
 		/**
 		 * Initialize the component and all of its subcomponents (if any) if it is not already initialized

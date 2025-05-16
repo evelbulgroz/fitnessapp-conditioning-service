@@ -214,6 +214,91 @@ describe('ManagedStatefulComponentMixin', () => {
 				sub.unsubscribe();				
 			});
 		});
+
+		describe('getState', () => {
+			it('returns a Promise that resolves to the current state', async () => {
+				const state = await component.getState();
+				
+				expect(state).toBeDefined();
+				expect(state.state).toBe(ComponentState.UNINITIALIZED);
+				expect(state.name).toBe('TestComponent');
+				expect(state.reason).toBe('Component created');
+				expect(state.updatedOn).toBeInstanceOf(Date);
+			});
+
+			it('reflects current state after state changes', async () => {
+				// Initial state check
+				let state = await component.getState();
+				expect(state.state).toBe(ComponentState.UNINITIALIZED);
+				
+				// Update state
+				await component[`${unshadowPrefix}updateState`]({
+				state: ComponentState.OK,
+				reason: 'Test update'
+				});
+				
+				// Get updated state
+				state = await component.getState();
+				expect(state.state).toBe(ComponentState.OK);
+				expect(state.reason).toBe('Test update');
+			});
+
+			it('returns same state as available via componentState$ subscription', async () => {
+				// Update state to something specific
+				await component[`${unshadowPrefix}updateState`]({
+				state: ComponentState.DEGRADED,
+				reason: 'Degraded for testing'
+				});
+				
+				// Compare values from both sources
+				const promiseState = await component.getState();
+				let observableState: ComponentStateInfo = {} as ComponentStateInfo; // satisfy compiler
+				
+				component.componentState$.subscribe(state => {
+					observableState = state;
+				});
+				
+				expect(promiseState).toEqual(observableState);
+			});
+
+			it('reflects state changes during lifecycle transitions', async () => {
+				// Check initial state
+				let state = await component.getState();
+				expect(state.state).toBe(ComponentState.UNINITIALIZED);
+				
+				// Initialize and check state
+				await component.initialize();
+				state = await component.getState();
+				expect(state.state).toBe(ComponentState.OK);
+				
+				// Shutdown and check state
+				await component.shutdown();
+				state = await component.getState();
+				expect(state.state).toBe(ComponentState.SHUT_DOWN);
+			});
+
+			it('includes aggregated state from subcomponents', async () => {
+				// Setup subcomponent with degraded state
+				const subcomponent = new TestComponent();
+				component.registerSubcomponent(subcomponent);
+				
+				await component.initialize();
+				await subcomponent.initialize();
+				
+				// Manually degrade subcomponent
+				subcomponent[`${unshadowPrefix}updateState`]({
+				state: ComponentState.DEGRADED,
+				reason: 'Subcomponent degraded'
+				});
+				
+				// Parent should reflect degraded state
+				const state = await component.getState();
+				expect(state.state).toBe(ComponentState.DEGRADED);
+				expect(state.reason).toContain('Aggregated state');
+				expect(state.components).toBeDefined();
+				expect(state.components?.length).toBe(1);
+			});
+			});
 		
 		describe('initialize', () => {
 			it('changes state to INITIALIZING then OK', async () => {

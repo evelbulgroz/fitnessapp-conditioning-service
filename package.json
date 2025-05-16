@@ -37,6 +37,7 @@
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^8.0.5",
+    "@nestjs/terminus": "^11.0.0",
     "axios-retry": "^4.5.0",
     "bcryptjs": "^2.4.3",
     "date-fns": "^4.1.0",
