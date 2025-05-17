@@ -71,10 +71,10 @@ export class AppHealthController {
 	public async isReady(@Res() res: Response) {
 		try {
 			const healthCheck = await this.healthCheckService.check([ // expects an array of promises
-				//async () => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
+				() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
 				() => this.disk.checkStorage('storage', { path: process.cwd(), thresholdPercent: 0.5 }),
-				//() => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150 MB
-				//() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB
+				() => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150 MB
+				() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB
 				// Add other health indicators here if/when needed
 			]) as HealthCheckResult;
 			
