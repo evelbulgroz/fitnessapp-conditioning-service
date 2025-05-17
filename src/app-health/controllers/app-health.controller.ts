@@ -1,12 +1,14 @@
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, HttpStatus, Res, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
+import { HealthCheckResult, HealthCheckService } from '@nestjs/terminus';
 import { Response } from 'express';
 
+import AppDomainStateManager from '../../app-domain-state-manager';
 import AppHealthService from '../services/health/app-health.service';
 import { ComponentState as AppState} from '../../libraries/managed-stateful-component';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
 import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
-import { ModuleStateHealthIndicator } from '../health-indicators/module-state-health-indicator';
+import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
 import Roles from '../../infrastructure/decorators/roles.decorator';
 import RolesGuard from '../../infrastructure/guards/roles.guard';
@@ -26,16 +28,18 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
  */
 @ApiTags('health')
 @Controller('health') // version prefix set in main.ts
-@Roles('admin', 'user')
-@UseGuards(
-	JwtAuthGuard, // require authentication of Jwt token
-	RolesGuard, // require role-based access control
-	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
+@UseInterceptors(
+	new DefaultStatusCodeInterceptor(200),
+	//new HeadersInterceptor({ 'Cache-Control': 'no-cache, no-store, must-revalidate' })
 )
-@UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })) // whitelisting ignored with primitive types
 export class AppHealthController {
-	constructor(private readonly appHealthService: AppHealthService) {}
+	constructor(
+		private readonly appDomainStateManager: AppDomainStateManager,
+		private readonly appHealthService: AppHealthService,
+		private readonly healthCheckService: HealthCheckService,
+		private readonly moduleStateHealthIndicator: ModuleStateHealthIndicator,
+	) {}
 
 	// Health check: Returns 200 if healthy, 503 if degraded/unavailable
 	@Get('healthz')
@@ -56,27 +60,67 @@ export class AppHealthController {
 	}
 
 	@Get('/readinessz')
-	@Public() // debug: disable authentication during development
+	@Public()
 	@ApiOperation({
 		summary: 'Readiness check',
-		description: 'Returns HTTP 200 if the app is ready to serve requests. Used by load balancers and monitoring tools.'
+		description: 'Checks if the application and its dependencies are ready to receive traffic. Returns HTTP 200 if ready, 503 if not ready.'
 	})
-	public async isReady(): Promise<{ status: string; details?: any }> {
-		const state = await this.appHealthService.getState();
-		const status = state.state === AppState.OK ? 'healthy' : 'unhealthy';
-		return { status, details: state };
+	@ApiResponse({ status: 200, description: 'Application is ready' })
+	@ApiResponse({ status: 503, description: 'Application is not ready' })
+	public async isReady(@Res() res: Response) {
+		try {
+			const healthCheck = await this.healthCheckService.check([
+				async () => await this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
+				// Add other health indicators here if/when needed
+			]) as HealthCheckResult;
+			
+			if (healthCheck.status === 'ok') {
+				return res.status(HttpStatus.OK).send(healthCheck);
+			} else {
+				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send(healthCheck);
+			}
+		} catch (error) {
+			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
+				status: 'down',
+				error: error.message,
+				moduleState: {
+					status: 'down',
+					message: 'Error checking module state'
+				}
+			});
+		}
 	}
 	
-	// Liveness check: Simply returns HTTP 200 if the app is running
 	@Get('livenessz')
-	@Public() // debug: disable authentication during development
+	@Public()
 	@ApiOperation({
-		summary: 'Liveness check',
-		description: 'Returns HTTP 200 if the app is running. Used by load balancers and monitoring tools.'
+	summary: 'Liveness probe',
+	description: 'Simple probe that returns 200 if the application is running. Used to detect if the process has crashed or deadlocked.'
 	})
-	@ApiResponse({ status: 200, description: 'The app is running' })
-	checkLiveness(@Res() res: Response) {
-		res.status(HttpStatus.OK).send({ alive: true });
+	@ApiResponse({ status: 200, description: 'Application is running' })
+	checkLiveness() {	
+		return { status: 'ok' }; // No need for response injection - keep it simple
+	}
+
+	@Get('/startupz')
+	@Public()
+	@ApiOperation({
+	summary: 'Startup probe',
+	description: 'Indicates whether the application has completed its startup process. Used by Kubernetes to know when to start running liveness and readiness probes.'
+	})
+	@ApiResponse({ status: 200, description: 'Application startup is complete' })
+	@ApiResponse({ status: 503, description: 'Application is still starting up' })
+	async checkStartup(@Res() res: Response) {
+		const isStarted = await (this.appHealthService as any).hasCompletedStartup(); // todo: refactor to use a proper method
+		if (isStarted) {
+			return res.status(HttpStatus.OK).send({ status: 'started' });
+		}
+		else {
+			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ 
+				status: 'starting',
+				message: 'Application is still initializing'
+			});
+		}
 	}
 }
 export default AppHealthController;

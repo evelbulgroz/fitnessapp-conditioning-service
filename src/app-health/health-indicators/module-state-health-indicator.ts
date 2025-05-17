@@ -117,8 +117,10 @@ export class ModuleStateHealthIndicator {
 	 * 
 	 * @param stateInfo The component state to map.
 	 * @returns A HealthIndicatorResult.
+	 * 
+	 * @todo Pull out of public API once we have a better understanding of where this should reside.
 	 */
-	private mapStateToHealthIndicatorResult(stateInfo: ComponentStateInfo): HealthIndicatorResult {
+	public mapStateToHealthIndicatorResult(stateInfo: ComponentStateInfo): HealthIndicatorResult {
 		// Map top level state to status property
 		const isHealthy = this.isComponentHealthy(stateInfo.state);
 		const status: HealthIndicatorStatus = isHealthy ? 'up' : 'down';
