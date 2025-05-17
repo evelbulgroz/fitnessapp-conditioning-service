@@ -1,7 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthIndicatorService } from '@nestjs/terminus';
-import { ModuleStateHealthIndicator } from './module-state-health-indicator';
+
 import { ComponentState, ComponentStateInfo, DomainStateManager } from '../../libraries/managed-stateful-component';
+
+import { ModuleStateHealthIndicator } from './module-state-health-indicator';
 
 describe('ModuleStateHealthIndicator', () => {
 	let healthIndicator: ModuleStateHealthIndicator;

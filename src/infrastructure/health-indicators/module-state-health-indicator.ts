@@ -6,7 +6,7 @@ import { ComponentState, ComponentStateInfo, DomainStateManager } from '../../li
 /**
  * Health indicator for checking the state of a module using Terminus.
  * 
- * @remark This class implements the HealthIndicator interface and provides a method to check the health of a module state.
+ * @remark This class implements the HealthIndicator interface and provides a method to check the health of a component.
  * @remark It maps the component state to a HealthIndicatorResult object, including the state of any subcomponents.
  * @remark It flattens the component hierarchy into the expected info and error lists for health reporting.
  * @remark The health check result includes the status, info, error, and details of the module state.
