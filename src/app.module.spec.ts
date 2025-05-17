@@ -15,6 +15,7 @@ import ConditioningLogRepository from './conditioning/repositories/conditioning-
 import ConditioningController from './conditioning/controllers/conditioning.controller';
 import createTestingModule from './test/test-utils';
 import EventDispatcherService from './shared/services/utils/event-dispatcher/event-dispatcher.service';
+import ModuleStateHealthIndicator from './app-health/health-indicators/module-state-health-indicator';
 import RegistrationService from './authentication/services/registration/registration.service';
 import RetryHttpService from './shared/services/utils/retry-http/retry-http.service';
 import SwaggerController from './api-docs/swagger.controller';
@@ -111,7 +112,11 @@ describe('AppModule', () => {
 			unsubscribeComponent: jest.fn(),
 			unsubscribeAll: jest.fn(),
 		})
-				
+		.overrideProvider(ModuleStateHealthIndicator)
+		.useValue({
+			isHealthy: jest.fn(),
+			mapStateToHealthIndicatorResult: jest.fn(),
+		})
 		.overrideProvider(RegistrationService)
 		.useValue({
 			register: jest.fn(),
@@ -430,7 +435,7 @@ describe('AppModule', () => {
 				it('is in OK state after initialization', async () => {
 					// arrange
 					let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
-					const sub = appModule.componentState$.subscribe((s) => {
+					const sub = appModule.componentState$.subscribe((s: any) => {
 						state = s.state;
 					});
 	

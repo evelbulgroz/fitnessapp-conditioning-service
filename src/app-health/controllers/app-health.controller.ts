@@ -6,6 +6,7 @@ import AppHealthService from '../services/health/app-health.service';
 import { ComponentState as AppState} from '../../libraries/managed-stateful-component';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
 import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
+import { ModuleStateHealthIndicator } from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
 import Roles from '../../infrastructure/decorators/roles.decorator';
 import RolesGuard from '../../infrastructure/guards/roles.guard';
