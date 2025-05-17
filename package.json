@@ -40,6 +40,7 @@
     "@nestjs/terminus": "^11.0.0",
     "axios-retry": "^4.5.0",
     "bcryptjs": "^2.4.3",
+    "check-disk-space": "^3.4.0",
     "date-fns": "^4.1.0",
     "js-quantities": "^1.8.0",
     "reflect-metadata": "^0.2.0",
