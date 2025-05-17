@@ -5,7 +5,7 @@ import { ComponentState } from "./component-state.enum";
  * 
  * @remarks The component state is used to determine if the application is lively, and/or healthy, and ready to serve requests.
  * @remarks Components must implement this interface to be monitored by the health check service.
- * @remarks Any NestJS construct can use this to track its state, e.g. a service, controller, or module.
+ * @remarks Any class implementing {@link ManagedStatefulComponent} can use this to track its state, e.g. a service, controller.
  * 
 */
 export type ComponentStateInfo = {
@@ -33,7 +33,7 @@ export type ComponentStateInfo = {
 	updatedOn: Date;
 
 	/**
-	 * List of sub-components that and their states.
+	 * List of sub-component states.
 	 * 
 	 * @remark This is optional and may be used to provide additional information about the overall state of the component.
 	 * 

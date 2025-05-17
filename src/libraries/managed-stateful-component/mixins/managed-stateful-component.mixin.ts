@@ -52,12 +52,14 @@ const getDefaultState = (component: ManagedStatefulComponent): ComponentStateInf
  * 
  * @remark PUBLIC API
  * - *`componentState$`* - Observable that emits state changes
+ * - *`getState()`* - Returns the current state as a snapshot
  * - *`initialize()`* - Initializes the component and its subcomponents
  * - *`shutdown()`* - Shuts down the component and its subcomponents
  * - *`isReady()`* - Checks if component is ready to serve requests
  * - *`onInitialize()`* - Template method for component-specific initialization logic, called by `initialize()`
  * - *`onShutdown()`* - Template method for component-specific shutdown logic, called by `shutdown()` 
  * - *`registerSubcomponent()`* - Registers a subcomponent for lifecycle management and subscribes to its state changes
+ * - *`toJSON()`* - Serializes the component and its subcomponents to a JSON-friendly structure
  * - *`unregisterSubcomponent()`* - Removes a subcomponent from management and unsubscribes from its state changes
  * - *`updateState()`* - Updates the component's state and emits the new state
  *
@@ -226,45 +228,15 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 			return this.msc_zh7y_domainHierarchyWirer.wireDomains(managers, pathExtractor, extractorOptions);
 		}
+
+		// NOTE: Methods implementing the ManagedStatefulComponent interface are documented in the interface itself
 		
-		/**
-		 * Observable stream of state changes for the component and its subcomponents (if any)
-		 * 
-		 * @returns Observable that emits the current state of the component and its subcomponents (if any) whenever the state changes
-		 * @remark The observable is a BehaviorSubject, so it will emit the current state immediately upon subscription
-		 * @remark The observable will emit the aggregated state if subcomponents are present, otherwise it will emit the component's own componentState$
-		 * @remark required by {@link StatefulComponent} interface
-		 */
 		public readonly componentState$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
 
-		/**
-		 * Get the current component state as a snapshot
-		 * 
-		 * @returns Promise that resolves to the current state of the component
-		 * @throws Never - this method does not throw exceptions
-		 * 
-		 * @remark This is a convenience method for getting the current state without subscribing to componentState$
-		 * @remark For continuous state updates, use componentState$ observable instead
-		 * @remark For health checks and diagnostics, this method is preferred over subscribing to componentState$
-		 */
 		public async getState(): Promise<ComponentStateInfo> {
 			return firstValueFrom(this.componentState$);
 		}
 		
-		/**
-		 * Initialize the component and all of its subcomponents (if any) if it is not already initialized
-		 * 
-		 * @param args Optional arguments to pass to parent initialize methods 
-		 * @returns Promise that resolves when the component and all of its subcomponents are initialized
-		 * @throws Error if initialization fails
-		 * 
-		 * @remark Executes any inherited initialize() method before executing subclass initialize() logic
-		 * @remark Subclasses may optionally override `onInitialize()` to provide component-specific initialization logic
-		 * @remark Transitions state to `INITIALIZING` during the process and to `OK` when complete
-		 * @remark Handles concurrent calls by returning the same promise for all callers during initialization
-		 * @remark If the component is already initialized, resolves immediately
-		 * @remark Required by {@link ManageableComponent} interface
-		 */
 		public async initialize(...args: any[]): Promise<void> {
 			// If already initialized, resolve immediately
 			if (this. msc_zh7y_stateSubject.value.state !== ComponentState.UNINITIALIZED) {
@@ -377,21 +349,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 		}
 
-		/**
-		 * Shut down the component and all of its subcomponents (if any) if it is not already shut down
-		 * 
-		 * @param args Optional arguments to pass to parent shutdown methods
-		 * @returns Promise that resolves when the component and all of its subcomponents are shut down
-		 * @throws Error if shutdown fails
-		 * 
-		 * @remark Executes any inherited shutdown() method before executing subclass shutdown() logic
-		 * @remark Subclasses may optionally override `onShutdown()` to provide component-specific shutdown logic
-		 * @remark Transitions state to `SHUTTING_DOWN` during the process and to `SHUT_DOWN` when complete
-		 * @remark Handles concurrent calls by returning the same promise for all callers during shutdown
-		 * @remark If the component is already shut down, resolves immediately
-		 * @remark Required by {@link ManageableComponent} interface
-		 */
-		public async shutdown(...args: any[]): Promise<any> {
+		public async shutdown(...args: any[]): Promise<void> {
 			// If already shut down, resolve immediately
 			if (this. msc_zh7y_stateSubject.value.state === ComponentState.SHUT_DOWN) {
 				return Promise.resolve();
@@ -459,19 +417,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return this.msc_zh7y_shutdownPromise;
 		}
 
-		/**
-		 * Register a subcomponent to be managed by this component
-		 * 
-		 * @param component The subcomponent to register
-		 * @returns void
-		 * @throws Error if the component is null, undefined, or already registered
-		 * 
-		 * @remark This method is intended for internal use and should not be called directly by clients.
-		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
-		 * @remark The component must be an instance of ManagedStatefulComponent.
-		 * 
-		 * @required by {@link ComponentContainer} interface
-		 */
 		public registerSubcomponent(component: ManagedStatefulComponent): boolean {
 			if (!component) {
 				throw new Error('Component cannot be null or undefined');
@@ -507,19 +452,6 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 		}
 
-		/**
-		 * Unregister a subcomponent from this component
-		 * 
-		 * @param component The subcomponent to unregister
-		 * @returns true if the component was successfully unregistered, false otherwise
-		 * @throws Error if the component is null or undefined
-		 * 
-		 * @remark This method is intended for internal use and should not be called directly by clients.
-		 * @remark It is used to manage the lifecycle of subcomponents and ensure they are properly initialized and shut down.
-		 * @remark The component must be an instance of ManagedStatefulComponent.
-		 * 
-		 * @required by {@link ComponentContainer} interface
-		 */
 		public unregisterSubcomponent(component: ManagedStatefulComponent): boolean {
 			const index = this. msc_zh7y_subcomponents.indexOf(component);
 			if (index === -1) {
@@ -542,24 +474,11 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return true;
 		}		
 
-		/**
-		 * Update the state of the component with the specified state information
-		 * 
-		 * @param newState New state information to set, optionally partial
-		 * @returns Promise that resolves when the state update has fully propagated
-		 * 
-		 * @remarks State changes are aggregated with subcomponent states
-		 * @remarks The method waits for state change to propagate before resolving
-		 */
 		public async updateState(newState: Partial<ComponentStateInfo>): Promise<void> {
 			return this[`${unshadowPrefix}updateState`](newState);
 		}
 
-		/**
-		 * Serialize the component and its subcomponents to a JSON-friendly structure.
-		 * Includes constructor name, own state, aggregated state, and subcomponent hierarchy.
-		 */
-		public toJSON(): any {
+		public toJSON(): Record<string, any> {
 			return {
 				name: this.constructor.name,
 				ownState: { ...this.msc_zh7y_ownState },

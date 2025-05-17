@@ -4,7 +4,8 @@
  * @remarks The state should default to UNINITIALIZED when the component is created, and updated as needed
  * @remarks State INITIALIZING may also be used to prevent multiple, overlapping initializations
  * @remarks State SHUTTING_DOWN may also be used to prevent multiple, overlapping shutdowns
- * @remarks Any NestJS construct can use this to track its state, e.g. a service, controller, or module.
+ * @remarks Any class implementing {@link ManagedStatefulComponent} can use this to track its state, e.g. a service, controller.
+ *
  */
 export enum ComponentState {
 	/**
