@@ -11,36 +11,30 @@ import { ComponentState, ComponentStateInfo, DomainStateManager } from '../../li
  * @remark It flattens the component hierarchy into the expected info and error lists for health reporting.
  * @remark The health check result includes the status, info, error, and details of the module state.
  * 
- * @remark The NestJS Terminus docs are unclear about supported status values. But the HealthIndicatorStatus
- * source itself only supports 'up' and 'down' as values, so we only use those.
- * @see {@link https://docs.nestjs.com/recipes/terminus#health-indicator}
- * @see {@link https://github.com/nestjs/terminus/blob/126215fb81c2af3c42e767b114de7cfc05f9a4c9/lib/health-indicator/health-indicator-result.interface.ts#L4}
- * 
  * @example
  * // Usage in a NestJS health controller
- * 
-	import { Controller, Get } from '@nestjs/common';
-	import { HealthCheckService, HttpHealthIndicator, HealthCheck } from '@nestjs/terminus';
-	import { ModuleStateHealthIndicator } from './module-state-health-indicator';
-	import { AppDomainStateManager } from '../../app-domain-state-manager';
+ * import { Controller, Get } from '@nestjs/common';
+ * import { HealthCheckService, HttpHealthIndicator, HealthCheck } from '@nestjs/terminus';
+ * import { ModuleStateHealthIndicator } from './module-state-health-indicator';
+ * import { AppDomainStateManager } from '../../app-domain-state-manager';
 
-	@Controller('health')
-	export class HealthController {
-		constructor(
-			private health: HealthCheckService,
-			private moduleStateHealthIndicator: ModuleStateHealthIndicator,
-			private appDomainStateManager: AppDomainStateManager,
-		) {}
+ * @Controller('health')
+ * export class HealthController {
+ *   constructor(
+ *     private health: HealthCheckService,
+ *       private moduleStateHealthIndicator: ModuleStateHealthIndicator,
+ *        private appDomainStateManager: AppDomainStateManager,
+ *      ) {}
 
-		@Get()
-		@HealthCheck()
-		check() {
-			return this.health.check([
-				() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
-				// Add other health indicators here
-			]);
-		}
-	}
+ *      @Get()
+ *      @HealthCheck()
+ *      check() {
+ *        return this.health.check([
+ *          () => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
+ *          // Add other health indicators here
+ *        ]);
+ *      }
+ * }
  * 
  */
 @Injectable()

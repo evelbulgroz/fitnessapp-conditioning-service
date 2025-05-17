@@ -1,5 +1,5 @@
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Controller, Get, HttpStatus, Res, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Res, UseInterceptors, UsePipes } from '@nestjs/common';
 import { HealthCheckResult, HealthCheckService } from '@nestjs/terminus';
 import { Response } from 'express';
 
@@ -7,19 +7,20 @@ import AppDomainStateManager from '../../app-domain-state-manager';
 import AppHealthService from '../services/health/app-health.service';
 import { ComponentState as AppState} from '../../libraries/managed-stateful-component';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
-import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
 import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
-import Roles from '../../infrastructure/decorators/roles.decorator';
-import RolesGuard from '../../infrastructure/guards/roles.guard';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 
-/** Controller for serving health check requests
+/**
+ * Controller for serving health check requests
+ * 
  * @remark This controller is used to check the health of the micoservice, e.g. by load balancers or monitoring tools.
  * @remark Uses 'z' suffix for health check endpoints intended for automated health checks
  * - E.g. /healthz, /readinessz, /livenessz
  * - This is a common convention in Kubernetes and other container orchestration platforms
  * - This reserves the /health endpoint for human-readable status pages
+ * @remark The health check endpoints are public and do not require authentication, as they are
+ *  intended for automated health checks that typically run without authentication.
  * 
  * @todo Figure out which endpoints should also return richer information, e.g. in JSON format
  * @todo Decide whether to use terminus and combine with own stateful component, or use own stateful component only
@@ -43,7 +44,7 @@ export class AppHealthController {
 
 	// Health check: Returns 200 if healthy, 503 if degraded/unavailable
 	@Get('healthz')
-	@Public() // debug: disable authentication during development
+	//@Public() // debug: disable authentication during development
 	@ApiOperation({
 		summary: 'Health check',
 		description: 'Returns HTTP 200 if the app is healthy, HTTP 503 if degraded/unavailable. Used by load balancers and monitoring tools. Also returns the health status and reason for unavailability in the response body.'
@@ -60,7 +61,7 @@ export class AppHealthController {
 	}
 
 	@Get('/readinessz')
-	@Public()
+	//@Public()
 	@ApiOperation({
 		summary: 'Readiness check',
 		description: 'Checks if the application and its dependencies are ready to receive traffic. Returns HTTP 200 if ready, 503 if not ready.'

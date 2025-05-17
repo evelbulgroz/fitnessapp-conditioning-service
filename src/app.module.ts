@@ -66,8 +66,9 @@ import developmentConfig from '../config/development.config';
 	],
 	providers: [		
 		ConfigService,
+		AppDomainStateManager,
 		DiscoveryService,
-		{ // TODO: DomainPathExtractor
+		{ // DomainPathExtractor
 			provide: DOMAIN_PATH_EXTRACTOR,
 			useFactory: (configService: ConfigService) => {
 			  // Get any config values you need
@@ -89,11 +90,6 @@ import developmentConfig from '../config/development.config';
 			  };
 			},
 			inject: [ConfigService]
-		},
-		{ // DomainStateManager
-			// Provide the AppDomainStateManager implementation of the DomainStateManager interface
-			provide: DomainStateManager,
-			useClass: AppDomainStateManager
 		},
 		EventDispatcherService,		
 		RequestLoggingInterceptor,
@@ -125,6 +121,8 @@ import developmentConfig from '../config/development.config';
 		},
 	],
 	exports: [
+		AppDomainStateManager,
+		DiscoveryService,
 		AuthenticationModule,
 		ConditioningModule,
 		ConfigModule,
@@ -142,7 +140,7 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 		private readonly registrationService: RegistrationService,
 		private readonly authService: AuthService,
 		private readonly streamLogger: MergedStreamLogger,
-		private readonly stateManager: DomainStateManager,
+		private readonly stateManager: AppDomainStateManager,
 	) {
 		super();
 		this.appConfig = this.configService.get<any>('app') ?? {};
