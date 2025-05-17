@@ -1,6 +1,6 @@
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, HttpStatus, Res, UseInterceptors, UsePipes } from '@nestjs/common';
-import { HealthCheckResult, HealthCheckService } from '@nestjs/terminus';
+import { DiskHealthIndicator, HealthCheckResult, HealthCheckService, HttpHealthIndicator, MemoryHealthIndicator } from '@nestjs/terminus';
 import { Response } from 'express';
 
 import AppDomainStateManager from '../../app-domain-state-manager';
@@ -38,13 +38,14 @@ export class AppHealthController {
 	constructor(
 		private readonly appDomainStateManager: AppDomainStateManager,
 		private readonly appHealthService: AppHealthService,
+		private readonly disk: DiskHealthIndicator,
 		private readonly healthCheckService: HealthCheckService,
+		private readonly memory: MemoryHealthIndicator,
 		private readonly moduleStateHealthIndicator: ModuleStateHealthIndicator,
 	) {}
 
 	// Health check: Returns 200 if healthy, 503 if degraded/unavailable
 	@Get('healthz')
-	//@Public() // debug: disable authentication during development
 	@ApiOperation({
 		summary: 'Health check',
 		description: 'Returns HTTP 200 if the app is healthy, HTTP 503 if degraded/unavailable. Used by load balancers and monitoring tools. Also returns the health status and reason for unavailability in the response body.'
@@ -61,7 +62,6 @@ export class AppHealthController {
 	}
 
 	@Get('/readinessz')
-	//@Public()
 	@ApiOperation({
 		summary: 'Readiness check',
 		description: 'Checks if the application and its dependencies are ready to receive traffic. Returns HTTP 200 if ready, 503 if not ready.'
@@ -72,6 +72,9 @@ export class AppHealthController {
 		try {
 			const healthCheck = await this.healthCheckService.check([
 				async () => await this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
+				() => this.disk.checkStorage('storage', { path: '/', thresholdPercent: 0.5 }),
+				() => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150 MB
+				() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB
 				// Add other health indicators here if/when needed
 			]) as HealthCheckResult;
 			

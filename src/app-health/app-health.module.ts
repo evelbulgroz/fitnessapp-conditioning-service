@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { HealthCheckService, HealthIndicatorService, TerminusModule } from '@nestjs/terminus';
+import { DiskHealthIndicator, HealthCheckService, HealthIndicatorService, MemoryHealthIndicator, TerminusModule } from '@nestjs/terminus';
 
 import AppHealthController from './controllers/app-health.controller';
 import AppHealthService from './services/health/app-health.service';
@@ -17,9 +17,11 @@ const noopLogger = () => {}; // This function does nothing
 	controllers: [ AppHealthController ],
 	providers: [
 		AppHealthService,
+		DiskHealthIndicator,
 		HealthCheckService,
 		HealthCheckExecutor,
 		HealthIndicatorService,
+		MemoryHealthIndicator,
 		ModuleStateHealthIndicator,
 		{ // TERMINUS_LOGGER
 			provide: 'TERMINUS_LOGGER',
