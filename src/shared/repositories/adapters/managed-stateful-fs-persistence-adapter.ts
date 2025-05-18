@@ -1,4 +1,4 @@
-import { EntityDTO, EntityMetadataDTO, EntityPersistenceDTO, FileSystemPersistenceAdapter } from '@evelbulgroz/ddd-base';
+import { EntityDTO, EntityMetadataDTO, EntityPersistenceDTO, FileSystemPersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
 
 import { ManagedStatefulComponent, ManagedStatefulComponentMixin } from '../../../libraries/managed-stateful-component';
 /**
@@ -37,8 +37,13 @@ export class ManagedStatefulFsPersistenceAdapter<T extends EntityPersistenceDTO<
 	extends ManagedStatefulComponentMixin(FileSystemPersistenceAdapter)<T>
 	implements ManagedStatefulComponent
 {
-	constructor(storagePath: string) {
+	public constructor(storagePath: string) {
 		super(storagePath);
+	}
+
+	public onInitialize(superResult: Result<any>): Promise<void> {
+		console.log('ManagedStatefulFsPersistenceAdapter.onInitialize()', superResult);
+		return Promise.resolve();
 	}
 }
 export default ManagedStatefulFsPersistenceAdapter;
