@@ -72,12 +72,11 @@ export class AppHealthController {
 	@ApiResponse({ status: 503, description: 'Application is not ready' })
 	public async isReady(@Res() res: Response) {
 		try {
-			console.log('Checking readiness...', path.normalize(process.cwd()));
 			const healthCheck = await this.healthCheckService.check([ // expects an array of promises
-				//() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
-				() => this.disk.checkStorage('storage', { path: path.normalize(process.cwd()), thresholdPercent: 0.5 }),
-				//() => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150 MB
-				//() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB
+				() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
+				() => this.disk.checkStorage('storage', { path: path.normalize('D:\\'), thresholdPercent: 0.5 }),
+				() => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150 MB
+				() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB
 				// Add other health indicators here if/when needed
 			]) as HealthCheckResult;
 			
