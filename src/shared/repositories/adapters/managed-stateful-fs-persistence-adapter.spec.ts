@@ -172,7 +172,7 @@ describe('ManagedStatefulFsPersistenceAdapter', () => {
 		});
 		
 		describe('initialize', () => {	
-			xit('calls onInitialize', async () => {				
+			it('calls onInitialize', async () => {				
 				// arrange
 				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
 				const sub = adapter.componentState$.subscribe((s: ComponentStateInfo) => {
@@ -188,7 +188,7 @@ describe('ManagedStatefulFsPersistenceAdapter', () => {
 	
 				// assert
 				expect(onInitializeSpy).toHaveBeenCalledTimes(1);
-				expect(onInitializeSpy).toHaveBeenCalledWith(expect.objectContaining({ isSuccess: true }));
+				expect(onInitializeSpy).toHaveBeenCalledWith(expect.objectContaining({ isSuccess: true })); // bug: receives a failure result
 
 				// clean up
 				sub.unsubscribe();
