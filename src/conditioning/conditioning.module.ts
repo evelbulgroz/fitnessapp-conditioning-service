@@ -17,6 +17,7 @@ import ConditioningLogRepository from './repositories/conditioning-log.repo';
 import ConditioningLogUndeletedHandler from './handlers/conditioning-log-undeleted.handler';
 import ConditioningLogUpdatedHandler from './handlers/conditioning-log-updated.handler';
 import LoggingModule from '../logging/logging.module';
+import ManagedStatefulFsPersistenceAdapter from '../shared/repositories/adapters/managed-stateful-fs-persistence-adapter';
 import QueryMapper from './mappers/query.mapper';
 import ConditioningDomainStateManager from './conditioning-domain-state-manager';
 
@@ -80,16 +81,17 @@ import ConditioningDomainStateManager from './conditioning-domain-state-manager'
 		ConditioningLogRepository,
 		ConditioningLogUndeletedHandler,
 		ConditioningLogUpdatedHandler,
-		{ //Persistence adapter for file system storage
+		{ // Persistence adapter for file system storage
 			provide: PersistenceAdapter,
 			useFactory: (configService: ConfigService) => {
 				const dataDir = configService.get<string>('modules.conditioning.repos.fs.dataDir') ?? 'no-such-dir';
 				return new FileSystemPersistenceAdapter(dataDir);
+				//return new ManagedStatefulFsPersistenceAdapter(dataDir); // todo: use this when testing is done
 			},
 			inject: [ConfigService],
 		},
 		QueryMapper,
-		{ //REPOSITORY_THROTTLETIME
+		{ // REPOSITORY_THROTTLETIME
 			provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
 			useValue: 100
 		},		
