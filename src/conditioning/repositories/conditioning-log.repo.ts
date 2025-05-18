@@ -67,6 +67,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
      */
     public override async onInitialize(initResult: Result<void>): Promise<void> {
 		this.log(RepoLogLevel.INFO, `Executing initialization`);
+		console.log('initResult', initResult); // bug: receives failure result, but not sure why
 		
 		// Repository.initialize() does most of the work, so we just need to check result from base class here
 		if (initResult.isFailure) {

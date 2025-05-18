@@ -85,8 +85,8 @@ import ConditioningDomainStateManager from './conditioning-domain-state-manager'
 			provide: PersistenceAdapter,
 			useFactory: (configService: ConfigService) => {
 				const dataDir = configService.get<string>('modules.conditioning.repos.fs.dataDir') ?? 'no-such-dir';
-				return new FileSystemPersistenceAdapter(dataDir);
-				//return new ManagedStatefulFsPersistenceAdapter(dataDir); // todo: use this when testing is done
+				//return new FileSystemPersistenceAdapter(dataDir);
+				return new ManagedStatefulFsPersistenceAdapter(dataDir);
 			},
 			inject: [ConfigService],
 		},
