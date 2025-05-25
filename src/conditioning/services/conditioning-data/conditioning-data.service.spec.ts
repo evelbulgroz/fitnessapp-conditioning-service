@@ -148,6 +148,7 @@ describe('ConditioningDataService', () => {
 		aggregatorService = app.get<AggregatorService>(AggregatorService);
 		service = app.get<ConditioningDataService>(ConditioningDataService);
 		logRepo = app.get<ConditioningLogRepository<any, ConditioningLogDTO>>(ConditioningLogRepository);
+		console.debug('ConditioningLogRepository', logRepo);
 		queryMapper = app.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
 		userRepo = app.get<UserRepository>(UserRepository);
 	});
