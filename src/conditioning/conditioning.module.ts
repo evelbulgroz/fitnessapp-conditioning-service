@@ -2,7 +2,6 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { DomainStateManager, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
-import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLoggableMixin } from '../libraries/stream-loggable';
 
 import AggregationQueryMapper from './mappers/aggregation-query.mapper';
