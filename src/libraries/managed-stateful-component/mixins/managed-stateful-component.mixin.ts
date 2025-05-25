@@ -237,7 +237,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			return firstValueFrom(this.componentState$);
 		}
 		
-		public async initialize(...args: any[]): Promise<void> {
+		public async initialize(...args: any[]): Promise<any> {
 			// If already initialized, resolve immediately
 			if (this. msc_zh7y_stateSubject.value.state !== ComponentState.UNINITIALIZED) {
 				return Promise.resolve();
@@ -249,7 +249,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}			
 			
 			// Create a new initialization promise
-			this.msc_zh7y_initializationPromise = new Promise<void>(async (resolve, reject) => {
+			this.msc_zh7y_initializationPromise = new Promise<any>(async (resolve, reject) => {
 				try {
 					// Set own state and update the state subject with the new componentState$
 					this.msc_zh7y_ownState = ({
@@ -262,7 +262,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 					// Call parent initialize method if found (preserving inheritance)
 					const superResult = await this[`${unshadowPrefix}callParentMethod`](this.initialize, ...args);
-
+					
 					// Initialize main component and any subcomponents in the order specified in options
 					if (this.msc_zh7y_options.initializationStrategy === 'parent-first') {
 						await this.onInitialize(superResult);
@@ -281,7 +281,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					});
 					await this[`${unshadowPrefix}updateState`](this. msc_zh7y_ownState); // returns when state change is observed
 
-					resolve();
+					resolve(superResult); // Resolve with the result of the parent initialize() call, or void if none
 				} 
 				catch (error) {
 					this. msc_zh7y_ownState = ({
@@ -349,7 +349,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 			}
 		}
 
-		public async shutdown(...args: any[]): Promise<void> {
+		public async shutdown(...args: any[]): Promise<any> {
 			// If already shut down, resolve immediately
 			if (this. msc_zh7y_stateSubject.value.state === ComponentState.SHUT_DOWN) {
 				return Promise.resolve();
@@ -360,7 +360,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				return this.msc_zh7y_shutdownPromise;
 			}
 
-			this.msc_zh7y_shutdownPromise = new Promise<void>(async (resolve, reject) => {
+			this.msc_zh7y_shutdownPromise = new Promise<any>(async (resolve, reject) => {
 				try {
 					// Set own state and update the state subject with the new componentState$
 					this. msc_zh7y_ownState = ({
@@ -395,7 +395,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 					});
 					await this[`${unshadowPrefix}updateState`](this. msc_zh7y_ownState); // returns when state change is observed
 					
-					resolve();
+					resolve(superResult); // Resolve with the result of the parent shutdown() call, or void if none
 				} 
 				catch (error) {
 					// Update state to indicate shutdown failure
@@ -505,7 +505,10 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 * @remark It should leave it to initialize() to handle the state management and observable emissions.
 		 * @remark A default implementation is provided that simply resolves the promise.
 		 */
-		/* @internal */ onInitialize(...args: any[]): Promise<void> { void args; return Promise.resolve(); }
+		/* @internal */ onInitialize(...args: any[]): Promise<void> {
+			void args; // suppress unused parameter warning
+			return Promise.resolve();
+		}
 		
 		/**
 		 * Execute component-specific shutdown

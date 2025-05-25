@@ -11,7 +11,7 @@ export interface ManageableComponent {
 	 * Initialize the component and all of its subcomponents (if any) if it is not already initialized
 	 * 
 	 * @param args Optional arguments to pass to parent initialize methods 
-	 * @returns Promise that resolves when the component and all of its subcomponents are initialized
+	 * @returns Promise that resolves with the result any parent initialize() method returns, or void if none
 	 * @throws Error if initialization fails
 	 * 
 	 * @remark Executes any inherited initialize() method before executing subclass initialize() logic
@@ -21,7 +21,7 @@ export interface ManageableComponent {
 	 * @remark If the component is already initialized, resolves immediately
 	 * @remark Required by {@link ManageableComponent} interface
 	 */
-	initialize(...args: any[]): Promise<void>;
+	initialize(...args: any[]): Promise<any>;
 
 	/**
 	 * Check if the component, including any subcomponents, is ready to serve requests
@@ -40,7 +40,7 @@ export interface ManageableComponent {
 	 * Shut down the component and all of its subcomponents (if any) if it is not already shut down
 	 * 
 	 * @param args Optional arguments to pass to parent shutdown methods
-	 * @returns Promise that resolves when the component and all of its subcomponents are shut down
+	 * @returns Promise that resolves with the result any parent shutdown() method returns, or void if none
 	 * @throws Error if shutdown fails
 	 * 
 	 * @remark Executes any inherited shutdown() method before executing subclass shutdown() logic
@@ -50,7 +50,7 @@ export interface ManageableComponent {
 	 * @remark If the component is already shut down, resolves immediately
 	 * @remark Required by {@link ManageableComponent} interface
 	 */
-	shutdown(...args: any[]): Promise<void>;
+	shutdown(...args: any[]): Promise<any>;
 }
 
 export default ManageableComponent;

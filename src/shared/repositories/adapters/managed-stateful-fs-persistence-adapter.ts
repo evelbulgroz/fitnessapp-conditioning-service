@@ -42,7 +42,6 @@ export class ManagedStatefulFsPersistenceAdapter<T extends EntityPersistenceDTO<
 	}
 
 	public onInitialize(superResult: Result<any>): Promise<void> {
-		console.log('ManagedStatefulFsPersistenceAdapter.onInitialize()', superResult);
 		return Promise.resolve();
 	}
 }
