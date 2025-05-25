@@ -2,39 +2,41 @@ import { TestingModule } from '@nestjs/testing';
 
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom, Observable, take } from 'rxjs';
+
 import { PersistenceAdapter, Result } from '@evelbulgroz/ddd-base';
+import {ComponentState, ComponentStateInfo, ManagedStatefulComponentMixin} from "../../libraries/managed-stateful-component";
 
-import { createTestingModule } from '../../test/test-utils';
-import { User } from '../domain/user.entity';
-import { UserDTO } from '../dtos/user.dto';
-import { UserRepository } from './user.repo';
-import { UserPersistenceDTO } from '../dtos/user-persistence.dto';
-import {ComponentState, ComponentStateInfo} from "../../libraries/managed-stateful-component";
+import ManagedStatefulFsPersistenceAdapter from '../../shared/repositories/adapters/managed-stateful-fs-persistence-adapter';
+import createTestingModule from '../../test/test-utils';
+import User from '../domain/user.entity';
+import UserDTO from '../dtos/user.dto';
+import UserRepository from './user.repo';
+import UserPersistenceDTO from '../dtos/user-persistence.dto';
 
-class PersistenceAdapterMock<T extends UserPersistenceDTO> extends PersistenceAdapter<T> {
+class PersistenceAdapterMock<T extends UserPersistenceDTO> extends ManagedStatefulComponentMixin(ManagedStatefulFsPersistenceAdapter<any>) {
 	// cannot get generics to work with jest.fn(), so skipping for now
-	public initialize = jest.fn();
-	public shutdown = jest.fn();
+	// initialize() provided by ManagedStatefulComponentMixin, so no need to mock it
 	public create = jest.fn();
 	public update = jest.fn();
 	public delete = jest.fn();
 	public fetchById = jest.fn();
 	public fetchAll = jest.fn();
 	public undelete = jest.fn();
+	// shutdown() provided by ManagedStatefulComponentMixin, so no need to mock it
 }
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
 describe('UserRepo', () => {
-	let adapter: PersistenceAdapter<UserPersistenceDTO>;
+	let adapter: ManagedStatefulFsPersistenceAdapter<UserPersistenceDTO>;
 	let repo: UserRepository;
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
 			providers: [
 				// ConfigModule is imported automatically by createTestingModule
-				{
-					provide: PersistenceAdapter,
-					useClass: PersistenceAdapterMock,
+				{ // ManagedStatefulFsPersistenceAdapter
+					provide: ManagedStatefulFsPersistenceAdapter,
+					useValue: new PersistenceAdapterMock<UserPersistenceDTO>('test-storage/users') // use a mock adapter for testing
 				},
 				{
 					provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
@@ -45,7 +47,7 @@ describe('UserRepo', () => {
 		}))
 		.compile();
 
-		adapter = module.get<PersistenceAdapter<UserPersistenceDTO>>(PersistenceAdapter);
+		adapter = module.get<ManagedStatefulFsPersistenceAdapter<UserPersistenceDTO>>(ManagedStatefulFsPersistenceAdapter);
 		repo = module.get<UserRepository>(UserRepository);
 	});
 
@@ -173,7 +175,7 @@ describe('UserRepo', () => {
 				
 				// assert
 				expect(adapterFetchAllSpy).toHaveBeenCalledTimes(1);
-				expect(adapterInitSpy).toHaveBeenCalledTimes(1);		
+				expect(adapterInitSpy).toHaveBeenCalledTimes(2);		
 				expect(result.isSuccess).toBe(true);
 				
 				const users$ = result.value as unknown as Observable<User[]>;
@@ -346,6 +348,13 @@ describe('UserRepo', () => {
 
 			it('is in OK state after initialization', async () => {
 				// arrange
+				await repo['adapter'].updateState({ // mock the adapter state update
+					name: 'PersistenceAdapterMock',
+					state: ComponentState.OK,
+					reason: 'Test initialization',
+					updatedOn: new Date()
+				});
+
 				let state: ComponentState = 'TESTSTATE' as ComponentState; // assign a dummy value to avoid TS error
 				const sub = repo.componentState$.subscribe((s) => {
 					state = s.state;
@@ -369,12 +378,27 @@ describe('UserRepo', () => {
 				const sub = repo.componentState$.subscribe((s: ComponentStateInfo) => {
 					state = s.state;
 				});
+				
 				expect(state).toBe(ComponentState.UNINITIALIZED);// sanity check
 				
+				await repo['adapter'].updateState({ // mock the adapter state update
+					name: 'PersistenceAdapterMock',
+					state: ComponentState.OK,
+					reason: 'Test initialization',
+					updatedOn: new Date()
+				});	
 				await repo.initialize();
 				expect(state).toBe(ComponentState.OK); // sanity check
+
+				await repo['adapter'].updateState({ // mock the adapter state update
+					name: 'PersistenceAdapterMock',
+					state: ComponentState.SHUT_DOWN,
+					reason: 'Test initialization',
+					updatedOn: new Date()
+				});	
 				
-				// act			
+				
+				// act
 				await repo.shutdown();
 
 				// assert
@@ -413,6 +437,13 @@ describe('UserRepo', () => {
 		describe('isReady', () => {		
 			it('reports if/when it is initialized (i.e. ready)', async () => {
 				// arrange
+				await repo['adapter'].updateState({ // mock the adapter state update
+					name: 'PersistenceAdapterMock',
+					state: ComponentState.OK,
+					reason: 'Test initialization',
+					updatedOn: new Date()
+				});	
+				
 				await repo.initialize(); // initialize the repo
 
 				// act
@@ -421,7 +452,7 @@ describe('UserRepo', () => {
 				// assert
 				expect(result).toBe(true);
 			});
-		});		
+		});
 
 		describe('shutdown', () => {
 			it('calls onShutdown', async () => {				

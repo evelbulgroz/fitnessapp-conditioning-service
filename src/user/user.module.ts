@@ -2,7 +2,6 @@ import { ConfigService } from '@nestjs/config';
 import { Module, OnModuleInit } from '@nestjs/common';
 
 import { DomainStateManager, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
-import { FileSystemPersistenceAdapter, PersistenceAdapter } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLoggableMixin } from '../libraries/stream-loggable';
 
 import LoggingModule from '../logging/logging.module';
@@ -13,6 +12,7 @@ import UserRepository from './repositories/user.repo';
 import UserDataService from './services/user-data.service';
 import UserUpdatedHandler from './handlers/user-updated.handler';
 import UserDomainStateManager from './user-domain-state-manager';
+import ManagedStatefulFsPersistenceAdapter from '../shared/repositories/adapters/managed-stateful-fs-persistence-adapter';
 
 /** Main module for components managing and serving user information.
  * 
@@ -58,14 +58,14 @@ import UserDomainStateManager from './user-domain-state-manager';
 	imports: [LoggingModule], // Import the LoggingModule to use MergedStreamLogger
 	controllers: [UserController],
 	providers: [
-		{ // PersistenceAdapter
-			provide: PersistenceAdapter,
+		{ // ManagedStatefulFsPersistenceAdapter
+			provide: ManagedStatefulFsPersistenceAdapter,
 			useFactory: (configService: ConfigService) => {
 				const dataDir = configService.get<string>('modules.user.repos.fs.dataDir') ?? 'no-such-dir';
-				return new FileSystemPersistenceAdapter(dataDir);
+				return new ManagedStatefulFsPersistenceAdapter(dataDir);
 			},
 			inject: [ConfigService],
-		},
+		},		
 		{ // REPOSITORY_THROTTLETIME
 			provide: 'REPOSITORY_THROTTLETIME', // ms between execution of internal processing queue
 			useValue: 100

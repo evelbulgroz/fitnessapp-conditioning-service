@@ -7,6 +7,7 @@ import { EntityId, RepoLogLevel, PersistenceAdapter, Repository, Result } from "
 import { ManagedStatefulComponent, ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component";
 import { Query, SearchFilterOperation } from "@evelbulgroz/query-fns";
 
+import ManagedStatefulFsPersistenceAdapter from '../../shared/repositories/adapters/managed-stateful-fs-persistence-adapter';
 import User from "../domain/user.entity";
 import UserCreatedEvent from "../events/user-created.event";
 import UserDTO from "../dtos/user.dto";
@@ -32,7 +33,7 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
 	
 		public constructor(
-			protected readonly adapter: PersistenceAdapter<UserPersistenceDTO>, // the adapter to use for persistence
+			protected readonly adapter: ManagedStatefulFsPersistenceAdapter<UserPersistenceDTO>, // the adapter to use for persistence
 			@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
 		) {
 			super(adapter, throttleTime);
@@ -102,13 +103,16 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
     public async onInitialize(superResult: Result<void>): Promise<void> {
 		this.log(RepoLogLevel.INFO, `Executing initialization`);
 		
-		// Repository.initialize() does most of the work, so we just need to check result from base class here
+		// Register adapter as a subcomponent, so its state is included in the overall state of the application
+		this.registerSubcomponent(this.adapter);
+		
+		// Repository.initialize() does most of the work, so we mostly just need to check result from base class here
 		if (superResult.isFailure) {
 			this.log(RepoLogLevel.ERROR, `Failed to execute initialization`, superResult.error);
 			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${superResult.error}`);
 		}
 		
-		// If/when needed, add local initialization here
+		// Add any additional initialization logic here, if needed
         
 		this.log(RepoLogLevel.INFO, `Initialization executed successfully`);
         return Promise.resolve();
@@ -127,15 +131,21 @@ export class UserRepository extends ManagedStatefulComponentMixin(Repository<Use
     public async onShutdown(superResult: Result<void>): Promise<void> {
         this.log(RepoLogLevel.INFO, `Executing shutdown`);
 
-		// Repository.shutdown() does most of the work, so we just need to check result from base class here
+		// Unregister adapter as a subcomponent, so its state is no longer included in the overall state of the application
+		this.unregisterSubcomponent(this.adapter); // unregister the adapter as a subcomponent, so its state is no longer included in the overall state of the application
+		
+		// Repository.shutdown() does most of the work, so we mostly just need to check result from base class here
 		if (superResult.isFailure) {
 			this.log(RepoLogLevel.ERROR, `Failed to execute shutdown`, superResult.error);
 			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${superResult.error}`);
 		}
+
+		// Add any additional shutdown logic here, if needed
 		
-		// Clean up subscriptions
+		// Clean up subscriptions (todo: check if this is still needed, as ManagedStatefulComponentMixin should handle this)
 		this.subscriptions.forEach((sub: Subscription) => sub?.unsubscribe());
 		
+		this.log(RepoLogLevel.INFO, `Shutdown executed successfully`);
 		return Promise.resolve();
     }
 
