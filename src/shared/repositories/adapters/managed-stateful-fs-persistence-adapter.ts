@@ -29,8 +29,6 @@ import { ManagedStatefulComponent, ManagedStatefulComponentMixin } from '../../.
  *    ],
  * // rest of module boilerplate
  * ```
-	 * 
- * 
  * 
  */
 export class ManagedStatefulFsPersistenceAdapter<T extends EntityPersistenceDTO<EntityDTO, EntityMetadataDTO>>
@@ -41,8 +39,6 @@ export class ManagedStatefulFsPersistenceAdapter<T extends EntityPersistenceDTO<
 		super(storagePath);
 	}
 
-	public onInitialize(superResult: Result<any>): Promise<void> {
-		return Promise.resolve();
-	}
+	// For now, no need for custom methods or overrides.
 }
 export default ManagedStatefulFsPersistenceAdapter;
