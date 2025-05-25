@@ -26,7 +26,7 @@ import ManagedStatefulFsPersistenceAdapter from "../../shared/repositories/adapt
  * @remark Implements a few method overrides but otherwise relies on the base class for most of its functionality.
  * @remark It applies the {@link ManagedStatefulComponentMixin} mixin as it is a key component whose state needs to be managed.
  * 
- * @todo Consider also applying the {@link StreamLoggableMixin} mixin to streamline logging syntax.
+ * @todo Consider also applying the {@link StreamLoggableMixin} mixin to streamline logging syntax; unless ability to filter logs by repository is needed.
  */
 @Injectable()
 export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO>
