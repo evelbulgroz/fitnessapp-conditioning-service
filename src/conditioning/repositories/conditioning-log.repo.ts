@@ -29,7 +29,7 @@ import ManagedStatefulFsPersistenceAdapter from "../../shared/repositories/adapt
 @Injectable()
 export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO>
 	extends ManagedStatefulComponentMixin(TrainingLogRepo)<ConditioningLog<T,U>, U>
-	 implements ManagedStatefulComponent {
+	implements ManagedStatefulComponent {
 	// TODO: implements OnModuleInit, OnModuleDestroy {
 
 	//---------------------------------------- CONSTRUCTOR --------------------------------------//
