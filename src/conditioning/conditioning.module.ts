@@ -134,8 +134,6 @@ export class ConditioningModule extends StreamLoggableMixin(class {}) implements
 			// Subscribe to component state streams for logging
 			{ streamType: 'componentState$', component: this.repository },
 			{ streamType: 'componentState$', component: this.dataService },
-			{ streamType: 'componentState$', component: this.repository },
-			{ streamType: 'componentState$', component: this.dataService },
 			// ConditioningController is not a managed component, so we don't subscribe to its componentState$ stream
 			
 			// Subscribe to log streams for logging
