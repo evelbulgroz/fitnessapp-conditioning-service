@@ -37,6 +37,7 @@ import { QueryDTO, QueryDTOProps } from '../../../shared/dtos/responses/query.dt
 import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.error';
 import { User, UserDTO, UserPersistenceDTO, UserRepository, UserUpdatedEvent, UserCreatedHandler, UserUpdatedHandler, UserDeletedHandler } from '../../../user';
 import UserContext from '../../../shared/domain/user-context.model';
+import { ShutdownSignal } from '@nestjs/common';
 
 //const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -121,9 +122,20 @@ describe('ConditioningDataService', () => {
 						delete: jest.fn(),
 						fetchAll: jest.fn(),
 						fetchById: jest.fn(),
+						initialize: jest.fn(),
+						isReady: jest.fn(),
+						shutdown: jest.fn(),
 						update: jest.fn(),
 						updates$: logRepoUpdatesSubject.asObservable(),
 						undelete: jest.fn(),
+						logger: {
+							log: jest.fn(),
+							error: jest.fn(),
+							warn: jest.fn(),
+							info: jest.fn(),
+							debug: jest.fn(),
+							verbose: jest.fn(),
+						}
 					}
 				},
 				QueryMapper,
@@ -136,9 +148,20 @@ describe('ConditioningDataService', () => {
 					useValue: {
 						fetchAll: jest.fn(),
 						fetchById: jest.fn(),
+						initialize: jest.fn(),
+						isReady: jest.fn(),
+						shutdown: jest.fn(),
 						update: jest.fn(),
 						updates$: userRepoUpdatesSubject.asObservable(),
 						undelete: jest.fn(),
+						logger: {
+							log: jest.fn(),
+							error: jest.fn(),
+							warn: jest.fn(),
+							info: jest.fn(),
+							debug: jest.fn(),
+							verbose: jest.fn(),
+						}
 					}
 				}
 			],
@@ -148,7 +171,6 @@ describe('ConditioningDataService', () => {
 		aggregatorService = app.get<AggregatorService>(AggregatorService);
 		service = app.get<ConditioningDataService>(ConditioningDataService);
 		logRepo = app.get<ConditioningLogRepository<any, ConditioningLogDTO>>(ConditioningLogRepository);
-		console.debug('ConditioningLogRepository', logRepo);
 		queryMapper = app.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
 		userRepo = app.get<UserRepository>(UserRepository);
 	});
@@ -2584,7 +2606,7 @@ describe('ConditioningDataService', () => {
 				void await service['rollbackLogCreation'](orphanedLogId, undefined, 1, 10); // 1 retry, 10ms wait
 
 				// assert
-				expect(logToStreamSpy).toHaveBeenCalled();
+				expect(logToStreamSpy).toHaveBeenCalled(); // bug: spy on service logger.error() instead
 				expect(logToStreamSpy).toHaveBeenCalledWith("error", expect.stringContaining(`Error rolling back log creation for ${orphanedLogId}`), "test error");
 				
 				// clean up
