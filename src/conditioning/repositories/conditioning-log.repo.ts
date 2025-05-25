@@ -3,7 +3,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { Subscription } from "rxjs";
 import { v4 as uuidv4 } from 'uuid';
 
-import { EntityId, EntityMetadataDTO, RepoLogLevel, PersistenceAdapter, Result } from "@evelbulgroz/ddd-base";
+import { EntityId, EntityMetadataDTO, RepoLogLevel, Result } from "@evelbulgroz/ddd-base";
 import { ManagedStatefulComponent, ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component/";
 import { TrainingLogRepo } from "@evelbulgroz/fitnessapp-base";
 
@@ -25,6 +25,8 @@ import ManagedStatefulFsPersistenceAdapter from "../../shared/repositories/adapt
  * @remark This class is a repository for ConditioningLog entities, and is intended to be injected into other classes, e.g. services.
  * @remark Implements a few method overrides but otherwise relies on the base class for most of its functionality.
  * @remark It applies the {@link ManagedStatefulComponentMixin} mixin as it is a key component whose state needs to be managed.
+ * 
+ * @todo Consider also applying the {@link StreamLoggableMixin} mixin to streamline logging syntax.
  */
 @Injectable()
 export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends ConditioningLogDTO>
