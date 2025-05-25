@@ -231,7 +231,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 
 		// NOTE: Methods implementing the ManagedStatefulComponent interface are documented in the interface itself
 		
-		public readonly componentState$: Observable<ComponentStateInfo> = this. msc_zh7y_stateSubject.asObservable();
+		public readonly componentState$: Observable<ComponentStateInfo> = this.msc_zh7y_stateSubject.asObservable();
 
 		public async getState(): Promise<ComponentStateInfo> {
 			return firstValueFrom(this.componentState$);

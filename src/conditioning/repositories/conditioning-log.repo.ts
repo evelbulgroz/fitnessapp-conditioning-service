@@ -14,6 +14,7 @@ import ConditioningLogDTO from "../dtos/conditioning-log.dto";
 import ConditioningLogPersistenceDTO from "../dtos/conditioning-log-persistence.dto";
 import ConditioningLogUndeletedEvent from "../events/conditioning-log-undeleted.event";
 import ConditioningLogUpdatedEvent from "../events/conditioning-log-updated.event";
+import ManagedStatefulFsPersistenceAdapter from "../../shared/repositories/adapters/managed-stateful-fs-persistence-adapter";
 
 /**
  * Concrete implementation of an injectable ConditioningLogRepository that uses an adapter to interact with a persistence layer.
@@ -40,7 +41,7 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
 	 * @param throttleTime The time to wait before executing the next operation
 	 */
 	public constructor(
-		protected readonly adapter: PersistenceAdapter<ConditioningLogPersistenceDTO<any, EntityMetadataDTO>>,
+		protected readonly adapter: ManagedStatefulFsPersistenceAdapter<ConditioningLogPersistenceDTO<any, EntityMetadataDTO>>,
 		@Inject('REPOSITORY_THROTTLETIME') throttleTime: number, // todo: maybe get this from config
 	) {
 		super(adapter, throttleTime);
@@ -68,13 +69,16 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
     public override async onInitialize(initResult: Result<void>): Promise<void> {
 		this.log(RepoLogLevel.INFO, `Executing initialization`);
 		
-		// Repository.initialize() does most of the work, so we just need to check result from base class here
+		// Register adapter as a subcomponent, so its state is included in the overall state of the application
+		this.registerSubcomponent(this.adapter);
+		
+		// Repository.initialize() does most of the work, so we mostly just need to check result from base class here
 		if (initResult.isFailure) {
 			this.log(RepoLogLevel.ERROR, `Failed to execute initialization`, undefined, initResult.error.toString());
 			throw new Error(`Failed to execute initialization ${this.constructor.name}: ${initResult.error}`);
 		}
-		
-		// If/when needed, add local initialization here
+
+		// Add any additional initialization logic here, if needed
 		
 		this.log(RepoLogLevel.INFO, `Initialization executed successfully`);
         return Promise.resolve();
@@ -94,12 +98,18 @@ export class ConditioningLogRepository<T extends ConditioningLog<T,U>, U extends
     public override async onShutdown(shutdownResult: Result<void>): Promise<void> {
 		this.log(RepoLogLevel.INFO, `Executing shutdown`);
 
-		// Repository.shutdown() does most of the work, so we just need to check result from base class here
+		// Unregister adapter as a subcomponent, so its state is no longer included in the overall state of the application
+		this.unregisterSubcomponent(this.adapter); // unregister the adapter as a subcomponent, so its state is no longer included in the overall state of the application
+		
+		// Repository.shutdown() does most of the work, so we mostly just need to check result from base class here
 		if (shutdownResult.isFailure) {
 			this.log(RepoLogLevel.ERROR, `Failed to execute shutdown`, undefined, shutdownResult.error.toString());
 			throw new Error(`Failed to execute shutdown ${this.constructor.name}: ${shutdownResult.error}`);
 		}
-		
+
+		// Add any additional shutdown logic here, if needed
+
+		this.log(RepoLogLevel.INFO, `Shutdown executed successfully`);		
 		return Promise.resolve();
     }	
 

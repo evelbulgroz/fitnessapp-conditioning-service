@@ -82,10 +82,9 @@ import ConditioningDomainStateManager from './conditioning-domain-state-manager'
 		ConditioningLogUndeletedHandler,
 		ConditioningLogUpdatedHandler,
 		{ // Persistence adapter for file system storage
-			provide: PersistenceAdapter,
+			provide: ManagedStatefulFsPersistenceAdapter,
 			useFactory: (configService: ConfigService) => {
 				const dataDir = configService.get<string>('modules.conditioning.repos.fs.dataDir') ?? 'no-such-dir';
-				//return new FileSystemPersistenceAdapter(dataDir);
 				return new ManagedStatefulFsPersistenceAdapter(dataDir);
 			},
 			inject: [ConfigService],
