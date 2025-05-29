@@ -71,7 +71,7 @@ export interface UserLogsCacheEntry {
  * @todo Use shared cache library when available.
  */
 @Injectable()
-export class ConditioningDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {}))  implements ManagedStatefulComponent {
+export class ConditioningDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements ManagedStatefulComponent {
 	
 	//----------------------------------- PROPERTIES ------------------------------------//
 	

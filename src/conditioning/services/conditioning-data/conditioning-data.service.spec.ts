@@ -2600,18 +2600,18 @@ describe('ConditioningDataService', () => {
 				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
 					return Promise.resolve(Result.fail<void>('test error'));
 				});
-				const logToStreamSpy = jest.spyOn(service, 'logToStream').mockImplementation(() => { }); // do nothing
+				const logSpy = jest.spyOn(service.logger, 'error').mockImplementation(() => { }); // do nothing
 
 				// act
 				void await service['rollbackLogCreation'](orphanedLogId, undefined, 1, 10); // 1 retry, 10ms wait
 
 				// assert
-				expect(logToStreamSpy).toHaveBeenCalled(); // bug: spy on service logger.error() instead
-				expect(logToStreamSpy).toHaveBeenCalledWith("error", expect.stringContaining(`Error rolling back log creation for ${orphanedLogId}`), "test error");
+				expect(logSpy).toHaveBeenCalled(); // bug: spy on service logger.error() instead
+				expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(`Error rolling back log creation for ${orphanedLogId}`), "test error");
 				
 				// clean up
 				logRepoDeleteSpy?.mockRestore();
-				logToStreamSpy?.mockRestore();
+				logSpy?.mockRestore();
 			});
 		});
 
