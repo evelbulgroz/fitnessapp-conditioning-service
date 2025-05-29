@@ -8,7 +8,7 @@ export interface ReadinessCheckResponse {
 	 * Overall health status of the application
 	 * @remarks Terminus uses 'ok' instead of 'up'
 	 */
-	status: 'ok' | 'error';
+	status: 'up' | 'down';
 	
 	/**
 	 * Information about healthy components
