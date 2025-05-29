@@ -46,7 +46,6 @@ export class AppHealthController {
 		private readonly moduleStateHealthIndicator: ModuleStateHealthIndicator,
 	) {}
 
-	// Health check: Returns 200 if healthy, 503 if degraded/unavailable
 	@Get('healthz')
 	@ApiOperation({
 		summary: 'Health check',
