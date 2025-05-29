@@ -14,4 +14,5 @@ export { FilePathExtractorOptions } from './helpers/extractors/file-path-extract
 export { ManageableComponent } from './models/manageable-component.model';
 export { ManagedStatefulComponent } from './models/managed-stateful-component.model';
 export { ManagedStatefulComponentOptions } from './models/managed-stateful-component-options.model';
+export { MSC_PREFIX } from './mixins/managed-stateful-component.mixin';
 export { StatefulComponent } from './models/stateful-component.model';

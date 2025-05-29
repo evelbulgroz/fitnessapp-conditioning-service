@@ -1,14 +1,12 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { DomainStateManager, ManagedStatefulComponentMixin } from '../libraries/managed-stateful-component';
-import { MergedStreamLogger, StreamLoggableMixin } from '../libraries/stream-loggable';
+import { DomainStateManager } from '../libraries/managed-stateful-component';
 
 import AggregationQueryMapper from './mappers/aggregation-query.mapper';
 import AggregatorService from './services/aggregator/aggregator.service';
 import ConditioningController from './controllers/conditioning.controller';
-import ConditioningLog from './domain/conditioning-log.entity';
-import ConditioningLogDTO from './dtos/conditioning-log.dto';
+import ConditioningDomainStateManager from './conditioning-domain-state-manager';
 import ConditioningLogCreatedHandler from './handlers/conditioning-log-created.handler';
 import ConditioningDataService from './services/conditioning-data/conditioning-data.service';
 import ConditioningLogDeletedHandler from './handlers/conditioning-log-deleted.handler';
@@ -18,7 +16,6 @@ import ConditioningLogUpdatedHandler from './handlers/conditioning-log-updated.h
 import LoggingModule from '../logging/logging.module';
 import ManagedStatefulFsPersistenceAdapter from '../shared/repositories/adapters/managed-stateful-fs-persistence-adapter';
 import QueryMapper from './mappers/query.mapper';
-import ConditioningDomainStateManager from './conditioning-domain-state-manager';
 
 /** Main module for components managing and serving conditioning logs.
  * 
@@ -27,27 +24,8 @@ import ConditioningDomainStateManager from './conditioning-domain-state-manager'
  * 
  * Serving conditioning requests is the main purpose of this app. Therefore, this is its core module.
  * 
- * @implements {OnModuleInit} Handles proper initialization sequence of repository and service components.
- * @implements {OnModuleDestroy} Ensures graceful shutdown of all components.
- * 
- * Initialization sequence: Register subcomponents → Initialize self → Initialize subcomponents.
- * Shutdown sequence: Shutdown self and subcomponents → Unregister subcomponents.
- * 
- * @state-management
- * The module implements {@link ManagedStatefulComponentMixin} for advanced state management:
- * - Tracks component state through the standard lifecycle (UNINITIALIZED → INITIALIZING → OK → SHUTTING_DOWN → SHUT_DOWN)
- * - Manages hierarchical state through subcomponent registration (repository and data service)
- * - Provides observable state through componentState$ stream
- * - Automatically aggregates worst-case state from all subcomponents
- * - Ensures ordered initialization and shutdown sequences
- * 
- * @logging
- * Implements {@link StreamLoggableMixin} for structured logging:
- * - Provides contextual logging with component name and state information
- * - Supports multiple log levels (debug, info, warn, error)
- * - Logs important lifecycle events (initialization, state transitions, shutdown)
- * - Integrates with RxJS observable streams for reactive logging
- * @see {@link StreamLoggableMixin} for more details on logging capabilities and the provided strem logger utility.
+ * The module delegates lifecycle management to the {@link ConditioningDomainStateManager}, which
+ * extends {@link ManagedStatefulComponentMixin} to provide hierarchical state management.
  * 
  * @dependency-management
  * Uses NestJS dependency injection for:
@@ -103,45 +81,11 @@ import ConditioningDomainStateManager from './conditioning-domain-state-manager'
 		ConditioningLogUpdatedHandler,
 	],
 })
-export class ConditioningModule extends StreamLoggableMixin(class {}) implements OnModuleInit {
+export class ConditioningModule {
 	
-	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
-
-	constructor(
-		private readonly repository: ConditioningLogRepository<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>,
-		private readonly dataService: ConditioningDataService,
-		private readonly streamLogger: MergedStreamLogger,
-	) {
-		super();		
-	}
-
 	//------------------------------------ LIFECYCLE HOOKS --------------------------------------//
 
-	/** Initializes the module and its components
-	 * 
-	 * This method is called by NestJS during the module's initialization phase. It sets up the logger
-	 * for the module and subscribes to the log streams for logging.
-	 * 
-	 * @returns {Promise<void>} A promise that resolves to void when the module is fully initialized.
-	 * 
-	 * @error-handling During initialization, failures are captured and propagated through the state 
-	 * management system, setting the component and module to FAILED state with detailed error information.
-	 */
-	public async onModuleInit(): Promise<void> {
-		// Subscribe to log streams for logging
-		this.streamLogger.subscribeToStreams([
-			// Subscribe to component state streams for logging
-			{ streamType: 'componentState$', component: this.repository },
-			{ streamType: 'componentState$', component: this.dataService },
-			// ConditioningController is not a managed component, so we don't subscribe to its componentState$ stream
-			
-			// Subscribe to log streams for logging
-			{ streamType: 'repoLog$', component: this.repository },
-			{ streamType: 'log$', component: this.dataService },
-			// ConditioningController: Cannot get a reference to the active instance here, so it subscribes itself
-		]);
-	}
-	// NOTE: No need for onModuleDestroy() here: clean up is handled by the root module
+	// Handled by {@link ConditioningDomainStateManager} and/or the root domain manager.
 
 	//------------------------------------- MANAGEMENT API --------------------------------------//
 

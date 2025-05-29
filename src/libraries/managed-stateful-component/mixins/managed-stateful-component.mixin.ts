@@ -630,7 +630,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 				if (priority === -1) {
 					// Track that we found an unknown componentState$
 					hasUnknownStates = true;
-					//console.warn(`Unknown state encountered: ${state.state}`, state);
+					console.warn(`Unknown state encountered: ${state.state}`, state);
 					continue;
 				}
 				
@@ -789,6 +789,7 @@ export function ManagedStatefulComponentMixin<TParent extends new (...args: any[
 		 */
 		/* @internal */ [`${unshadowPrefix}isValidManagedComponent`](obj: any): boolean {
 			if (!obj) return false; // Null or undefined object
+			// Check if the object has the required properties and methods
 			return (
 				// Check for required properties/methods
 				typeof obj.initialize === 'function' &&
