@@ -2,13 +2,14 @@ import { firstValueFrom, take } from 'rxjs';
 
 import ComponentState from '../models/component-state.enum';
 import DomainStateManager from './domain-state-manager.class';
+import DomainStateManagerOptions from '../models/domain-state-manager-options.model';
 import ManagedStatefulComponentMixin from '../mixins/managed-stateful-component.mixin';
 
 // Create a concrete implementation for testing
 class TestDomainManager extends DomainStateManager {
 	public testValue: string = 'test';
 	
-	constructor(options?: any) {
+	constructor(options?: DomainStateManagerOptions) {
 		super(options);
 	}
 	
@@ -40,8 +41,9 @@ describe('DomainStateManager', () => {
 
 	it('inherits options property', () => {
 		const optionsManager = new TestDomainManager({ virtualPath: 'test.path' });
-		expect(optionsManager['options']).toBeDefined();
-		expect(optionsManager['options']?.virtualPath).toBe('test.path');
+		expect(optionsManager.msc_zh7y_options).toBeDefined();
+		const options = optionsManager.msc_zh7y_options as DomainStateManagerOptions;
+		expect(options?.virtualPath).toBe('test.path');
 	});
 
 	it('inherits componentState$ from ManagedStatefulComponentMixin', () => {
