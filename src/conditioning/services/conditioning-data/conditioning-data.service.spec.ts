@@ -2721,18 +2721,18 @@ describe('ConditioningDataService', () => {
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.fail(error))
 				);
-				const logToStreamSpy = jest.spyOn(service, 'logToStream').mockImplementation(() => { }); // do nothing
+				const logSpy = jest.spyOn(service.logger, 'error').mockImplementation(() => { }); // do nothing
 
 				// act
 				void await service['rollBackUserUpdate'](originalPersistenceDTO, 1, 10); // 1 retry, 10ms wait
 
 				// assert
-				expect(logToStreamSpy).toHaveBeenCalled();
-				expect(logToStreamSpy).toHaveBeenCalledWith("error", expect.stringContaining("Error rolling back user update for testuser"), "Error: test error");
+				expect(logSpy).toHaveBeenCalled();
+				expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Error rolling back user update for testuser"), "Error: test error");
 				
 				// clean up
 				userRepoUpdateSpy?.mockRestore();
-				logToStreamSpy?.mockRestore();
+				logSpy?.mockRestore();
 			});
 		});
 
