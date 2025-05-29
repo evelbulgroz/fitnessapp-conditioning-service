@@ -6,7 +6,7 @@
 export interface ReadinessCheckResponse {
 	/**
 	 * Overall health status of the application
-	 * @remarks Terminus uses 'ok' instead of 'up'
+	 * @remarks Standardized to use up/down consistently
 	 */
 	status: 'up' | 'down';
 	

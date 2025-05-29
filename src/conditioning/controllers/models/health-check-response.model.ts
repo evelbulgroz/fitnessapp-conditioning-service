@@ -8,6 +8,7 @@ import { ComponentStateInfo } from "src/libraries/managed-stateful-component";
 export interface HealthCheckResponse {
 	/**
 	 * Overall health status of the application
+	 * @remarks Standardized to use up/down consistently
 	 */
 	status: 'up' | 'down';
 	

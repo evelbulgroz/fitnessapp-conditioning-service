@@ -12,6 +12,7 @@ import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/stat
 import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
+import HealthCheckResponse from 'src/conditioning/controllers/models/health-check-response.model';
 
 /**
  * Controller for serving health check requests
@@ -53,22 +54,27 @@ export class AppHealthController {
 	})
 	@ApiResponse({ status: 200, description: 'The app is healthy' })
 	async checkHealth(@Res() res: Response) {
-		const { state, reason, updatedOn } = await this.appDomainStateManager.getState(); // returns a snapshot of the current top-level component state, does not recalculate it
+		const stateInfo = await this.appDomainStateManager.getState(); // returns a snapshot of the current top-level component state, does not recalculate it
+		if (!stateInfo) {
+			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
+				status: 'down',
+				error: 'The app state is not available'
+			});
+		}
+		delete stateInfo?.components; // remove components to avoid sending too much data in the response
 
-		const status = state === AppState.OK ? 'up' : 'down';
-		// Prepare the response body with the health status and reason
-		const body = {
+		const status = stateInfo.state === AppState.OK ? 'up' : 'down';
+		const body: HealthCheckResponse = {
 			status,
-			info: {	app: { status, state } },
-			timestamp: updatedOn ? updatedOn.toISOString() : new Date().toISOString(),
+			info: {	app: { status, state: stateInfo } },
+			timestamp: (stateInfo.updatedOn ?? new Date()).toISOString(),
 		};
 		
 		if (status === 'up') {
-			// If the app is healthy, return HTTP 200 with the health status
 			res.status(HttpStatus.OK).send({ body });
 		}
 		else {
-			(body as any).error = {error: reason || 'The app is degraded or unavailable'};
+			body.error = {error: stateInfo.reason || 'The app is degraded or unavailable'};
 			res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ body });
 		}
 	}
@@ -89,10 +95,14 @@ export class AppHealthController {
 				() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB
 				// Add other health indicators here if/when needed
 			]) as HealthCheckResult;
+
+			// TODO: Convert the health check result to a standardized response format
+			// const readinessCheckResponse: ReadinessCheckResponse = { }
 			
 			if (healthCheck.status === 'ok') {
 				return res.status(HttpStatus.OK).send(healthCheck);
-			} else {
+			}
+			else {
 				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send(healthCheck);
 			}
 		} catch (error) {
