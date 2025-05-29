@@ -2802,17 +2802,17 @@ describe('ConditioningDataService', () => {
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
-				const logToStreamSpy = jest.spyOn(service, 'logToStream').mockImplementation(() => { }); // do nothing
+				const logSpy = jest.spyOn(service.logger, 'warn').mockImplementation(() => { }); // do nothing
 				
 				// act
 				void service['toConditioningLogSeries'](logs);
 
 				// assert
-				expect(logToStreamSpy).toHaveBeenCalled();
-				expect(logToStreamSpy).toHaveBeenCalledWith('warn', `Conditioning log ${logWithoutStart.entityId} has no start date, excluding from ConditioningLogSeries.`);
+				expect(logSpy).toHaveBeenCalled();
+				expect(logSpy).toHaveBeenCalledWith(`Conditioning log ${logWithoutStart.entityId} has no start date, excluding from ConditioningLogSeries.`);
 				
 				// clean up
-				logToStreamSpy?.mockRestore();
+				logSpy?.mockRestore();
 			});			
 		});
 	});
