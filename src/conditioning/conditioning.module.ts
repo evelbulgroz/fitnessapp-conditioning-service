@@ -81,8 +81,7 @@ import QueryMapper from './mappers/query.mapper';
 		ConditioningLogUpdatedHandler,
 	],
 })
-export class ConditioningModule {
-	
+export class ConditioningModule {	
 	//------------------------------------ LIFECYCLE HOOKS --------------------------------------//
 
 	// Handled by {@link ConditioningDomainStateManager} and/or the root domain manager.
