@@ -12,7 +12,9 @@ import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/stat
 import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
-import HealthCheckResponse from 'src/conditioning/controllers/models/health-check-response.model';
+import HealthCheckResponse from '../../conditioning/controllers/models/health-check-response.model';
+import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
+import { time } from 'console';
 
 /**
  * Controller for serving health check requests
@@ -88,22 +90,30 @@ export class AppHealthController {
 	@ApiResponse({ status: 503, description: 'Application is not ready' })
 	public async isReady(@Res() res: Response) {
 		try {
+			const now = new Date();
+
 			const healthCheck = await this.healthCheckService.check([ // expects an array of promises
 				() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
 				() => this.disk.checkStorage('storage', { path: path.normalize('D:\\'), thresholdPercent: 0.5 }),
 				() => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150 MB
 				() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB
-				// Add other health indicators here if/when needed
+				// ...add other health indicators here if/when needed
 			]) as HealthCheckResult;
 
-			// TODO: Convert the health check result to a standardized response format
-			// const readinessCheckResponse: ReadinessCheckResponse = { }
-			
-			if (healthCheck.status === 'ok') {
-				return res.status(HttpStatus.OK).send(healthCheck);
+			const status = healthCheck.status === 'ok' ? 'up' : 'down'; // Use 'up'/'down' for consistency with other health checks
+			const body: ReadinessCheckResponse = {				
+				status,
+				info: healthCheck.info ?? {},
+				error: healthCheck.error ?? {},
+				details: healthCheck.details ?? {},
+				timestamp: now.toISOString()
+			}
+
+			if (status === 'up') {
+				return res.status(HttpStatus.OK).send(body);
 			}
 			else {
-				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send(healthCheck);
+				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
 			}
 		} catch (error) {
 			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
@@ -112,7 +122,8 @@ export class AppHealthController {
 				moduleState: {
 					status: 'down',
 					message: 'Error checking module state'
-				}
+				},
+				timestamp: new Date().toISOString()
 			});
 		}
 	}

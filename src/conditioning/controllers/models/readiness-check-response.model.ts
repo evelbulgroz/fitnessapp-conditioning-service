@@ -102,7 +102,12 @@ export interface ReadinessCheckResponse {
 	 */
 	details?: {
 		[key: string]: any;
-	};
+	};	
+	
+	/**
+	 * Timestamp of when the health status was checked
+	 */
+	timestamp: string;
 }
 
 export default ReadinessCheckResponse;
