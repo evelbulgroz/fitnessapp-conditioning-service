@@ -30,7 +30,7 @@ import StartupCheckResponse from 'src/conditioning/controllers/models/startup-ch
  * @remark The health check endpoints are public and do not require authentication, as they are
  *  intended for automated health checks that typically run without authentication.
  * 
- * @todo Move data processing to a service layer, so that the controller only handles HTTP requests and responses (later)
+ * @todo Move data processing to a service layer, so that the controller only handles HTTP requests and responses (next)
  * @todo Consider adding an Http health check to /readinessz that checks the HTTP response time of the app itself (later)
  * @todo Add a status page that shows the health of all services and dependencies (later)
  * @todo Add a /metrics endpoint that returns application metrics in a format suitable for Prometheus (later)
@@ -61,52 +61,13 @@ export class AppHealthController {
 	@Get('healthz')
 	@ApiOperation({
 		summary: 'Health check',
-		description: 'Returns HTTP 200 if the app is healthy, HTTP 503 if degraded/unavailable. Used by load balancers and monitoring tools. Also returns the health status and reason for unavailability in the response body.'
+		description: `Returns HTTP 200 if the app is healthy, HTTP 503 if degraded/unavailable.
+		Used by load balancers and monitoring tools.
+		Also returns the health status and reason for unavailability in the response body.
+		Times out with HTTP 503 after a configurable delay (default 2.5 seconds).`
 	})
 	@ApiResponse({ status: 200, description: 'The app is healthy' })
 	async checkHealth(@Res() res: Response) {
-		// Get the current time for the response timestamp
-		const now = new Date();
-		
-		try{
-			const stateInfo = await this.appDomainStateManager.getState(); // returns a snapshot of the current top-level component state, does not recalculate it
-			if (!stateInfo) {
-				throw new Error('Application state is not available');
-			}
-			
-			delete stateInfo?.components; // remove components to avoid sending too much data in the response
-			const status = stateInfo.state === ComponentState.OK ? 'up' : 'down';
-			
-			const body: HealthCheckResponse = {
-				status,
-				info: {	app: { status, state: stateInfo } },
-				timestamp: (stateInfo.updatedOn ?? now).toISOString(),
-			};
-			
-			if (status === 'up') {
-				res.status(HttpStatus.OK).send(body);
-			}
-			else {
-				body.error = {message: stateInfo.reason || 'The app is degraded or unavailable'};
-				res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
-			}
-		}
-		catch (error) {
-			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
-				status: 'down',
-				error: error.message || 'Error checking app health',
-				timestamp: now.toISOString()
-			});
-		}
-	}
-
-	@Get('healthz_timeout')
-	@ApiOperation({
-		summary: 'Health check',
-		description: 'Returns HTTP 200 if the app is healthy, HTTP 503 if degraded/unavailable. Used by load balancers and monitoring tools. Also returns the health status and reason for unavailability in the response body.'
-	})
-	@ApiResponse({ status: 200, description: 'The app is healthy' })
-	async checkHealth_timeout(@Res() res: Response) {
 		// Get the current time for the response timestamp
 		const now = new Date();
 		
@@ -151,79 +112,29 @@ export class AppHealthController {
 		}
 	}
 
+	@Get('livenessz')
+	@Public()
+	@ApiOperation({
+	summary: 'Liveness probe',
+	description: `Simple probe that returns 200 if the application is running. Used to detect if the process has crashed or deadlocked.`
+	})
+	@ApiResponse({ status: 200, description: 'Application is running' })
+	checkLiveness() {	
+		const body: LivenessCheckResponse = { status: 'up' };
+		return body; // No need for response injection - keep it simple
+	}
+
 	@Get('/readinessz')
 	@ApiOperation({
 		summary: 'Readiness check',
-		description: 'Checks if the application and its dependencies are ready to receive traffic. Returns HTTP 200 if ready, 503 if not ready. Body includes comprehensive ReadinessCheckResponse.'
+		description: `Checks if the application and its dependencies are ready to receive traffic.
+		Returns HTTP 200 if ready, 503 if not ready.
+		Body includes comprehensive ReadinessCheckResponse.
+		Times out with HTTP 503 after a configurable delay (default 5.0 seconds).`
 	})
 	@ApiResponse({ status: 200, description: 'Application is ready.' })
 	@ApiResponse({ status: 503, description: 'Application is not ready.' })
-	public async isReady(@Res() res: Response) {
-		// Get the current time for the response timestamp
-		const now = new Date();
-		
-		try {
-			// Execute all health checks in parallel
-			 // Note: HealthCheckService.check() expects an array of functions that return promises
-			const healthCheck = await this.healthCheckService.check([
-				() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
-				// For now, we check persistence health indirectly via the PersistenceAdapter abstraction in the module state health indicator:
-				  // So no direct database health check(s) here
-				() => this.disk.checkStorage('storage', { path: path.normalize('D:\\'), thresholdPercent: 0.5 }), // 50% free space threshold, todo: get from config
-				() => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150 MB, todo: get from config
-				() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB, todo: get from config
-				// ...add other health indicators here if/when needed
-			]) as HealthCheckResult;
-
-			// Process the health check result to fit the ReadinessCheckResponse format
-			const status = healthCheck.status === 'ok' ? 'up' : 'down';
-			
-			const info = healthCheck.info || {};
-			if (info['module-state']) { // Reduce the info to only include module state
-				info['module-state'] = { status: info['module-state'].status || 'unknown', };
-			}
-			
-			const error = healthCheck.error || {};
-			if (error['module-state']) { // Reduce the error to only include module state
-				error['module-state'] = { 
-					status: error['module-state']?.status || 'unknown', 
-					reason: error['module-state']?.reason || 'Unknown error' 
-				};
-			}
-			
-			const body: ReadinessCheckResponse = {				
-				status,
-				info,
-				error,
-				details: healthCheck.details ?? {},
-				timestamp: now.toISOString()
-			}
-
-			// Return the response based on the overall status, including the body
-			  // Note: The body will contain detailed information about the health of each component
-			if (status === 'up') {
-				return res.status(HttpStatus.OK).send(body);
-			}
-			else {
-				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
-			}
-		} catch (error) {
-			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
-				status: 'down',
-				error: error.message || 'Error checking application readiness',
-				timestamp: now.toISOString()
-			});
-		}
-	}
-
-	@Get('/readinessz_timeout')
-	@ApiOperation({
-		summary: 'Readiness check',
-		description: 'Checks if the application and its dependencies are ready to receive traffic. Returns HTTP 200 if ready, 503 if not ready. Body includes comprehensive ReadinessCheckResponse.'
-	})
-	@ApiResponse({ status: 200, description: 'Application is ready.' })
-	@ApiResponse({ status: 503, description: 'Application is not ready.' })
-	public async isReady_timeout(@Res() res: Response) {		
+	public async isReady(@Res() res: Response) {		
 		const now = new Date();	// Get the current time for the response timestamp
 		try {
 			// Wrap data retrieval in a promise with a timeout
@@ -291,94 +202,20 @@ export class AppHealthController {
 				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
 			}
 		}
-	}		
-	
-	private mapHealthCheckResultToReadinessResponse(healthCheck: HealthCheckResult, now: Date): ReadinessCheckResponse {
-		const status = healthCheck.status === 'ok' ? 'up' : 'down';
-
-		const info = healthCheck.info || {};
-		if (info['module-state']) { // Reduce the info to only include module state
-			info['module-state'] = { status: info['module-state'].status || 'unknown', };
-		}
-
-		const error = healthCheck.error || {};
-		if (error['module-state']) { // Reduce the error to only include module state
-			error['module-state'] = {
-				status: error['module-state']?.status || 'unknown',
-				reason: error['module-state']?.reason || 'Unknown error'
-			};
-		}
-
-		const response: ReadinessCheckResponse = {
-			status,
-			info,
-			error,
-			details: healthCheck.details ?? {},
-			timestamp: now.toISOString()
-		};
-
-		return response;
-	}
-
-	@Get('livenessz')
-	@Public()
-	@ApiOperation({
-	summary: 'Liveness probe',
-	description: 'Simple probe that returns 200 if the application is running. Used to detect if the process has crashed or deadlocked.'
-	})
-	@ApiResponse({ status: 200, description: 'Application is running' })
-	checkLiveness() {	
-		const body: LivenessCheckResponse = { status: 'up' };
-		return body; // No need for response injection - keep it simple
 	}
 
 	@Get('/startupz')
 	@Public()
 	@ApiOperation({
-	summary: 'Startup probe',
-	description: 'Indicates whether the application has completed its startup process. Used by Kubernetes to know when to start running liveness and readiness probes.'
-	})
-	@ApiResponse({ status: 200, description: 'Application startup is complete' })
-	@ApiResponse({ status: 503, description: 'Application is still starting up' })
-	async checkStartup(@Res() res: Response) {
-		// Get the current time for the response timestamp
-		const now = new Date();
-
-		try {		
-			const stateInfo = await this.appDomainStateManager.getState(); // returns a snapshot of the current top-level component state, does not recalculate it
-			if (!stateInfo) {
-				throw new Error('Application state is not available');
-			}
-
-			const isStarted = stateInfo.state === ComponentState.OK || stateInfo.state === ComponentState.DEGRADED;
-			if (isStarted) {
-				return res.status(HttpStatus.OK).send({ status: 'started' });
-			}
-			else {
-				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ 
-					status: 'starting',
-					message: stateInfo.reason || `Application is in ${stateInfo.state} state`
-				});
-			}
-		}
-		catch (error) {
-			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
-				status: 'starting',
-				message: error.message || 'Error checking application startup status',
-				timestamp: now.toISOString()
-			});
-		}
-	}
-
-	@Get('/startupz_timeout')
-	@Public()
-	@ApiOperation({
 		summary: 'Startup probe',
-		description: 'Indicates whether the application has completed its startup process.'
+		description: `Indicates whether the application has completed its startup process.
+		Returns HTTP 200 if the application is fully started, HTTP 503 if it is still starting up.
+		Body includes a StartupCheckResponse with the current status and timestamp.
+		Times out with HTTP 503 after a configurable delay (default 2.5 seconds).`
 	})
 	@ApiResponse({ status: 200, description: 'Application startup is complete' })
 	@ApiResponse({ status: 503, description: 'Application is still starting up' })
-	public async checkStartup_timeout(@Res() res: Response) {
+	public async checkStartup(@Res() res: Response) {
 		const now = new Date();
 		
 		try {
@@ -420,8 +257,36 @@ export class AppHealthController {
 			});
 		}
 	}
+	
+	// TODO: Move this to a service layer, so that the controller only handles HTTP requests and responses (later)
+	private mapHealthCheckResultToReadinessResponse(healthCheck: HealthCheckResult, now: Date): ReadinessCheckResponse {
+		const status = healthCheck.status === 'ok' ? 'up' : 'down';
 
-	/**
+		const info = healthCheck.info || {};
+		if (info['module-state']) { // Reduce the info to only include module state
+			info['module-state'] = { status: info['module-state'].status || 'unknown', };
+		}
+
+		const error = healthCheck.error || {};
+		if (error['module-state']) { // Reduce the error to only include module state
+			error['module-state'] = {
+				status: error['module-state']?.status || 'unknown',
+				reason: error['module-state']?.reason || 'Unknown error'
+			};
+		}
+
+		const response: ReadinessCheckResponse = {
+			status,
+			info,
+			error,
+			details: healthCheck.details ?? {},
+			timestamp: now.toISOString()
+		};
+
+		return response;
+	}
+
+	/*
 	 * Wrap a promise with a timeout
 	 * 
 	 * @param promise The original promise
