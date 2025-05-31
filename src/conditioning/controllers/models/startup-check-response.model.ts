@@ -10,7 +10,12 @@ export interface StartupCheckResponse {
   /**
    * Optional message for status context
    */
-  message?: string;
+  message?: string;  
+	
+	/**
+	 * Timestamp of when the health status was checked
+	 */
+	timestamp: string;
 }
 
 export default StartupCheckResponse;

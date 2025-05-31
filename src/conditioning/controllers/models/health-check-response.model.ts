@@ -39,7 +39,7 @@ export interface HealthCheckResponse {
 		/**
 		 * Error description
 		 */
-		error: string;
+		message: string;
 	};
 	
 	/**

@@ -17,6 +17,7 @@ import ModuleStateHealthIndicator from '../health-indicators/module-state-health
 import Public from '../../infrastructure/decorators/public.decorator';
 import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
+import StartupCheckResponse from 'src/conditioning/controllers/models/startup-check-response.model';
 
 /**
  * Controller for serving (mostly automated) app health check requests
@@ -74,8 +75,8 @@ export class AppHealthController {
 			}
 			
 			delete stateInfo?.components; // remove components to avoid sending too much data in the response
-
 			const status = stateInfo.state === ComponentState.OK ? 'up' : 'down';
+			
 			const body: HealthCheckResponse = {
 				status,
 				info: {	app: { status, state: stateInfo } },
@@ -86,10 +87,61 @@ export class AppHealthController {
 				res.status(HttpStatus.OK).send(body);
 			}
 			else {
-				body.error = {error: stateInfo.reason || 'The app is degraded or unavailable'};
+				body.error = {message: stateInfo.reason || 'The app is degraded or unavailable'};
 				res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
 			}
 		}
+		catch (error) {
+			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
+				status: 'down',
+				error: error.message || 'Error checking app health',
+				timestamp: now.toISOString()
+			});
+		}
+	}
+
+	@Get('healthz_timeout')
+	@ApiOperation({
+		summary: 'Health check',
+		description: 'Returns HTTP 200 if the app is healthy, HTTP 503 if degraded/unavailable. Used by load balancers and monitoring tools. Also returns the health status and reason for unavailability in the response body.'
+	})
+	@ApiResponse({ status: 200, description: 'The app is healthy' })
+	async checkHealth_timeout(@Res() res: Response) {
+		// Get the current time for the response timestamp
+		const now = new Date();
+		
+		try {
+			// Wrap data retrieval in a promise with a timeout
+			  // TODO: Replace resultPromise with call to data service, when available
+			const dataPromise = new Promise<HealthCheckResponse>(async (resolve, reject) => {
+				const stateInfo = await this.appDomainStateManager.getState();
+				if (!stateInfo) {
+					const body = {
+						status: 'down',
+						error: {message: 'Application state is not available'},
+						timestamp: now.toISOString()
+					};
+					reject(body);
+				}
+				delete stateInfo?.components; // remove components to avoid sending too much data in the response
+				const status = stateInfo.state === ComponentState.OK ? 'up' : 'down';
+				const body: HealthCheckResponse = {
+					status,
+					info: {	app: { status, state: stateInfo } },
+					timestamp: (stateInfo.updatedOn ?? now).toISOString(),
+				};
+				resolve(body);
+			});
+			const body = await this.withTimeout<HealthCheckResponse>(dataPromise, 2500); // 2.5 seconds timeout, todo: get from config
+						
+			if (body.status === 'up') {
+				res.status(HttpStatus.OK).send(body);
+			}
+			else {
+				body.error!.message = body.error?.message || 'The app is degraded or unavailable';
+				res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
+			}
+		} 
 		catch (error) {
 			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
 				status: 'down',
@@ -228,37 +280,39 @@ export class AppHealthController {
 		try {
 			// Wrap data retrieval in a promise with a timeout
 			  // TODO: Replace resultPromise with call to data service, when available
-			const resultPromise = new Promise<ComponentStateInfo>(async (resolve, reject) => {
+			const dataPromise = new Promise<StartupCheckResponse>(async (resolve, reject) => {
 				const stateInfo = await this.appDomainStateManager.getState();
 				if (!stateInfo) {
-					reject(new Error('Application state is not available'));
+					const body: StartupCheckResponse = {
+						status: 'starting',
+						message: 'Application state is not available',
+						timestamp: now.toISOString()
+					};
+					reject(body);
 				}
-				resolve(stateInfo);
+
+				const body: StartupCheckResponse = {
+					status: stateInfo.state === ComponentState.OK || stateInfo.state === ComponentState.DEGRADED ? 'started' : 'starting',
+					//message: stateInfo.reason || `Application is in state '${stateInfo.state}'`,
+					timestamp: (stateInfo.updatedOn ?? now).toISOString()
+				};
+				resolve(body);
 			});
-			const result = await this.withTimeout<ComponentStateInfo>(resultPromise, 2500); // 2.5 seconds timeout, todo: get from config
 			
-			// Process results and send response after the timeout-wrapped operation
-			const isStarted = result.state === ComponentState.OK || result.state === ComponentState.DEGRADED;
-			if (isStarted) {
-				return res.status(HttpStatus.OK).send({ status: 'started' });
-			}
-			else {
-				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ 
-					status: 'starting',
-					message: result.reason || `Application is in ${result.state} state`
-				});
-			}
+			const body = await this.withTimeout<StartupCheckResponse>(dataPromise, 2500); // 2.5 seconds timeout, todo: get from config			
+			return res.status(body.status === 'started' ? HttpStatus.OK: HttpStatus.SERVICE_UNAVAILABLE).send(body);
+			
 		} 
 		catch (error) {
 			// Differentiate timeout errors from other errors
 			const isTimeout = error.message?.includes('timed out');
 			
 			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
-			status: 'starting',
-			message: isTimeout 
-				? 'Startup check timed out' 
-				: (error.message || 'Error checking application startup status'),
-			timestamp: now.toISOString()
+				status: 'starting',
+				message: isTimeout 
+					? 'Startup check timed out' 
+					: (error.message || 'Error checking application startup status'),
+				timestamp: now.toISOString()
 			});
 		}
 	}
