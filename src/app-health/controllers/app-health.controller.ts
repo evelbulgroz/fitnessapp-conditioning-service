@@ -10,12 +10,13 @@ import { ComponentState as AppState } from '../../libraries/managed-stateful-com
 import AppDomainStateManager from '../../app-domain-state-manager';
 import AppHealthService from '../services/health/app-health.service';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
+import HeadersInterceptor from '../../infrastructure/interceptors/headers-interceptor';
 import HealthCheckResponse from '../../conditioning/controllers/models/health-check-response.model';
 import LivenessCheckResponse from '../../conditioning/controllers/models/liveliness-check-response.model';
 import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
-import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
+import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 
 /**
  * Controller for serving (mostly automated) app health check requests
@@ -28,16 +29,22 @@ import ReadinessCheckResponse from '../../conditioning/controllers/models/readin
  * @remark The health check endpoints are public and do not require authentication, as they are
  *  intended for automated health checks that typically run without authentication.
  * 
- * @todo Verify that we have comprehensive endpoints meeting common conventions for health checks in Kubernetes and other container orchestration platforms
  * @todo Move data processing to a service layer, so that the controller only handles HTTP requests and responses (later)
- * @todo Consider adding an Http health check to /readninessz that checks the HTTP response time of the app itself (later)
+ * @todo Consider adding an Http health check to /readinessz that checks the HTTP response time of the app itself (later)
  * @todo Add a status page that shows the health of all services and dependencies (later)
+ * @todo Add a /metrics endpoint that returns application metrics in a format suitable for Prometheus (later)
  */
 @ApiTags('health')
 @Controller('health') // version prefix set in main.ts
 @UseInterceptors(
 	new DefaultStatusCodeInterceptor(200),
-	//new HeadersInterceptor({ 'Cache-Control': 'no-cache, no-store, must-revalidate' }) // todo: create and use a headers interceptor to set common headers for all responses
+	new HeadersInterceptor({
+		'Cache-Control': 'no-cache, no-store, must-revalidate',
+		'Pragma': 'no-cache',
+		'Expires': '0',
+		'X-Content-Type-Options': 'nosniff',
+		//'X-Response-Time': `${Date.now() - requestStartTime}ms` // TODO: Would require timing logic
+	})
 )
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })) // whitelisting ignored with primitive types
 export class AppHealthController {
