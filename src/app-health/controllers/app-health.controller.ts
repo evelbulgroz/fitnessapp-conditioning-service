@@ -213,5 +213,79 @@ export class AppHealthController {
 			});
 		}
 	}
+
+	@Get('/startupz_timeout')
+	@Public()
+	@ApiOperation({
+		summary: 'Startup probe',
+		description: 'Indicates whether the application has completed its startup process.'
+	})
+	@ApiResponse({ status: 200, description: 'Application startup is complete' })
+	@ApiResponse({ status: 503, description: 'Application is still starting up' })
+	public async checkStartup_timeout(@Res() res: Response) {
+		const now = new Date();
+		
+		try {
+			// Wrap only the core async operation(s) that might time out
+			const result = await this.withTimeout(async () => {
+				const stateInfo = await this.appDomainStateManager.getState();
+				if (!stateInfo) {
+					throw new Error('Application state is not available');
+				}
+				return stateInfo;
+			}, 2500); // 2.5 second timeout
+			
+			// Process results and send response after the timeout-wrapped operation
+			const isStarted = result.state === AppState.OK || result.state === AppState.DEGRADED;
+			if (isStarted) {
+				return res.status(HttpStatus.OK).send({ status: 'started' });
+			}
+			else {
+				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ 
+					status: 'starting',
+					message: result.reason || `Application is in ${result.state} state`
+				});
+			}
+		} 
+		catch (error) {
+			// Differentiate timeout errors from other errors
+			const isTimeout = error.message?.includes('timed out');
+			
+			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
+			status: 'starting',
+			message: isTimeout 
+				? 'Startup check timed out' 
+				: (error.message || 'Error checking application startup status'),
+			timestamp: now.toISOString()
+			});
+		}
+	}
+
+	/**
+	 * Wraps a promise with a timeout
+	 * 
+	 * @param promise The original promise
+	 * @param timeoutMs Timeout in milliseconds
+	 * 
+	 * @returns A promise that resolves with the original promise's result, or rejects with a timeout error
+	 * 
+	 * @remark This method is used to ensure that the health check operations timeout after a specified duration
+	 * that clients can be configured for.
+	 * 
+	 * @example
+	 * const someAsyncOperation = async () => {
+	 *   // Simulate an async operation
+	 *  return new Promise((resolve) => setTimeout(() => resolve('done'), 3000));
+	 * }
+	 * const result = await this.withTimeout(someAsyncOperation(), 5000);
+	 */
+	private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+		const timeoutPromise = new Promise<never>((_, reject) => {
+			setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs);
+		});
+		
+		return Promise.race([promise, timeoutPromise]) as Promise<T>;
+	}
 }
 export default AppHealthController;
+
