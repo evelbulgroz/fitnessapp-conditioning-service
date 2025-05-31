@@ -98,7 +98,7 @@ export class AppHealthController {
 				() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
 				// For now, we check persistence health indirectly via the PersistenceAdapter abstraction in the module state health indicator:
 				  // So no direct database health check(s) here
-				() => this.disk.checkStorage('storage', { path: path.normalize('D:\\'), thresholdPercent: 0.5 }),
+				() => this.disk.checkStorage('storage', { path: path.normalize('D:\\'), thresholdPercent: 0.5 }), // 50% free space threshold, todo: get from config
 				() => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150 MB, todo: get from config
 				() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB, todo: get from config
 				// ...add other health indicators here if/when needed
