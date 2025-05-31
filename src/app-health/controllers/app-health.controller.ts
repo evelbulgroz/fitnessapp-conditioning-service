@@ -5,7 +5,7 @@ import { Response } from 'express';
 
 import * as path from 'path';
 
-import { ComponentState as AppState } from '../../libraries/managed-stateful-component';
+import { ComponentState, ComponentStateInfo } from '../../libraries/managed-stateful-component';
 
 import AppDomainStateManager from '../../app-domain-state-manager';
 import AppHealthService from '../services/health/app-health.service';
@@ -75,7 +75,7 @@ export class AppHealthController {
 			
 			delete stateInfo?.components; // remove components to avoid sending too much data in the response
 
-			const status = stateInfo.state === AppState.OK ? 'up' : 'down';
+			const status = stateInfo.state === ComponentState.OK ? 'up' : 'down';
 			const body: HealthCheckResponse = {
 				status,
 				info: {	app: { status, state: stateInfo } },
@@ -194,7 +194,7 @@ export class AppHealthController {
 				throw new Error('Application state is not available');
 			}
 
-			const isStarted = stateInfo.state === AppState.OK || stateInfo.state === AppState.DEGRADED;
+			const isStarted = stateInfo.state === ComponentState.OK || stateInfo.state === ComponentState.DEGRADED;
 			if (isStarted) {
 				return res.status(HttpStatus.OK).send({ status: 'started' });
 			}
@@ -226,17 +226,19 @@ export class AppHealthController {
 		const now = new Date();
 		
 		try {
-			// Wrap only the core async operation(s) that might time out
-			const result = await this.withTimeout(async () => {
+			// Wrap data retrieval in a promise with a timeout
+			  // TODO: Replace resultPromise with call to data service, when available
+			const resultPromise = new Promise<ComponentStateInfo>(async (resolve, reject) => {
 				const stateInfo = await this.appDomainStateManager.getState();
 				if (!stateInfo) {
-					throw new Error('Application state is not available');
+					reject(new Error('Application state is not available'));
 				}
-				return stateInfo;
-			}, 2500); // 2.5 second timeout
+				resolve(stateInfo);
+			});
+			const result = await this.withTimeout<ComponentStateInfo>(resultPromise, 2500); // 2.5 seconds timeout, todo: get from config
 			
 			// Process results and send response after the timeout-wrapped operation
-			const isStarted = result.state === AppState.OK || result.state === AppState.DEGRADED;
+			const isStarted = result.state === ComponentState.OK || result.state === ComponentState.DEGRADED;
 			if (isStarted) {
 				return res.status(HttpStatus.OK).send({ status: 'started' });
 			}
@@ -262,7 +264,7 @@ export class AppHealthController {
 	}
 
 	/**
-	 * Wraps a promise with a timeout
+	 * Wrap a promise with a timeout
 	 * 
 	 * @param promise The original promise
 	 * @param timeoutMs Timeout in milliseconds
