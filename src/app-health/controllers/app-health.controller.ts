@@ -83,14 +83,15 @@ export class AppHealthController {
 	@Get('/readinessz')
 	@ApiOperation({
 		summary: 'Readiness check',
-		description: 'Checks if the application and its dependencies are ready to receive traffic. Returns HTTP 200 if ready, 503 if not ready.'
+		description: 'Checks if the application and its dependencies are ready to receive traffic. Returns HTTP 200 if ready, 503 if not ready. Body includes comprehensive ReadinessCheckResponse.'
 	})
-	@ApiResponse({ status: 200, description: 'Application is ready' })
-	@ApiResponse({ status: 503, description: 'Application is not ready' })
+	@ApiResponse({ status: 200, description: 'Application is ready.' })
+	@ApiResponse({ status: 503, description: 'Application is not ready.' })
 	public async isReady(@Res() res: Response) {
+		// Get the current time for the response timestamp
+		const now = new Date();
+		
 		try {
-			const now = new Date();
-
 			// Execute all health checks in parallel
 			 // Note: HealthCheckService.check() expects an array of functions that return promises
 			const healthCheck = await this.healthCheckService.check([
@@ -143,7 +144,7 @@ export class AppHealthController {
 					status: 'down',
 					message: 'Error checking module state'
 				},
-				timestamp: new Date().toISOString()
+				timestamp: now.toISOString()
 			});
 		}
 	}
