@@ -1,18 +1,31 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 /**
- * Response structure for comprehensive health check endpoints like /readinessz
+ * Response structure for comprehensive health check endpoints like /readinessz.
  * 
- * @remark Extended health check including all subsystems and dependencies
+ * @remark Extended health check including all subsystems and dependencies.
+ * @remarks This response structure is designed to provide detailed information about the health of the application, including both healthy and unhealthy components.
+ * @remark Intended for use as an interface but implemented and decorated as a class for Swagger documentation.
+ *  
  */
-export interface ReadinessCheckResponse {
-	/**
-	 * Overall health status of the application
-	 * @remarks Standardized to use up/down consistently
-	 */
+export class ReadinessCheckResponse {
+	@ApiProperty({ 
+		description: 'Overall health status of the application',
+		enum: ['up', 'down'],
+		example: 'up'
+	})
 	status: 'up' | 'down';
 	
-	/**
-	 * Information about healthy components
-	 */
+	@ApiProperty({
+		description: 'Information about healthy components, or empty if no components are healthy',
+		type: Object,
+		example: {
+			'module-state': { status: 'up' },
+			storage: { status: 'up' },
+			memory_heap: { status: 'up' },
+			memory_rss: { status: 'up' }
+		}
+	})
 	info: {
 		/**
 		 * Module state health info (when healthy)
@@ -58,14 +71,16 @@ export interface ReadinessCheckResponse {
 		// .. additional healthy components can be added here as needed
 	};
 	
-	/**
-	 * Information about unhealthy components
-	 * 
-	 * @remark This section provides details about components that are not healthy, including reasons for their unhealthiness
-	 * @remark Each component can have a status of 'down' and an optional reason for the unhealthiness
-	 * @remark Should be populated with an empty object if all components are healthy
-	 * 
-	 */
+	@ApiProperty({
+		description: 'Information about unhealthy components, or empty if all components are healthy',
+		type: Object,
+		example: {
+			'module-state': { status: 'down', reason: 'Module is not running' },
+			storage: { status: 'down', reason: 'Disk full' },
+			memory_heap: { status: 'down', reason: 'Memory leak detected' },
+			memory_rss: { status: 'down', reason: 'Excessive memory usage' }
+		}
+	})
 	error: {
 		/**
 		 * Module state health info (when unhealthy)
@@ -118,18 +133,24 @@ export interface ReadinessCheckResponse {
 		// .. additional unhealthy components can be added here as needed
 	};
 	
-	/**
-	 * Detailed health information about all components
-	 * 
-	 * @remarks The exact data structure of details is not defined here, as it can vary based on the health check implementation
-	 */
+	@ApiProperty({
+		description: 'Detailed health information about all components',
+		type: Object,
+		example: {
+			'module-state': { status: 'up', details: { version: '1.0.0', uptime: '24h' } },
+			storage: { status: 'up', details: { freeSpace: '100GB', totalSpace: '500GB' } },
+			memory_heap: { status: 'up', details: { usedMemory: '200MB', totalMemory: '1GB' } },
+			memory_rss: { status: 'up', details: { usedMemory: '300MB', totalMemory: '1GB' } }
+		}
+	})
 	details?: {
 		[key: string]: any;
 	};	
 	
-	/**
-	 * Timestamp of when the health status was checked, in ISO 8601 format
-	 */
+	@ApiProperty({
+		description: 'Timestamp of the health check in ISO 8601 format',
+		example: '2023-10-01T12:00:00Z'
+	})
 	timestamp: string;
 }
 

@@ -5,7 +5,7 @@ import { Response } from 'express';
 
 import * as path from 'path';
 
-import { ComponentState, ComponentStateInfo } from '../../libraries/managed-stateful-component';
+import { ComponentState } from '../../libraries/managed-stateful-component';
 
 import AppDomainStateManager from '../../app-domain-state-manager';
 import AppHealthService from '../services/health/app-health.service';
@@ -15,9 +15,9 @@ import HealthCheckResponse from '../../conditioning/controllers/models/health-ch
 import LivenessCheckResponse from '../../conditioning/controllers/models/liveliness-check-response.model';
 import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
+import StartupCheckResponse from '../../conditioning/controllers/models/startup-check-response.model';
 import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
-import StartupCheckResponse from 'src/conditioning/controllers/models/startup-check-response.model';
 
 /**
  * Controller for serving (mostly automated) app health check requests
@@ -66,7 +66,16 @@ export class AppHealthController {
 		Also returns the health status and reason for unavailability in the response body.
 		Times out with HTTP 503 after a configurable delay (default 2.5 seconds).`
 	})
-	@ApiResponse({ status: 200, description: 'The app is healthy' })
+	@ApiResponse({ 
+		status: 200, 
+		description: 'The app is healthy',
+		type: HealthCheckResponse
+	})
+	@ApiResponse({ 
+		status: 503, 
+		description: 'The app is degraded or unavailable',
+		type: HealthCheckResponse 
+	})
 	async checkHealth(@Res() res: Response) {
 		// Get the current time for the response timestamp
 		const now = new Date();
@@ -118,7 +127,15 @@ export class AppHealthController {
 	summary: 'Liveness probe',
 	description: `Simple probe that returns 200 if the application is running. Used to detect if the process has crashed or deadlocked.`
 	})
-	@ApiResponse({ status: 200, description: 'Application is running' })
+	@ApiResponse({
+		status: 200,
+		description: 'Application is running',
+		type: LivenessCheckResponse
+	})
+	@ApiResponse({
+		status: 503,
+		description: 'Application is not running'
+	})
 	checkLiveness() {	
 		const body: LivenessCheckResponse = { status: 'up' };
 		return body; // No need for response injection - keep it simple
@@ -132,8 +149,16 @@ export class AppHealthController {
 		Body includes comprehensive ReadinessCheckResponse.
 		Times out with HTTP 503 after a configurable delay (default 5.0 seconds).`
 	})
-	@ApiResponse({ status: 200, description: 'Application is ready.' })
-	@ApiResponse({ status: 503, description: 'Application is not ready.' })
+	@ApiResponse({
+		status: 200,
+		description: 'Application is ready.',
+		type: ReadinessCheckResponse
+	})	
+	@ApiResponse({
+		status: 503,
+		description: 'Application is not ready.',
+		type: ReadinessCheckResponse
+	})
 	public async isReady(@Res() res: Response) {		
 		const now = new Date();	// Get the current time for the response timestamp
 		try {
@@ -213,8 +238,16 @@ export class AppHealthController {
 		Body includes a StartupCheckResponse with the current status and timestamp.
 		Times out with HTTP 503 after a configurable delay (default 2.5 seconds).`
 	})
-	@ApiResponse({ status: 200, description: 'Application startup is complete' })
-	@ApiResponse({ status: 503, description: 'Application is still starting up' })
+	@ApiResponse({
+		status: 200,
+		description: 'Application startup is complete',
+		type: StartupCheckResponse
+	})
+	@ApiResponse({
+		status: 503,
+		description: 'Application is still starting up',
+		type: StartupCheckResponse
+	})
 	public async checkStartup(@Res() res: Response) {
 		const now = new Date();
 		

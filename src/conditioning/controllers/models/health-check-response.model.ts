@@ -1,20 +1,21 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 import { ComponentStateInfo } from "src/libraries/managed-stateful-component";
 
 /**
- * Response structure for basic health check endpoints like /healthz
+ * Response structure for basic health check endpoints like /healthz.
  * 
- * @remark Simple health status response focused on core application state
+ * @remark Simple health status response focused on core application state.
+ * @remark Intended for use as an interface but implemented and decorated as a class for Swagger documentation.
  */
-export interface HealthCheckResponse {
-	/**
-	 * Overall health status of the application
-	 * @remarks Standardized to use up/down consistently
-	 */
+export class HealthCheckResponse {
+	@ApiProperty({ 
+		description: 'Overall health status of the application',
+		enum: ['up', 'down'] 
+	})
 	status: 'up' | 'down';
 	
-	/**
-	 * Information about healthy components
-	 */
+	@ApiProperty({ description: 'Information about healthy components' })
 	info: {
 		/**
 		 * Application core health info
@@ -32,9 +33,7 @@ export interface HealthCheckResponse {
 		};
 	};
 	
-	/**
-	 * Error information (only present when status is 'down')
-	 */
+	@ApiProperty({ description: 'Detailed error information if the health check fails' })
 	error?: {
 		/**
 		 * Error description
@@ -42,9 +41,7 @@ export interface HealthCheckResponse {
 		message: string;
 	};
 	
-	/**
-	 * Timestamp of when the health status was checked
-	 */
+	@ApiProperty({ description: 'Timestamp of the health check in ISO 8601 format' })
 	timestamp: string;
 }
 
