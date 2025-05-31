@@ -112,12 +112,10 @@ export class ModuleStateHealthIndicator {
 	 * @param stateInfo The component state to map.
 	 * @returns A HealthIndicatorResult.
 	 * 
-	 * @todo Pull out of public API once we have a better understanding of where this should reside.
 	 */
-	public mapStateToHealthIndicatorResult(stateInfo: ComponentStateInfo): HealthIndicatorResult {
+	private mapStateToHealthIndicatorResult(stateInfo: ComponentStateInfo): HealthIndicatorResult {
 		// Map top level state to status property
-		const isHealthy = this.isComponentHealthy(stateInfo.state);
-		const status: HealthIndicatorStatus = isHealthy ? 'up' : 'down';
+		const status: HealthIndicatorStatus = this.isComponentHealthy(stateInfo.state) ? 'up' : 'down';
 		
 		// Initialize result structure with required sections
 		const result: any = {
@@ -140,14 +138,14 @@ export class ModuleStateHealthIndicator {
 				status: compStatus,
 				state: component.state,
 				reason: component.reason || '',
-				updatedOn: component.updatedOn.toISOString()
+				timestamp: component.updatedOn.toISOString() // timestamp is the expected name in health indicators
 			};
 			
 			// Add to info or error based on health status
 			if (compIsHealthy) {
-				result.info[component.path] = componentData;
+				result.info[component.path] = {status: componentData.status};
 			} else {
-				result.error[component.path] = componentData;
+				result.error[component.path] = {status: componentData.status, reason: componentData.reason};
 			}
 			
 			// Always add to details

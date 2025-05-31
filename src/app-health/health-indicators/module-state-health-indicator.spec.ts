@@ -49,12 +49,12 @@ describe('ModuleStateHealthIndicator', () => {
 		healthIndicatorService = module.get<HealthIndicatorService>(HealthIndicatorService);
 	});
 
-	it('should be defined', () => {
+	it('can be created', () => {
 		expect(healthIndicator).toBeDefined();
 	});
 
 	describe('isHealthy', () => {
-		it('should return up status when component is in OK state', async () => {
+		it(`returns 'up' status when component is in OK state`, async () => {
 			// Arrange
 			const stateManager = new MockStateManager({
 				name: 'RootComponent',
@@ -72,7 +72,7 @@ describe('ModuleStateHealthIndicator', () => {
 			expect(mockHealthIndicatorService.check().up).toHaveBeenCalled();
 		});
 
-		it('should return up status when component is in DEGRADED state', async () => {
+		it(`returns 'up' status when component is in DEGRADED state`, async () => {
 			// Arrange
 			const stateManager = new MockStateManager({
 				name: 'RootComponent',
@@ -89,7 +89,7 @@ describe('ModuleStateHealthIndicator', () => {
 			expect(mockHealthIndicatorService.check().up).toHaveBeenCalled();
 		});
 
-		it('should return down status when component is in FAILED state', async () => {
+		it(`returns 'down' status when component is in FAILED state`, async () => {
 			// Arrange
 			const stateManager = new MockStateManager({
 				name: 'RootComponent',
@@ -108,7 +108,7 @@ describe('ModuleStateHealthIndicator', () => {
 	});
 
 	describe('mapStateToHealthIndicatorResult', () => {
-		it('should map a simple component state correctly', async () => {
+		it('maps a simple component state correctly', async () => {
 			// Arrange
 			const stateManager = new MockStateManager({
 				name: 'RootComponent',
@@ -129,7 +129,7 @@ describe('ModuleStateHealthIndicator', () => {
 			expect(details['RootComponent'].reason).toBe('Everything is fine');
 		});
 
-		it('should properly categorize components as info or error based on state', async () => {
+		it('categorizes components as info or error based on state', async () => {
 			// Arrange
 			const stateManager = new MockStateManager({
 				name: 'RootComponent',
@@ -166,7 +166,7 @@ describe('ModuleStateHealthIndicator', () => {
 			expect(result['module-state'].info['RootComponent.UnhealthyChild']).toBeUndefined();
 		});
 
-		it('should handle three levels of component hierarchy', async () => {
+		it('handles three levels of component hierarchy', async () => {
 			// Arrange - Create a 3-level deep component hierarchy
 			const now = new Date();
 			const stateManager = new MockStateManager({
@@ -232,7 +232,7 @@ describe('ModuleStateHealthIndicator', () => {
 			expect(result['module-state'].error['RootComponent.Level1Child.Level2UnhealthyChild']).toBeDefined();
 		});
 
-		it('should respect the maximum depth parameter', async () => {
+		it('respects the maximum depth parameter', async () => {
 			// We'll need to access the private flattenComponents method using type assertion
 			// This is a bit of a hack, but it's necessary to test private methods
 			const healthIndicatorAny = healthIndicator as any;
@@ -241,23 +241,23 @@ describe('ModuleStateHealthIndicator', () => {
 			const deepComponent = {
 				name: 'Root',
 				state: ComponentState.OK,
-				updatedOn: new Date(),
+				timestamp: new Date(),
 				components: [{
 					name: 'Level1',
 					state: ComponentState.OK,
-					updatedOn: new Date(),
+					timestamp: new Date(),
 					components: [{
 						name: 'Level2',
 						state: ComponentState.OK,
-						updatedOn: new Date(),
+						timestamp: new Date(),
 						components: [{
 							name: 'Level3',
 							state: ComponentState.OK,
-							updatedOn: new Date(),
+							timestamp: new Date(),
 							components: [{
 								name: 'Level4',
 								state: ComponentState.OK,
-								updatedOn: new Date()
+								timestamp: new Date()
 							}]
 						}]
 					}]
@@ -289,7 +289,7 @@ describe('ModuleStateHealthIndicator', () => {
 	});
 
 	describe('component state evaluation', () => {
-		it('should consider OK and DEGRADED as healthy states', () => {
+		it('considers OK and DEGRADED as healthy states', () => {
 			// Access private method using type assertion
 			const healthIndicatorAny = healthIndicator as any;
 			
@@ -305,7 +305,7 @@ describe('ModuleStateHealthIndicator', () => {
 	});
 
 	describe('result structure', () => {
-		it('should maintain proper result structure with status, info, error, and details', async () => {
+		it('maintains proper result structure with status, info, error, and details', async () => {
 			// Arrange
 			const stateManager = new MockStateManager({
 				name: 'RootComponent',
@@ -317,40 +317,165 @@ describe('ModuleStateHealthIndicator', () => {
 						name: 'FailedComponent',
 						state: ComponentState.FAILED,
 						reason: 'Something went wrong',
-						updatedOn: new Date()
+						updatedOn: new Date(),
+						components: [
+							{
+								name: 'NestedFailedComponent',
+								state: ComponentState.FAILED,
+								reason: 'Nested failure',
+								updatedOn: new Date()
+							},
+							{
+								name: 'NestedOKComponent',
+								state: ComponentState.OK,
+								reason: 'Nested component is fine',
+								updatedOn: new Date()
+							}
+						]
 					},
 					{
 						name: 'OKComponent',
 						state: ComponentState.OK,
 						reason: 'All good',
-						updatedOn: new Date()
+						updatedOn: new Date(),
+						components: [
+							{
+								name: 'NestedFailedComponent',
+								state: ComponentState.FAILED,
+								reason: 'Nested failure',
+								updatedOn: new Date()
+							},
+							{
+								name: 'NestedOKComponent',
+								state: ComponentState.OK,
+								reason: 'Nested component is fine',
+								updatedOn: new Date()
+							}
+						]
 					}
 				]
 			});
 
+			const now = new Date().toISOString();
+			const expectedResult = {
+				'module-state': {
+					status: 'down',
+					// Info section simplified to just status indicators
+					info: {
+						'RootComponent.FailedComponent.NestedOKComponent': { status: 'up' },
+						'RootComponent.OKComponent': { status: 'up' },
+						'RootComponent.OKComponent.NestedOKComponent': { status: 'up' }
+					},
+					// Error section includes status and reason (for troubleshooting)
+					error: {
+						'RootComponent': { 
+							status: 'down', 
+							reason: 'Subcomponent failed'
+						},
+						'RootComponent.FailedComponent': { 
+							status: 'down', 
+							reason: 'Something went wrong'
+						},
+						'RootComponent.FailedComponent.NestedFailedComponent': { 
+							status: 'down', 
+							reason: 'Nested failure'
+						},
+						'RootComponent.OKComponent.NestedFailedComponent': { 
+							status: 'down', 
+							reason: 'Nested failure'
+						}
+					},
+					// Details section preserves all component information
+					details: {
+						'RootComponent': {
+							status: 'down',
+							state: 'FAILED',
+							reason: 'Subcomponent failed',
+							timestamp: now
+						},
+						'RootComponent.FailedComponent': {
+							status: 'down',
+							state: 'FAILED',
+							reason: 'Something went wrong',
+							timestamp: now
+						},
+						'RootComponent.FailedComponent.NestedFailedComponent': {
+							status: 'down',
+							state: 'FAILED',
+							reason: 'Nested failure',
+							timestamp: now
+						},
+						'RootComponent.FailedComponent.NestedOKComponent': {
+							status: 'up',
+							state: 'OK',
+							reason: 'Nested component is fine',
+							timestamp: now
+						},
+						'RootComponent.OKComponent': {
+							status: 'up',
+							state: 'OK',
+							reason: 'All good',
+							timestamp: now
+						},
+						'RootComponent.OKComponent.NestedFailedComponent': {
+							status: 'down',
+							state: 'FAILED',
+							reason: 'Nested failure',
+							timestamp: now
+						},
+						'RootComponent.OKComponent.NestedOKComponent': {
+							status: 'up',
+							state: 'OK',
+							reason: 'Nested component is fine',
+							timestamp: now
+						}
+					}
+				}
+			};
+
 			// Act
 			const result = await healthIndicator.isHealthy(stateManager as any);
+			console.debug(JSON.stringify(result, null, 2)); // For debugging purposes
 			
 			// Assert
+			expect(result).toEqual(expectedResult);
+			
 			// The root result structure should have status, info, error, details
-			expect(result['module-state'].status).toBe('down'); // Down because there's a failed component
+			expect(result['module-state'].status).toBeDefined(); // Down because there's a failed component
 			expect(result['module-state'].info).toBeDefined();
 			expect(result['module-state'].error).toBeDefined();
 			expect(result['module-state'].details).toBeDefined();
 			
-			// Info should contain only healthy components
-			expect(Object.keys(result['module-state'].info).length).toBe(1);
-			expect(result['module-state'].info['RootComponent.OKComponent']).toBeDefined();
+			// Info should contain only healthy components, and only their status
+			expect(Object.keys(result['module-state'].info).length).toBe(3);
+			for (const key of Object.keys(result['module-state'].info)) {
+				const stateInfo = result['module-state'].info[key];
+				expect(stateInfo).toBeDefined();
+				expect(stateInfo.status).toBe('up'); // All should be healthy
+				expect(Object.keys(stateInfo).length).toBe(1); // Should only contain status				
+			}			
 			
-			// Error should contain only unhealthy components
-			expect(Object.keys(result['module-state'].error).length).toBe(2);
-			expect(result['module-state'].error['RootComponent.FailedComponent']).toBeDefined();
+			// Error should contain only unhealthy components, and their status and reason
+			expect(Object.keys(result['module-state'].error).length).toBe(4);
+			for (const key of Object.keys(result['module-state'].error)) {
+				const errorInfo = result['module-state'].error[key];
+				expect(errorInfo).toBeDefined();
+				expect(errorInfo.status).toBe('down'); // All should be unhealthy
+				expect(errorInfo.reason).toBeDefined(); // Should have a reason
+				expect(Object.keys(errorInfo).length).toBe(2); // Should only contain status and reason				
+			}
 			
-			// Details should contain all components
-			expect(Object.keys(result['module-state'].details).length).toBe(3);
-			expect(result['module-state'].details['RootComponent']).toBeDefined();
-			expect(result['module-state'].details['RootComponent.OKComponent']).toBeDefined();
-			expect(result['module-state'].details['RootComponent.FailedComponent']).toBeDefined();
+			// Details should contain all components, with their full state information
+			expect(Object.keys(result['module-state'].details).length).toBe(7); // 7 components in total
+			for (const key of Object.keys(result['module-state'].details)) {
+				const detailInfo = result['module-state'].details[key];
+				expect(detailInfo).toBeDefined();
+				expect(detailInfo.status).toBeDefined();
+				expect(detailInfo.state).toBeDefined();
+				expect(detailInfo.reason).toBeDefined();
+				expect(detailInfo.timestamp).toBeDefined();
+				expect(Object.keys(detailInfo).length).toBe(4); // Should contain status, state, reason, timestamp
+			}
 		});
 	});
 });

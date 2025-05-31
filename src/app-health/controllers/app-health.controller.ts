@@ -1,23 +1,22 @@
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, HttpStatus, Res, UseInterceptors, UsePipes } from '@nestjs/common';
-import { DiskHealthIndicator, HealthCheckResult, HealthCheckService, HttpHealthIndicator, MemoryHealthIndicator } from '@nestjs/terminus';
+import { DiskHealthIndicator, HealthCheckResult, HealthCheckService, MemoryHealthIndicator } from '@nestjs/terminus';
 import { Response } from 'express';
 
 import * as path from 'path';
 
 import AppDomainStateManager from '../../app-domain-state-manager';
 import AppHealthService from '../services/health/app-health.service';
-import { ComponentState as AppState, ComponentStateInfo} from '../../libraries/managed-stateful-component';
+import { ComponentState as AppState } from '../../libraries/managed-stateful-component';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
 import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 import HealthCheckResponse from '../../conditioning/controllers/models/health-check-response.model';
 import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
-import { time } from 'console';
 
 /**
- * Controller for serving health check requests
+ * Controller for serving (mostly automated) app health check requests
  * 
  * @remark This controller is used to check the health of the micoservice, e.g. by load balancers or monitoring tools.
  * @remark Uses 'z' suffix for health check endpoints intended for automated health checks
@@ -27,9 +26,9 @@ import { time } from 'console';
  * @remark The health check endpoints are public and do not require authentication, as they are
  *  intended for automated health checks that typically run without authentication.
  * 
- * @todo Figure out which endpoints should also return richer information, e.g. in JSON format
- * @todo Decide whether to use terminus and combine with own stateful component, or use own stateful component only
- * @todo Make sure we have endpoints meeting common conventions for health checks in Kubernetes and other container orchestration platforms
+ * @todo Verify that we have comprehensive endpoints meeting common conventions for health checks in Kubernetes and other container orchestration platforms
+ * @todo Move data processing to a service layer, so that the controller only handles HTTP requests and responses (later)
+ * @todo Consider adding a hhtp health check to /readninessz that checks the HTTP response time of the app itself (later)
  * @todo Add a status page that shows the health of all services and dependencies (later)
  */
 @ApiTags('health')
@@ -92,23 +91,44 @@ export class AppHealthController {
 		try {
 			const now = new Date();
 
-			const healthCheck = await this.healthCheckService.check([ // expects an array of promises
+			// Execute all health checks in parallel
+			 // Note: HealthCheckService.check() expects an array of functions that return promises
+			const healthCheck = await this.healthCheckService.check([
 				() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
+				// For now, we check persistence health indirectly via the PersistenceAdapter abstraction in the module state health indicator:
+				  // So no direct database health check(s) here
 				() => this.disk.checkStorage('storage', { path: path.normalize('D:\\'), thresholdPercent: 0.5 }),
-				() => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150 MB
-				() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB
+				() => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150 MB, todo: get from config
+				() => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024), // 150 MB, todo: get from config
 				// ...add other health indicators here if/when needed
 			]) as HealthCheckResult;
 
-			const status = healthCheck.status === 'ok' ? 'up' : 'down'; // Use 'up'/'down' for consistency with other health checks
+			// Process the health check result to fit the ReadinessCheckResponse format
+			const status = healthCheck.status === 'ok' ? 'up' : 'down';
+			
+			const info = healthCheck.info || {};
+			if (info['module-state']) { // Reduce the info to only include module state
+				info['module-state'] = { status: info['module-state'].status || 'unknown', };
+			}
+			
+			const error = healthCheck.error || {};
+			if (error['module-state']) { // Reduce the error to only include module state
+				error['module-state'] = { 
+					status: error['module-state']?.status || 'unknown', 
+					reason: error['module-state']?.reason || 'Unknown error' 
+				};
+			}
+			
 			const body: ReadinessCheckResponse = {				
 				status,
-				info: healthCheck.info ?? {},
-				error: healthCheck.error ?? {},
+				info,
+				error,
 				details: healthCheck.details ?? {},
 				timestamp: now.toISOString()
 			}
 
+			// Return the response based on the overall status, including the body
+			  // Note: The body will contain detailed information about the health of each component
 			if (status === 'up') {
 				return res.status(HttpStatus.OK).send(body);
 			}
