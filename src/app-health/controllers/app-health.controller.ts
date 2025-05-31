@@ -112,7 +112,7 @@ export class AppHealthController {
 		
 		try {
 			// Wrap data retrieval in a promise with a timeout
-			  // TODO: Replace resultPromise with call to data service, when available
+			  // TODO: Replace dataPromise with call to data service, when available
 			const dataPromise = new Promise<HealthCheckResponse>(async (resolve, reject) => {
 				const stateInfo = await this.appDomainStateManager.getState();
 				if (!stateInfo) {
@@ -215,7 +215,111 @@ export class AppHealthController {
 			});
 		}
 	}
+
+	@Get('/readinessz_timeout')
+	@ApiOperation({
+		summary: 'Readiness check',
+		description: 'Checks if the application and its dependencies are ready to receive traffic. Returns HTTP 200 if ready, 503 if not ready. Body includes comprehensive ReadinessCheckResponse.'
+	})
+	@ApiResponse({ status: 200, description: 'Application is ready.' })
+	@ApiResponse({ status: 503, description: 'Application is not ready.' })
+	public async isReady_timeout(@Res() res: Response) {		
+		const now = new Date();	// Get the current time for the response timestamp
+		try {
+			// Wrap data retrieval in a promise with a timeout
+			  // TODO: Replace dataPromise with call to data service, when available
+			const dataPromise = new Promise<ReadinessCheckResponse>(async (resolve, reject) => {
+				// Execute all health checks in parallel
+				// Note: Throws an error if any of the checks fail, hence the need for additional try/catch
+				let healthCheck: HealthCheckResult = {} as HealthCheckResult; // Initialize to avoid TS error
+				try {
+					healthCheck = await this.healthCheckService.check([ // expects an array of functions that return promises
+						() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
+						// For now, we check persistence health indirectly via the PersistenceAdapter abstraction in the module state health indicator:
+						// So no direct database health check(s) here
+						() => this.disk.checkStorage('storage', { path: path.normalize('D:\\'), thresholdPercent: 0.9 }), // 90% free space threshold, todo: get from config
+						() => this.memory.checkHeap('memory_heap', 10 * 150 * 1024 * 1024), // 1500 MB, todo: get from config
+						() => this.memory.checkRSS('memory_rss', 10* 150 * 1024 * 1024), // 1500 MB, todo: get from config
+						// ...add other health indicators here if/when needed
+					]) as HealthCheckResult;
+				}
+				catch (healthCheckError) {
+					const healthCheck: HealthCheckResult = healthCheckError?.response; // check() throws a HealthCheckResult as the value of the response property of an object literal (very poorly documented)
+					const body: ReadinessCheckResponse = {
+						status: 'down',
+						info: {},
+						error: healthCheck?.error ?? { message: 'Error checking application readiness' },
+						timestamp: now.toISOString()
+					};
+					reject(healthCheck);
+				}
+
+				const body: ReadinessCheckResponse = this.mapHealthCheckResultToReadinessResponse(healthCheck, now);
+				resolve(body);				
+			});
+			const body = await this.withTimeout<ReadinessCheckResponse>(dataPromise, 5000); // 5 seconds timeout, todo: get from config
+			return res.status(body.status === 'up'? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE).send(body);
+		}
+		catch (error) {
+			let body: ReadinessCheckResponse;
+			const isTimeout = error.message?.includes('timed out');			
+			if (isTimeout) {
+				body = {
+					status: 'down',
+					info: {},
+					error: {message: 'Readiness check timed out'},
+					timestamp: now.toISOString()
+				};
+			}
+			else {
+				const isHealthCheckResult = Object.keys(error).reduce((acc, key) => {
+					acc = (['status', 'info', 'error', 'details', 'timestamp'].includes(key)) ? true : acc;
+					return acc;
+				}, false);
+				
+				if (isHealthCheckResult) {
+					body = this.mapHealthCheckResultToReadinessResponse(error as HealthCheckResult, now);
+				}
+				else {
+					body = {
+						status: 'down',
+						info: {},
+						error: { message: error.message || 'Error checking application readiness' },
+						timestamp: now.toISOString()
+					};
+				}
+				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
+			}
+		}
+	}		
 	
+	private mapHealthCheckResultToReadinessResponse(healthCheck: HealthCheckResult, now: Date): ReadinessCheckResponse {
+		const status = healthCheck.status === 'ok' ? 'up' : 'down';
+
+		const info = healthCheck.info || {};
+		if (info['module-state']) { // Reduce the info to only include module state
+			info['module-state'] = { status: info['module-state'].status || 'unknown', };
+		}
+
+		const error = healthCheck.error || {};
+		if (error['module-state']) { // Reduce the error to only include module state
+			error['module-state'] = {
+				status: error['module-state']?.status || 'unknown',
+				reason: error['module-state']?.reason || 'Unknown error'
+			};
+		}
+
+		const response: ReadinessCheckResponse = {
+			status,
+			info,
+			error,
+			details: healthCheck.details ?? {},
+			timestamp: now.toISOString()
+		};
+
+		return response;
+	}
+
 	@Get('livenessz')
 	@Public()
 	@ApiOperation({
@@ -279,7 +383,7 @@ export class AppHealthController {
 		
 		try {
 			// Wrap data retrieval in a promise with a timeout
-			  // TODO: Replace resultPromise with call to data service, when available
+			  // TODO: Replace dataPromise with call to data service, when available
 			const dataPromise = new Promise<StartupCheckResponse>(async (resolve, reject) => {
 				const stateInfo = await this.appDomainStateManager.getState();
 				if (!stateInfo) {
