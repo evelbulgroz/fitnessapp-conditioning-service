@@ -5,14 +5,16 @@ import { Response } from 'express';
 
 import * as path from 'path';
 
+import { ComponentState as AppState } from '../../libraries/managed-stateful-component';
+
 import AppDomainStateManager from '../../app-domain-state-manager';
 import AppHealthService from '../services/health/app-health.service';
-import { ComponentState as AppState } from '../../libraries/managed-stateful-component';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
+import HealthCheckResponse from '../../conditioning/controllers/models/health-check-response.model';
+import LivenessCheckResponse from '../../conditioning/controllers/models/liveliness-check-response.model';
 import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
-import HealthCheckResponse from '../../conditioning/controllers/models/health-check-response.model';
 import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
 
 /**
@@ -28,14 +30,14 @@ import ReadinessCheckResponse from '../../conditioning/controllers/models/readin
  * 
  * @todo Verify that we have comprehensive endpoints meeting common conventions for health checks in Kubernetes and other container orchestration platforms
  * @todo Move data processing to a service layer, so that the controller only handles HTTP requests and responses (later)
- * @todo Consider adding a hhtp health check to /readninessz that checks the HTTP response time of the app itself (later)
+ * @todo Consider adding an Http health check to /readninessz that checks the HTTP response time of the app itself (later)
  * @todo Add a status page that shows the health of all services and dependencies (later)
  */
 @ApiTags('health')
 @Controller('health') // version prefix set in main.ts
 @UseInterceptors(
 	new DefaultStatusCodeInterceptor(200),
-	//new HeadersInterceptor({ 'Cache-Control': 'no-cache, no-store, must-revalidate' })
+	//new HeadersInterceptor({ 'Cache-Control': 'no-cache, no-store, must-revalidate' }) // todo: create and use a headers interceptor to set common headers for all responses
 )
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })) // whitelisting ignored with primitive types
 export class AppHealthController {
@@ -55,28 +57,38 @@ export class AppHealthController {
 	})
 	@ApiResponse({ status: 200, description: 'The app is healthy' })
 	async checkHealth(@Res() res: Response) {
-		const stateInfo = await this.appDomainStateManager.getState(); // returns a snapshot of the current top-level component state, does not recalculate it
-		if (!stateInfo) {
+		// Get the current time for the response timestamp
+		const now = new Date();
+		
+		try{
+			const stateInfo = await this.appDomainStateManager.getState(); // returns a snapshot of the current top-level component state, does not recalculate it
+			if (!stateInfo) {
+				throw new Error('Application state is not available');
+			}
+			
+			delete stateInfo?.components; // remove components to avoid sending too much data in the response
+
+			const status = stateInfo.state === AppState.OK ? 'up' : 'down';
+			const body: HealthCheckResponse = {
+				status,
+				info: {	app: { status, state: stateInfo } },
+				timestamp: (stateInfo.updatedOn ?? now).toISOString(),
+			};
+			
+			if (status === 'up') {
+				res.status(HttpStatus.OK).send(body);
+			}
+			else {
+				body.error = {error: stateInfo.reason || 'The app is degraded or unavailable'};
+				res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
+			}
+		}
+		catch (error) {
 			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
 				status: 'down',
-				error: 'The app state is not available'
+				error: error.message || 'Error checking app health',
+				timestamp: now.toISOString()
 			});
-		}
-		delete stateInfo?.components; // remove components to avoid sending too much data in the response
-
-		const status = stateInfo.state === AppState.OK ? 'up' : 'down';
-		const body: HealthCheckResponse = {
-			status,
-			info: {	app: { status, state: stateInfo } },
-			timestamp: (stateInfo.updatedOn ?? new Date()).toISOString(),
-		};
-		
-		if (status === 'up') {
-			res.status(HttpStatus.OK).send({ body });
-		}
-		else {
-			body.error = {error: stateInfo.reason || 'The app is degraded or unavailable'};
-			res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ body });
 		}
 	}
 
@@ -139,11 +151,7 @@ export class AppHealthController {
 		} catch (error) {
 			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
 				status: 'down',
-				error: error.message,
-				moduleState: {
-					status: 'down',
-					message: 'Error checking module state'
-				},
+				error: error.message || 'Error checking application readiness',
 				timestamp: now.toISOString()
 			});
 		}
@@ -157,7 +165,8 @@ export class AppHealthController {
 	})
 	@ApiResponse({ status: 200, description: 'Application is running' })
 	checkLiveness() {	
-		return { status: 'ok' }; // No need for response injection - keep it simple
+		const body: LivenessCheckResponse = { status: 'up' };
+		return body; // No need for response injection - keep it simple
 	}
 
 	@Get('/startupz')
@@ -169,14 +178,31 @@ export class AppHealthController {
 	@ApiResponse({ status: 200, description: 'Application startup is complete' })
 	@ApiResponse({ status: 503, description: 'Application is still starting up' })
 	async checkStartup(@Res() res: Response) {
-		const isStarted = await (this.appHealthService as any).hasCompletedStartup(); // todo: refactor to use a proper method
-		if (isStarted) {
-			return res.status(HttpStatus.OK).send({ status: 'started' });
+		// Get the current time for the response timestamp
+		const now = new Date();
+
+		try {		
+			const stateInfo = await this.appDomainStateManager.getState(); // returns a snapshot of the current top-level component state, does not recalculate it
+			if (!stateInfo) {
+				throw new Error('Application state is not available');
+			}
+
+			const isStarted = stateInfo.state === AppState.OK || stateInfo.state === AppState.DEGRADED;
+			if (isStarted) {
+				return res.status(HttpStatus.OK).send({ status: 'started' });
+			}
+			else {
+				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ 
+					status: 'starting',
+					message: stateInfo.reason || `Application is in ${stateInfo.state} state`
+				});
+			}
 		}
-		else {
-			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({ 
+		catch (error) {
+			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
 				status: 'starting',
-				message: 'Application is still initializing'
+				message: error.message || 'Error checking application startup status',
+				timestamp: now.toISOString()
 			});
 		}
 	}

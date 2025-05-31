@@ -5,7 +5,7 @@ export interface LivenessCheckResponse {
   /**
    * Simple status indicator
    */
-  status: 'ok';
+  status: 'up';
 }
 
 export default LivenessCheckResponse;
