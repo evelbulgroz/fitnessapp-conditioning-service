@@ -9,10 +9,11 @@ import AppStateInfo from '../../models/app-state-info.model';
 
 /** This service is used to manage the application state and health check status.
  * @remark It keeps the application's current state in memory and provides methods to set and get the state.
- * @remark It is used by the health check controller to determine if the application is lively, and/or healthy, and ready to serve requests.
+ * @remark It is used by the health check controller to provide data for all health check endpoints (/healthz, /livenessz, /readinessz, /startupz).
  * @remark It is also used to manage the application state during initialization and shutdown.
- * @todo Refactor this to use Terminus, as suggested by ChatGPT, to provide a more robust health check implementation.
- * @todo Add a status page that shows the health of all services and dependencies
+ * @todo Retire existing implementation, as it no longer fits the requirements of the health check controller.
+ * @todo Add methods to support each health check endpoint (/healthz, /livenessz, /readinessz, /startupz), moving over the logic from the health check controller.
+ * @todo Later, revisit need to directly manipulate state, e.g. during initialization in app module
  */
 @Injectable()
 export class AppHealthService {
@@ -86,50 +87,3 @@ export class AppHealthService {
 }
 
 export default AppHealthService;
-
-/* ALTERNATIVE IMPLEMENTATION
-@Injectable()
-export class AppHealthService {
-  private readonly moduleRegistry = new Map<string, ManagedStatefulComponent>();
-  
-  constructor(private readonly logger: Logger) {}
-
-  registerModule(name: string, module: ManagedStatefulComponent): void {
-    this.moduleRegistry.set(name, module);
-  }
-
-  async getSystemHealth(): Promise<SystemHealthStatus> {
-    const moduleStatuses = await Promise.all(
-      Array.from(this.moduleRegistry.entries()).map(async ([name, module]) => {
-        // For modules with enhanced health reporting
-        if ('getAggregateHealth' in module) {
-          return await (module as any).getAggregateHealth();
-        }
-        // For basic modules
-        return {
-          moduleName: name,
-          moduleState: module.getState(),
-          components: [],
-          isHealthy: module.getState().state === ComponentState.OK
-        };
-      })
-    );
-
-    return {
-      systemState: this.determineSystemState(moduleStatuses),
-      modules: moduleStatuses,
-      timestamp: new Date()
-    };
-  }
-
-  private determineSystemState(moduleStatuses: ModuleHealthStatus[]): SystemState {
-    const allOk = moduleStatuses.every(m => m.isHealthy);
-    const anyFailed = moduleStatuses.some(m => 
-      m.moduleState.state === ComponentState.FAILED);
-    
-    if (anyFailed) return SystemState.DEGRADED;
-    if (allOk) return SystemState.HEALTHY;
-    return SystemState.UNHEALTHY;
-  }
-}
-*/
