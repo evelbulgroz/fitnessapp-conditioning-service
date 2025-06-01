@@ -159,7 +159,7 @@ export class AppHealthController {
 		description: 'Application is not ready.',
 		type: ReadinessCheckResponse
 	})
-	public async isReady(@Res() res: Response) {		
+	public async checkReadiness(@Res() res: Response) {		
 		const now = new Date();	// Get the current time for the response timestamp
 		try {
 			// Wrap data retrieval in a promise with a timeout
