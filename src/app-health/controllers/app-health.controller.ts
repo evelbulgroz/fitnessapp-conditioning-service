@@ -8,7 +8,6 @@ import * as path from 'path';
 
 import { ComponentState } from '../../libraries/managed-stateful-component';
 
-import { AppConfig, ServiceConfig } from '../../shared/domain/config-options.model';
 import AppDomainStateManager from '../../app-domain-state-manager';
 import AppHealthService from '../services/health/app-health.service';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
@@ -17,10 +16,10 @@ import HealthCheckResponse from '../../conditioning/controllers/models/health-ch
 import LivenessCheckResponse from '../../conditioning/controllers/models/liveliness-check-response.model';
 import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
+import { ServiceConfig } from '../../shared/domain/config-options.model';
 import StartupCheckResponse from '../../conditioning/controllers/models/startup-check-response.model';
 import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
-import { get } from 'http';
 
 /**
  * Controller for serving (mostly automated) app health check requests
@@ -64,6 +63,7 @@ export class AppHealthController {
 	) {}
 
 	@Get('healthz')
+	@Public()
 	@ApiOperation({
 		summary: 'Health check',
 		description: `Returns HTTP 200 if the app is healthy, HTTP 503 if degraded/unavailable.
@@ -147,6 +147,7 @@ export class AppHealthController {
 	}
 
 	@Get('/readinessz')
+	@Public()
 	@ApiOperation({
 		summary: 'Readiness check',
 		description: `Checks if the application and its dependencies are ready to receive traffic.
@@ -304,6 +305,7 @@ export class AppHealthController {
 
 	// TODO: Move this to a service layer, so that the controller only handles HTTP requests and responses (next)
 	private getServiceURL(serviceName: string, config: { [key: string]: ServiceConfig }): string {
+		// As per architecture notebook, ping checks should use call the service's liveness(z) endpoint
 		const baseURL = config[serviceName]?.baseURL?.href || `${serviceName}-base-url-not-configured`;
 		const path = config[serviceName]?.endpoints?.liveness?.path || `/liveness-path-not-configured`;
 		return `${baseURL}${path}`;
