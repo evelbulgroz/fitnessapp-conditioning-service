@@ -28,6 +28,7 @@ export interface ConfigOptions {
 				}
 			}
 		},
+		health: HealthConfig,
 		user: {
 			repos: {
 				fs: {
@@ -80,6 +81,35 @@ export interface DefaultConfig {
 	},
 	/** Default retry configuration for microservice endpoints */
 	retry: RetryConfig;
+}
+
+export interface HealthConfig {
+	/** Storage configuration for health checks */
+	storage: {
+		/** Directory where health data is stored */
+		dataDir: string;
+		/** Maximum storage limit for health data in bytes (% of available storage expressed in decimal) */
+		maxStorageLimit: number,
+		/** Maximum size of the health data heap in bytes */
+	},
+	/** Memory configuration for health checks */
+	memory: {
+		maxHeapSize: number,
+		/** Maximum size of the RSS (resident set size) in bytes */
+		maxRSSsize: number,
+		/** Timeouts for health checks */
+	},
+	/** Timeouts for health checks */
+	timeouts: {
+		/** Timeout for /healthz data processing in ms */
+		healthz: number;
+		/** Timeout for /livenessz data processing in ms */
+		livenessz: number;
+		/** Timeout for /readinessz data processing in ms */
+		readinessz: number;
+		/** Timeout for /startupz data processing in ms */
+		startupz: number;
+	}
 }
 
 export interface LogConfig {

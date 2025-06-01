@@ -45,6 +45,22 @@ export default () => (<ConfigOptions>{
 				}
 			}
 		},
+		health: {
+			storage: {
+				dataDir: path.join('D:\\'),
+				maxStorageLimit: 0.9, // 90% of available storage
+			},
+			memory: {
+				maxHeapSize: 100 * 15 * 1024 * 1024, // 1500 MB
+				maxRSSsize: 100 * 15 * 1024 * 1024, // 1500 MB
+			},
+			timeouts: {
+				healthz: 2500, // 2.5 seconds
+				livenessz: 1000, // 1 second
+				readinessz: 5000, // 5 seconds
+				startupz: 2500, // 2.5 seconds
+			}
+		},
 		user: {
 			repos: {
 				fs: {

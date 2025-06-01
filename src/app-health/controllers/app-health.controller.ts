@@ -16,7 +16,7 @@ import HealthCheckResponse from '../../conditioning/controllers/models/health-ch
 import LivenessCheckResponse from '../../conditioning/controllers/models/liveliness-check-response.model';
 import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
-import { ServiceConfig } from '../../shared/domain/config-options.model';
+import { HealthConfig, ServiceConfig } from '../../shared/domain/config-options.model';
 import StartupCheckResponse from '../../conditioning/controllers/models/startup-check-response.model';
 import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
@@ -107,7 +107,7 @@ export class AppHealthController {
 				};
 				resolve(body);
 			});
-			const body = await this.withTimeout<HealthCheckResponse>(dataPromise, 2500); // 2.5 seconds timeout, todo: get from config
+			const body = await this.withTimeout<HealthCheckResponse>(dataPromise, this.getHealthConfig().timeouts.healthz);
 						
 			if (body.status === 'up') {
 				res.status(HttpStatus.OK).send(body);
@@ -175,13 +175,14 @@ export class AppHealthController {
 				// Note: Throws an error if any of the checks fail, hence the need for additional try/catch
 				let healthCheck: HealthCheckResult = {} as HealthCheckResult; // Initialize to avoid TS error
 				try {
+					const healthConfig: HealthConfig = this.getHealthConfig();
 					const servicesConfig = this.config.get<{ [key: string]: ServiceConfig }>('services') || {};
-						healthCheck = await this.healthCheckService.check([ // expects an array of functions that return promises
+					healthCheck = await this.healthCheckService.check([ // expects an array of functions that return promises
 						// Internal checks
-						() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager), // Includes persistence checks via the Repository abstraction
-						() => this.disk.checkStorage('storage', { path: path.normalize('D:\\'), thresholdPercent: 0.9 }), // 90% space usage limit, todo: get from config
-						() => this.memory.checkHeap('memory_heap', 10 * 150 * 1024 * 1024), // 1500 MB, todo: get from config
-						() => this.memory.checkRSS('memory_rss', 10* 150 * 1024 * 1024), // 1500 MB, todo: get from config
+						() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager), // Includes persistence checks via the repo PersistenceAdapter abstraction
+						() => this.disk.checkStorage('storage', { path: path.normalize(healthConfig.storage.dataDir), thresholdPercent: healthConfig.storage.maxStorageLimit }),
+						() => this.memory.checkHeap('memory_heap', healthConfig.memory.maxHeapSize),
+						() => this.memory.checkRSS('memory_rss', healthConfig.memory.maxRSSsize),
 						
 						// External checks
 						() => this.http.pingCheck('fitnessapp-registry-service', this.getServiceURL('fitnessapp-registry-service', servicesConfig)), // Check the service registry
@@ -205,7 +206,7 @@ export class AppHealthController {
 				const body: ReadinessCheckResponse = this.mapHealthCheckResultToReadinessResponse(healthCheck, now);
 				resolve(body);				
 			});
-			const body = await this.withTimeout<ReadinessCheckResponse>(dataPromise, 5000); // 5 seconds timeout, todo: get from config
+			const body = await this.withTimeout<ReadinessCheckResponse>(dataPromise, this.getHealthConfig().timeouts.readinessz);
 			return res.status(body.status === 'up'? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE).send(body);
 		}
 		catch (error) {
@@ -285,7 +286,7 @@ export class AppHealthController {
 				resolve(body);
 			});
 			
-			const body = await this.withTimeout<StartupCheckResponse>(dataPromise, 2500); // 2.5 seconds timeout, todo: get from config			
+			const body = await this.withTimeout<StartupCheckResponse>(dataPromise, this.getHealthConfig().timeouts.startupz);
 			return res.status(body.status === 'started' ? HttpStatus.OK: HttpStatus.SERVICE_UNAVAILABLE).send(body);
 			
 		} 
@@ -301,6 +302,50 @@ export class AppHealthController {
 				timestamp: now.toISOString()
 			});
 		}
+	}
+
+	// TODO: Move this to a service layer, so that the controller only handles HTTP requests and responses (next)
+	private getHealthConfig(): HealthConfig {
+		// Helper function to merge two simple configuration objects.
+		  // This is a recursive merge that handles nested objects and primitive values, but not arrays or other complex types.
+		  // Own implementation to avoid dependency on lodash or similar libraries.
+		function MergeConfig(target: Record<string,any>, source: Record<string,any>): Record<string,any> {
+			if (!source) return target;
+			
+			const result = { ...target };
+			
+			for (const key in source) {
+				if (source[key] instanceof Object && key in target) {
+					result[key] = this.MergeConfig(target[key], source[key]);
+				}
+				else {
+					result[key] = source[key];
+				}
+			}  
+			return result;
+		}
+
+		// Merge the default health configuration with the retrieved configuration (if any), prioritizing the retrieved configuration.
+		const defaultConfig: HealthConfig = {
+			storage: {
+				dataDir: path.join('D:\\'), // Default data directory
+				maxStorageLimit: 0.9, // 90% of available storage
+			},
+			memory: {
+				maxHeapSize: 10 * 150 * 1024 * 1024, // 1500 MB
+				maxRSSsize: 10 * 150 * 1024 * 1024, // 1500 MB
+			},
+			timeouts: {
+				healthz: 2500, // 2.5 seconds
+				livenessz: 1000, // 1 second
+				readinessz: 5000, // 5 seconds
+				startupz: 2500 // 2.5 seconds
+			}
+		};
+		const retrievedConfig: HealthConfig = this.config.get<HealthConfig>('health') || {} as unknown as HealthConfig;		
+		const mergedConfig = MergeConfig(defaultConfig, retrievedConfig) as HealthConfig;
+		
+		return mergedConfig;
 	}
 
 	// TODO: Move this to a service layer, so that the controller only handles HTTP requests and responses (next)
