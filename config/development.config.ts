@@ -107,7 +107,7 @@ export default () => (<ConfigOptions>{
 			}
 		},
 		'fitnessapp-user-service': {
-			baseURL: new URL('http://localhost:3000/registry/api/v1'),
+			baseURL: new URL('http://localhost:3020/registry/api/v1'),
 			endpoints: {
 				fetchUser: {
 					path: '/bootstrap',

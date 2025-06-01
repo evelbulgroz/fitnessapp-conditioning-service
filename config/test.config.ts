@@ -68,6 +68,10 @@ export default async () => {
 			'fitnessapp-authentication-service': {
 				baseURL: new URL('http://localhost:3010/auth/api/v1'),
 				endpoints: {
+					liveness: {
+						path: '/health/livenessz',
+						method: 'GET'
+					},
 					serviceRefresh: {
 						path: '/service/refresh',
 						method: 'POST'
@@ -93,6 +97,10 @@ export default async () => {
 						path: '/deregister',
 						method: 'POST'
 					},
+					liveness: {
+						path: '/health/livenessz',
+						method: 'GET'
+					},
 					locate: {
 						path: '/locate',
 						method: 'POST'
@@ -106,6 +114,19 @@ export default async () => {
 			'conditioningservice' : {
 				baseURL: new URL('http://localhost:3020/conditionings'),			
 			},
-		}
+		},
+		'fitnessapp-user-service': {
+			baseURL: new URL('http://localhost:3020/registry/api/v1'),
+			endpoints: {
+				fetchUser: {
+					path: '/bootstrap',
+					method: 'GET'
+				},
+				liveness: {
+					path: '/health/livenessz',
+					method: 'GET'
+				},
+			}
+		},
 	});
 };
