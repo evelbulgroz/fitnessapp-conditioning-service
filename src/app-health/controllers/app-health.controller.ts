@@ -1,12 +1,14 @@
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Controller, Get, HttpStatus, Res, UseInterceptors, UsePipes } from '@nestjs/common';
-import { DiskHealthIndicator, HealthCheckResult, HealthCheckService, MemoryHealthIndicator } from '@nestjs/terminus';
+import { ConfigService } from '@nestjs/config';
+import { Controller, Get, HttpStatus, Req, Res, UseInterceptors, UsePipes } from '@nestjs/common';
+import { DiskHealthIndicator, HealthCheckResult, HealthCheckService, HttpHealthIndicator, MemoryHealthIndicator } from '@nestjs/terminus';
 import { Response } from 'express';
 
 import * as path from 'path';
 
 import { ComponentState } from '../../libraries/managed-stateful-component';
 
+import { AppConfig, ServiceConfig } from '../../shared/domain/config-options.model';
 import AppDomainStateManager from '../../app-domain-state-manager';
 import AppHealthService from '../services/health/app-health.service';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
@@ -18,6 +20,7 @@ import Public from '../../infrastructure/decorators/public.decorator';
 import StartupCheckResponse from '../../conditioning/controllers/models/startup-check-response.model';
 import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
+import { get } from 'http';
 
 /**
  * Controller for serving (mostly automated) app health check requests
@@ -52,8 +55,10 @@ export class AppHealthController {
 	constructor(
 		private readonly appDomainStateManager: AppDomainStateManager,
 		private readonly appHealthService: AppHealthService,
+		private readonly config: ConfigService,
 		private readonly disk: DiskHealthIndicator,
 		private readonly healthCheckService: HealthCheckService,
+		private readonly http: HttpHealthIndicator,
 		private readonly memory: MemoryHealthIndicator,
 		private readonly moduleStateHealthIndicator: ModuleStateHealthIndicator,
 	) {}
@@ -159,7 +164,7 @@ export class AppHealthController {
 		description: 'Application is not ready.',
 		type: ReadinessCheckResponse
 	})
-	public async checkReadiness(@Res() res: Response) {		
+	public async checkReadiness(@Req() req: Request, @Res() res: Response) {		
 		const now = new Date();	// Get the current time for the response timestamp
 		try {
 			// Wrap data retrieval in a promise with a timeout
@@ -169,13 +174,19 @@ export class AppHealthController {
 				// Note: Throws an error if any of the checks fail, hence the need for additional try/catch
 				let healthCheck: HealthCheckResult = {} as HealthCheckResult; // Initialize to avoid TS error
 				try {
-					healthCheck = await this.healthCheckService.check([ // expects an array of functions that return promises
-						() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager),
-						// For now, we check persistence health indirectly via the PersistenceAdapter abstraction in the module state health indicator:
-						// So no direct database health check(s) here
-						() => this.disk.checkStorage('storage', { path: path.normalize('D:\\'), thresholdPercent: 0.9 }), // 90% free space threshold, todo: get from config
+					const servicesConfig = this.config.get<{ [key: string]: ServiceConfig }>('services') || {};
+						healthCheck = await this.healthCheckService.check([ // expects an array of functions that return promises
+						// Internal checks
+						() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager), // Includes persistence checks via the Repository abstraction
+						() => this.disk.checkStorage('storage', { path: path.normalize('D:\\'), thresholdPercent: 0.9 }), // 90% space usage limit, todo: get from config
 						() => this.memory.checkHeap('memory_heap', 10 * 150 * 1024 * 1024), // 1500 MB, todo: get from config
 						() => this.memory.checkRSS('memory_rss', 10* 150 * 1024 * 1024), // 1500 MB, todo: get from config
+						
+						// External checks
+						() => this.http.pingCheck('fitnessapp-registry-service', this.getServiceURL('fitnessapp-registry-service', servicesConfig)), // Check the service registry
+						() => this.http.pingCheck('fitnessapp-authentication-service', this.getServiceURL('fitnessapp-authentication-service', servicesConfig)), // Check the authentication service
+						() => this.http.pingCheck('fitnessapp-user-service', this.getServiceURL('fitnessapp-user-service', servicesConfig)), // Check the user service
+
 						// ...add other health indicators here if/when needed
 					]) as HealthCheckResult;
 				}
@@ -290,8 +301,15 @@ export class AppHealthController {
 			});
 		}
 	}
+
+	// TODO: Move this to a service layer, so that the controller only handles HTTP requests and responses (next)
+	private getServiceURL(serviceName: string, config: { [key: string]: ServiceConfig }): string {
+		const baseURL = config[serviceName]?.baseURL?.href || `${serviceName}-base-url-not-configured`;
+		const path = config[serviceName]?.endpoints?.liveness?.path || `/liveness-path-not-configured`;
+		return `${baseURL}${path}`;
+	}
 	
-	// TODO: Move this to a service layer, so that the controller only handles HTTP requests and responses (later)
+	// TODO: Move this to a service layer, so that the controller only handles HTTP requests and responses (next)
 	private mapHealthCheckResultToReadinessResponse(healthCheck: HealthCheckResult, now: Date): ReadinessCheckResponse {
 		const status = healthCheck.status === 'ok' ? 'up' : 'down';
 
