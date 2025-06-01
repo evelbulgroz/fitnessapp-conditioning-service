@@ -89,15 +89,14 @@ export interface HealthConfig {
 		/** Directory where health data is stored */
 		dataDir: string;
 		/** Maximum storage limit for health data in bytes (% of available storage expressed in decimal) */
-		maxStorageLimit: number,
-		/** Maximum size of the health data heap in bytes */
+		maxStorageLimit: number,		
 	},
 	/** Memory configuration for health checks */
 	memory: {
+		/** Maximum size of the heap in bytes */
 		maxHeapSize: number,
 		/** Maximum size of the RSS (resident set size) in bytes */
 		maxRSSsize: number,
-		/** Timeouts for health checks */
 	},
 	/** Timeouts for health checks */
 	timeouts: {
