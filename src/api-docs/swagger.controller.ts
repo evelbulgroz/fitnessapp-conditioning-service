@@ -5,20 +5,21 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';import { Response } from 'express';
 
 import AppInstance from './app-instance.model';
-import JwtAuthGuard from '../infrastructure/guards/jwt-auth.guard';
+//import JwtAuthGuard from '../infrastructure/guards/jwt-auth.guard';
 import Roles from '../infrastructure/decorators/roles.decorator';
-import RolesGuard from '../infrastructure/guards/roles.guard';
+//import RolesGuard from '../infrastructure/guards/roles.guard';
 
 /** Controller for serving Swagger UI and JSON documentation.
- * @remark Used to require authentication and authorization for accessing the documentation.
+ * @remark Prepared for future use with authentication and authorization guards, but open for now.
  * @remark The standard Swagger UI provided by NestJS is not used here, as it does not support authentication and authorization.
  * @remark Not documented using Swagger, merely used to serve the Swagger UI and JSON documentation.
  * @remark Instead, added note to Readme.md about the API documentation and how to access it.
  */
 @Controller('docs')
 @UseGuards(
-	JwtAuthGuard, // require authentication of Jwt token
-	RolesGuard, // require role-based access control
+	// todo: re-enable these guards when authentication and authorization are needed
+	//JwtAuthGuard, // require authentication of Jwt token
+	//RolesGuard, // require role-based access control
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 export class SwaggerController {

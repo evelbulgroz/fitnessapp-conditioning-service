@@ -11,7 +11,7 @@ In addition, detailed properties and sanitization rules for ConditioningLog are 
 
 *NOTE: No similar endpoint is provided for this service's internal `User` construct. Direct all `User` data requests to the user microservice.*
 
-Accessing any of the docs requires authentication.
+The API docs endpoint are open for now, but are prepared for authentication if/when the project is published on the open Internet.
 
 *NOTE: The standard Swagger `/api-docs` endpoint is not provided, as it does not support authentication.*
 
