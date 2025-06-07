@@ -79,7 +79,6 @@ export class AppHealthController {
 			// Wrap data retrieval in a promise with a timeout
 			const dataPromise = this.appHealthService.fetchHealthCheckResponse();
 			const body = await this.withTimeout<HealthCheckResponse>(dataPromise, this.getHealthConfig().timeouts.healthz);
-			console.debug('Health check response:', body);
 			
 			if (body.status === 'up') {
 				res.status(HttpStatus.OK).send(body);
@@ -90,7 +89,6 @@ export class AppHealthController {
 			}
 		} 
 		catch (error) {
-			console.error('Error during health check:', error);
 			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
 				status: 'down',
 				error: error.message || 'Error checking app health',
@@ -205,9 +203,7 @@ export class AppHealthController {
 		
 		try {
 			// Wrap data retrieval in a promise with a timeout
-			  // TODO: Replace dataPromise with call to data service, when available
-			const dataPromise = this.appHealthService.fetchStartupCheckResponse();
-			
+			const dataPromise = this.appHealthService.fetchStartupCheckResponse();			
 			const body = await this.withTimeout<StartupCheckResponse>(dataPromise, this.getHealthConfig().timeouts.startupz);
 			return res.status(body.status === 'started' ? HttpStatus.OK: HttpStatus.SERVICE_UNAVAILABLE).send(body);
 			
@@ -230,25 +226,6 @@ export class AppHealthController {
 	 * Get the health configuration, merging defaults with configured values
 	 */
 	private getHealthConfig(): HealthConfig {
-		// Helper function to merge two simple configuration objects.
-		  // This is a recursive merge that handles nested objects and primitive values, but not arrays or other complex types.
-		  // Own implementation to avoid dependency on lodash or similar libraries.
-		function MergeConfig(target: Record<string,any>, source: Record<string,any>): Record<string,any> {
-			if (!source) return target;
-			
-			const result = { ...target };
-			
-			for (const key in source) {
-				if (source[key] instanceof Object && key in target) {
-					result[key] = this.MergeConfig(target[key], source[key]);
-				}
-				else {
-					result[key] = source[key];
-				}
-			}  
-			return result;
-		}
-
 		// Merge the default health configuration with the retrieved configuration (if any), prioritizing the retrieved configuration.
 		const defaultConfig: HealthConfig = {
 			storage: {
@@ -266,11 +243,8 @@ export class AppHealthController {
 				startupz: 2500 // 2.5 seconds
 			}
 		};
-		console.debug('Default health configuration:', defaultConfig);
 		const retrievedConfig: HealthConfig = this.config.get<HealthConfig>('health') || {} as unknown as HealthConfig;		
-		console.debug('Retrieved health configuration:', retrievedConfig);
-		const mergedConfig = MergeConfig(defaultConfig, retrievedConfig) as HealthConfig;
-		console.debug('Merged health configuration:', mergedConfig);
+		const mergedConfig = this.mergeConfig(defaultConfig, retrievedConfig, this) as HealthConfig;
 		
 		return mergedConfig;
 	}
@@ -302,6 +276,34 @@ export class AppHealthController {
 
 		return response;
 	}
+
+	/*
+	 * Merge two simple configuration objects recursively
+	 * 
+	 * @param target The target configuration object to merge into
+	 * @param source The source configuration object to merge from
+	 * @param self Reference to the current instance, used for recursive calls
+	 * 
+	 * @returns A new configuration object that is the result of merging the two
+	 * 
+	 * @remark This method is used to combine default health configurations with any user-defined configurations.
+	 * @remark It handles nested objects but does not handle arrays or other complex types.
+	 */
+	private mergeConfig(target: Record<string,any>, source: Record<string,any>, self = this): Record<string,any> {
+			if (!source) return target;
+			
+			const result = { ...target };
+			
+			for (const key in source) {
+				if (source[key] instanceof Object && key in target) {
+					result[key] = self.mergeConfig(target[key], source[key]);
+				}
+				else {
+					result[key] = source[key];
+				}
+			}  
+			return result;
+		}
 
 	/*
 	 * Wrap a promise with a timeout
