@@ -79,7 +79,8 @@ export class AppHealthController {
 			// Wrap data retrieval in a promise with a timeout
 			const dataPromise = this.appHealthService.fetchHealthCheckResponse();
 			const body = await this.withTimeout<HealthCheckResponse>(dataPromise, this.getHealthConfig().timeouts.healthz);
-						
+			console.debug('Health check response:', body);
+			
 			if (body.status === 'up') {
 				res.status(HttpStatus.OK).send(body);
 			}
@@ -89,6 +90,7 @@ export class AppHealthController {
 			}
 		} 
 		catch (error) {
+			console.error('Error during health check:', error);
 			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
 				status: 'down',
 				error: error.message || 'Error checking app health',
@@ -264,8 +266,11 @@ export class AppHealthController {
 				startupz: 2500 // 2.5 seconds
 			}
 		};
+		console.debug('Default health configuration:', defaultConfig);
 		const retrievedConfig: HealthConfig = this.config.get<HealthConfig>('health') || {} as unknown as HealthConfig;		
+		console.debug('Retrieved health configuration:', retrievedConfig);
 		const mergedConfig = MergeConfig(defaultConfig, retrievedConfig) as HealthConfig;
+		console.debug('Merged health configuration:', mergedConfig);
 		
 		return mergedConfig;
 	}
