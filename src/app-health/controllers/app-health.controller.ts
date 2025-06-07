@@ -1,22 +1,18 @@
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Controller, Get, HttpStatus, Req, Res, UseInterceptors, UsePipes } from '@nestjs/common';
-import { DiskHealthIndicator, HealthCheckResult, HealthCheckService, HttpHealthIndicator, MemoryHealthIndicator } from '@nestjs/terminus';
+import { HealthCheckResult } from '@nestjs/terminus';
 import { Response } from 'express';
 
 import * as path from 'path';
 
-import { ComponentState } from '../../libraries/managed-stateful-component';
-
-import AppDomainStateManager from '../../app-domain-state-manager';
-import AppHealthService from '../services/health/app-health.service';
+import AppHealthService from '../services/app-health.service';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
 import HeadersInterceptor from '../../infrastructure/interceptors/headers-interceptor';
 import HealthCheckResponse from '../../conditioning/controllers/models/health-check-response.model';
 import LivenessCheckResponse from '../../conditioning/controllers/models/liveliness-check-response.model';
-import ModuleStateHealthIndicator from '../health-indicators/module-state-health-indicator';
 import Public from '../../infrastructure/decorators/public.decorator';
-import { HealthConfig, ServiceConfig } from '../../shared/domain/config-options.model';
+import { HealthConfig } from '../../shared/domain/config-options.model';
 import StartupCheckResponse from '../../conditioning/controllers/models/startup-check-response.model';
 import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
@@ -52,14 +48,8 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })) // whitelisting ignored with primitive types
 export class AppHealthController {
 	constructor(
-		private readonly appDomainStateManager: AppDomainStateManager,
 		private readonly appHealthService: AppHealthService,
 		private readonly config: ConfigService,
-		private readonly disk: DiskHealthIndicator,
-		private readonly healthCheckService: HealthCheckService,
-		private readonly http: HttpHealthIndicator,
-		private readonly memory: MemoryHealthIndicator,
-		private readonly moduleStateHealthIndicator: ModuleStateHealthIndicator,
 	) {}
 
 	@Get('healthz')
@@ -87,26 +77,7 @@ export class AppHealthController {
 		
 		try {
 			// Wrap data retrieval in a promise with a timeout
-			  // TODO: Replace dataPromise with call to data service, when available
-			const dataPromise = new Promise<HealthCheckResponse>(async (resolve, reject) => {
-				const stateInfo = await this.appDomainStateManager.getState();
-				if (!stateInfo) {
-					const body = {
-						status: 'down',
-						error: {message: 'Application state is not available'},
-						timestamp: now.toISOString()
-					};
-					reject(body);
-				}
-				delete stateInfo?.components; // remove components to avoid sending too much data in the response
-				const status = stateInfo.state === ComponentState.OK ? 'up' : 'down';
-				const body: HealthCheckResponse = {
-					status,
-					info: {	app: { status, state: stateInfo } },
-					timestamp: (stateInfo.updatedOn ?? now).toISOString(),
-				};
-				resolve(body);
-			});
+			const dataPromise = this.appHealthService.fetchHealthCheckResponse();
 			const body = await this.withTimeout<HealthCheckResponse>(dataPromise, this.getHealthConfig().timeouts.healthz);
 						
 			if (body.status === 'up') {
@@ -141,9 +112,11 @@ export class AppHealthController {
 		status: 503,
 		description: 'Application is not running'
 	})
-	checkLiveness() {	
-		const body: LivenessCheckResponse = { status: 'up' };
-		return body; // No need for response injection - keep it simple
+	public async checkLiveness() {	
+		// Wrap data retrieval from service in a promise with a timeout
+		const dataPromise = this.appHealthService.fetchLivenessCheckResponse();
+		const body = await this.withTimeout<LivenessCheckResponse>(dataPromise, this.getHealthConfig().timeouts.livenessz);			
+		return body;
 	}
 
 	@Get('/readinessz')
@@ -169,43 +142,7 @@ export class AppHealthController {
 		const now = new Date();	// Get the current time for the response timestamp
 		try {
 			// Wrap data retrieval in a promise with a timeout
-			  // TODO: Replace dataPromise with call to data service, when available
-			const dataPromise = new Promise<ReadinessCheckResponse>(async (resolve, reject) => {
-				// Execute all health checks in parallel
-				// Note: Throws an error if any of the checks fail, hence the need for additional try/catch
-				let healthCheck: HealthCheckResult = {} as HealthCheckResult; // Initialize to avoid TS error
-				try {
-					const healthConfig: HealthConfig = this.getHealthConfig();
-					const servicesConfig = this.config.get<{ [key: string]: ServiceConfig }>('services') || {};
-					healthCheck = await this.healthCheckService.check([ // expects an array of functions that return promises
-						// Internal checks
-						() => this.moduleStateHealthIndicator.isHealthy(this.appDomainStateManager), // Includes persistence checks via the repo PersistenceAdapter abstraction
-						() => this.disk.checkStorage('storage', { path: path.normalize(healthConfig.storage.dataDir), thresholdPercent: healthConfig.storage.maxStorageLimit }),
-						() => this.memory.checkHeap('memory_heap', healthConfig.memory.maxHeapSize),
-						() => this.memory.checkRSS('memory_rss', healthConfig.memory.maxRSSsize),
-						
-						// External checks
-						() => this.http.pingCheck('fitnessapp-registry-service', this.getServiceURL('fitnessapp-registry-service', servicesConfig)), // Check the service registry
-						() => this.http.pingCheck('fitnessapp-authentication-service', this.getServiceURL('fitnessapp-authentication-service', servicesConfig)), // Check the authentication service
-						() => this.http.pingCheck('fitnessapp-user-service', this.getServiceURL('fitnessapp-user-service', servicesConfig)), // Check the user service
-
-						// ...add other health indicators here if/when needed
-					]) as HealthCheckResult;
-				}
-				catch (healthCheckError) {
-					const healthCheck: HealthCheckResult = healthCheckError?.response; // check() throws a HealthCheckResult as the value of the response property of an object literal (very poorly documented)
-					const body: ReadinessCheckResponse = {
-						status: 'down',
-						info: {},
-						error: healthCheck?.error ?? { message: 'Error checking application readiness' },
-						timestamp: now.toISOString()
-					};
-					reject(healthCheck);
-				}
-
-				const body: ReadinessCheckResponse = this.mapHealthCheckResultToReadinessResponse(healthCheck, now);
-				resolve(body);				
-			});
+			const dataPromise = this.appHealthService.fetchReadinessCheckResponse();
 			const body = await this.withTimeout<ReadinessCheckResponse>(dataPromise, this.getHealthConfig().timeouts.readinessz);
 			return res.status(body.status === 'up'? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE).send(body);
 		}
@@ -267,24 +204,7 @@ export class AppHealthController {
 		try {
 			// Wrap data retrieval in a promise with a timeout
 			  // TODO: Replace dataPromise with call to data service, when available
-			const dataPromise = new Promise<StartupCheckResponse>(async (resolve, reject) => {
-				const stateInfo = await this.appDomainStateManager.getState();
-				if (!stateInfo) {
-					const body: StartupCheckResponse = {
-						status: 'starting',
-						message: 'Application state is not available',
-						timestamp: now.toISOString()
-					};
-					reject(body);
-				}
-
-				const body: StartupCheckResponse = {
-					status: stateInfo.state === ComponentState.OK || stateInfo.state === ComponentState.DEGRADED ? 'started' : 'starting',
-					//message: stateInfo.reason || `Application is in state '${stateInfo.state}'`,
-					timestamp: (stateInfo.updatedOn ?? now).toISOString()
-				};
-				resolve(body);
-			});
+			const dataPromise = this.appHealthService.fetchStartupCheckResponse();
 			
 			const body = await this.withTimeout<StartupCheckResponse>(dataPromise, this.getHealthConfig().timeouts.startupz);
 			return res.status(body.status === 'started' ? HttpStatus.OK: HttpStatus.SERVICE_UNAVAILABLE).send(body);
@@ -304,7 +224,9 @@ export class AppHealthController {
 		}
 	}
 
-	// TODO: Move this to a service layer, so that the controller only handles HTTP requests and responses (next)
+	/*
+	 * Get the health configuration, merging defaults with configured values
+	 */
 	private getHealthConfig(): HealthConfig {
 		// Helper function to merge two simple configuration objects.
 		  // This is a recursive merge that handles nested objects and primitive values, but not arrays or other complex types.
@@ -348,15 +270,7 @@ export class AppHealthController {
 		return mergedConfig;
 	}
 
-	// TODO: Move this to a service layer, so that the controller only handles HTTP requests and responses (next)
-	private getServiceURL(serviceName: string, config: { [key: string]: ServiceConfig }): string {
-		// As per architecture notebook, ping checks should use call the service's liveness(z) endpoint
-		const baseURL = config[serviceName]?.baseURL?.href || `${serviceName}-base-url-not-configured`;
-		const path = config[serviceName]?.endpoints?.liveness?.path || `/liveness-path-not-configured`;
-		return `${baseURL}${path}`;
-	}
-	
-	// TODO: Move this to a service layer, so that the controller only handles HTTP requests and responses (next)
+	// TODO: Use method in AppHealthService, when available, to avoid duplication
 	private mapHealthCheckResultToReadinessResponse(healthCheck: HealthCheckResult, now: Date): ReadinessCheckResponse {
 		const status = healthCheck.status === 'ok' ? 'up' : 'down';
 

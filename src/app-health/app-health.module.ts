@@ -3,7 +3,7 @@ import { DiskHealthIndicator, HealthCheckService, HealthIndicatorService, Memory
 import checkDiskSpace from 'check-disk-space';
 
 import AppHealthController from './controllers/app-health.controller';
-import AppHealthService from './services/health/app-health.service';
+import AppHealthService from './services/app-health.service';
 import ModuleStateHealthIndicator from './health-indicators/module-state-health-indicator';
 import { HealthCheckExecutor } from '@nestjs/terminus/dist/health-check/health-check-executor.service';
 
