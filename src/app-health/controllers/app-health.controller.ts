@@ -71,7 +71,7 @@ export class AppHealthController {
 	async checkHealth(@Res() res: Response) {
 		// Get the current time for the response timestamp
 		const now = new Date();
-		const timeout = this.appHealthService.getHealthConfig().timeouts.healthz || 2500; // Default to 2.5 seconds if not configured
+		const timeout = this.appHealthService.getHealthConfig()?.timeouts?.healthz || 2500; // Default to 2.5 seconds if not configured
 		
 		try {
 			// Wrap data retrieval in a promise with a timeout
@@ -116,13 +116,13 @@ export class AppHealthController {
 	})
 	public async checkLiveness(@Res() res: Response) {	
 		const now = new Date(); // Get the current time for the response timestamp
-		const timeout = this.appHealthService.getHealthConfig().timeouts.livenessz || 1000; // Default to 1 second if not configured
+		const timeout = this.appHealthService.getHealthConfig()?.timeouts?.livenessz || 1000; // Default to 1 second if not configured
 
 		try {
 			// Wrap data retrieval from service in a promise with a timeout
 			const dataPromise = this.appHealthService.fetchLivenessCheckResponse();
 			const body = await this.withTimeout<LivenessCheckResponse>(dataPromise, timeout);
-			return body;
+			return res.status(body.status === 'up' ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE).send(body);
 		}
 		catch (error) {
 			// Differentiate timeout errors from other errors
@@ -159,7 +159,7 @@ export class AppHealthController {
 	})
 	public async checkReadiness(@Res() res: Response) {		
 		const now = new Date();	// Get the current time for the response timestamp
-		const timeout = this.appHealthService.getHealthConfig().timeouts.readinessz || 5000; // Default to 5 seconds if not configured
+		const timeout = this.appHealthService.getHealthConfig()?.timeouts?.readinessz || 5000; // Default to 5 seconds if not configured
 
 		try {
 			// Wrap data retrieval in a promise with a timeout
@@ -221,7 +221,7 @@ export class AppHealthController {
 	})
 	public async checkStartup(@Res() res: Response) {
 		const now = new Date();
-		const timeout = this.appHealthService.getHealthConfig().timeouts.startupz || 2500; // Default to 2.5 seconds if not configured
+		const timeout = this.appHealthService.getHealthConfig()?.timeouts?.startupz || 2500; // Default to 2.5 seconds if not configured
 
 		try {
 			// Wrap data retrieval in a promise with a timeout

@@ -188,15 +188,21 @@ describe('AppHealthController', () => {
 		describe('checkLiveness', () => {
 			it(`calls service and returns 'up' if app is live`, async () => {
 				// Arrange
-				const livenessResponse: LivenessCheckResponse = { status: 'up' };
+				const livenessResponse: LivenessCheckResponse = { status: 'up', timestamp: new Date().toISOString() };
 				appHealthService.fetchLivenessCheckResponse.mockResolvedValue(livenessResponse);
 
 				// Act
-				const result = await controller.checkLiveness(mockResponse);
+				await controller.checkLiveness(mockResponse);  // Don't assign to result
 
 				// Assert
 				expect(appHealthService.fetchLivenessCheckResponse).toHaveBeenCalled();
-				expect(result).toEqual(livenessResponse);
+				expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK); // Assert HTTP status
+				expect(mockResponse.send).toHaveBeenCalledWith(
+					expect.objectContaining({
+					status: 'up',
+					timestamp: expect.any(String)
+					})
+				);
 			});
 
 			it('times out liveness check after delay set in config', async () => {
@@ -206,7 +212,7 @@ describe('AppHealthController', () => {
 				const timeoutError = new Error(`Operation timed out after ${timeout}ms`);
 				
 				jest.spyOn(controller as any, 'withTimeout').mockRejectedValueOnce(timeoutError); // Re-mock withTimeout to simulate timeout
-				appHealthService.fetchLivenessCheckResponse.mockResolvedValueOnce({ status: 'up' });
+				appHealthService.fetchLivenessCheckResponse.mockResolvedValueOnce({ status: 'up', timestamp: now.toISOString() }); // Mock the service to return a response
 				
 				// Act
 				await controller.checkLiveness(mockResponse);

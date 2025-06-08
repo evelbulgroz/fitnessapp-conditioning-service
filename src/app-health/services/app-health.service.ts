@@ -64,7 +64,7 @@ export class AppHealthService {
 	 * Returns the liveness status of the application
 	 */
 	public async fetchLivenessCheckResponse(): Promise<LivenessCheckResponse> {
-		return { status: 'up' } as LivenessCheckResponse;
+		return { status: 'up', timestamp: new Date().toISOString() } as LivenessCheckResponse;
 	}
 
 	/**
@@ -185,7 +185,7 @@ export class AppHealthService {
 		
 		const retrievedConfig: HealthConfig = this.config.get<HealthConfig>('health') || {} as unknown as HealthConfig;
 		const mergedConfig = this.mergeConfig(defaultConfig, retrievedConfig, this);
-		
+
 		return mergedConfig as HealthConfig;
 	}
 

@@ -14,6 +14,12 @@ export class LivenessCheckResponse {
 		example: 'up'
 	})
 	status: 'up';
+
+	@ApiProperty({
+		description: 'Timestamp of the liveness check in ISO 8601 format',
+		example: '2023-10-01T12:00:00Z'
+	})
+	timestamp: string;
 }
 
 export default LivenessCheckResponse;

@@ -166,7 +166,10 @@ describe('AppHealthService', () => {
 				const result = await service.fetchLivenessCheckResponse();
 
 				// Assert
-				expect(result).toEqual({ status: 'up' });
+				expect(result).toEqual(expect.objectContaining({
+						status: 'up',
+						timestamp: expect.any(String)
+				}));
 			});
 		});
 
