@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { DiskHealthIndicator, HealthCheckService, HealthIndicatorService, MemoryHealthIndicator, TerminusModule } from '@nestjs/terminus';
-import checkDiskSpace from 'check-disk-space';
+import checkDiskSpace from 'check-disk-space'; // npm package for checking disk space
 
 import AppHealthController from './controllers/app-health.controller';
 import AppHealthService from './services/app-health.service';
 import ModuleStateHealthIndicator from './health-indicators/module-state-health-indicator';
 import { HealthCheckExecutor } from '@nestjs/terminus/dist/health-check/health-check-executor.service';
 
+// Disable Terminus logging for now
+  // Later, try to integrate with the existing stream logger
 const noopLogger = {
 	log: () => {},
 	error: () => {},
@@ -25,7 +27,7 @@ const noopLogger = {
 	controllers: [ AppHealthController ],
 	providers: [
 		AppHealthService,
-		{ // DiskHealthIndicator
+		{ // DiskHealthIndicator using check-disk-space library
 			provide: DiskHealthIndicator,
 			useFactory: (checkLib, healthIndicatorService) => {
 			  return new DiskHealthIndicator(checkLib, healthIndicatorService);
@@ -37,7 +39,7 @@ const noopLogger = {
 		HealthIndicatorService,
 		MemoryHealthIndicator,
 		ModuleStateHealthIndicator,
-		{ //CheckDiskSpaceLib
+		{ // CheckDiskSpaceLib
 			provide: 'CheckDiskSpaceLib',
 			useValue: checkDiskSpace,
 		},
