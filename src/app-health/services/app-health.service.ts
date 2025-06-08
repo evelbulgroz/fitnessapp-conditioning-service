@@ -159,28 +159,13 @@ export class AppHealthService {
 			details: healthCheck.details ?? {},
 			timestamp: now.toISOString()
 		};
-	}
+	}	
 
 	/*
-	 * Returns the current health configuration, merging defaults with configured values
+	 * Get the current health configuration, overriding defaults with configured values
+	 * 
 	 */
-	private getHealthConfig(): HealthConfig {
-		function mergeConfig(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
-			if (!source) return target;
-			
-			const result = { ...target };
-			
-			for (const key in source) {
-				if (source[key] instanceof Object && key in target) {
-					result[key] = mergeConfig(target[key], source[key]);
-				}
-				else {
-					result[key] = source[key];
-				}
-			}	
-			return result;
-		}
-
+	public getHealthConfig(): HealthConfig {
 		const defaultConfig: HealthConfig = {
 			storage: {
 				dataDir: path.join('D:\\'),
@@ -199,7 +184,9 @@ export class AppHealthService {
 		};
 		
 		const retrievedConfig: HealthConfig = this.config.get<HealthConfig>('health') || {} as unknown as HealthConfig;
-		return mergeConfig(defaultConfig, retrievedConfig) as HealthConfig;
+		const mergedConfig = this.mergeConfig(defaultConfig, retrievedConfig, this);
+		
+		return mergedConfig as HealthConfig;
 	}
 
 	/*
@@ -214,6 +201,35 @@ export class AppHealthService {
 		const baseURL = config[serviceName]?.baseURL?.href || `${serviceName}-base-url-not-configured`;
 		const path = config[serviceName]?.endpoints?.liveness?.path || `/liveness-path-not-configured`;
 		return `${baseURL}${path}`;
+	}
+		
+	/*
+	 * Merge two simple configuration objects recursively
+	 * 
+	 * @param target The target configuration object to merge into
+	 * @param source The source configuration object to merge from
+	 * @param self Reference to the current instance, used for recursive calls
+	 * 
+	 * @returns A new configuration object that is the result of merging the two
+	 * 
+	 * @remark This method is used to combine default health configurations with any user-defined configurations.
+	 * @remark It handles nested objects but does not handle arrays or other complex types.
+	 */
+	private mergeConfig(target: Record<string,any>, source: Record<string,any>, self = this): Record<string,any> {
+			if (!source) return target || {};
+			target = target || {};
+			
+			const result = { ...target };
+			
+			for (const key in source) {
+				if (source[key] instanceof Object && key in target) {
+					result[key] = self.mergeConfig(target[key], source[key], self);
+				}
+				else {
+					result[key] = source[key];
+				}
+			}  
+			return result;
 	}
 }
 

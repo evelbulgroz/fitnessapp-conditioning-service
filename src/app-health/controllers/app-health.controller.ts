@@ -1,5 +1,4 @@
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ConfigService } from '@nestjs/config';
 import { Controller, Get, HttpStatus, Res, UseInterceptors, UsePipes } from '@nestjs/common';
 import { HealthCheckResult } from '@nestjs/terminus';
 import { Response } from 'express';
@@ -28,7 +27,6 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
  * @remark The health check endpoints are public and do not require authentication, as they are
  *  intended for automated health checks that typically run without authentication.
  * 
- * @todo Move data processing to a service layer, so that the controller only handles HTTP requests and responses (next)
  * @todo Consider adding an Http health check to /readinessz that checks the HTTP response time of the app itself (later)
  * @todo Add a status page that shows the health of all services and dependencies (later)
  * @todo Add a /metrics endpoint that returns application metrics in a format suitable for Prometheus (later)
@@ -48,8 +46,7 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })) // whitelisting ignored with primitive types
 export class AppHealthController {
 	constructor(
-		private readonly appHealthService: AppHealthService,
-		private readonly config: ConfigService,
+		private readonly appHealthService: AppHealthService
 	) {}
 
 	@Get('healthz')
@@ -74,12 +71,12 @@ export class AppHealthController {
 	async checkHealth(@Res() res: Response) {
 		// Get the current time for the response timestamp
 		const now = new Date();
-		const timeout = this.getHealthConfig().timeouts.healthz || 2500; // Default to 2.5 seconds if not configured
+		const timeout = this.appHealthService.getHealthConfig().timeouts.healthz || 2500; // Default to 2.5 seconds if not configured
 		
 		try {
 			// Wrap data retrieval in a promise with a timeout
 			const dataPromise = this.appHealthService.fetchHealthCheckResponse();
-			const body = await this.withTimeout<HealthCheckResponse>(dataPromise, this.getHealthConfig().timeouts.healthz);
+			const body = await this.withTimeout<HealthCheckResponse>(dataPromise, timeout);
 			
 			if (body.status === 'up') {
 				res.status(HttpStatus.OK).send(body);
@@ -119,12 +116,12 @@ export class AppHealthController {
 	})
 	public async checkLiveness(@Res() res: Response) {	
 		const now = new Date(); // Get the current time for the response timestamp
-		const timeout = this.getHealthConfig().timeouts.livenessz || 1000; // Default to 1 second if not configured
+		const timeout = this.appHealthService.getHealthConfig().timeouts.livenessz || 1000; // Default to 1 second if not configured
 
 		try {
 			// Wrap data retrieval from service in a promise with a timeout
 			const dataPromise = this.appHealthService.fetchLivenessCheckResponse();
-			const body = await this.withTimeout<LivenessCheckResponse>(dataPromise, this.getHealthConfig().timeouts.livenessz);			
+			const body = await this.withTimeout<LivenessCheckResponse>(dataPromise, timeout);
 			return body;
 		}
 		catch (error) {
@@ -162,12 +159,12 @@ export class AppHealthController {
 	})
 	public async checkReadiness(@Res() res: Response) {		
 		const now = new Date();	// Get the current time for the response timestamp
-		const timeout = this.getHealthConfig().timeouts.readinessz || 5000; // Default to 5 seconds if not configured
+		const timeout = this.appHealthService.getHealthConfig().timeouts.readinessz || 5000; // Default to 5 seconds if not configured
 
 		try {
 			// Wrap data retrieval in a promise with a timeout
 			const dataPromise = this.appHealthService.fetchReadinessCheckResponse();
-			const body = await this.withTimeout<ReadinessCheckResponse>(dataPromise, this.getHealthConfig().timeouts.readinessz);
+			const body = await this.withTimeout<ReadinessCheckResponse>(dataPromise, timeout);
 			return res.status(body.status === 'up'? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE).send(body);
 		}
 		catch (error) {
@@ -224,7 +221,7 @@ export class AppHealthController {
 	})
 	public async checkStartup(@Res() res: Response) {
 		const now = new Date();
-		const timeout = this.getHealthConfig().timeouts.startupz || 2500; // Default to 2.5 seconds if not configured
+		const timeout = this.appHealthService.getHealthConfig().timeouts.startupz || 2500; // Default to 2.5 seconds if not configured
 
 		try {
 			// Wrap data retrieval in a promise with a timeout
@@ -246,66 +243,10 @@ export class AppHealthController {
 				timestamp: now.toISOString()
 			});
 		}
-	}
+	}	
 
 	/*
-	 * Get the health configuration, merging defaults with configured values
-	 */
-	private getHealthConfig(): HealthConfig {
-		// Merge the default health configuration with the retrieved configuration (if any), prioritizing the retrieved configuration.
-		const defaultConfig: HealthConfig = {
-			storage: {
-				dataDir: path.join('D:\\'), // Default data directory
-				maxStorageLimit: 0.9, // 90% of available storage
-			},
-			memory: {
-				maxHeapSize: 10 * 150 * 1024 * 1024, // 1500 MB
-				maxRSSsize: 10 * 150 * 1024 * 1024, // 1500 MB
-			},
-			timeouts: {
-				healthz: 2500, // 2.5 seconds
-				livenessz: 1000, // 1 second
-				readinessz: 5000, // 5 seconds
-				startupz: 2500 // 2.5 seconds
-			}
-		};
-		const retrievedConfig: HealthConfig = this.config.get<HealthConfig>('health') || {} as unknown as HealthConfig;		
-		const mergedConfig = this.mergeConfig(defaultConfig, retrievedConfig, this) as HealthConfig;
-		
-		return mergedConfig;
-	}
-
-	/*
-	 * Merge two simple configuration objects recursively
-	 * 
-	 * @param target The target configuration object to merge into
-	 * @param source The source configuration object to merge from
-	 * @param self Reference to the current instance, used for recursive calls
-	 * 
-	 * @returns A new configuration object that is the result of merging the two
-	 * 
-	 * @remark This method is used to combine default health configurations with any user-defined configurations.
-	 * @remark It handles nested objects but does not handle arrays or other complex types.
-	 */
-	private mergeConfig(target: Record<string,any>, source: Record<string,any>, self = this): Record<string,any> {
-			if (!source) return target || {};
-			target = target || {};
-			
-			const result = { ...target };
-			
-			for (const key in source) {
-				if (source[key] instanceof Object && key in target) {
-					result[key] = self.mergeConfig(target[key], source[key]);
-				}
-				else {
-					result[key] = source[key];
-				}
-			}  
-			return result;
-		}
-
-	/*
-	 * Wrap a promise with a timeout
+	 * Wrap a (date service) promise in a timeout
 	 * 
 	 * @param promise The original promise
 	 * @param timeoutMs Timeout in milliseconds

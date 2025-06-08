@@ -435,7 +435,6 @@ describe('ModuleStateHealthIndicator', () => {
 
 			// Act
 			const result = await healthIndicator.isHealthy(stateManager as any);
-			console.debug(JSON.stringify(result, null, 2)); // For debugging purposes
 			
 			// Assert
 			expect(result).toEqual(expectedResult);

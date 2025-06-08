@@ -105,7 +105,7 @@ describe('AppHealthService', () => {
 
 	describe('Public API', () => {
 		describe('fetchHealthCheckResponse', () => {
-			test('returns up status when app state is OK', async () => {
+			it('returns up status when app state is OK', async () => {
 				// Arrange
 				const stateInfo: ComponentStateInfo = {
 					name: 'app',
@@ -127,7 +127,7 @@ describe('AppHealthService', () => {
 				expect(result.info.app.state.components).toBeUndefined(); // Should be removed
 			});
 
-			test('returns down status when app state is degraded', async () => {
+			it('returns down status when app state is degraded', async () => {
 				// Arrange
 				const stateInfo = {
 					name: 'app',
@@ -146,7 +146,7 @@ describe('AppHealthService', () => {
 				expect(result.info.app.state).toEqual(stateInfo);
 			});
 
-			test('throws error when app state is not available', async () => {
+			it('throws error when app state is not available', async () => {
 				// Arrange
 				appDomainStateManager.getState.mockResolvedValue(null as any);
 
@@ -161,7 +161,7 @@ describe('AppHealthService', () => {
 		});
 
 		describe('fetchLivenessCheckResponse', () => {
-			test('always returns up status', async () => {
+			it('always returns up status', async () => {
 				// Act
 				const result = await service.fetchLivenessCheckResponse();
 
@@ -171,7 +171,7 @@ describe('AppHealthService', () => {
 		});
 
 		describe('fetchReadinessCheckResponse', () => {
-			test('returns up status when all health checks pass', async () => {
+			it('returns up status when all health checks pass', async () => {
 				// Arrange
 				const healthCheckResult: HealthCheckResult = {
 					status: 'ok',
@@ -210,7 +210,7 @@ describe('AppHealthService', () => {
 				]));
 			});
 
-			test('throws health check result when any check fails', async () => {
+			it('throws health check result when any check fails', async () => {
 				// Arrange
 				const healthCheckError = new Error('Health check failed') as any;
 				healthCheckError.response = {
@@ -229,7 +229,7 @@ describe('AppHealthService', () => {
 		});
 
 		describe('fetchStartupCheckResponse', () => {
-			test('returns started status when app state is OK', async () => {
+			it('returns started status when app state is OK', async () => {
 				// Arrange
 				const stateInfo = {
 					name: 'app',
@@ -246,7 +246,7 @@ describe('AppHealthService', () => {
 				expect(result.timestamp).toBe(stateInfo.updatedOn.toISOString());
 			});
 
-			test('returns started status when app state is DEGRADED', async () => {
+			it('returns started status when app state is DEGRADED', async () => {
 				// Arrange
 				const stateInfo = {
 					name: 'app',
@@ -262,7 +262,7 @@ describe('AppHealthService', () => {
 				expect(result.status).toBe('started');
 			});
 
-			test('returns starting status when app state is not OK or DEGRADED', async () => {
+			it('returns starting status when app state is not OK or DEGRADED', async () => {
 				// Arrange
 				const stateInfo = {
 					name: 'app',
@@ -278,7 +278,7 @@ describe('AppHealthService', () => {
 				expect(result.status).toBe('starting');
 			});
 
-			test('throws error when app state is not available', async () => {
+			it('throws error when app state is not available', async () => {
 				// Arrange
 				appDomainStateManager.getState.mockResolvedValue(null as any);
 
@@ -293,7 +293,7 @@ describe('AppHealthService', () => {
 		});
 
 		describe('mapHealthCheckResultToReadinessResponse', () => {
-			test('correctly maps successful health check result', () => {
+			it('correctly maps successful health check result', () => {
 				// Arrange
 				const now = new Date();
 				const healthCheck = {
@@ -322,7 +322,7 @@ describe('AppHealthService', () => {
 				});
 			});
 
-			test('correctly maps failed health check result', () => {
+			it('correctly maps failed health check result', () => {
 				// Arrange
 				const now = new Date();
 				const healthCheck = {
@@ -348,12 +348,21 @@ describe('AppHealthService', () => {
 					timestamp: now.toISOString()
 				});
 			});
+
+			it('handles malformed health check results gracefully', () => {
+				const result = service.mapHealthCheckResultToReadinessResponse({} as any, new Date());
+				expect(result.status).toBe('down');
+				expect(result.info).toEqual({});
+				expect(result.error).toEqual({});
+				expect(result.details).toEqual({});
+				expect(result.timestamp).toBeDefined();
+			});
 		});
 	});
 
 	describe('Private Methods', () => {
 		describe('getHealthConfig', () => {
-			test('returns config with defaults merged with retrieved config', () => {
+			it('returns default configuration when no config is provided', () => {
 				// Arrange - config.get already mocked in beforeEach
 
 				// Act
@@ -372,24 +381,112 @@ describe('AppHealthService', () => {
 				});
 			});
 
-			test('returns defaults when config is missing', () => {
+			it('merges partial configuration with defaults', () => {
 				// Arrange
-				config.get.mockImplementation(() => null);
+				config.get.mockImplementation((key: string) => {
+					if (key === 'health') {
+						return {
+							timeouts: {
+								healthz: 5000, // Override just this value
+								startupz: 1000 // Override just this value
+							}
+						};
+					}
+					return undefined;
+				});
 
 				// Act
 				const result = (service as any).getHealthConfig();
 
 				// Assert
-				expect(result).toEqual(expect.objectContaining({
-					storage: expect.any(Object),
-					memory: expect.any(Object),
-					timeouts: expect.any(Object)
-				}));
+				expect(result.timeouts.healthz).toBe(5000);
+				expect(result.timeouts.livenessz).toBe(1000); // Default value
+				expect(result.timeouts.readinessz).toBe(5000); // Default value
+				expect(result.timeouts.startupz).toBe(1000);
+				expect(result.storage.maxStorageLimit).toBe(0.9); // Default value
+			});
+
+			it('overrides all defaults with provided values', () => {
+				// Arrange
+				const customConfig = {
+					storage: {
+						dataDir: 'E:\\custom-path',
+						maxStorageLimit: 0.75
+					},
+					memory: {
+						maxHeapSize: 2000000000,
+						maxRSSsize: 2000000000
+					},
+					timeouts: {
+						healthz: 3000,
+						livenessz: 2000,
+						readinessz: 10000,
+						startupz: 5000
+					}
+				};
+				config.get.mockImplementation((key: string) => key === 'health' ? customConfig : undefined);
+
+				// Act
+				const result = (service as any).getHealthConfig();
+
+				// Assert
+				expect(result).toEqual(customConfig);
+			});
+
+			it('includes additional properties not in default config', () => {
+				// Arrange
+				const configWithExtra = {
+					storage: {
+						dataDir: 'D:\\',
+						maxStorageLimit: 0.9,
+						extraStorageProp: 'value' // Extra property
+					},
+					extraTopLevelProp: {
+						someSetting: true
+					},
+					timeouts: {
+						healthz: 2500
+					}
+				};
+				config.get.mockImplementation((key: string) => key === 'health' ? configWithExtra : undefined);
+
+				// Act
+				const result = (service as any).getHealthConfig();
+
+				// Assert
+				expect((result.storage as any).extraStorageProp).toBe('value');
+				expect((result as any).extraTopLevelProp).toEqual({ someSetting: true });
+				expect(result.timeouts.livenessz).toBe(1000); // Default value still present
+			});
+
+			it('handles configuration with null or undefined nested properties', () => {
+				// Arrange
+				config.get.mockImplementation((key: string) => {
+					if (key === 'health') {
+						return {
+							storage: null,
+							memory: undefined,
+							timeouts: {
+								healthz: 1234
+							}
+						};
+					}
+					return undefined;
+				});
+
+				// Act
+				const result = (service as any).getHealthConfig();
+
+				// Assert
+				expect(result.storage).toBeNull();
+				expect(result.memory).toBeUndefined();
+				expect(result.timeouts.healthz).toBe(1234);
+				expect(result.timeouts.livenessz).toBe(1000); // Default value
 			});
 		});
 
 		describe('getServiceURL', () => {
-			test('returns correct URL for existing service', () => {
+			it('returns correct URL for existing service', () => {
 				// Arrange
 				const servicesConfig = {
 					'test-service': {
@@ -407,7 +504,7 @@ describe('AppHealthService', () => {
 				expect(url).toBe('http://localhost:4000/api/health/live');
 			});
 
-			test('returns fallback URL when service not found', () => {
+			it('returns fallback URL when service not found', () => {
 				// Arrange
 				const servicesConfig = {};
 
@@ -416,6 +513,91 @@ describe('AppHealthService', () => {
 
 				// Assert
 				expect(url).toBe('nonexistent-service-base-url-not-configured/liveness-path-not-configured');
+			});
+		});
+		
+		describe('mergeConfig', () => {
+			it('merges configuration objects correctly', () => {
+				// Arrange
+				const target = { a: 1, b: { c: 2 } };
+				const source = { b: { d: 3 }, e: 4 };
+				
+				// Act
+				const result = service['mergeConfig'](target, source);
+				
+				// Assert
+				expect(result).toEqual({
+					a: 1,
+					b: { c: 2, d: 3 },
+					e: 4
+				});
+			});
+
+			it('overrides existing properties with source values', () => {
+				// Arrange
+				const target = { a: 1, b: 2 };
+				const source = { b: 3, c: 4 };
+				
+				// Act
+				const result = service['mergeConfig'](target, source);
+				
+				// Assert
+				expect(result).toEqual({
+					a: 1,
+					b: 3,
+					c: 4
+				});
+			});
+
+			it('handles nested objects correctly', () => {
+				// Arrange
+				const target = { a: { x: 1, y: 2 }, b: 3 };
+				const source = { a: { y: 3, z: 4 }, c: 5 };
+
+				// Act
+				const result = service['mergeConfig'](target, source);
+
+				// Assert
+				expect(result).toEqual({
+					a: { x: 1, y: 3, z: 4 },
+					b: 3,
+					c: 5
+				});
+			});
+
+			it('returns a new object without modifying the original', () => {
+				// Arrange
+				const target = { a: 1, b: 2 };
+				const source = { b: 3, c: 4 };
+
+				// Act
+				const result = service['mergeConfig'](target, source);
+
+				// Assert
+				expect(result).not.toBe(target);
+				expect(result).not.toBe(source);
+				expect(result).toEqual({ a: 1, b: 3, c: 4 });
+				expect(target).toEqual({ a: 1, b: 2 });
+				expect(source).toEqual({ b: 3, c: 4 });
+			});
+
+			it('returns target if source is undefined', () => {
+				// Arrange
+				const target = { a: 1, b: 2 };
+
+				// Act
+				const result = service['mergeConfig'](target, undefined as any);
+
+				// Assert
+				expect(result).toBe(target);
+			});
+
+			it('returns an empty object if both target and source are undefined', () => {
+				// Act
+				const result = service['mergeConfig'](undefined as any, undefined as any);
+
+				// Assert
+				expect(result).toEqual({});
 			});
 		});		
 	});

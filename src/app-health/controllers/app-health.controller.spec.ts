@@ -1,20 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { HttpStatus } from '@nestjs/common';
+
+import path from 'path';
 
 import AppHealthController from './app-health.controller';
 import AppHealthService from '../services/app-health.service';
+import { ComponentState } from '../../libraries/managed-stateful-component';
 import HealthCheckResponse from '../../conditioning/controllers/models/health-check-response.model';
+import { HealthConfig } from '../../shared/domain/config-options.model';
 import LivenessCheckResponse from '../../conditioning/controllers/models/liveliness-check-response.model';
 import ReadinessCheckResponse from '../../conditioning/controllers/models/readiness-check-response.model';
 import StartupCheckResponse from '../../conditioning/controllers/models/startup-check-response.model';
-import { HealthConfig } from '../../shared/domain/config-options.model';
-import { ComponentState } from '../../libraries/managed-stateful-component';
 
 describe('AppHealthController', () => {
 	let controller: AppHealthController;
 	let appHealthService: jest.Mocked<AppHealthService>;
-	let configService: jest.Mocked<ConfigService>;
 	let mockResponse: any;
 	beforeEach(async () => {
 		// Create mock implementations
@@ -23,11 +23,23 @@ describe('AppHealthController', () => {
 			fetchLivenessCheckResponse: jest.fn(),
 			fetchReadinessCheckResponse: jest.fn(),
 			fetchStartupCheckResponse: jest.fn(),
-			//withTimeout: jest.fn()
-		} as any;
-
-		configService = {
-			get: jest.fn()
+			getHealthConfig: () => ({
+				storage: {
+					dataDir: path.join('D:\\'), // Default data directory
+					maxStorageLimit: 0.9, // 90% of available storage
+				},
+				memory: {
+					maxHeapSize: 10 * 150 * 1024 * 1024, // 1500 MB
+					maxRSSsize: 10 * 150 * 1024 * 1024, // 1500 MB
+				},
+				timeouts: { // 10x accelerated timeouts for testing
+					healthz: 250,
+					livenessz: 100,
+					readinessz: 250,
+					startupz: 250
+				}
+			} as HealthConfig),
+			withTimeout: jest.fn()
 		} as any;
 
 		// Create mock response object
@@ -36,27 +48,11 @@ describe('AppHealthController', () => {
 			send: jest.fn().mockReturnThis()
 		};
 
-		// Default health config
-		configService.get.mockImplementation((key: string) => {
-			if (key === 'health') {
-				return {
-					timeouts: { // 10x accelerated timeouts for testing
-						healthz: 250,
-						livenessz: 100,
-						readinessz: 250,
-						startupz: 250
-					}
-				};
-			}
-			return undefined;
-		});
-
 		// Create module with mocked dependencies
 		const module: TestingModule = await Test.createTestingModule({
 			controllers: [AppHealthController],
 			providers: [
 				{ provide: AppHealthService, useValue: appHealthService },
-				{ provide: ConfigService, useValue: configService }
 			]
 		})
 		.compile();
@@ -159,7 +155,7 @@ describe('AppHealthController', () => {
 			it('times out health check after delay set in config', async () => {
 				// Arrange
 				const now = new Date();
-				const timeout = configService.get<HealthConfig>('health')?.timeouts.healthz;
+				const timeout = appHealthService.getHealthConfig()?.timeouts.healthz;
 				const timeoutError = new Error(`Operation timed out after ${timeout}ms`);
 				
 				jest.spyOn(controller as any, 'withTimeout').mockRejectedValueOnce(timeoutError); // Re-mock withTimeout to simulate timeout
@@ -206,7 +202,7 @@ describe('AppHealthController', () => {
 			it('times out liveness check after delay set in config', async () => {
 				// Arrange
 				const now = new Date();
-				const timeout = configService.get<HealthConfig>('health')?.timeouts.livenessz;
+				const timeout = appHealthService.getHealthConfig()?.timeouts.livenessz;
 				const timeoutError = new Error(`Operation timed out after ${timeout}ms`);
 				
 				jest.spyOn(controller as any, 'withTimeout').mockRejectedValueOnce(timeoutError); // Re-mock withTimeout to simulate timeout
@@ -317,7 +313,7 @@ describe('AppHealthController', () => {
 					error: {},
 					timestamp: now.toISOString()
 				};
-				const timeout = configService.get<HealthConfig>('health')?.timeouts.readinessz;
+				const timeout = appHealthService.getHealthConfig()?.timeouts.readinessz;
 				const timeoutError = new Error(`Operation timed out after ${timeout}ms`);
 				
 				jest.spyOn(controller as any, 'withTimeout').mockRejectedValueOnce(timeoutError); // Re-mock withTimeout to simulate timeout
@@ -399,7 +395,7 @@ describe('AppHealthController', () => {
 			it('times out startup check after delay set in config', async () => {
 				// Arrange
 				const now = new Date();
-				const timeout = configService.get<HealthConfig>('health')?.timeouts.startupz;
+				const timeout = appHealthService.getHealthConfig()?.timeouts.startupz;
 				const timeoutError = new Error(`Operation timed out after ${timeout}ms`);			
 				
 				jest.spyOn(controller as any, 'withTimeout').mockRejectedValueOnce(timeoutError); // Re-mock withTimeout to simulate timeout
@@ -428,212 +424,6 @@ describe('AppHealthController', () => {
 	});
 
 	describe('Private methods', () => {
-		describe('getHealthConfig', () => {
-			it('returns default configuration when no config is provided', () => {
-				// Arrange
-				configService.get.mockReturnValue(null);
-
-				// Act
-				const result = controller['getHealthConfig']();
-
-				// Assert
-				expect(result).toEqual({
-					storage: {
-						dataDir: expect.any(String),
-						maxStorageLimit: 0.9
-					},
-					memory: {
-						maxHeapSize: 1572864000, // 1500 MB
-						maxRSSsize: 1572864000  // 1500 MB
-					},
-					timeouts: {
-						healthz: 2500,
-						livenessz: 1000,
-						readinessz: 5000,
-						startupz: 2500
-					}
-				});
-			});
-
-			it('merges partial configuration with defaults', () => {
-				// Arrange
-				configService.get.mockReturnValue({
-					timeouts: {
-						healthz: 5000, // Override just this value
-						startupz: 1000 // Override just this value
-					}
-				});
-
-				// Act
-				const result = controller['getHealthConfig']();
-
-				// Assert
-				expect(result.timeouts.healthz).toBe(5000);
-				expect(result.timeouts.livenessz).toBe(1000); // Default value
-				expect(result.timeouts.readinessz).toBe(5000); // Default value
-				expect(result.timeouts.startupz).toBe(1000);
-				expect(result.storage.maxStorageLimit).toBe(0.9); // Default value
-			});
-
-			it('overrides all defaults with provided values', () => {
-				// Arrange
-				const customConfig = {
-					storage: {
-						dataDir: 'E:\\custom-path',
-						maxStorageLimit: 0.75
-					},
-					memory: {
-						maxHeapSize: 2000000000,
-						maxRSSsize: 2000000000
-					},
-					timeouts: {
-						healthz: 3000,
-						livenessz: 2000,
-						readinessz: 10000,
-						startupz: 5000
-					}
-				};
-				configService.get.mockReturnValue(customConfig);
-
-				// Act
-				const result = controller['getHealthConfig']();
-
-				// Assert
-				expect(result).toEqual(customConfig);
-			});
-
-			it('includes additional properties not in default config', () => {
-				// Arrange
-				const configWithExtra = {
-					storage: {
-						dataDir: 'D:\\',
-						maxStorageLimit: 0.9,
-						extraStorageProp: 'value' // Extra property
-					},
-					extraTopLevelProp: {
-						someSetting: true
-					},
-					timeouts: {
-						healthz: 2500
-					}
-				};
-				configService.get.mockReturnValue(configWithExtra);
-
-				// Act
-				const result = controller['getHealthConfig']();
-
-				// Assert
-				expect((result.storage as any).extraStorageProp).toBe('value');
-				expect((result as any).extraTopLevelProp).toEqual({ someSetting: true });
-				expect(result.timeouts.livenessz).toBe(1000); // Default value still present
-			});
-
-			it('handles configuration with null or undefined nested properties', () => {
-				// Arrange
-				configService.get.mockReturnValue({
-					storage: null,
-					memory: undefined,
-					timeouts: {
-						healthz: 1234
-					}
-				});
-
-				// Act
-				const result = controller['getHealthConfig']();
-
-				// Assert
-				expect(result.storage).toBeNull();
-				expect(result.memory).toBeUndefined();
-				expect(result.timeouts.healthz).toBe(1234);
-				expect(result.timeouts.livenessz).toBe(1000); // Default value
-			});
-		});
-
-		describe('mergeConfig', () => {
-			it('merges configuration objects correctly', () => {
-				// Arrange
-				const target = { a: 1, b: { c: 2 } };
-				const source = { b: { d: 3 }, e: 4 };
-				
-				// Act
-				const result = controller['mergeConfig'](target, source);
-				
-				// Assert
-				expect(result).toEqual({
-					a: 1,
-					b: { c: 2, d: 3 },
-					e: 4
-				});
-			});
-
-			it('overrides existing properties with source values', () => {
-				// Arrange
-				const target = { a: 1, b: 2 };
-				const source = { b: 3, c: 4 };
-				
-				// Act
-				const result = controller['mergeConfig'](target, source);
-				
-				// Assert
-				expect(result).toEqual({
-					a: 1,
-					b: 3,
-					c: 4
-				});
-			});
-
-			it('handles nested objects correctly', () => {
-				// Arrange
-				const target = { a: { x: 1, y: 2 }, b: 3 };
-				const source = { a: { y: 3, z: 4 }, c: 5 };
-
-				// Act
-				const result = controller['mergeConfig'](target, source);
-
-				// Assert
-				expect(result).toEqual({
-					a: { x: 1, y: 3, z: 4 },
-					b: 3,
-					c: 5
-				});
-			});
-
-			it('returns a new object without modifying the original', () => {
-				// Arrange
-				const target = { a: 1, b: 2 };
-				const source = { b: 3, c: 4 };
-
-				// Act
-				const result = controller['mergeConfig'](target, source);
-
-				// Assert
-				expect(result).not.toBe(target);
-				expect(result).not.toBe(source);
-				expect(result).toEqual({ a: 1, b: 3, c: 4 });
-				expect(target).toEqual({ a: 1, b: 2 });
-				expect(source).toEqual({ b: 3, c: 4 });
-			});
-
-			it('returns target if source is undefined', () => {
-				// Arrange
-				const target = { a: 1, b: 2 };
-
-				// Act
-				const result = controller['mergeConfig'](target, undefined as any);
-
-				// Assert
-				expect(result).toBe(target);
-			});
-
-			it('returns an empty object if both target and source are undefined', () => {
-				// Act
-				const result = controller['mergeConfig'](undefined as any, undefined as any);
-
-				// Assert
-				expect(result).toEqual({});
-			});
-		});
-
 		describe('withTimeout', () => {
 			it('resolves within timeout', async () => {
 				// Arrange
