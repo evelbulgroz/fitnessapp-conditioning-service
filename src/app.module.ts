@@ -39,6 +39,7 @@ import developmentConfig from '../config/development.config';
  * - Setting up state management and logging for the application
  * - Authenticating with the auth service and registering with the microservice registry
  * - More generally securing ordered initialization and shutdown of the application
+ * 
  */
 @Global()
 @Module({
