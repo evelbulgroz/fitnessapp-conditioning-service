@@ -134,18 +134,18 @@ export class AppHealthService {
 	public getHealthConfig(): HealthConfig {
 		const defaultConfig: HealthConfig = {
 			storage: {
-				dataDir: path.join('D:\\'),
-				maxStorageLimit: 0.9,
+				dataDir: path.join(process.cwd()), // Current working directory
+				maxStorageLimit: 0.9, // 90% of available disk space
 			},
 			memory: {
-				maxHeapSize: 10 * 150 * 1024 * 1024,
-				maxRSSsize: 10 * 150 * 1024 * 1024,
+				maxHeapSize: 10 * 150 * 1024 * 1024, // 1500 MB
+				maxRSSsize: 10 * 150 * 1024 * 1024, // 1500 MB
 			},
 			timeouts: {
-				healthz: 2500,
-				livenessz: 1000,
-				readinessz: 5000,
-				startupz: 2500
+				healthz: 2500, // 2.5 seconds
+				livenessz: 1000, // 1 second
+				readinessz: 5000, // 5 seconds
+				startupz: 2500 // 2.5 seconds
 			}
 		};
 		
