@@ -240,19 +240,26 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 	 */
 	private async authenticate() {
 		try {
+			console.debug(`Getting access token from auth microservice...`);
 			void await this.authService.getAuthData();
 		}
 		catch (error) {
+			console.debug(`Failed to get access token from auth microservice`);
 			this.logger.error(`Failed to get access token from auth microservice`, error, `${this.constructor.name}.onModuleInit`);
 			this.logger.warn(`Continuing startup without authentication.`, `${this.constructor.name}.onModuleInit`);
 			// todo: set health check status to degraded
 		}
 
+		console.debug(`Continuing with initialization...`);
+
 		// Register with the microservice registry (internally gets access token from auth service)
 		try {
+			console.debug(`Registering with microservice registry...`);
 			void await this.registrationService.register();
+			console.debug(`Successfully registered with microservice registry`);
 		}
 		catch (error) {
+			console.debug(`Failed to register with microservice registry`);
 			this.logger.error(`Failed to register with microservice registry`, error, `${this.constructor.name}.onModuleInit`);
 			this.logger.warn(`Continuing startup without registry registration.`, `${this.constructor.name}.onModuleInit`);
 			// todo: set health check status to degraded

@@ -178,13 +178,18 @@ describe('AppModule', () => {
 
 				it('continues startup if login fails', async () => {
 					// arrange
-					tokenServiceSpy.mockImplementation(() => Promise.reject(testError));
+					jest.spyOn(authService, 'getAuthData').mockImplementation(() => Promise.reject(testError));
+					jest.spyOn(registrationService, 'register').mockClear();
+					const registrationSpy = jest.spyOn(registrationService, 'register').mockImplementation(() => Promise.resolve(true));
 					
 					// act/assert
 					expect(async () => await appModule.onModuleInit()).not.toThrow();
 
 					// assert
-					expect(tokenServiceSpy).toHaveBeenCalledTimes(1);
+					expect(registrationSpy).toHaveBeenCalledTimes(1);
+
+					// clean up
+					jest.clearAllMocks();
 				});
 			});
 
