@@ -19,6 +19,7 @@ import RetryHttpService from './shared/services/utils/retry-http/retry-http.serv
 import SwaggerController from './api-docs/swagger.controller';
 import TokenService from './authentication/services/token/token.service';
 import UserController from './user/controllers/user.controller';
+import AppDomainStateManager from './app-domain-state-manager';
 
 describe('AppModule', () => {
 	let appModule: AppModule;	
@@ -36,6 +37,12 @@ describe('AppModule', () => {
 			],
 		}))
 		// Override providers in the real module with mocks (cannot be done in the testing module)
+		.overrideProvider(AppDomainStateManager)
+		.useValue({
+			componentState$: new Subject(),
+			initialize: () => Promise.resolve(),
+			shutdown: () => Promise.resolve(),
+		})
 		.overrideProvider(AuthService)
 		.useValue({
 			getAuthData: jest.fn(),
