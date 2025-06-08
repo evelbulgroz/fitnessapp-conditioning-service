@@ -428,13 +428,137 @@ describe('AppHealthController', () => {
 	});
 
 	describe('Private methods', () => {
+		describe('getHealthConfig', () => {
+			it('returns default configuration when no config is provided', () => {
+				// Arrange
+				configService.get.mockReturnValue(null);
+
+				// Act
+				const result = controller['getHealthConfig']();
+
+				// Assert
+				expect(result).toEqual({
+					storage: {
+						dataDir: expect.any(String),
+						maxStorageLimit: 0.9
+					},
+					memory: {
+						maxHeapSize: 1572864000, // 1500 MB
+						maxRSSsize: 1572864000  // 1500 MB
+					},
+					timeouts: {
+						healthz: 2500,
+						livenessz: 1000,
+						readinessz: 5000,
+						startupz: 2500
+					}
+				});
+			});
+
+			it('merges partial configuration with defaults', () => {
+				// Arrange
+				configService.get.mockReturnValue({
+					timeouts: {
+						healthz: 5000, // Override just this value
+						startupz: 1000 // Override just this value
+					}
+				});
+
+				// Act
+				const result = controller['getHealthConfig']();
+
+				// Assert
+				expect(result.timeouts.healthz).toBe(5000);
+				expect(result.timeouts.livenessz).toBe(1000); // Default value
+				expect(result.timeouts.readinessz).toBe(5000); // Default value
+				expect(result.timeouts.startupz).toBe(1000);
+				expect(result.storage.maxStorageLimit).toBe(0.9); // Default value
+			});
+
+			it('overrides all defaults with provided values', () => {
+				// Arrange
+				const customConfig = {
+					storage: {
+						dataDir: 'E:\\custom-path',
+						maxStorageLimit: 0.75
+					},
+					memory: {
+						maxHeapSize: 2000000000,
+						maxRSSsize: 2000000000
+					},
+					timeouts: {
+						healthz: 3000,
+						livenessz: 2000,
+						readinessz: 10000,
+						startupz: 5000
+					}
+				};
+				configService.get.mockReturnValue(customConfig);
+
+				// Act
+				const result = controller['getHealthConfig']();
+
+				// Assert
+				expect(result).toEqual(customConfig);
+			});
+
+			it('includes additional properties not in default config', () => {
+				// Arrange
+				const configWithExtra = {
+					storage: {
+						dataDir: 'D:\\',
+						maxStorageLimit: 0.9,
+						extraStorageProp: 'value' // Extra property
+					},
+					extraTopLevelProp: {
+						someSetting: true
+					},
+					timeouts: {
+						healthz: 2500
+					}
+				};
+				configService.get.mockReturnValue(configWithExtra);
+
+				// Act
+				const result = controller['getHealthConfig']();
+
+				// Assert
+				expect((result.storage as any).extraStorageProp).toBe('value');
+				expect((result as any).extraTopLevelProp).toEqual({ someSetting: true });
+				expect(result.timeouts.livenessz).toBe(1000); // Default value still present
+			});
+
+			it('handles configuration with null or undefined nested properties', () => {
+				// Arrange
+				configService.get.mockReturnValue({
+					storage: null,
+					memory: undefined,
+					timeouts: {
+						healthz: 1234
+					}
+				});
+
+				// Act
+				const result = controller['getHealthConfig']();
+
+				// Assert
+				expect(result.storage).toBeNull();
+				expect(result.memory).toBeUndefined();
+				expect(result.timeouts.healthz).toBe(1234);
+				expect(result.timeouts.livenessz).toBe(1000); // Default value
+			});
+		});
+
 		describe('mergeConfig', () => {
 			it('merges configuration objects correctly', () => {
+				// Arrange
 				const target = { a: 1, b: { c: 2 } };
 				const source = { b: { d: 3 }, e: 4 };
 				
+				// Act
 				const result = controller['mergeConfig'](target, source);
 				
+				// Assert
 				expect(result).toEqual({
 					a: 1,
 					b: { c: 2, d: 3 },
@@ -443,11 +567,14 @@ describe('AppHealthController', () => {
 			});
 
 			it('overrides existing properties with source values', () => {
+				// Arrange
 				const target = { a: 1, b: 2 };
 				const source = { b: 3, c: 4 };
 				
+				// Act
 				const result = controller['mergeConfig'](target, source);
 				
+				// Assert
 				expect(result).toEqual({
 					a: 1,
 					b: 3,
@@ -456,10 +583,14 @@ describe('AppHealthController', () => {
 			});
 
 			it('handles nested objects correctly', () => {
+				// Arrange
 				const target = { a: { x: 1, y: 2 }, b: 3 };
 				const source = { a: { y: 3, z: 4 }, c: 5 };
 
+				// Act
 				const result = controller['mergeConfig'](target, source);
+
+				// Assert
 				expect(result).toEqual({
 					a: { x: 1, y: 3, z: 4 },
 					b: 3,
@@ -468,9 +599,14 @@ describe('AppHealthController', () => {
 			});
 
 			it('returns a new object without modifying the original', () => {
+				// Arrange
 				const target = { a: 1, b: 2 };
 				const source = { b: 3, c: 4 };
+
+				// Act
 				const result = controller['mergeConfig'](target, source);
+
+				// Assert
 				expect(result).not.toBe(target);
 				expect(result).not.toBe(source);
 				expect(result).toEqual({ a: 1, b: 3, c: 4 });
@@ -479,13 +615,21 @@ describe('AppHealthController', () => {
 			});
 
 			it('returns target if source is undefined', () => {
+				// Arrange
 				const target = { a: 1, b: 2 };
+
+				// Act
 				const result = controller['mergeConfig'](target, undefined as any);
+
+				// Assert
 				expect(result).toBe(target);
 			});
 
 			it('returns an empty object if both target and source are undefined', () => {
+				// Act
 				const result = controller['mergeConfig'](undefined as any, undefined as any);
+
+				// Assert
 				expect(result).toEqual({});
 			});
 		});
