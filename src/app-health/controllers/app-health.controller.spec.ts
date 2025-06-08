@@ -217,7 +217,7 @@ describe('AppHealthController', () => {
 
 				// Assert
 				expect(appHealthService.fetchLivenessCheckResponse).toHaveBeenCalled();
-				//expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
+				expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
 				expect(mockResponse.send).toHaveBeenCalledWith(
 					expect.objectContaining({
 						status: 'down',
@@ -428,6 +428,68 @@ describe('AppHealthController', () => {
 	});
 
 	describe('Private methods', () => {
+		describe('mergeConfig', () => {
+			it('merges configuration objects correctly', () => {
+				const target = { a: 1, b: { c: 2 } };
+				const source = { b: { d: 3 }, e: 4 };
+				
+				const result = controller['mergeConfig'](target, source);
+				
+				expect(result).toEqual({
+					a: 1,
+					b: { c: 2, d: 3 },
+					e: 4
+				});
+			});
+
+			it('overrides existing properties with source values', () => {
+				const target = { a: 1, b: 2 };
+				const source = { b: 3, c: 4 };
+				
+				const result = controller['mergeConfig'](target, source);
+				
+				expect(result).toEqual({
+					a: 1,
+					b: 3,
+					c: 4
+				});
+			});
+
+			it('handles nested objects correctly', () => {
+				const target = { a: { x: 1, y: 2 }, b: 3 };
+				const source = { a: { y: 3, z: 4 }, c: 5 };
+
+				const result = controller['mergeConfig'](target, source);
+				expect(result).toEqual({
+					a: { x: 1, y: 3, z: 4 },
+					b: 3,
+					c: 5
+				});
+			});
+
+			it('returns a new object without modifying the original', () => {
+				const target = { a: 1, b: 2 };
+				const source = { b: 3, c: 4 };
+				const result = controller['mergeConfig'](target, source);
+				expect(result).not.toBe(target);
+				expect(result).not.toBe(source);
+				expect(result).toEqual({ a: 1, b: 3, c: 4 });
+				expect(target).toEqual({ a: 1, b: 2 });
+				expect(source).toEqual({ b: 3, c: 4 });
+			});
+
+			it('returns target if source is undefined', () => {
+				const target = { a: 1, b: 2 };
+				const result = controller['mergeConfig'](target, undefined as any);
+				expect(result).toBe(target);
+			});
+
+			it('returns an empty object if both target and source are undefined', () => {
+				const result = controller['mergeConfig'](undefined as any, undefined as any);
+				expect(result).toEqual({});
+			});
+		});
+
 		describe('withTimeout', () => {
 			it('resolves within timeout', async () => {
 				// Arrange

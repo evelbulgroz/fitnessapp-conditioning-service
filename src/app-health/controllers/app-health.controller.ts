@@ -288,7 +288,8 @@ export class AppHealthController {
 	 * @remark It handles nested objects but does not handle arrays or other complex types.
 	 */
 	private mergeConfig(target: Record<string,any>, source: Record<string,any>, self = this): Record<string,any> {
-			if (!source) return target;
+			if (!source) return target || {};
+			target = target || {};
 			
 			const result = { ...target };
 			
