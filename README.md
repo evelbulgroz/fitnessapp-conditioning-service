@@ -86,8 +86,8 @@ In broad strokes, what remains to be done is rounding out supporting features, c
 * Refactor and round out app health check and shutdown logic, e.g. using [NestJS Terminus](https://docs.nestjs.com/recipes/terminus) in combination with own state management logic
 * Improve error handling in `AppModule` to fail more gracefully if microservice dependencies are unavailable or fail
 	* Includes updating app state appropriately, e.g. to 'DEGRADED' if auth microservice cannot be reached
-* Implement e2e testing (figure out how)
-	* Especially, figure out best division of labour between e2e tests and current controller unit tests
+* Implement integration and e2e testing (figure out how)
+	* Especially, figure out best division of labour between integration tests, e2e tests and current controller unit tests
 * Clean up code:
 	* Remove any stray unused logic
 	* Apply and comply with stricter compiler settings

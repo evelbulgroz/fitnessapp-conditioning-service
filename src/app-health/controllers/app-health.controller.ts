@@ -262,6 +262,8 @@ export class AppHealthController {
 	 * @remark This method is used to ensure that the health check operations timeout after a specified duration
 	 * that clients can be configured for.
 	 * 
+	 * @see https://github.com/evelbulgroz/fitnessapp-api-gateway/blob/main/documentation/architecture.md#health-checks
+	 * 
 	 * @example
 	 * const someAsyncOperation = async () => {
 	 *   // Simulate an async operation
