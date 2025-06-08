@@ -417,6 +417,6 @@ describe('AppHealthService', () => {
 				// Assert
 				expect(url).toBe('nonexistent-service-base-url-not-configured/liveness-path-not-configured');
 			});
-		});
+		});		
 	});
 });

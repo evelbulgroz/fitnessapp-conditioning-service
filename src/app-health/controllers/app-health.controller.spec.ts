@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { HttpStatus } from '@nestjs/common';
-import { Request } from 'express';
 
 import AppHealthController from './app-health.controller';
 import AppHealthService from '../services/app-health.service';
@@ -17,7 +16,6 @@ describe('AppHealthController', () => {
 	let appHealthService: jest.Mocked<AppHealthService>;
 	let configService: jest.Mocked<ConfigService>;
 	let mockResponse: any;
-
 	beforeEach(async () => {
 		// Create mock implementations
 		appHealthService = {
@@ -42,11 +40,11 @@ describe('AppHealthController', () => {
 		configService.get.mockImplementation((key: string) => {
 			if (key === 'health') {
 				return {
-					timeouts: {
-						healthz: 2500,
-						livenessz: 1000,
-						readinessz: 5000,
-						startupz: 2500
+					timeouts: { // 10x accelerated timeouts for testing
+						healthz: 250,
+						livenessz: 100,
+						readinessz: 250,
+						startupz: 250
 					}
 				};
 			}
@@ -157,38 +155,99 @@ describe('AppHealthController', () => {
 					expect.objectContaining({ status: 'down', error: 'Test error' })
 				);
 			});
+
+			it('times out health check after delay set in config', async () => {
+				// Arrange
+				const now = new Date();
+				const timeout = configService.get<HealthConfig>('health')?.timeouts.healthz;
+				const timeoutError = new Error(`Operation timed out after ${timeout}ms`);
+				
+				jest.spyOn(controller as any, 'withTimeout').mockRejectedValueOnce(timeoutError); // Re-mock withTimeout to simulate timeout
+
+				appHealthService.fetchHealthCheckResponse.mockResolvedValueOnce({
+					status: 'up',
+					info: { app: { status: 'up', state: { name: 'app', state: ComponentState.OK, updatedOn: new Date(), components: [] } } },
+					timestamp: now.toISOString()
+				});
+
+				// Act
+				await controller.checkHealth(mockResponse);
+
+				// Assert
+				expect(appHealthService.fetchHealthCheckResponse).toHaveBeenCalled();
+				expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
+				expect(mockResponse.send).toHaveBeenCalledWith(
+					expect.objectContaining({
+						status: 'down',
+						error: `Health check timed out after ${timeout}ms`,
+						timestamp: expect.any(String)
+					})
+				);
+
+				// Clean up
+				jest.clearAllMocks();
+			});
 		});
 
 		describe('checkLiveness', () => {
-			it('calls service and return liveness status', async () => {
+			it(`calls service and returns 'up' if app is live`, async () => {
 				// Arrange
 				const livenessResponse: LivenessCheckResponse = { status: 'up' };
 				appHealthService.fetchLivenessCheckResponse.mockResolvedValue(livenessResponse);
 
 				// Act
-				const result = await controller.checkLiveness();
+				const result = await controller.checkLiveness(mockResponse);
 
 				// Assert
 				expect(appHealthService.fetchLivenessCheckResponse).toHaveBeenCalled();
 				expect(result).toEqual(livenessResponse);
 			});
+
+			it('times out liveness check after delay set in config', async () => {
+				// Arrange
+				const now = new Date();
+				const timeout = configService.get<HealthConfig>('health')?.timeouts.livenessz;
+				const timeoutError = new Error(`Operation timed out after ${timeout}ms`);
+				
+				jest.spyOn(controller as any, 'withTimeout').mockRejectedValueOnce(timeoutError); // Re-mock withTimeout to simulate timeout
+				appHealthService.fetchLivenessCheckResponse.mockResolvedValueOnce({ status: 'up' });
+				
+				// Act
+				await controller.checkLiveness(mockResponse);
+
+				// Assert
+				expect(appHealthService.fetchLivenessCheckResponse).toHaveBeenCalled();
+				//expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
+				expect(mockResponse.send).toHaveBeenCalledWith(
+					expect.objectContaining({
+						status: 'down',
+						error: `Liveness check timed out after ${timeout}ms`
+					})
+				);
+
+				// Clean up
+				jest.clearAllMocks();
+			});
 		});
 
 		describe('checkReadiness', () => {
-			/*
-			it('calls service and return 200 when ready', async () => {
+			it('calls service and returns 200 when ready', async () => {
 				// Arrange
 				const readinessResponse: ReadinessCheckResponse = {
 					status: 'up',
-					info: {},
-					error: {},
+					info: {
+						'module-state': { status: 'up' },
+						storage: { status: 'up' },
+						memory_heap: { status: 'up' },
+						memory_rss: { status: 'up' }
+					},
+					error : {},
 					timestamp: new Date().toISOString()
 				};
 				appHealthService.fetchReadinessCheckResponse.mockResolvedValue(readinessResponse);
-				const mockReq = {} as Request;
 
 				// Act
-				await controller.checkReadiness(mockReq as unknown as Request, mockResponse);
+				await controller.checkReadiness(mockResponse);
 
 				// Assert
 				expect(appHealthService.fetchReadinessCheckResponse).toHaveBeenCalled();
@@ -196,37 +255,40 @@ describe('AppHealthController', () => {
 				expect(mockResponse.send).toHaveBeenCalledWith(readinessResponse);
 			});
 
-			it('should return 503 when not ready', async () => {
+			it('returns 503 when not ready', async () => {
 				// Arrange
 				const readinessResponse: ReadinessCheckResponse = {
 					status: 'down',
-					info: {},
-					error: { message: 'Not ready' },
+					info: {
+						'module-state': { status: 'up' },
+						memory_heap: { status: 'up' },
+						memory_rss: { status: 'up' }
+					},
+					error : {
+						storage: { status: 'down', reason: 'Disk full' }
+					},
 					timestamp: new Date().toISOString()
 				};
 				appHealthService.fetchReadinessCheckResponse.mockResolvedValue(readinessResponse);
-				const mockReq = {} as Request;
 
 				// Act
-				await controller.checkReadiness(mockReq, mockResponse);
+				await controller.checkReadiness(mockResponse);
 
 				// Assert
 				expect(appHealthService.fetchReadinessCheckResponse).toHaveBeenCalled();
 				expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
-				expect(mockResponse.send).toHaveBeenCalledWith(readinessResponse);
+				expect(mockResponse.send).toHaveBeenCalledWith(
+					expect.objectContaining(readinessResponse)
+				);
 			});
 
-			it('handles timeout errors', async () => {
+			it('handles errors and returns 503 with error message', async () => {
 				// Arrange
-				const timeoutError = new Error('Operation timed out after 5000ms');
-				appHealthService.fetchReadinessCheckResponse.mockRejectedValue(timeoutError);
-				const mockReq = {} as Request;
-				
-				// Re-mock withTimeout to simulate timeout
-				jest.spyOn(controller as any, 'withTimeout').mockRejectedValue(timeoutError);
+				const error = new Error('Test error');
+				appHealthService.fetchReadinessCheckResponse.mockRejectedValue(error);
 
 				// Act
-				await controller.checkReadiness(mockReq, mockResponse);
+				await controller.checkReadiness(mockResponse);
 
 				// Assert
 				expect(appHealthService.fetchReadinessCheckResponse).toHaveBeenCalled();
@@ -234,11 +296,50 @@ describe('AppHealthController', () => {
 				expect(mockResponse.send).toHaveBeenCalledWith(
 					expect.objectContaining({
 						status: 'down',
-						error: expect.objectContaining({ message: 'Readiness check timed out' })
+						info: {},
+						error: {message: error.message},
+						timestamp: expect.any(String)
 					})
 				);
 			});
-			*/
+
+			it('times out readiness check after delay set in config', async () => {
+				// Arrange
+				const now = new Date();
+				const readinessResponse: ReadinessCheckResponse = {
+					status: 'up',
+					info: {
+						'module-state': { status: 'up' },
+						storage: { status: 'up' },
+						memory_heap: { status: 'up' },
+						memory_rss: { status: 'up' }
+					},
+					error: {},
+					timestamp: now.toISOString()
+				};
+				const timeout = configService.get<HealthConfig>('health')?.timeouts.readinessz;
+				const timeoutError = new Error(`Operation timed out after ${timeout}ms`);
+				
+				jest.spyOn(controller as any, 'withTimeout').mockRejectedValueOnce(timeoutError); // Re-mock withTimeout to simulate timeout
+				appHealthService.fetchReadinessCheckResponse.mockResolvedValueOnce(readinessResponse); // Mock the service to return a response
+
+				// Act
+				await controller.checkReadiness(mockResponse);
+
+				// Assert
+				expect(appHealthService.fetchReadinessCheckResponse).toHaveBeenCalled();
+				expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
+				expect(mockResponse.send).toHaveBeenCalledWith(
+					expect.objectContaining({
+						status: 'down',
+						error: {message: `Readiness check timed out after ${timeout}ms`},
+						timestamp: expect.any(String) // Use any to avoid strict date comparison
+					})
+				);
+
+				// Clean up
+				jest.clearAllMocks();
+			});
 		});
 
 		describe('checkStartup', () => {
@@ -294,29 +395,34 @@ describe('AppHealthController', () => {
 					})
 				);
 			});
-			
-			xit('handles timeout errors', async () => {
+
+			it('times out startup check after delay set in config', async () => {
 				// Arrange
-				const timeoutError = new Error('Operation timed out after 2500ms');
-				appHealthService.fetchStartupCheckResponse.mockRejectedValue(timeoutError);
+				const now = new Date();
+				const timeout = configService.get<HealthConfig>('health')?.timeouts.startupz;
+				const timeoutError = new Error(`Operation timed out after ${timeout}ms`);			
 				
-				// Re-mock withTimeout to simulate timeout
-				jest.spyOn(controller as any, 'withTimeout').mockRejectedValue(timeoutError);
+				jest.spyOn(controller as any, 'withTimeout').mockRejectedValueOnce(timeoutError); // Re-mock withTimeout to simulate timeout
 
+				appHealthService.fetchStartupCheckResponse.mockResolvedValueOnce({ // Mock the service to return a response
+					status: 'starting',
+					timestamp: expect.any(String) // Use any to avoid strict date comparison
+				});				
+				
 				// Act
-				expect(async () => {
-					await controller.checkStartup(mockResponse);
-				}).rejects.toThrow(timeoutError);
-
+				await controller.checkStartup(mockResponse);
+				
 				// Assert
 				expect(appHealthService.fetchStartupCheckResponse).toHaveBeenCalled();
 				expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
-				expect(mockResponse.send).toHaveBeenCalledWith(
-					expect.objectContaining({
-						status: 'starting',
-						message: 'Startup check timed out'
-					})
-				);
+				expect(mockResponse.send).toHaveBeenCalledWith({
+					status: 'starting',
+					message: `Startup check timed out after ${timeout}ms`,
+					timestamp: expect.any(String) // Use any to avoid strict date comparison
+				});
+
+				// Clean up
+				jest.clearAllMocks();
 			});
 		});
 	});
@@ -329,21 +435,30 @@ describe('AppHealthController', () => {
 				const timeout = 250;
 
 				// Act
-				const result = await (controller as any).withTimeout(promise, timeout);
+				const result = await controller['withTimeout'](promise, timeout);
 
 				// Assert
 				expect(result).toBe('Success');
 			});
 
-			xit('rejects with timeout error', async () => {
+			it('rejects with timeout error', async () => {
 				// Arrange
-				const promise = new Promise((resolve) => setTimeout(resolve, 500, 'Success'));
+				jest.useFakeTimers(); // Use fake timers to control timeouts
+				jest.spyOn(controller as any, 'withTimeout').mockRestore(); // Restore the original method
+				
+				const promise = new Promise((resolve) => setTimeout(resolve, 10000, 'Success'));
+				
 				const timeout = 250;
+				const resultPromise = controller['withTimeout'](promise, timeout);
+				
+				jest.advanceTimersByTime(251); // Fast-forward time to trigger timeout
+				await Promise.resolve(); // Ensure all promises are resolved to ensure the timeout is processed
 
 				// Act & Assert
-				await expect((controller as any).withTimeout(promise, timeout)).rejects.toThrow(
-					'Operation timed out after 1000ms'
-				);
+				await expect(resultPromise).rejects.toThrow(`Operation timed out after ${timeout}ms`);
+
+				// Cleanup
+    			jest.useRealTimers();
 			});
 		});
 	});

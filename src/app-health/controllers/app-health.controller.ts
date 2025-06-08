@@ -1,6 +1,6 @@
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
-import { Controller, Get, HttpStatus, Req, Res, UseInterceptors, UsePipes } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Res, UseInterceptors, UsePipes } from '@nestjs/common';
 import { HealthCheckResult } from '@nestjs/terminus';
 import { Response } from 'express';
 
@@ -74,6 +74,7 @@ export class AppHealthController {
 	async checkHealth(@Res() res: Response) {
 		// Get the current time for the response timestamp
 		const now = new Date();
+		const timeout = this.getHealthConfig().timeouts.healthz || 2500; // Default to 2.5 seconds if not configured
 		
 		try {
 			// Wrap data retrieval in a promise with a timeout
@@ -89,9 +90,13 @@ export class AppHealthController {
 			}
 		} 
 		catch (error) {
+			const isTimeout = error.message?.includes('timed out');
+			
 			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
 				status: 'down',
-				error: error.message || 'Error checking app health',
+				error: isTimeout 
+				? `Health check timed out after ${timeout}ms` 
+				: (error.message || 'Error checking app health'),
 				timestamp: now.toISOString()
 			});
 		}
@@ -112,11 +117,28 @@ export class AppHealthController {
 		status: 503,
 		description: 'Application is not running'
 	})
-	public async checkLiveness() {	
-		// Wrap data retrieval from service in a promise with a timeout
-		const dataPromise = this.appHealthService.fetchLivenessCheckResponse();
-		const body = await this.withTimeout<LivenessCheckResponse>(dataPromise, this.getHealthConfig().timeouts.livenessz);			
-		return body;
+	public async checkLiveness(@Res() res: Response) {	
+		const now = new Date(); // Get the current time for the response timestamp
+		const timeout = this.getHealthConfig().timeouts.livenessz || 1000; // Default to 1 second if not configured
+
+		try {
+			// Wrap data retrieval from service in a promise with a timeout
+			const dataPromise = this.appHealthService.fetchLivenessCheckResponse();
+			const body = await this.withTimeout<LivenessCheckResponse>(dataPromise, this.getHealthConfig().timeouts.livenessz);			
+			return body;
+		}
+		catch (error) {
+			// Differentiate timeout errors from other errors
+			const isTimeout = error.message?.includes('timed out');
+			
+			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
+				status: 'down',
+				error: isTimeout 
+					? `Liveness check timed out after ${timeout}ms` 
+					: (error.message || 'Error checking application liveness'),
+				timestamp: now.toISOString()
+			});
+		}
 	}
 
 	@Get('/readinessz')
@@ -138,8 +160,10 @@ export class AppHealthController {
 		description: 'Application is not ready.',
 		type: ReadinessCheckResponse
 	})
-	public async checkReadiness(@Req() req: Request, @Res() res: Response) {		
+	public async checkReadiness(@Res() res: Response) {		
 		const now = new Date();	// Get the current time for the response timestamp
+		const timeout = this.getHealthConfig().timeouts.readinessz || 5000; // Default to 5 seconds if not configured
+
 		try {
 			// Wrap data retrieval in a promise with a timeout
 			const dataPromise = this.appHealthService.fetchReadinessCheckResponse();
@@ -153,7 +177,7 @@ export class AppHealthController {
 				body = {
 					status: 'down',
 					info: {},
-					error: {message: 'Readiness check timed out'},
+					error: {message: `Readiness check timed out after ${timeout}ms`},
 					timestamp: now.toISOString()
 				};
 			}
@@ -164,7 +188,7 @@ export class AppHealthController {
 				}, false);
 				
 				if (isHealthCheckResult) {
-					body = this.mapHealthCheckResultToReadinessResponse(error as HealthCheckResult, now);
+					body = this.appHealthService.mapHealthCheckResultToReadinessResponse(error as HealthCheckResult, now);
 				}
 				else {
 					body = {
@@ -173,9 +197,9 @@ export class AppHealthController {
 						error: { message: error.message || 'Error checking application readiness' },
 						timestamp: now.toISOString()
 					};
-				}
-				return res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
+				}				
 			}
+			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
 		}
 	}
 
@@ -200,11 +224,13 @@ export class AppHealthController {
 	})
 	public async checkStartup(@Res() res: Response) {
 		const now = new Date();
-		
+		const timeout = this.getHealthConfig().timeouts.startupz || 2500; // Default to 2.5 seconds if not configured
+
 		try {
 			// Wrap data retrieval in a promise with a timeout
-			const dataPromise = this.appHealthService.fetchStartupCheckResponse();			
-			const body = await this.withTimeout<StartupCheckResponse>(dataPromise, this.getHealthConfig().timeouts.startupz);
+			const dataPromise = this.appHealthService.fetchStartupCheckResponse();
+			
+			const body = await this.withTimeout<StartupCheckResponse>(dataPromise, timeout);
 			return res.status(body.status === 'started' ? HttpStatus.OK: HttpStatus.SERVICE_UNAVAILABLE).send(body);
 			
 		} 
@@ -215,7 +241,7 @@ export class AppHealthController {
 			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
 				status: 'starting',
 				message: isTimeout 
-					? 'Startup check timed out' 
+					? `Startup check timed out after ${timeout}ms` 
 					: (error.message || 'Error checking application startup status'),
 				timestamp: now.toISOString()
 			});
@@ -247,34 +273,6 @@ export class AppHealthController {
 		const mergedConfig = this.mergeConfig(defaultConfig, retrievedConfig, this) as HealthConfig;
 		
 		return mergedConfig;
-	}
-
-	// TODO: Use method in AppHealthService, when available, to avoid duplication
-	private mapHealthCheckResultToReadinessResponse(healthCheck: HealthCheckResult, now: Date): ReadinessCheckResponse {
-		const status = healthCheck.status === 'ok' ? 'up' : 'down';
-
-		const info = healthCheck.info || {};
-		if (info['module-state']) { // Reduce the info to only include module state
-			info['module-state'] = { status: info['module-state'].status || 'unknown', };
-		}
-
-		const error = healthCheck.error || {};
-		if (error['module-state']) { // Reduce the error to only include module state
-			error['module-state'] = {
-				status: error['module-state']?.status || 'unknown',
-				reason: error['module-state']?.reason || 'Unknown error'
-			};
-		}
-
-		const response: ReadinessCheckResponse = {
-			status,
-			info,
-			error,
-			details: healthCheck.details ?? {},
-			timestamp: now.toISOString()
-		};
-
-		return response;
 	}
 
 	/*
@@ -324,11 +322,15 @@ export class AppHealthController {
 	 * const result = await this.withTimeout(someAsyncOperation(), 5000);
 	 */
 	private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+		// Create rejection promise that triggers after timeoutMs
 		const timeoutPromise = new Promise<never>((_, reject) => {
-			setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs);
+			setTimeout(() => {
+				reject(new Error(`Operation timed out after ${timeoutMs}ms`));
+			}, timeoutMs);
 		});
-		
-		return Promise.race([promise, timeoutPromise]) as Promise<T>;
+			
+		// Race the original promise against the timeout
+		return Promise.race([promise, timeoutPromise]);
 	}
 }
 export default AppHealthController;
