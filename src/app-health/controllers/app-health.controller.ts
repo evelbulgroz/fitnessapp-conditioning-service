@@ -45,9 +45,13 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 )
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })) // whitelisting ignored with primitive types
 export class AppHealthController {
+	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
+	
 	constructor(
 		private readonly appHealthService: AppHealthService
 	) {}
+
+	//--------------------------------------- PUBLIC API ---------------------------------------//
 
 	@Get('healthz')
 	@Public()
@@ -243,7 +247,9 @@ export class AppHealthController {
 				timestamp: now.toISOString()
 			});
 		}
-	}	
+	}
+
+	//------------------------------------- PRIVATE METHODS -------------------------------------//
 
 	/*
 	 * Wrap a (date service) promise in a timeout

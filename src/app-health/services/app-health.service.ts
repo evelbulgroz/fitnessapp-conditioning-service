@@ -25,6 +25,8 @@ import StartupCheckResponse from '../../conditioning/controllers/models/startup-
  */
 @Injectable()
 export class AppHealthService {
+	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
+	
 	constructor(
 		private readonly appDomainStateManager: AppDomainStateManager,
 		private readonly config: ConfigService,
@@ -34,6 +36,8 @@ export class AppHealthService {
 		private readonly memory: MemoryHealthIndicator,
 		private readonly moduleStateHealthIndicator: ModuleStateHealthIndicator,
 	) {}
+
+	//--------------------------------------- PUBLIC API ---------------------------------------//
 
 	/**
 	 * Returns the overall health status of the application
@@ -123,6 +127,34 @@ export class AppHealthService {
 		};
 	}
 	
+	/*
+	 * Get the current health configuration, overriding defaults with configured values
+	 * 
+	 */
+	public getHealthConfig(): HealthConfig {
+		const defaultConfig: HealthConfig = {
+			storage: {
+				dataDir: path.join('D:\\'),
+				maxStorageLimit: 0.9,
+			},
+			memory: {
+				maxHeapSize: 10 * 150 * 1024 * 1024,
+				maxRSSsize: 10 * 150 * 1024 * 1024,
+			},
+			timeouts: {
+				healthz: 2500,
+				livenessz: 1000,
+				readinessz: 5000,
+				startupz: 2500
+			}
+		};
+		
+		const retrievedConfig: HealthConfig = this.config.get<HealthConfig>('health') || {} as unknown as HealthConfig;
+		const mergedConfig = this.mergeConfig(defaultConfig, retrievedConfig, this);
+
+		return mergedConfig as HealthConfig;
+	}
+
 	/**
 	 * Maps a HealthCheckResult to a ReadinessCheckResponse
 	 * 
@@ -161,33 +193,7 @@ export class AppHealthService {
 		};
 	}	
 
-	/*
-	 * Get the current health configuration, overriding defaults with configured values
-	 * 
-	 */
-	public getHealthConfig(): HealthConfig {
-		const defaultConfig: HealthConfig = {
-			storage: {
-				dataDir: path.join('D:\\'),
-				maxStorageLimit: 0.9,
-			},
-			memory: {
-				maxHeapSize: 10 * 150 * 1024 * 1024,
-				maxRSSsize: 10 * 150 * 1024 * 1024,
-			},
-			timeouts: {
-				healthz: 2500,
-				livenessz: 1000,
-				readinessz: 5000,
-				startupz: 2500
-			}
-		};
-		
-		const retrievedConfig: HealthConfig = this.config.get<HealthConfig>('health') || {} as unknown as HealthConfig;
-		const mergedConfig = this.mergeConfig(defaultConfig, retrievedConfig, this);
-
-		return mergedConfig as HealthConfig;
-	}
+	//------------------------------------- PRIVATE METHODS -------------------------------------//
 
 	/*
 	 * Generates the health check URL for a service
