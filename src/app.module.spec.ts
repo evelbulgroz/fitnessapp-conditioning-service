@@ -177,9 +177,10 @@ describe('AppModule', () => {
 				});
 
 				it('continues startup if login fails', async () => {
+					console.debug('AppModule', appModule)
 					// arrange
 					jest.spyOn(authService, 'getAuthData').mockImplementation(() => Promise.reject(testError));
-					jest.spyOn(registrationService, 'register').mockClear();
+					jest.spyOn(registrationService, 'register').mockClear(); // todo: get the instance actually used by the module
 					const registrationSpy = jest.spyOn(registrationService, 'register').mockImplementation(() => Promise.resolve(true));
 					
 					// act/assert
