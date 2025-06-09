@@ -208,7 +208,7 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 				state: ComponentState.DEGRADED,
 				reason: 'Failed to deregister from microservice registry',
 				updatedOn: new Date(),
-			} as Partial<ComponentStateInfo>);
+			} as ComponentStateInfo);
 
 			// Do not throw an error or return here, as we want to continue shutdown even if deregistration fails
 		}
@@ -226,7 +226,7 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 				state: ComponentState.DEGRADED,
 				reason: 'Failed to log out from auth service',
 				updatedOn: new Date(),
-			} as Partial<ComponentStateInfo>);
+			} as ComponentStateInfo);
 
 			// Do not throw an error or return here, as we want to continue shutdown even if logout fails
 		}
@@ -242,7 +242,7 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 			state: ComponentState.SHUT_DOWN,
 			reason: 'Server destroyed',
 			updatedOn: new Date(),
-		} as Partial<ComponentStateInfo>);
+		} as ComponentStateInfo);
 
 		this.logger.info('Unsubscribing from all logging streams', `${this.constructor.name}.onModuleDestroy`);
 		this.streamLogger.unsubscribeAll(); // Do this last, so that we log the shutdown state before unsubscribing
@@ -274,7 +274,7 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 				state: ComponentState.DEGRADED,
 				reason: 'Failed to get access token from auth microservice',
 				updatedOn: new Date(),
-			} as Partial<ComponentStateInfo>);
+			} as ComponentStateInfo);
 
 			return;
 		}
@@ -292,7 +292,7 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 				state: ComponentState.DEGRADED,
 				reason: 'Failed to register with microservice registry',
 				updatedOn: new Date(),
-			} as Partial<ComponentStateInfo>);
+			} as ComponentStateInfo);
 
 			return;
 		}
@@ -304,7 +304,7 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 			state: ComponentState.OK,
 			reason: 'Authenticated and registered with microservice registry',
 			updatedOn: new Date(),
-		} as Partial<ComponentStateInfo>);
+		} as ComponentStateInfo);
 	}
 	
 	/* 
