@@ -6,7 +6,7 @@ import axios, { AxiosInstance } from 'axios';
 
 import { Subscription, } from 'rxjs';
 
-import { DomainStateManager, filePathExtractor, FilePathExtractorOptions } from './libraries/managed-stateful-component';
+import { ComponentState, ComponentStateInfo, DomainStateManager, filePathExtractor, FilePathExtractorOptions } from './libraries/managed-stateful-component';
 import { MergedStreamLogger, StreamLoggableMixin } from "./libraries/stream-loggable";
 
 import AppDomainStateManager from './app-domain-state-manager';
@@ -203,7 +203,14 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 		catch (error) {
 			this.logger.error(`Failed to deregister from microservice registry`, error, `${this.constructor.name}.onModuleDestroy`);
 			this.logger.warn(`Continuing shutdown without deregistration.`, `${this.constructor.name}.onModuleDestroy`);
-			// todo: set health check status to degraded
+			await this.stateManager.updateState({
+				name: this.constructor.name,
+				state: ComponentState.DEGRADED,
+				reason: 'Failed to deregister from microservice registry',
+				updatedOn: new Date(),
+			} as Partial<ComponentStateInfo>);
+
+			// Do not throw an error or return here, as we want to continue shutdown even if deregistration fails
 		}
 
 		// Log out from the auth microservice
@@ -213,7 +220,15 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 		catch (error) {
 			this.logger.error(`Failed to log out from auth service`, error, `${this.constructor.name}.onModuleDestroy`);
 			this.logger.warn('Continuing shutdown without logout.', `${this.constructor.name}.onModuleDestroy`);
-			// todo: set health check status to degraded
+			
+			await this.stateManager.updateState({
+				name: this.constructor.name,
+				state: ComponentState.DEGRADED,
+				reason: 'Failed to log out from auth service',
+				updatedOn: new Date(),
+			} as Partial<ComponentStateInfo>);
+
+			// Do not throw an error or return here, as we want to continue shutdown even if logout fails
 		}
 		
 		this.subs.forEach((sub) => { // debug
@@ -221,6 +236,13 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 		});		
 
 		this.logger.info('Server destroyed', `${this.constructor.name}.onModuleDestroy`);
+		
+		this.stateManager.updateState({
+			name: this.constructor.name,
+			state: ComponentState.SHUT_DOWN,
+			reason: 'Server destroyed',
+			updatedOn: new Date(),
+		} as Partial<ComponentStateInfo>);
 
 		this.streamLogger.unsubscribeAll();
 	}
@@ -245,7 +267,15 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 		catch (error) {
 			this.logger.error(`Failed to get access token from auth microservice`, error, `${this.constructor.name}.onModuleInit`);
 			this.logger.warn(`Continuing startup without authentication.`, `${this.constructor.name}.onModuleInit`);
-			// todo: set health check status to degraded
+			
+			await this.stateManager.updateState({
+				name: this.constructor.name,
+				state: ComponentState.DEGRADED,
+				reason: 'Failed to get access token from auth microservice',
+				updatedOn: new Date(),
+			} as Partial<ComponentStateInfo>);
+
+			return;
 		}
 
 		// Register with the microservice registry (internally gets access token from auth service)
@@ -255,8 +285,25 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 		catch (error) {
 			this.logger.error(`Failed to register with microservice registry`, error, `${this.constructor.name}.onModuleInit`);
 			this.logger.warn(`Continuing startup without registry registration.`, `${this.constructor.name}.onModuleInit`);
-			// todo: set health check status to degraded
+			
+			await this.stateManager.updateState({
+				name: this.constructor.name,
+				state: ComponentState.DEGRADED,
+				reason: 'Failed to register with microservice registry',
+				updatedOn: new Date(),
+			} as Partial<ComponentStateInfo>);
+
+			return;
 		}
+
+		this.logger.info(`Authenticated and registered with microservice registry`, `${this.constructor.name}.onModuleInit`);
+		
+		await this.stateManager.updateState({
+			name: this.constructor.name,
+			state: ComponentState.OK,
+			reason: 'Authenticated and registered with microservice registry',
+			updatedOn: new Date(),
+		} as Partial<ComponentStateInfo>);
 	}
 	
 	/* 

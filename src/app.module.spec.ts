@@ -20,6 +20,7 @@ import SwaggerController from './api-docs/swagger.controller';
 import TokenService from './authentication/services/token/token.service';
 import UserController from './user/controllers/user.controller';
 import AppDomainStateManager from './app-domain-state-manager';
+import { update } from 'lodash-es';
 
 describe('AppModule', () => {
 	let appModule: AppModule;	
@@ -41,6 +42,7 @@ describe('AppModule', () => {
 		.useValue({
 			componentState$: new Subject(),
 			initialize: () => Promise.resolve(),
+			updateState: (state: any) => Promise.resolve(state),
 			shutdown: () => Promise.resolve(),
 		})
 		.overrideProvider(AuthService)
