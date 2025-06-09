@@ -155,7 +155,7 @@ describe('AppModule', () => {
 					expect(tokenServiceSpy).toHaveBeenCalledTimes(1);
 				});
 
-				it('logs error and warning if login fails', async () => {
+				it('logs error and warning if authentication fails', async () => {
 					// arrange
 					tokenServiceSpy.mockImplementation(() => Promise.reject(testError));
 					const loggerErrorSpy = jest.spyOn(appModule['logger'], 'error')
@@ -176,21 +176,17 @@ describe('AppModule', () => {
 					loggerWarnSpy.mockRestore();
 				});
 
-				it('continues startup if login fails', async () => {
-					console.debug('AppModule', appModule)
-					// arrange
-					jest.spyOn(authService, 'getAuthData').mockImplementation(() => Promise.reject(testError));
-					jest.spyOn(registrationService, 'register').mockClear(); // todo: get the instance actually used by the module
-					const registrationSpy = jest.spyOn(registrationService, 'register').mockImplementation(() => Promise.resolve(true));
+				it('continues startup if authentication fails', async () => {
+					// Arrange 
+					jest.spyOn(authService, 'getAuthData').mockRejectedValue(testError); // Mock the auth service to fail
 					
-					// act/assert
-					expect(async () => await appModule.onModuleInit()).not.toThrow();
-
-					// assert
+					const registrationSpy = jest.spyOn(registrationService, 'register').mockResolvedValue(true);
+					
+					// Act
+					await appModule.onModuleInit();
+					
+					// Assert
 					expect(registrationSpy).toHaveBeenCalledTimes(1);
-
-					// clean up
-					jest.clearAllMocks();
 				});
 			});
 
@@ -231,7 +227,7 @@ describe('AppModule', () => {
 					registrationSpy.mockImplementation(() => Promise.reject(testError));
 					
 					// act/assert
-					expect(async () => await appModule.onModuleInit()).not.toThrow();
+					expect(async () => await appModule.onModuleInit()).not.toThrow();					
 				});
 			});
 		});
