@@ -244,7 +244,8 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 			updatedOn: new Date(),
 		} as Partial<ComponentStateInfo>);
 
-		this.streamLogger.unsubscribeAll();
+		this.logger.info('Unsubscribing from all logging streams', `${this.constructor.name}.onModuleDestroy`);
+		this.streamLogger.unsubscribeAll(); // Do this last, so that we log the shutdown state before unsubscribing
 	}
 
 	//------------------------------------- MANAGEMENT API --------------------------------------//
