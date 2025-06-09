@@ -86,6 +86,7 @@ export class AppHealthController {
 				res.status(HttpStatus.OK).send(body);
 			}
 			else {
+				body.error = body.error || { message: '' };
 				body.error!.message = body.error?.message || 'The app is degraded or unavailable';
 				res.status(HttpStatus.SERVICE_UNAVAILABLE).send(body);
 			}
@@ -96,8 +97,8 @@ export class AppHealthController {
 			return res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
 				status: 'down',
 				error: isTimeout 
-				? `Health check timed out after ${timeout}ms` 
-				: (error.message || 'Error checking app health'),
+					? `Health check timed out after ${timeout}ms` 
+					: (error.message || 'Error checking app health'),
 				timestamp: now.toISOString()
 			});
 		}

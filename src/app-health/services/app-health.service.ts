@@ -57,11 +57,17 @@ export class AppHealthService {
 		delete stateInfo.components; // remove components to avoid sending too much data in the response
 		const status = stateInfo.state === ComponentState.OK ? 'up' : 'down';
 		
-		return {
+		const response: HealthCheckResponse = {
 			status,
-			info: { app: { status, state: stateInfo } },
+			info: {
+				app: {
+					status, state: stateInfo
+				}
+			},
 			timestamp: (stateInfo.updatedOn ?? now).toISOString(),
 		};
+
+		return response;
 	}
 
 	/**

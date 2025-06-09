@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { ComponentStateInfo } from "src/libraries/managed-stateful-component";
+import { ComponentStateInfo } from "../../../libraries/managed-stateful-component";
 
 /**
  * Response structure for basic health check endpoints like /healthz.
