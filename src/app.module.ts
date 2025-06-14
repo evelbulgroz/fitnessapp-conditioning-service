@@ -262,7 +262,7 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 	 * @todo Set health check status to degraded if authentication or registration fails
 	 */
 	private async authenticate() {
-		try {
+		try { // Get access token from auth service, acquiring it from auth microservice if necessary
 			void await this.authService.getAuthData();
 		}
 		catch (error) {
@@ -276,7 +276,7 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 				updatedOn: new Date(),
 			} as ComponentStateInfo);
 
-			return;
+			return; // Do not throw an error here, as we want to continue startup even if authentication fails
 		}
 
 		// Register with the microservice registry (internally gets access token from auth service)
@@ -294,7 +294,7 @@ export class AppModule extends StreamLoggableMixin(class {}) implements OnModule
 				updatedOn: new Date(),
 			} as ComponentStateInfo);
 
-			return;
+			return; // Do not throw an error here, as we want to continue startup even if registration fails
 		}
 
 		this.logger.info(`Authenticated and registered with microservice registry`, `${this.constructor.name}.onModuleInit`);

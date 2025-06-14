@@ -21,6 +21,7 @@ import TokenService from './authentication/services/token/token.service';
 import UserController from './user/controllers/user.controller';
 import AppDomainStateManager from './app-domain-state-manager';
 import { update } from 'lodash-es';
+import { ComponentState, DomainStateManager } from './libraries/managed-stateful-component';
 
 describe('AppModule', () => {
 	let appModule: AppModule;	
@@ -40,6 +41,7 @@ describe('AppModule', () => {
 		// Override providers in the real module with mocks (cannot be done in the testing module)
 		.overrideProvider(AppDomainStateManager)
 		.useValue({
+			getState: jest.fn(),
 			componentState$: new Subject(),
 			initialize: () => Promise.resolve(),
 			updateState: (state: any) => Promise.resolve(state),
@@ -174,21 +176,47 @@ describe('AppModule', () => {
 					expect(loggerWarnSpy).toHaveBeenCalledWith("Continuing startup without authentication.", "AppModule.onModuleInit");
 
 					// clean up
+					tokenServiceSpy.mockRestore();
 					loggerErrorSpy.mockRestore();
 					loggerWarnSpy.mockRestore();
 				});
 
-				it('continues startup if authentication fails', async () => {
+				it('continues startup - skipping registration - if authentication fails', async () => {
 					// Arrange 
-					jest.spyOn(authService, 'getAuthData').mockRejectedValue(testError); // Mock the auth service to fail
-					
-					const registrationSpy = jest.spyOn(registrationService, 'register').mockResolvedValue(true);
+					const stateManager: AppDomainStateManager = appModule['stateManager'];
+					const stateManagerSpy = jest.spyOn(stateManager, 'updateState');
+					tokenServiceSpy.mockImplementation(() => Promise.reject(testError));
 					
 					// Act
 					await appModule.onModuleInit();
 					
 					// Assert
-					expect(registrationSpy).toHaveBeenCalledTimes(1);
+					expect(registrationSpy).toHaveBeenCalledTimes(0); // Registration should not be called if authentication fails
+
+					// Clean up
+					stateManagerSpy.mockRestore();
+					tokenServiceSpy.mockRestore();
+				});
+
+				it('sets component state to DEGRADED if authentication fails', async () => {
+					// Arrange 
+					const stateManager: AppDomainStateManager = appModule['stateManager'];
+					const stateManagerSpy = jest.spyOn(stateManager, 'updateState');
+					tokenServiceSpy.mockImplementation(() => Promise.reject(testError));
+					
+					// Act
+					await appModule.onModuleInit();
+					
+					// Assert
+					expect(stateManagerSpy).toHaveBeenCalledTimes(1);
+					expect(stateManagerSpy).toHaveBeenCalledWith(expect.objectContaining({
+						state: ComponentState.DEGRADED,
+
+					}));
+					
+					// Clean up
+					stateManagerSpy.mockRestore();
+					tokenServiceSpy.mockRestore();
 				});
 			});
 
@@ -225,11 +253,45 @@ describe('AppModule', () => {
 				});
 
 				it('continues startup if registration fails', async () => {
-					// arrange
+					// Arrange
+					const loggerInfoSpy = jest.spyOn(appModule['logger'], 'info');
 					registrationSpy.mockImplementation(() => Promise.reject(testError));
 					
-					// act/assert
-					expect(async () => await appModule.onModuleInit()).not.toThrow();					
+					// Act
+					await appModule.onModuleInit();
+					
+					// Assert					
+					expect(loggerInfoSpy.mock.calls).toEqual(
+						expect.arrayContaining([
+						  expect.arrayContaining([
+							expect.stringContaining('Server initialized with instance id')
+						  ])
+						])
+					);
+					// Clean up
+					loggerInfoSpy.mockRestore();
+					registrationSpy.mockRestore();
+				});
+
+				it('sets component state to DEGRADED if registration fails', async () => {
+					// Arrange 
+					const stateManager: AppDomainStateManager = appModule['stateManager'];
+					const stateManagerSpy = jest.spyOn(stateManager, 'updateState');
+					registrationSpy.mockImplementation(() => Promise.reject(testError));
+					
+					// Act
+					await appModule.onModuleInit();
+					
+					// Assert
+					expect(stateManagerSpy).toHaveBeenCalledTimes(1);
+					expect(stateManagerSpy).toHaveBeenCalledWith(expect.objectContaining({
+						state: ComponentState.DEGRADED,
+
+					}));
+					
+					// Clean up
+					registrationSpy.mockRestore();
+					stateManagerSpy.mockRestore();
 				});
 			});
 		});
