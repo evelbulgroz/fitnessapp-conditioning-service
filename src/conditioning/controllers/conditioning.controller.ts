@@ -411,7 +411,6 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	): Promise<Record<string, number>> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult	
-			
 			if (queryDTO) {// query always instantiated by framework, using all query params -> remove if empty except for userId and includeDeleted
 				queryDTO.userId = undefined;
 				(queryDTO as any).includeDeleted = undefined; // not currently part of queryDTO, remove just in case
