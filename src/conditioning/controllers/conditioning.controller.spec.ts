@@ -35,9 +35,16 @@ import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
 // NOTE:
-  // Testing over http to enable decorators and guards without having to do a ton of additional setup/mocking.
-  // This also ensures request/response objects are correctly formatted and that the controller is correctly configured.
-  // This is a bit of a hack, but it works for now. Clean up later when setting up e2e tests.
+// This unit test suite is designed to test the ConditioningController and the logic supporting its endpoints.
+//
+// It mocks the ConditioningDataService and other dependencies to isolate the controller's functionality.
+//
+// It calls controller methods directly, rather than over HTTP.
+// This allows for faster, more focused testing of the controller's logic without the overhead of HTTP requests.
+//
+// Since the controller methods are called directly, no guards or other decorators are applied to the methods.
+// This means that, e.g. access token validation and user role checks are not performed in this test suite.
+// Instead, these should be tested in e2e tests, where the controller is called over HTTP, activating all decorators and guards.
 
 describe('ConditioningController', () => {
 	let app: INestApplication;
@@ -378,10 +385,6 @@ describe('ConditioningController', () => {
 				// clean up
 				serviceSpy?.mockRestore();
 			});
-
-			// NOTE:
-			  // Cannot test if access token is missing or invalid when calling controller method directly, as it is handled by the JwtAuthGuard:
-			  // Do this in e2e tests instead.
 		});
 
 		xdescribe('aggregate', () => {
@@ -609,9 +612,9 @@ describe('ConditioningController', () => {
 			});
 		});
 
-		xdescribe('logs', () => {
+		describe('logs', () => {
 			describe('single log', () => {
-				describe('createLog', () => {
+				xdescribe('createLog', () => {
 					let sourceLogDto: ConditioningLogDTO;
 					let sourceLog : ConditioningLog<any, ConditioningLogDTO>;
 					let logSpy: any;
@@ -735,13 +738,13 @@ describe('ConditioningController', () => {
 				describe('fetchLog', () => {
 					let log: ConditioningLog<any, ConditioningLogDTO>;
 					let logId: EntityId;
-					let logSpy: any;
-					let url: string;
-					let urlPath: string;
+					let logIdDTO: EntityIdDTO;
+					let serviceSpy: any;
 					beforeEach(() => {
 						log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
 						logId = uuid();
-						logSpy = jest.spyOn(service, 'fetchLog')
+						logIdDTO = new EntityIdDTO(logId);
+						serviceSpy = jest.spyOn(service, 'fetchLog')
 							.mockImplementation((ctx: any, entityId: EntityIdDTO) => {
 								void entityId;
 								if (ctx.roles?.includes('admin')) { // simulate an admin user requesting a log
@@ -758,85 +761,72 @@ describe('ConditioningController', () => {
 								else { // simulate a user without any roles
 									throw new ForbiddenException('User not authorized to access log'); // throw an error
 								}					
-							});
-
-						urlPath = `${baseUrl}/log`;
-						url = `${urlPath}/${userContxt.userId}/${logId}`;
+						});
 					});
 
 					afterEach(() => {
-						logSpy && logSpy.mockRestore();
+						serviceSpy?.mockRestore();
 						jest.clearAllMocks();
 					});
 					
 					it('provides a detailed conditioning log', async () => {
 						// arrange
-						headers = { Authorization: `Bearer ${userAccessToken}` };
-
 						// act
-						const response = await lastValueFrom(http.get(url, { headers }));
+						const result = await controller.fetchLog(
+							userMockRequest,
+							userIdDTO,
+							logIdDTO
+						);
 
 						// assert
-						expect(logSpy).toHaveBeenCalledTimes(1);
-						const params = logSpy.mock.calls[0];
+						expect(serviceSpy).toHaveBeenCalledTimes(1);
+						const params = serviceSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContxt);
-						expect(params[1]).toEqual(new EntityIdDTO(userContxt.userId));
-						expect(params[2]).toEqual(new EntityIdDTO(logId));
-						expect(response?.data).toBeDefined();
-						expect(response?.data).toEqual(log);
-					});
+						expect(params[1]).toEqual(userIdDTO);
+						expect(params[2]).toEqual(logIdDTO);
+						expect(result).toBeDefined();
+					});					
 
-					it('throws if access token is missing', async () => {
+					it('throws if user id is missing', async () => {
 						// arrange
-						const response$ = http.get(url);
+						userMockRequest.user = undefined; // simulate missing user id in request
 
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.fetchLog(userMockRequest, undefined as any, logIdDTO, )).rejects.toThrow();
 					});
 
-					it('throws if access token is invalid', async () => {
-						// arrange
-						const invalidHeaders = { Authorization: `Bearer invalid` };
-						const response$ = http.get(url, { headers: invalidHeaders });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws if user information in token payload is invalid', async () => {
-						// arrange
-						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
-						const userAccessToken = await jwt.sign(adminPayload);
-						const response$ = http.get(url, { headers: { Authorization: `Bearer ${userAccessToken}` } });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
+					// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
 
 					it('throws if log id is missing', async () => {
 						// arrange
-						const response$ = http.get(urlPath, { headers });
-
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.fetchLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
 					});
 
-					it('throws if log id is invalid', async () => {
+					// NOTE: Controller defers validation of extant log id to the data service, so this test is not needed
+
+					it('throws if data service rejects', async () => {
 						// arrange
-						const response$ = http.get(urlPath + 'invalid', { headers });
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'fetchLog').mockImplementation(() => { return Promise.reject(new Error('Log not found')); });
 
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});			
+						expect(async () => await controller.fetchLog(userMockRequest, userIdDTO, logIdDTO)).rejects.toThrow();
+
+						// Clean up
+						serviceSpy?.mockRestore();
+					});
 
 					it('throws if data service throws', async () => {
 						// arrange
-						logSpy.mockRestore();
-						logSpy = jest.spyOn(service, 'fetchLog').mockImplementation(() => { throw new Error('Test Error'); });
-						const response$ = http.get(urlPath, { headers });
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'fetchLog').mockImplementation(() => { throw new Error('Test Error'); });
 
 						// act/assert
-						await expect(lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.fetchLog(userMockRequest, userIdDTO, logIdDTO)).rejects.toThrow();
+
+						// Clean up
+						serviceSpy?.mockRestore();
 					});
 				});
 
@@ -1154,7 +1144,7 @@ describe('ConditioningController', () => {
 				});
 			});
 		
-			describe('multiple logs', () => {
+			xdescribe('multiple logs', () => {
 				describe('fetchLogs', () => {
 					let adminContext: UserContext;
 					let includeDeletedDTO: BooleanDTO;

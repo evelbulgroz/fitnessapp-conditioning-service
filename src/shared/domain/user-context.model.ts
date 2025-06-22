@@ -45,7 +45,8 @@ export class UserContext {
 		if (typeof value === 'string' && !isNaN(Number(value))) {
 			value = Number(value);
 		}
-		this._userId = value; }
+		this._userId = value;
+	}
 	public get userId(): EntityId { return this._userId; }
 
 	@IsString() // ensure that the value is a string and defined

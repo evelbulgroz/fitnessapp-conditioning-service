@@ -329,7 +329,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 
 			const logId = logIdDTO.value; // extract sanitized entity id from DTO
 
-			// check if user id matches context decoed from access token
+			// check if user id matches context decoded from access token
 			if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
 				if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
 					reject(new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access log for user ${userIdDTO.value}.`));

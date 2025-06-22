@@ -159,7 +159,12 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		@Param('logId') logId: EntityIdDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
-			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
+			if (!userIdDTO || !logId) {
+				const errorMessage = 'User ID and log ID are required';
+				this.logger.error(errorMessage);
+				throw new BadRequestException(errorMessage);
+			}
+			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps); // maps 1:1 with JwtAuthResult
 			const log = this.dataService.fetchLog(userContext, userIdDTO, logId);
 			if (!log) {
 				const errorMessage = `Log with id ${logId.value} not found`;
