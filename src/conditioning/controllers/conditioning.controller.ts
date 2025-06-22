@@ -185,6 +185,11 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		}
 	}
 	
+	/**
+	 * @todo Reconsider if validating (partial) update DTO by creating a new ConditioningLog is too strict.
+	 * - A partial update should not require all required properties to be present, but only validate the ones that are being updated.
+	 * - Revisit this when sanitizer-decorator library improves support for validating partial updates.
+	 */
 	@Patch('log/:userId/:logId')
 	@ApiOperation({
 		summary: 'Update a conditioning log by user ID and log ID',
@@ -520,7 +525,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
-	/** Create a ConditioningLog from a DTO before passing it to the data service
+	/* Create a ConditioningLog from a DTO before passing it to the data service
 	 * @param logDTO The log (partial) DTO to create a log from
 	 * @returns The created ConditioningLog
 	 * @throws BadRequestException if the log DTO is invalid
