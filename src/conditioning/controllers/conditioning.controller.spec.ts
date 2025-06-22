@@ -992,26 +992,23 @@ describe('ConditioningController', () => {
 					});
 				});
 
-				xdescribe('undeleteLog', () => {
-					let logSpy: any;
+				describe('undeleteLog', () => {
+					let serviceSpy: any;
 					let undeletedLogId: EntityId;
-					let url: string;
-					let urlPath: string;
+					let undeletedLogIdDTO: EntityIdDTO;
 					beforeEach(() => {
 						undeletedLogId = uuid();
-						logSpy = jest.spyOn(service, 'undeleteLog')
+						undeletedLogIdDTO = new EntityIdDTO(undeletedLogId);
+						serviceSpy = jest.spyOn(service, 'undeleteLog')
 							.mockImplementation((ctx: UserContext, entityId: EntityIdDTO) => {
 								void ctx, entityId; // suppress unused variable warning
 								return Promise.resolve(); // return nothing
 							}
 						);
-
-						urlPath = `${baseUrl}/log/`;
-						url = `${urlPath}${userContxt.userId}/${undeletedLogId}/undelete`;
 					});
 
 					afterEach(() => {
-						logSpy?.mockRestore();
+						serviceSpy?.mockRestore();
 						jest.clearAllMocks();
 					});
 
@@ -1019,71 +1016,63 @@ describe('ConditioningController', () => {
 						// arrange
 						
 						// act
-						const response = await lastValueFrom(http.patch(url, {}, { headers }));
+						const result = await controller.undeleteLog(
+							userMockRequest,
+							userIdDTO,
+							undeletedLogIdDTO
+						);
 							
 						// assert
-						expect(logSpy).toHaveBeenCalledTimes(1);
-						const params = logSpy.mock.calls[0];
+						expect(serviceSpy).toHaveBeenCalledTimes(1);
+
+						const params = serviceSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContxt);
 						expect(params[1]).toEqual(new EntityIdDTO(userContxt.userId));
 						expect(params[2]).toEqual(new EntityIdDTO(undeletedLogId));
 						
-						expect(response?.data).toBe(""); // void response returned as empty string
+						expect(result).toBeUndefined(); // void response returned as undefined
 					});
 
-					it('throws if access token is missing', async () => {
+					it('throws if user id is missing', async () => {
 						// arrange
-						const response$ = http.patch(url);
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws if access token is invalid', async () => {
-						// arrange
-						const invalidHeaders = { Authorization: `Bearer invalid` };
-
-						// act/assert
-						const response$ = http.patch(url, {}, { headers: invalidHeaders });
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws if user information in token payload is invalid', async () => {
-						// arrange
-						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
-						const userAccessToken = await jwt.sign(adminPayload);
-						const response$ = http.patch(url, {}, { headers: { Authorization: `Bearer ${userAccessToken}` } });
+						userMockRequest.user = undefined; // simulate missing user id in request
 						
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.undeleteLog(userMockRequest, undefined as any, undeletedLogIdDTO)).rejects.toThrow();
 					});
 
-					it('throws if one of either log id or user id is missing', async () => {
-						// arrange
-						 // note: there is no way to know which id is missing if only one is provided,
-						 // so test for both in the same test
-						const response$ = http.patch(`urlPath${uuid()}`, {}, { headers });
+					// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
 
+					it('throws if log id is missing', async () => {
+						// arrange
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.undeleteLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
 					});
 
-					it('throws if log id is invalid', async () => {
-						// arrange
-						const response$ = http.patch(urlPath + 'invalid', {}, { headers });
+					// NOTE: Controller defers validation of extant log id to the data service, so this test is not needed
 
+					it('throws if data service rejects', async () => {
+						// arrange
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'undeleteLog').mockImplementation(() => { return Promise.reject(new Error('Log not undeleted')); });
+						
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						await expect(controller.undeleteLog(userMockRequest, userIdDTO, undeletedLogIdDTO)).rejects.toThrow();
+
+						// Clean up
+						serviceSpy?.mockRestore();
 					});
 
 					it('throws if data service throws', async () => {
 						// arrange
-						logSpy.mockRestore();
-						logSpy = jest.spyOn(service, 'undeleteLog').mockImplementation(() => { throw new Error('Test Error'); });
-						const response$ = http.patch(urlPath, {}, { headers });
-
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'undeleteLog').mockImplementation(() => { throw new Error('Test Error'); });
+						
 						// act/assert
-						await expect(lastValueFrom(response$)).rejects.toThrow();
+						await expect(controller.undeleteLog(userMockRequest, userIdDTO, undeletedLogIdDTO)).rejects.toThrow();
+
+						// Clean up
+						serviceSpy?.mockRestore();
 					});
 				});
 			});

@@ -328,6 +328,11 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		@Param('logId') logIdDTO: EntityIdDTO
 	): Promise<void> {
 		try {
+			if (!userIdDTO || !logIdDTO) {
+				const errorMessage = 'User ID and log ID are required';
+				this.logger.error(errorMessage);
+				throw new BadRequestException(errorMessage);
+			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			void await this.dataService.undeleteLog(userContext, userIdDTO, logIdDTO);
 		} catch (error) {
