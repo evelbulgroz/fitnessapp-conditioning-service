@@ -31,6 +31,7 @@ import { UserContext, UserContextProps } from '../../shared/domain/user-context.
 import { UserJwtPayload } from '../../authentication/services/jwt/domain/user-jwt-payload.model';
 import { UserRepository } from '../../user/repositories/user.repo';
 import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
+import exp from 'constants';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -1077,16 +1078,15 @@ describe('ConditioningController', () => {
 				});
 			});
 		
-			xdescribe('multiple logs', () => {
+			describe('multiple logs', () => {
 				describe('fetchLogs', () => {
 					let adminContext: UserContext;
 					let includeDeletedDTO: BooleanDTO;
-					let logsSpy: any;
+					let serviceSpy: any;
 					let queryDTO: QueryDTO;
 					let queryDTOProps: QueryDTOProps;
 					let queryString: string;
 					let userIdDTO: EntityIdDTO;
-					let url: string;
 					beforeEach(() => {
 						adminContext = new UserContext(adminProps);
 
@@ -1105,134 +1105,147 @@ describe('ConditioningController', () => {
 						queryDTO = new QueryDTO(queryDTOProps);
 						queryString = `${Object.entries(queryDTOProps).map(([key, value]) => `${key}=${value}`).join('&')}`;
 
-						logsSpy = jest.spyOn(service, 'fetchLogs');
+						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(
+							(ctx: UserContext, userIdDTO?: EntityIdDTO, queryDTO?: QueryDTO, includeDeleted?: boolean) => {
+								void ctx, userIdDTO, queryDTO, includeDeleted; // suppress unused variable warning
+								if (ctx.roles?.includes('admin')) { // simulate an admin user requesting logs
+									return Promise.resolve([]); // return empty array for admin
+								}
+								else if(ctx.roles?.includes('user')) { // simulate a normal user requesting logs
+									if (userContxt.userId === ctx.userId) { // simulate a normal user requesting their own logs
+										return Promise.resolve([]); // return empty array for user
+									}
+									else { // simulate a normal user requesting another user's logs
+										throw new ForbiddenException('User not authorized to access logs'); // throw an error
+									}
+								}
+								else { // simulate a user without any roles
+									throw new ForbiddenException('User not authorized to access logs'); // throw an error
+								}
+							}
+						);
 						
 						userIdDTO = new EntityIdDTO(userContxt.userId);
-
-						url = `${baseUrl}/logs?userId=${userContxt.userId}&includeDeleted=false&${queryString}`;
 					});
 
 					afterEach(() => {
-						logsSpy && logsSpy.mockRestore();
+						serviceSpy && serviceSpy.mockRestore();
 						jest.clearAllMocks();
 					});
 
 					it('gives normal users access to a collection of all their conditioning logs', async () => {
 						// arrange
-						void await lastValueFrom(http.get(url, { headers }));
+						// act
+						const result = await controller.fetchLogs(
+							userMockRequest,
+							userIdDTO,
+							//includeDeletedDTO,
+							//queryDTO
+						);
 						
 						// assert
-						expect(true).toBeTruthy(); // debug
-						expect(logsSpy).toHaveBeenCalledTimes(1);
-						expect(logsSpy).toHaveBeenCalledWith(userContxt, userIdDTO, queryDTO, includeDeletedDTO.value);
+						expect(serviceSpy).toHaveBeenCalledTimes(1);
+						expect(serviceSpy).toHaveBeenCalledWith(userContxt, userIdDTO, undefined, undefined); // skip optional parameters
+
+						expect(result).toBeDefined();
+						expect(result).toBeInstanceOf(Array);
+						expect(result.length).toBe(0); // since we mocked the service to return an empty array
 					});
 
 					it('optionally gives normal users access to their logs matching a query', async () => {
-						// arrange
-						
+						// arrange						
 						// act
-						void await lastValueFrom(http.get(url, { headers }));
+						const result = await controller.fetchLogs(
+							userMockRequest,
+							userIdDTO,
+							undefined, // includeDeletedDTO,
+							queryDTO
+						);
 						
 						// assert
-						expect(logsSpy).toHaveBeenCalledTimes(1);
-						expect(logsSpy).toHaveBeenCalledWith(userContxt, userIdDTO, queryDTO, includeDeletedDTO.value);
+						expect(serviceSpy).toHaveBeenCalledTimes(1);
+						expect(serviceSpy).toHaveBeenCalledWith(userContxt, userIdDTO, queryDTO, undefined);
+
+						expect(result).toBeDefined();
+						expect(result).toBeInstanceOf(Array);
+						expect(result.length).toBe(0); // since we mocked the service to return an empty array
 					});
 
 					it('gives admin users access to all logs for all users', async () => {
 						// arrange
-						const headers = { Authorization: `Bearer ${adminAccessToken}` };
-						
 						// act
-						void await lastValueFrom(http.get(url, { headers }));
+						const result = await controller.fetchLogs(
+							adminMockRequest,
+							adminUserIdDTO,
+							// includeDeletedDTO,
+							// queryDTO
+						);
 
 						// assert
-						expect(logsSpy).toHaveBeenCalledTimes(1);
-						expect(logsSpy).toHaveBeenCalledWith(adminContext, userIdDTO, queryDTO, includeDeletedDTO.value);
+						expect(serviceSpy).toHaveBeenCalledTimes(1);
+						expect(serviceSpy).toHaveBeenCalledWith(adminContext, adminUserIdDTO, undefined, undefined); // skip optional parameters
 					});
 
 					it('optionally gives admin users access to logs matching a query', async () => {
 						// arrange
-						const headers = { Authorization: `Bearer ${adminAccessToken}` };
-
 						// act
-						void await lastValueFrom(http.get(url, { headers }));
+						const result = await controller.fetchLogs(
+							adminMockRequest,
+							adminUserIdDTO,
+							undefined, // includeDeletedDTO,
+							queryDTO
+						);
 
 						// assert
-						expect(logsSpy).toHaveBeenCalledTimes(1);
-						expect(logsSpy).toHaveBeenCalledWith(adminContext, userIdDTO, queryDTO, includeDeletedDTO.value);
+						expect(serviceSpy).toHaveBeenCalledTimes(1);
+						expect(serviceSpy).toHaveBeenCalledWith(adminContext, adminUserIdDTO, queryDTO, undefined);
+
+						expect(result).toBeDefined();
+						expect(result).toBeInstanceOf(Array);
+						expect(result.length).toBe(0); // since we mocked the service to return an empty array
+					});
+
+					it('does not pass empty query parameters to the data service', async () => {
+						// arrange
+						// act
+						const result = await controller.fetchLogs(
+							userMockRequest,
+							userIdDTO,
+							undefined, // includeDeletedDTO,
+							new QueryDTO({})
+						);
+
+						// assert
+						expect(serviceSpy).toHaveBeenCalledTimes(1);
+						expect(serviceSpy).toHaveBeenCalledWith(userContxt, userIdDTO, undefined, undefined);
+
+						expect(result).toBeDefined();
+						expect(result).toBeInstanceOf(Array);
+						expect(result.length).toBe(0); // since we mocked the service to return an empty array
 					});
 					
-					it('throws error if access token is missing', async () => {
+					it('throws error if data service rejects', async () => {
 						// arrange
-						const response$ = http.get(url);
-
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(() => { return Promise.reject(new Error('Logs not found')); });
+						
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						await expect(controller.fetchLogs(userMockRequest, userIdDTO, undefined, queryDTO)).rejects.toThrow();
+
+						// cleanup
+						serviceSpy?.mockRestore();
 					});
 
-					it('throws error if access token is invalid', async () => {
+					it('throws error if data service throws', async () => {
 						// arrange
-						const invalidHeaders = { Authorization: `Bearer invalid` };
-						const response$ = http.get(url, { headers: invalidHeaders });
-
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(() => { throw new Error('Test Error'); });
+						
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
+						await expect(controller.fetchLogs(userMockRequest, userIdDTO, undefined, queryDTO)).rejects.toThrow();
 
-					it('throws error if user id is not provided', async () => {
-						// arrange
-						const response$ = http.get(`${baseUrl}/logs`, { headers });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws error if user id is invalid', async () => {
-						// arrange
-						const response$ = http.get(`${baseUrl}/logs/invalid`, { headers });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws error if query is present but has invalid data', async () => {
-						// arrange
-						queryDTOProps.start = 'invalid'; // invalid date
-						const response$ = http.get(url, { headers });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws error if query is present but has non-whitelisted properties', async () => {
-						// arrange
-						(queryDTOProps as any).invalid = 'invalid'; // invalid property
-						const response$ = http.get(url, { headers });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws error if roles claim is missing', async () => {
-						// arrange
-						delete userPayload.roles;
-						const accessToken = await jwt.sign(userPayload);
-						const headers = { Authorization: `Bearer ${accessToken}` };
-						const response$ = http.get(url, { headers });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws error if roles claim is invalid', async () => {
-						// arrange
-						userPayload.roles = ['invalid'];
-						const accessToken = await jwt.sign(userPayload);
-						const headers = { Authorization: `Bearer ${accessToken}` };
-						const response$ = http.get(url, { headers });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						// cleanup
+						serviceSpy?.mockRestore();
 					});
 				});
 			});

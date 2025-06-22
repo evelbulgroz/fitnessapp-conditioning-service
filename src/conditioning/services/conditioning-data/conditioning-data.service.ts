@@ -323,7 +323,12 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * 
 	 * @remark Replaces overview log in cache with detailed log from persistence on demand, and updates cache subscribers
 	 */
-	public async fetchLog(ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO, includeDeleted = false): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
+	public async fetchLog(
+		ctx: UserContext,
+		userIdDTO: EntityIdDTO,
+		logIdDTO: EntityIdDTO,
+		includeDeleted = false
+	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
 			await this.isReady(); // initialize service if necessary
 
