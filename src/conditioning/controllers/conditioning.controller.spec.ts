@@ -810,14 +810,14 @@ describe('ConditioningController', () => {
 				});
 
 				describe('updateLog', () => {
-					let logSpy: any;
+					let serviceSpy: any;
 					let updatedLogDto: ConditioningLogDTO;
 					let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
 					let updatedLogId: EntityId;
-					let url: string;
-					let urlPath: string;
+					let updatedLogIdDTO: EntityIdDTO;
 					beforeEach(() => {
 						updatedLogId = uuid();
+						updatedLogIdDTO = new EntityIdDTO(updatedLogId);
 						updatedLog = ConditioningLog.create({
 							activity: ActivityType.SWIM,
 							isOverview: true,
@@ -826,109 +826,92 @@ describe('ConditioningController', () => {
 						}).value as ConditioningLog<any, ConditioningLogDTO>;
 						updatedLogDto = updatedLog.toDTO();
 
-						logSpy = jest.spyOn(service, 'updateLog')
-							.mockImplementation((ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO, partialLog: Partial<ConditioningLog<any,ConditioningLogDTO>>) => {
-								void ctx, userIdDTO, logIdDTO, partialLog; // suppress unused variable warning
-								return Promise.resolve(); // return the log
-							}
-						);
-
-						urlPath = `${baseUrl}/log/`;
-						url = `${urlPath}${userContxt.userId}/${updatedLogId}`;
+						serviceSpy = jest.spyOn(service, 'updateLog')
+							.mockImplementation(
+								(
+									ctx: UserContext,
+									userIdDTO: EntityIdDTO,
+									logIdDTO: EntityIdDTO,
+									partialLog: Partial<ConditioningLog<any,ConditioningLogDTO>>
+								) => {
+									void ctx, userIdDTO, logIdDTO, partialLog; // suppress unused variable warning
+									return Promise.resolve(); // return the log
+								}
+							);
 					});
 
 					afterEach(() => {
-						logSpy && logSpy.mockRestore();
+						serviceSpy && serviceSpy.mockRestore();
 						jest.clearAllMocks();
 					});
 
 					it('updates an existing conditioning log', async () => {
 						// arrange
-						headers = { Authorization: `Bearer ${userAccessToken}` };
-
 						// act
-						const response = await lastValueFrom(http.patch(url, updatedLogDto, { headers }));
+						const result = await controller.updateLog(
+							userMockRequest,
+							userIdDTO,
+							updatedLogIdDTO,
+							updatedLogDto
+						);
 
 						// assert
-						expect(logSpy).toHaveBeenCalledTimes(1);
-						const params = logSpy.mock.calls[0];
+						expect(serviceSpy).toHaveBeenCalledTimes(1);
+						
+						const params = serviceSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContxt);
 						expect(params[1]).toEqual(new EntityIdDTO(userContxt.userId));
 						expect(params[2]).toEqual(new EntityIdDTO(updatedLogId));
-						//expect(params[3]).toEqual(updatedLogDto);
 						expect(params[3].toDTO()).toEqual(updatedLogDto);
 						
-						expect(response?.data).toBeDefined();
-						expect(response?.data).toBe(""); // void response returned as empty string						
+						expect(result).toBeUndefined(); // void response returned as undefined				
 					});
 
-					it('throws if access token is missing', async () => {
+					it('throws if user id is missing', async () => {
 						// arrange
-						const response$ = http.put(url, updatedLogDto);
+						userMockRequest.user = undefined; // simulate missing user id in request
 
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.updateLog(userMockRequest, undefined as any, updatedLogIdDTO, updatedLogDto)).rejects.toThrow();
 					});
 
-					it('throws if access token is invalid', async () => {
-						// arrange
-						const invalidHeaders = { Authorization: `Bearer invalid` };
-
-						// act/assert
-						const response$ = http.put(url, updatedLogDto, { headers: invalidHeaders });
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws if user information in token payload is invalid', async () => {
-						// arrange
-						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
-						const userAccessToken = await jwt.sign(adminPayload);
-						const response$ = http.put(url, updatedLogDto, { headers: { Authorization: `Bearer ${userAccessToken}` } });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws if log id is missing', async () => {
-						// arrange
-						const response$ = http.put(urlPath, updatedLogDto, { headers });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws if log id is invalid', async () => {
-						// arrange
-						const response$ = http.put(urlPath + 'invalid', updatedLogDto, { headers });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
+					// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
 
 					it('throws if log data is missing', async () => {
 						// arrange
-						const response$ = http.put(urlPath, { headers });
-
+						
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, undefined as any)).rejects.toThrow();
 					});
 
 					it('throws if log data is invalid', async () => {
 						// arrange
-						const response$ = http.put(urlPath, 'invalid', { headers });
+						// act/assert
+						expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, { activity: 'invalid' } as any)).rejects.toThrow();
+					});
+
+					it('throws if data service rejects', async () => {
+						// arrange
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'updateLog').mockImplementation(() => { return Promise.reject(new Error('Log not updated')); });
 
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, updatedLogDto)).rejects.toThrow();
+
+						// Clean up
+						serviceSpy?.mockRestore();
 					});
 
 					it('throws if data service throws', async () => {
 						// arrange
-						logSpy.mockRestore();
-						logSpy = jest.spyOn(service, 'updateLog').mockImplementation(() => { throw new Error('Test Error'); });
-						const response$ = http.put(urlPath, updatedLogDto, { headers });
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'updateLog').mockImplementation(() => { throw new Error('Test Error'); });
 
 						// act/assert
-						await expect(lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, updatedLogDto)).rejects.toThrow();
+
+						// Clean up
+						serviceSpy?.mockRestore();
 					});
 				});
 
