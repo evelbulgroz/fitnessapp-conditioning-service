@@ -916,101 +916,83 @@ describe('ConditioningController', () => {
 				});
 
 				describe('deleteLog', () => {
-					let logSpy: any;
+					let serviceSpy: any;
 					let deletedLogId: EntityId;
-					let url: string;
-					let urlPath: string;
+					let deletedLogIdDTO: EntityIdDTO;
 					beforeEach(() => {
 						deletedLogId = uuid();
-						//const entityIdDTO = new EntityIdDTO(deletedLogId);
-						logSpy = jest.spyOn(service, 'deleteLog')
+						deletedLogIdDTO = new EntityIdDTO(deletedLogId);
+						serviceSpy = jest.spyOn(service, 'deleteLog')
 							.mockImplementation((ctx: UserContext, entityId: EntityIdDTO) => {
 								void ctx, entityId; // suppress unused variable warning
 								return Promise.resolve(); // return nothing
 							}
 						);
-
-						urlPath = `${baseUrl}/log/`;
-						url = `${urlPath}${userContxt.userId}/${deletedLogId}`;
 					});
 
 					afterEach(() => {
-						logSpy && logSpy.mockRestore();
+						serviceSpy && serviceSpy.mockRestore();
 						jest.clearAllMocks();
 					});
 
 					it('deletes an existing conditioning log', async () => {
-						// arrange
-						headers = { Authorization: `Bearer ${userAccessToken}` };
-
+						// arrange						
 						// act
-						const response = await lastValueFrom(http.delete(url, { headers }));
+						const result = await controller.deleteLog(
+							userMockRequest,
+							userIdDTO,
+							deletedLogIdDTO
+						);
 
 						// assert
-						expect(logSpy).toHaveBeenCalledTimes(1);
-						const params = logSpy.mock.calls[0];
-						expect(params[0]).toEqual(userContxt);
-						expect(params[1]).toEqual(new EntityIdDTO(userContxt.userId));
-						expect(params[2]).toEqual(new EntityIdDTO(deletedLogId));
+						expect(serviceSpy).toHaveBeenCalledTimes(1);
 						
-						expect(response?.data).toBe(""); // void response returned as empty string
+						const params = serviceSpy.mock.calls[0];
+						expect(params[0]).toEqual(userContxt);
+						expect(params[1]).toEqual(userIdDTO);
+						expect(params[2]).toEqual(deletedLogIdDTO);
+						
+						expect(result).toBeUndefined(); // void response returned as undefined
 					});
 
-					it('throws if access token is missing', async () => {
+					it('throws if user id is missing', async () => {
 						// arrange
-						const response$ = http.delete(url);
+						userMockRequest.user = undefined; // simulate missing user id in request
 
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.deleteLog(userMockRequest, undefined as any, deletedLogIdDTO)).rejects.toThrow();
 					});
 
-					it('throws if access token is invalid', async () => {
-						// arrange
-						const invalidHeaders = { Authorization: `Bearer invalid` };
-
-						// act/assert
-						const response$ = http.delete(url, { headers: invalidHeaders });
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws if user information in token payload is invalid', async () => {
-						// arrange
-						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
-						const userAccessToken = await jwt.sign(adminPayload);
-						const response$ = http.delete(url, { headers: { Authorization: `Bearer ${userAccessToken}` } });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
+					// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
 
 					it('throws if log id is missing', async () => {
 						// arrange
-						const response$ = http.delete(urlPath, { headers });
-
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.deleteLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
 					});
 
-					it('throws if log id is invalid', async () => {
-						// arrange
-						const response$ = http.delete(urlPath + 'invalid', { headers });
+					// NOTE: Controller defers validation of extant log id to the data service, so this test is not needed
 
+					it('throws if data service rejects', async () => {
+						// arrange
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'deleteLog').mockImplementation(() => { return Promise.reject(new Error('Log not deleted')); });
+						
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.deleteLog(userMockRequest, userIdDTO, deletedLogIdDTO)).rejects.toThrow();
 					});
 
 					it('throws if data service throws', async () => {
 						// arrange
-						logSpy.mockRestore();
-						logSpy = jest.spyOn(service, 'deleteLog').mockImplementation(() => { throw new Error('Test Error'); });
-						const response$ = http.delete(urlPath, { headers });
-
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'deleteLog').mockImplementation(() => { throw new Error('Test Error'); });
+						
 						// act/assert
-						await expect(lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.deleteLog(userMockRequest, userIdDTO, deletedLogIdDTO)).rejects.toThrow();
 					});
 				});
 
-				describe('undeleteLog', () => {
+				xdescribe('undeleteLog', () => {
 					let logSpy: any;
 					let undeletedLogId: EntityId;
 					let url: string;

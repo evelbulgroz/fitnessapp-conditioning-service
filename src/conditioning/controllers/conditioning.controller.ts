@@ -229,6 +229,11 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		@Body() partialLogDTO: Record<string, any>// Partial<ConditioningLogDTO> // NestJS strips undecorated properties from the body, so we need to use a more basic type here
 	): Promise<void> {
 		try {
+			if (!userIdDTO || !logIdDTO || !partialLogDTO) {
+				const errorMessage = 'User ID, log ID and (partial) log data are required';
+				this.logger.error(errorMessage);
+				throw new BadRequestException(errorMessage);
+			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const partialLog = this.createLogFromDTO(partialLogDTO); // validate the log DTO before passing it to the service
 			void await this.dataService.updateLog(userContext, userIdDTO, logIdDTO, partialLog);
@@ -274,8 +279,13 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		@Param('logId') logIdDTO: EntityIdDTO
 	): Promise<void> {
 		try {
+			if (!userIdDTO || !logIdDTO) {
+				const errorMessage = 'User ID and log ID are required';
+				this.logger.error(errorMessage);
+				throw new BadRequestException(errorMessage);
+			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.dataService.deleteLog(userContext, userIdDTO, logIdDTO); // Implement this method in your service
+			void await this.dataService.deleteLog(userContext, userIdDTO, logIdDTO);
 		} catch (error) {
 			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
