@@ -114,6 +114,11 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		@Body() logDTO: Record<string, any> // NestJS strips undecorated properties from the body, so we need to use a more basic type here
 	): Promise<EntityId> {
 		try {
+			if (!userIdDTO || !logDTO) {				
+				const errorMessage = 'User ID and log data are required';
+				this.logger.error(errorMessage);
+				throw new BadRequestException(errorMessage);
+			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const log = this.createLogFromDTO(logDTO); // validate the log DTO before passing it to the service
 			return await this.dataService.createLog(userContext, userIdDTO, log);
@@ -156,18 +161,18 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	public async fetchLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,		
-		@Param('logId') logId: EntityIdDTO
+		@Param('logId') logIdDTO: EntityIdDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
-			if (!userIdDTO || !logId) {
+			if (!userIdDTO || !logIdDTO) {
 				const errorMessage = 'User ID and log ID are required';
 				this.logger.error(errorMessage);
 				throw new BadRequestException(errorMessage);
 			}
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps); // maps 1:1 with JwtAuthResult
-			const log = this.dataService.fetchLog(userContext, userIdDTO, logId);
+			const log = this.dataService.fetchLog(userContext, userIdDTO, logIdDTO);
 			if (!log) {
-				const errorMessage = `Log with id ${logId.value} not found`;
+				const errorMessage = `Log with id ${logIdDTO.value} not found`;
 				this.logger.error(errorMessage);
 				throw new NotFoundException(errorMessage);
 			}			

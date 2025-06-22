@@ -614,10 +614,10 @@ describe('ConditioningController', () => {
 
 		describe('logs', () => {
 			describe('single log', () => {
-				xdescribe('createLog', () => {
+				describe('createLog', () => {
 					let sourceLogDto: ConditioningLogDTO;
 					let sourceLog : ConditioningLog<any, ConditioningLogDTO>;
-					let logSpy: any;
+					let serviceSpy: any;
 					let newLogId: EntityId;
 					let url: string;
 					let urlPath: string;
@@ -631,7 +631,7 @@ describe('ConditioningController', () => {
 						}).value as ConditioningLog<any, ConditioningLogDTO>;
 						sourceLogDto = sourceLog.toDTO();
 
-						logSpy = jest.spyOn(service, 'createLog')
+						serviceSpy = jest.spyOn(service, 'createLog')
 							.mockImplementation((ctx: any, userIdDTO: EntityIdDTO, log: ConditioningLog<any,ConditioningLogDTO>) => {
 								void ctx, userIdDTO, log; // suppress unused variable warning
 								return Promise.resolve(newLogId); // return the log
@@ -642,96 +642,75 @@ describe('ConditioningController', () => {
 					});
 
 					afterEach(() => {
-						logSpy && logSpy.mockRestore();
+						serviceSpy && serviceSpy.mockRestore();
 						jest.clearAllMocks();
 					});
 
 					it('creates a new conditioning log for a user and returns its unique id', async () => {
-						// arrange
-						headers = { Authorization: `Bearer ${userAccessToken}` };
-
+						// arrange						
 						// act
-						const response = await lastValueFrom(http.post(url, sourceLogDto, { headers }));
+						const result = await controller.createLog(
+							userMockRequest,
+							userIdDTO,
+							sourceLogDto
+						);
+						console.log('result', result);
 						
 						// assert
-						expect(logSpy).toHaveBeenCalledTimes(1);
-						const params = logSpy.mock.calls[0];
+						expect(serviceSpy).toHaveBeenCalledTimes(1);
+						const params = serviceSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContxt);
-						expect(params[1]).toEqual(new EntityIdDTO(userContxt.userId));
+						expect(params[1]).toEqual(userIdDTO);
 						expect(params[2]).toBeInstanceOf(ConditioningLog);
 						expect(params[2].toDTO()).toEqual(sourceLogDto);
 						
-						expect(response?.data).toBeDefined();
-						expect(response?.data).toEqual(newLogId);
-					});
-
-					it('throws if access token is missing', async () => {
-						// arrange
-						const response$ = http.post(url, sourceLogDto);
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws if access token is invalid', async () => {
-						// arrange
-						const invalidHeaders = { Authorization: `Bearer invalid` };
-						const response$ = http.post(url, sourceLogDto, { headers: invalidHeaders });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
-
-					it('throws if user information in token payload is invalid', async () => {
-						// arrange
-						userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
-						const userAccessToken = await jwt.sign(adminPayload);
-						const response$ = http.post(url, sourceLogDto, { headers: { Authorization: `Bearer ${userAccessToken}` } });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(result).toEqual(newLogId);
 					});
 
 					it('throws if user id is missing', async () => {
 						// arrange
-						const response$ = http.post(urlPath, sourceLogDto, { headers });
+						userMockRequest.user = undefined; // simulate missing user id in request
 
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.createLog(userMockRequest, undefined as any, sourceLogDto)).rejects.toThrow();
 					});
 
-					it('throws if user id is invalid', async () => {
-						// arrange
-						const response$ = http.post(urlPath + 'invalid', sourceLogDto, { headers });
-
-						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-					});
+					// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
 
 					it('throws if log data is missing', async () => {
-						// arrange
-						const response$ = http.post(urlPath, { headers });
-
+						// arrange						
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.createLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
 					});
 
 					it('throws if log data is invalid', async () => {
 						// arrange
-						const response$ = http.post(urlPath, 'invalid', { headers });
-
 						// act/assert
-						expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+						expect(async () => await controller.createLog(userMockRequest, userIdDTO, { activity: 'invalid' } as any)).rejects.toThrow();
+					});
+
+					it('throws if data service rejects', async () => {
+						// arrange
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'createLog').mockImplementation(() => { return Promise.reject(new Error('Log not created')); });
+						
+						// act/assert
+						await expect(controller.createLog(userMockRequest, userIdDTO, sourceLogDto)).rejects.toThrow();
+
+						// Clean up
+						serviceSpy?.mockRestore();
 					});
 
 					it('throws if data service throws', async () => {
 						// arrange
-						logSpy.mockRestore();
-						logSpy = jest.spyOn(service, 'createLog').mockImplementation(() => { throw new Error('Test Error'); });
-						const response$ = http.post(urlPath, sourceLogDto, { headers });
-
+						serviceSpy.mockRestore();
+						serviceSpy = jest.spyOn(service, 'createLog').mockImplementation(() => { throw new Error('Test Error'); });
+						
 						// act/assert
-						await expect(lastValueFrom(response$)).rejects.toThrow();
+						await expect(controller.createLog(userMockRequest, userIdDTO, sourceLogDto)).rejects.toThrow();
+
+						// Clean up
+						serviceSpy?.mockRestore();
 					});
 				});
 
