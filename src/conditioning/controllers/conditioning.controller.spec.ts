@@ -1247,13 +1247,6 @@ describe('ConditioningController', () => {
 		});
 
 		describe('rules', () => {
-			let url: string;
-			let urlPath: string;
-			beforeEach(() => {
-				url = `${baseUrl}/rules/`;
-				urlPath = url + 'ConditioningLog';
-			});
-			
 			it('provides collection of ConditioningLog validation rules', async () => {
 				// arrange
 				const expectedRules = ['rule 1', 'rule 2', 'rule 3']; // mock rules
@@ -1272,22 +1265,34 @@ describe('ConditioningController', () => {
 				spy && spy.mockRestore();
 				jest.clearAllMocks();
 			});
-		});		
+
+			it('throws error if provided type is unkown', async () => {
+				// arrange
+				// act
+				expect(async () => await controller.fetchValidationRules('no-such-type' as any)).rejects.toThrow();
+			});
+
+			it('throws error if type is not provided', async () => {
+				// arrange
+				// act
+				expect(async () => await controller.fetchValidationRules(undefined as any)).rejects.toThrow();
+			});
+		});
 
 		xdescribe('sessions', () => {
 			it('provides a collection of conditioning data', async () => {
 				// arrange
-				const spy = jest.spyOn(service, 'conditioningData');
+				const serviceSpy = jest.spyOn(service, 'conditioningData');
 
 				// act
 				void await controller.sessions();
 				
 				// assert
-				expect(spy).toHaveBeenCalledTimes(1);
-				expect(spy).toHaveBeenCalledWith();
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				expect(serviceSpy).toHaveBeenCalledWith();
 
 				// cleanup
-				spy && spy.mockRestore();
+				serviceSpy?.mockRestore();
 			});
 		});
 	});
