@@ -66,9 +66,9 @@ export interface UserLogsCacheEntry {
  * @remark Provides {@link StreamLoggable} API via {@link StreamLoggableMixin}, compatible with streaming Logger service.
  * @remark It applies the {@link ManagedStatefulComponentMixin} mixin as it is a key component whose state needs to be managed.
  *
- * @todo Consider reducing service awareness of controller constructs e.g., UserContext, EntityIdDTO, QueryDTO, BooleanDTO, etc., to reduce coupling and improve testability.
- * @todo Consider breaking up into separate, smaller service classes to make this class more manageable and testable by simply providing a facade to the new sub-services.
- * @todo Use shared cache library when available.
+ * @todo Decouple service from controller constructs by passing in plan values rather than e.g., UserContext, EntityIdDTO, QueryDTO, BooleanDTO, etc., to reduce coupling and improve testability now).
+ * @todo Consider breaking up into separate, smaller service classes to make this class more manageable and testable by simply providing a facade to the new sub-services (later).
+ * @todo Use shared cache library when available (later).
  */
 @Injectable()
 export class ConditioningDataService extends StreamLoggableMixin(ManagedStatefulComponentMixin(class {})) implements ManagedStatefulComponent {
