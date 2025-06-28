@@ -154,7 +154,6 @@ describe('ConditioningController', () => {
 	let adminUserId: EntityId;
 	let adminUserIdDTO: EntityIdDTO;
 	let userAccessToken: string;
-	let headers: any;
 	let userContxt: UserContext;
 	let userId: EntityId;
 	let userIdDTO: EntityIdDTO;
@@ -227,8 +226,6 @@ describe('ConditioningController', () => {
 		};
 
 		userAccessToken = await jwt.sign(userPayload);
-
-		headers = { Authorization: `Bearer ${userAccessToken}` };
 
 		userRepoSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() => Promise.resolve(Result.ok(of({entityId: userContxt.userId} as any))));
 	});
@@ -389,13 +386,14 @@ describe('ConditioningController', () => {
 			});
 		});
 
-		xdescribe('aggregate', () => {
+		describe('aggregate', () => {
 			let aggregationSpy: any;
 			let adminLogs: any[];
 			let userLogs: any[];
-			let url: string;
+			let aggregationQueryDTO: AggregationQueryDTO;
 			let aggregationQueryDTOProps: AggregationQueryDTOProps;
 			let queryDTOProps: QueryDTOProps;
+			let queryDTO: QueryDTO;
 			beforeEach(() => {
 				adminLogs = [
 					{ activity: 'RUN' },
@@ -433,6 +431,8 @@ describe('ConditioningController', () => {
 					"aggregatedValueUnit": "ms"
 				};
 
+				aggregationQueryDTO = new AggregationQueryDTO(aggregationQueryDTOProps);
+
 				queryDTOProps = { // query parameters for request
 					start: '2021-01-01',
 					end: '2021-12-31',
@@ -444,177 +444,101 @@ describe('ConditioningController', () => {
 					pageSize: 10,
 				};
 
-				url = `${baseUrl}/aggregate`;
+				queryDTO = new QueryDTO(queryDTOProps);
 			});
 
 			afterEach(() => {
-				aggregationSpy && aggregationSpy.mockRestore();
+				aggregationSpy?.mockRestore();
 				jest.clearAllMocks();
 			});
 
 			it('gives non-admin users access to aggregate a collection of all their own conditioning logs', async () => {
-				// arrange
-				
+				// arrange				
 				// act
-				const response$ = http.post(url, aggregationQueryDTOProps, { headers });				
-				const response = await lastValueFrom(response$);
+				const result = await controller.aggregate(
+					userMockRequest,
+					aggregationQueryDTO,
+					undefined // no query
+				);
 				
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				const args = aggregationSpy.mock.calls[0];
 				expect(args[0]).toEqual(userContxt);
-				expect(args[1]).toEqual(new AggregationQueryDTO(aggregationQueryDTOProps));
+				expect(args[1]).toEqual(aggregationQueryDTO);
 				expect(args[2]).toBeUndefined();
-				expect(response).toBeDefined();
-				expect(response.data).toEqual(userLogs);
+				expect(result).toBeDefined();
+				expect(result).toEqual(userLogs);
 			});
 
-			it('optionally gives non-admin users access to aggregate their logs matching a query', async () => {
-				// arrange
-				
+			it('optionally gives non-admin users access to aggregate their own logs matching a query', async () => {
+				// arrange				
 				// act
-				const response$ = http.post(url, aggregationQueryDTOProps, { params: queryDTOProps, headers });
-				const response = await lastValueFrom(response$);
+				const result = await controller.aggregate(
+					userMockRequest,
+					aggregationQueryDTO,
+					queryDTO // pass query
+				);
 				
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				const args = aggregationSpy.mock.calls[0];
 				expect(args[0]).toEqual(userContxt);
-				expect(args[1]).toEqual(new AggregationQueryDTO(aggregationQueryDTOProps));
-				expect(args[2]).toEqual(new QueryDTO(queryDTOProps));
+				expect(args[1]).toEqual(aggregationQueryDTO);
+				expect(args[2]).toEqual(queryDTO);
 
-				expect(response).toBeDefined();
-				expect(response.data).toEqual(userLogs);
-
-				// cleanup
-				aggregationSpy && aggregationSpy.mockRestore();
+				expect(result).toBeDefined();
+				expect(result).toEqual(userLogs);
 			});
 
 			it('gives admin users access to aggregate a collection of all logs for all users', async () => {
 				// arrange
-				const adminContext = new UserContext(adminProps);
-				const headers = { Authorization: `Bearer ${adminAccessToken}` };
-
 				// act
-				const response$ = http.post(url, aggregationQueryDTOProps, { headers });
+				const result = await controller.aggregate(
+					adminMockRequest,
+					aggregationQueryDTO,
+					undefined // no query
+				);
 
 				// assert
-				const response = await lastValueFrom(response$);
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				const args = aggregationSpy.mock.calls[0];
-				expect(args[0]).toEqual(adminContext);
+				expect(args[0]).toEqual(adminUserCtx);
 				expect(args[1]).toEqual(new AggregationQueryDTO(aggregationQueryDTOProps));
 				expect(args[2]).toBeUndefined();
-				expect(response).toBeDefined();
-				expect(response.data).toEqual(adminLogs);
+				expect(result).toBeDefined();
+				expect(result).toEqual(adminLogs);
 			});
 
 			it('optionally gives admin users access to aggregate logs matching a query', async () => {
 				// arrange
-				const adminContext = new UserContext(adminProps);
-				const headers = { Authorization: `Bearer ${adminAccessToken}` };
-
 				// act
-				const response$ = http.post(url, aggregationQueryDTOProps, { params: queryDTOProps, headers });
+				const result = await controller.aggregate(
+					adminMockRequest,
+					aggregationQueryDTO,
+					queryDTO // pass query
+				);
 
 				// assert
-				const response = await lastValueFrom(response$);
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				const args = aggregationSpy.mock.calls[0];
-				expect(args[0]).toEqual(adminContext);
+				expect(args[0]).toEqual(adminUserCtx);
 				expect(args[1]).toEqual(new AggregationQueryDTO(aggregationQueryDTOProps));
 				expect(args[2]).toEqual(new QueryDTO(queryDTOProps));
-				expect(response).toBeDefined();
-				expect(response.data).toEqual(adminLogs);
+				expect(result).toBeDefined();
+				expect(result).toEqual(adminLogs);
 			});
 
-			it('fails if access token is missing', async () => {
-				// arrange
-				const response$ = http.post(url, aggregationQueryDTOProps);
+			// Aggregation query validation is handled by the DTO validation pipe, so defer this test to e2e tests
 
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
+			// Props whitelist is handled by the DTO validation pipe, so defer this test to e2e tests
 
-			it('fails if access token is invalid', async () => {
-				// arrange
-				const invalidHeaders = { Authorization: `Bearer invalid` };
+			// Query validation is handled by the DTO validation pipe, so defer this test to e2e tests
 
-				// act/assert
-				const response$ = http.post(url, aggregationQueryDTOProps, { headers: invalidHeaders });
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('fails if user information in token payload is invalid', async () => {
-				// arrange
-				userPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
-				const userAccessToken = await jwt.sign(adminPayload);
-				const response$ = http.post(url, aggregationQueryDTOProps, { headers: { Authorization: `Bearer ${userAccessToken}` } });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('fails if aggregation query is present but has invalid data', async () => {
-				// arrange
-				aggregationQueryDTOProps.aggregatedType = 'invalid'; // invalid type
-				const response$ = http.post(url, aggregationQueryDTOProps, { headers });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('fails if aggregation query is present but has non-whitelisted properties', async () => {
-				// arrange
-				(aggregationQueryDTOProps as any).invalid = 'invalid'; // invalid property
-				const response$ = http.post(url, aggregationQueryDTOProps, { headers });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('fails if query is present but has invalid data', async () => {
-				// arrange
-				aggregationQueryDTOProps.aggregatedType = 'invalid'; // invalid type
-				const response$ = http.post(url, aggregationQueryDTOProps, { headers });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('fails if query is present but has non-whitelisted properties', async () => {
-				// arrange
-				(aggregationQueryDTOProps as any).invalid = 'invalid'; // invalid property
-				const response$ = http.post(url, aggregationQueryDTOProps, { headers });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('fails if roles claim is missing', async () => {
-				// arrange
-				delete userPayload.roles;
-				const accessToken = await jwt.sign(userPayload);
-				const headers = { Authorization: `Bearer ${accessToken}` };
-
-				// act/assert
-				const response$ = http.post(url, aggregationQueryDTOProps, { headers });
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('fails if roles claim is invalid', async () => {
-				// arrange
-				userPayload.roles = ['invalid'];
-				const accessToken = await jwt.sign(userPayload);
-				const headers = { Authorization: `Bearer ${accessToken}` };
-
-				// act/assert
-				const response$ = http.post(url, aggregationQueryDTOProps, { headers });
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
+			// Roles validation is handled by the JWT auth guard, so defer this test to e2e tests
 		});
 
-		xdescribe('logs', () => {
+		describe('logs', () => {
 			describe('single log', () => {
 				describe('createLog', () => {
 					let sourceLogDto: ConditioningLogDTO;
@@ -1279,7 +1203,7 @@ describe('ConditioningController', () => {
 			});
 		});
 
-		xdescribe('sessions', () => {
+		describe('sessions', () => {
 			it('provides a collection of conditioning data', async () => {
 				// arrange
 				const serviceSpy = jest.spyOn(service, 'conditioningData');
@@ -1297,7 +1221,7 @@ describe('ConditioningController', () => {
 		});
 	});
 
-	xdescribe('Logging API', () => {
+	describe('Logging API', () => {
 		describe('LoggableMixin Members', () => {
 			it('inherits log$', () => {
 				expect(controller.log$).toBeDefined();
