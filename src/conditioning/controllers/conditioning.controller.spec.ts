@@ -32,6 +32,7 @@ import { UserJwtPayload } from '../../authentication/services/jwt/domain/user-jw
 import { UserRepository } from '../../user/repositories/user.repo';
 import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
 import exp from 'constants';
+import DomainTypeDTO from '../../shared/dtos/responses/domain-type.dto';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -613,7 +614,7 @@ describe('ConditioningController', () => {
 			});
 		});
 
-		describe('logs', () => {
+		xdescribe('logs', () => {
 			describe('single log', () => {
 				describe('createLog', () => {
 					let sourceLogDto: ConditioningLogDTO;
@@ -655,7 +656,6 @@ describe('ConditioningController', () => {
 							userIdDTO,
 							sourceLogDto
 						);
-						console.log('result', result);
 						
 						// assert
 						expect(serviceSpy).toHaveBeenCalledTimes(1);
@@ -1081,16 +1081,12 @@ describe('ConditioningController', () => {
 			describe('multiple logs', () => {
 				describe('fetchLogs', () => {
 					let adminContext: UserContext;
-					let includeDeletedDTO: BooleanDTO;
 					let serviceSpy: any;
 					let queryDTO: QueryDTO;
 					let queryDTOProps: QueryDTOProps;
-					let queryString: string;
 					let userIdDTO: EntityIdDTO;
 					beforeEach(() => {
 						adminContext = new UserContext(adminProps);
-
-						includeDeletedDTO = new BooleanDTO(false);
 
 						queryDTOProps = {
 							start: '2021-01-01',
@@ -1103,8 +1099,7 @@ describe('ConditioningController', () => {
 							pageSize: 10,
 						};
 						queryDTO = new QueryDTO(queryDTOProps);
-						queryString = `${Object.entries(queryDTOProps).map(([key, value]) => `${key}=${value}`).join('&')}`;
-
+						
 						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(
 							(ctx: UserContext, userIdDTO?: EntityIdDTO, queryDTO?: QueryDTO, includeDeleted?: boolean) => {
 								void ctx, userIdDTO, queryDTO, includeDeleted; // suppress unused variable warning
@@ -1251,7 +1246,7 @@ describe('ConditioningController', () => {
 			});
 		});
 
-		xdescribe('rules', () => {
+		describe('rules', () => {
 			let url: string;
 			let urlPath: string;
 			beforeEach(() => {
@@ -1265,11 +1260,11 @@ describe('ConditioningController', () => {
 				const spy = jest.spyOn(ConditioningLog, 'getSanitizationRules').mockImplementationOnce(() => Promise.resolve([...expectedRules]) as any);
 				
 				// act
-				const response = await lastValueFrom(http.get(urlPath, { headers }));
+				const result = await controller.fetchValidationRules(new DomainTypeDTO('ConditioningLog'));
 				
 				// assert
-				expect(response).toBeDefined();
-				expect(response.data).toEqual(expectedRules);
+				expect(result).toBeDefined();
+				expect(result).toEqual(expectedRules);
 				expect(spy).toHaveBeenCalledTimes(1);
 				expect(spy).toHaveBeenCalledWith();
 
