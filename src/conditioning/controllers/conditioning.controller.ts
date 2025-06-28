@@ -4,25 +4,24 @@ import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, 
 import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLoggableMixin } from '../../libraries/stream-loggable';
-
-import { AggregationQueryDTO } from '../dtos/aggregation-query.dto';
-import { BooleanDTO } from '../../shared/dtos/responses/boolean.dto';
+import AggregationQueryDTO from '../dtos/aggregation-query.dto';
+import BooleanDTO from '../../shared/dtos/responses/boolean.dto';
 import { ConditioningData } from '../domain/conditioning-data.model';
-import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
-import { ConditioningLog } from '../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
-import { DefaultStatusCodeInterceptor } from '../../infrastructure/interceptors/status-code.interceptor';
-import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
-import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
-import { JwtAuthResult } from '../../authentication/services/jwt/domain/jwt-auth-result.model';
-import { Public } from '../../infrastructure/decorators/public.decorator';
+import ConditioningDataService from '../services/conditioning-data/conditioning-data.service';
+import ConditioningLog from '../domain/conditioning-log.entity';
+import ConditioningLogDTO from '../dtos/conditioning-log.dto';
+import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
+import DomainTypeDTO from '../../shared/dtos/responses/domain-type.dto';
+import EntityIdDTO from '../../shared/dtos/responses/entity-id.dto';
+import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
+import JwtAuthResult from '../../authentication/services/jwt/domain/jwt-auth-result.model';
 import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
-import { QueryDTO } from '../../shared/dtos/responses/query.dto';
+import Public from '../../infrastructure/decorators/public.decorator';
+import QueryDTO from '../../shared/dtos/responses/query.dto';
 import { Roles } from '../../infrastructure/decorators/roles.decorator';
 import { RolesGuard } from '../../infrastructure/guards/roles.guard';
-import { DomainTypeDTO } from '../../shared/dtos/responses/domain-type.dto';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
-import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
+import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 
 /** Controller serving requests for conditioning datap
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests for conditioning data.

@@ -1,10 +1,9 @@
 import { TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { HttpModule, HttpService } from '@nestjs/axios';
 import { ForbiddenException, INestApplication } from '@nestjs/common';
 
 import { jest } from '@jest/globals';
-import { of, lastValueFrom, Subject } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
@@ -12,27 +11,26 @@ import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLogger } from '../../libraries/stream-loggable';
 
 import { AggregationQueryDTO, AggregationQueryDTOProps } from '../dtos/aggregation-query.dto';
-import { BooleanDTO } from '../../shared/dtos/responses/boolean.dto';
-import { ConditioningController } from './conditioning.controller';
-import { BcryptCryptoService } from '../../authentication/services/crypto/bcrypt-crypto.service';
-import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
-import { ConditioningLog } from '../domain/conditioning-log.entity';
-import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
+import BcryptCryptoService from '../../authentication/services/crypto/bcrypt-crypto.service';
+import BooleanDTO from '../../shared/dtos/responses/boolean.dto';
+import ConditioningController from './conditioning.controller';
+import ConditioningDataService from '../services/conditioning-data/conditioning-data.service';
+import ConditioningLog from '../domain/conditioning-log.entity';
+import ConditioningLogDTO from '../dtos/conditioning-log.dto';
 import { createTestingModule } from '../../test/test-utils';
-import { CryptoService } from '../../authentication/services/crypto/domain/crypto-service.model';
-import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
-import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
-import { JwtAuthStrategy } from '../../infrastructure/strategies/jwt-auth.strategy';
-import { JwtSecretService } from '../../authentication/services/jwt/jwt-secret.service';
-import { JwtService } from '../../authentication/services/jwt/domain/jwt-service.model';
-import { JsonWebtokenService } from '../../authentication/services/jwt/json-webtoken.service';
+import CryptoService from '../../authentication/services/crypto/domain/crypto-service.model';
+import DomainTypeDTO from '../../shared/dtos/responses/domain-type.dto';
+import EntityIdDTO from '../../shared/dtos/responses/entity-id.dto';
+import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
+import JwtAuthStrategy from '../../infrastructure/strategies/jwt-auth.strategy';
+import JwtSecretService from '../../authentication/services/jwt/jwt-secret.service';
+import JwtService from '../../authentication/services/jwt/domain/jwt-service.model';
+import JsonWebtokenService from '../../authentication/services/jwt/json-webtoken.service';
 import { QueryDTO, QueryDTOProps } from '../../shared/dtos/responses/query.dto';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
-import { UserJwtPayload } from '../../authentication/services/jwt/domain/user-jwt-payload.model';
-import { UserRepository } from '../../user/repositories/user.repo';
-import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
-import exp from 'constants';
-import DomainTypeDTO from '../../shared/dtos/responses/domain-type.dto';
+import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
+import UserRepository from '../../user/repositories/user.repo';
+import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -54,16 +52,12 @@ describe('ConditioningController', () => {
 	let service: ConditioningDataService;
 	let config: ConfigService;
 	let crypto: CryptoService;
-	let http: HttpService;
 	let jwt: JwtService;
 	let baseUrl: string;
 	let userRepo: UserRepository;
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
 			// ConfigModule is imported automatically by createTestingModule
-			imports: [
-				HttpModule, // implicitly imports HttpService, adding service to providers array causes error
-			],
 			controllers: [ConditioningController],
 			providers: [
 				ConfigService,
@@ -135,7 +129,6 @@ describe('ConditioningController', () => {
 		service = module.get<ConditioningDataService>(ConditioningDataService);
 		config = module.get<ConfigService>(ConfigService);
 		crypto = module.get<CryptoService>(CryptoService);
-		http = module.get<HttpService>(HttpService);
 		jwt = module.get<JwtService>(JwtService);
 		userRepo = module.get<UserRepository>(UserRepository);
 
