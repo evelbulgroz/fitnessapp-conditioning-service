@@ -114,9 +114,10 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	/**
 	 * New API: Create a new conditioning log for a user in the system
 	 * 
-	 * @param ctx User context for the request (includes user id and roles)
-	 * @param userIdDTO User id of the user for whom to create the log, wrapped in a DTO
-	 * @param log Conditioning log to create in the system
+	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
+	 * @param targetUserId Entity id of the user for whom to create the log, used for logging and authorization check
+	 * @param isAdmin Whether the user is an admin, used for authorization check
+	 * @param logtoCreate Conditioning log to create, with properties to set in the new log
 	 * @returns Entity id of the created log
 	 * @throws UnauthorizedAccessError if user is not authorized to create log
 	 * @throws NotFoundError if user does not exist in persistence
@@ -127,28 +128,29 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
 	 */
 	public async createLog(
-		ctx: UserContext,
-		userIdDTO: EntityIdDTO,
-		log: ConditioningLog<any, ConditioningLogDTO>
+		requestingUserId: EntityId, // user id of the user making the request, used for logging
+		targetUserId: EntityId, // user id of the user for whom to create the log, used for logging
+		isAdmin: boolean, // whether the user is an admin, used for authorization check
+		logtoCreate: ConditioningLog<any, ConditioningLogDTO>
 	): Promise<EntityId> {
 		// initialize service if necessary
 		await this.isReady();
 
 		// check if user is authorized to create log
-		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
-			if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to create log for user ${userIdDTO.value}.`);
+		if (!isAdmin) { // admin has access to all logs, authorization check not needed
+			if (targetUserId !== requestingUserId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to create log for user ${targetUserId}.`);
 			}
 		}
 
 		// check if user exists in persistence layer
-		const userResult = await this.userRepo.fetchById(userIdDTO.value!);
+		const userResult = await this.userRepo.fetchById(targetUserId);
 		if (userResult.isFailure) { // fetch failed -> throw persistence error
-			throw new NotFoundError(`${this.constructor.name}: User ${userIdDTO.value} not found.`);
+			throw new NotFoundError(`${this.constructor.name}: User ${targetUserId} not found.`);
 		}
 
 		// create log in persistence layer
-		const result = await this.logRepo.create(log);
+		const result = await this.logRepo.create(logtoCreate);
 		if (result.isFailure) { // creation failed -> throw persistence error
 			throw new PersistenceError(`${this.constructor.name}: Error creating conditioning log: ${result.error}`);
 		}
@@ -165,7 +167,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 			catch (error) {
 				console.error('Error rolling back log creation: ', error);
 			}
-			throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
+			throw new PersistenceError(`${this.constructor.name}: Error updating user ${targetUserId}: ${userUpdateResult.error}`);
 		}
 
 		// NOTE: cache is updated via subscription to user repo updates, no need to update cache here

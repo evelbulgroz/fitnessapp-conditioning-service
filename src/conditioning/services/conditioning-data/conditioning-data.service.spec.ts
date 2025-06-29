@@ -38,6 +38,7 @@ import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.
 import { User, UserDTO, UserPersistenceDTO, UserRepository, UserUpdatedEvent, UserCreatedHandler, UserUpdatedHandler, UserDeletedHandler } from '../../../user';
 import UserContext from '../../../shared/domain/user-context.model';
 import { ShutdownSignal } from '@nestjs/common';
+import { request } from 'http';
 
 //const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -669,7 +670,7 @@ describe('ConditioningDataService', () => {
 	});
 
 	// set up random test data, initialize dataService
-	let adminContext: UserContext;
+	let adminUserCtx: UserContext;
 	let randomLog: ConditioningLog<any, ConditioningLogDTO>;
 	let randomLogIdDTO: EntityIdDTO;
 	let randomUser: User;
@@ -677,7 +678,7 @@ describe('ConditioningDataService', () => {
 	let randomUserIdDTO: EntityIdDTO;
 	let logsForRandomUser: ConditioningLog<any, ConditioningLogDTO>[];
 	let users: User[];
-	let userContext: UserContext;
+	let normalUserCtx: UserContext;
 	beforeEach(async () => {
 		// arrange
 		void await service.initialize();			
@@ -688,14 +689,14 @@ describe('ConditioningDataService', () => {
 		randomUserIdDTO = new EntityIdDTO(randomUserId);
 		randomUser = users.find(user => user.userId === randomUserId)!;
 
-		adminContext = new UserContext({
+		adminUserCtx = new UserContext({
 			userId: randomUser.userId,
 			userName: 'admin', // display name for user, or dataService name if user is a dataService account (subName from JWTPayload)
 			userType: 'user',
 			roles: ['admin']
 		});
 
-		userContext = new UserContext({
+		normalUserCtx = new UserContext({
 			userId: randomUser.userId,
 			userName: 'evelbulgroz', // display name for user, or dataService name if user is a dataService account (subName from JWTPayload)
 			userType: 'user',
@@ -823,7 +824,7 @@ describe('ConditioningDataService', () => {
 					return {} as any
 				});
 
-			userIdDTO = new EntityIdDTO(userContext.userId);
+			userIdDTO = new EntityIdDTO(normalUserCtx.userId);
 
 			await service.isReady();
 		});
@@ -914,13 +915,22 @@ describe('ConditioningDataService', () => {
 			let newLogDTO: ConditioningLogDTO;
 			let logRepoCreateSpy: any;
 			let logRepoDeleteSpy: any;
+			let requestingUserId: EntityId;
+			let targetUserId: EntityId;
+			let isAdmin: boolean;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
 				existingUserLogIds = logsForRandomUser.map(log => log.entityId!);
+				
 				newLogId = uuidv4();				
 				newLogDTO = testDTOs[Math.floor(Math.random() * testDTOs.length)];	
 				newLogDTO.entityId = newLogId;
 				newLog = ConditioningLog.create(newLogDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
+				
+				requestingUserId = normalUserCtx.userId;
+				isAdmin = normalUserCtx.roles.includes('admin');
+				targetUserId = randomUserId;
+				
 				logRepoCreateSpy = jest.spyOn(logRepo, 'create').mockImplementation(() => {
 					return Promise.resolve(Result.ok<ConditioningLog<any, ConditioningLogDTO>>(newLog!))
 				});
@@ -946,7 +956,12 @@ describe('ConditioningDataService', () => {
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
 				
 				// act
-				const returnedLogId = await service.createLog(userContext, randomUserIdDTO, newLog);
+				const returnedLogId = await service.createLog(
+					requestingUserId,
+					targetUserId,
+					isAdmin,
+					newLog
+				);
 				
 				// assert
 				expect(typeof returnedLogId).toBe('string');
@@ -958,7 +973,12 @@ describe('ConditioningDataService', () => {
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
 				
 				// act
-				void await service.createLog(userContext, randomUserIdDTO, newLog);
+				void await service.createLog(
+					requestingUserId,
+					targetUserId,
+					isAdmin,
+					newLog
+				);
 				
 				// assert
 				expect(logRepoCreateSpy).toHaveBeenCalledTimes(1);
@@ -970,7 +990,12 @@ describe('ConditioningDataService', () => {
 				expect(randomUser.logs).not.toContain(newLogId); // sanity check
 				
 				// act
-				void await service.createLog(userContext, randomUserIdDTO, newLog);
+				void await service.createLog(
+					requestingUserId,
+					targetUserId,
+					isAdmin,
+					newLog
+				);
 				
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
@@ -979,7 +1004,9 @@ describe('ConditioningDataService', () => {
 
 			it('adds new log to cache entry', async () => {
 				// NOTE:
-				// The cache is only updated in response to an emission from the UserRepository.update$, so we need to simulate that here.
+				// The cache is only updated in response to an emission from the UserRepository.update$,
+				// so we need to simulate that here.
+				
 				// The process of creating a log and updating the cache follows this sequence:
 					// 1. Create log in ConditioningLogRepository
 					// 2. Update user in UserRepository
@@ -988,10 +1015,15 @@ describe('ConditioningDataService', () => {
 					// 5. Dispatch UserUpdatedEvent to userUpdatedHandler
 					// 6. Update cache entry in userUpdatedHandler
 					// 7. Return created log id from conditioning service
-				// Each of these collaborators is tested invididually, so here we just test that they are called in the right order.
-				// For completeness, we also mock the cache update and verify that the cache entry is updated correctly.
+				
+				// Each of these collaborators is tested invididually, so here we just test that
+				// they are called in the right order.
+				
+				// For completeness, we also mock the cache update and verify that the cache entry
+				// is updated correctly.
 
-				// NOTE: ConditioningLogCreatedHandler currently does nothing, so we can ignore it here, even though it will be called in the real implementation.
+				// NOTE: ConditioningLogCreatedHandler currently does nothing, so we can ignore it here,
+				// even though it will be called in the real implementation.
 
 				// arrange	
 				let cacheEntry = service['cache'].value.find(entry => entry.userId === randomUserId);
@@ -1040,7 +1072,13 @@ describe('ConditioningDataService', () => {
 				});
 				
 				// act
-				await service.createLog(userContext, randomUserIdDTO, newLog);				
+				void await service.createLog(
+					requestingUserId,
+					targetUserId,
+					isAdmin,
+					newLog
+				);
+				// wait for the event to be emitted and handled
 				await eventPromise;
 				
 				// assert
@@ -1072,12 +1110,17 @@ describe('ConditioningDataService', () => {
 
 			it(`succeeds if admin user tries to create a log for another user`, async () => {
 				// arrange
-				userContext.roles = ['admin'];
+				requestingUserId = adminUserCtx.userId; // admin user creates a log for another user
 				const otherUser = users.find(user => user.userId !== randomUserId)!;
-				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				targetUserId = otherUser.userId;
 				
 				// act
-				const returnedLogId = await service.createLog(userContext, otherUserIdDTO, newLog);
+				const returnedLogId = await service.createLog(
+					requestingUserId, // admin user
+					targetUserId, // any other user
+					true, // isAdmin
+					newLog
+				);
 				
 				// assert
 				expect(typeof returnedLogId).toBe('string');
@@ -1087,10 +1130,15 @@ describe('ConditioningDataService', () => {
 			it('throws UnauthorizedAccessError if non-admin user tries to create a log for another user', async () => {
 				// arrange
 				const otherUser = users.find(user => user.userId !== randomUserId)!;
-				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				targetUserId = otherUser.userId;
 				
 				// act/assert
-				expect(async () => await service.createLog(userContext, otherUserIdDTO, newLog)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => await service.createLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // any other user
+					false, // isAdmin
+					newLog
+				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws NotFoundError if user does not exist in persistence layer', async () => {
@@ -1101,7 +1149,12 @@ describe('ConditioningDataService', () => {
 				});
 				
 				// act/assert
-				expect(async () => await service.createLog(userContext, randomUserIdDTO, newLog)).rejects.toThrow(NotFoundError);
+				expect(async () => await service.createLog(
+					requestingUserId,
+					targetUserId,
+					false,
+					newLog
+				)).rejects.toThrow(NotFoundError);
 			});
 
 			it('throws PersistenceError if log creation fails in persistence layer', async () => {
@@ -1112,7 +1165,12 @@ describe('ConditioningDataService', () => {
 				});
 				
 				// act/assert
-				expect(async () => await service.createLog(userContext, randomUserIdDTO, newLog)).rejects.toThrow(PersistenceError);
+				expect(async () => await service.createLog(
+					requestingUserId,
+					targetUserId,
+					false,
+					newLog
+				)).rejects.toThrow(PersistenceError);
 			});
 
 			it('throws PersistenceError if updating user fails in persistence layer', async () => {
@@ -1130,7 +1188,12 @@ describe('ConditioningDataService', () => {
 				//expect(async () => await logService.createLog(userContext, randomUserIdDTO, newLogDTO)).rejects.toThrow(PersistenceError);
 				// so going old school:
 				try {
-					await service.createLog(userContext, randomUserIdDTO, newLog);
+					void await service.createLog(
+						requestingUserId,
+						targetUserId,
+						false,
+						newLog
+					);
 				}
 				catch (e) {
 					error = e;
@@ -1163,7 +1226,7 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(logsForRandomUser);
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(userContext, randomUserIdDTO);
+				const activityCounts = await service.fetchActivityCounts(normalUserCtx, randomUserIdDTO);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
@@ -1178,7 +1241,7 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(logs);
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(adminContext, otherUserIdDTO);
+				const activityCounts = await service.fetchActivityCounts(adminUserCtx, otherUserIdDTO);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
@@ -1191,7 +1254,7 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(logs.flatMap(entry => entry.logs));
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(adminContext);				
+				const activityCounts = await service.fetchActivityCounts(adminUserCtx);				
 				
 				// assert
 				expect(activityCounts).toBeDefined();
@@ -1206,7 +1269,7 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(matchingLogs);
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(userContext, randomUserIdDTO, queryDTO);
+				const activityCounts = await service.fetchActivityCounts(normalUserCtx, randomUserIdDTO, queryDTO);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
@@ -1223,7 +1286,7 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(logs);
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(userContext, randomUserIdDTO);
+				const activityCounts = await service.fetchActivityCounts(normalUserCtx, randomUserIdDTO);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
@@ -1238,7 +1301,7 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(logsForRandomUser);
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(userContext, randomUserIdDTO, undefined, new BooleanDTO(true));
+				const activityCounts = await service.fetchActivityCounts(normalUserCtx, randomUserIdDTO, undefined, new BooleanDTO(true));
 				
 				// assert
 				expect(activityCounts).toBeDefined();
@@ -1251,12 +1314,12 @@ describe('ConditioningDataService', () => {
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
 				
 				// act/assert
-				expect(async () => await service.fetchActivityCounts(userContext, otherUserIdDTO)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => await service.fetchActivityCounts(normalUserCtx, otherUserIdDTO)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws UnauthorizedAccessError if non-admin user tries to access activities of all users', async () => {
 				// act/assert
-				expect(async () => await service.fetchActivityCounts(userContext)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => await service.fetchActivityCounts(normalUserCtx)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws NotFoundError if user matching provided ID does not exist in persistence layer', async () => {
@@ -1269,7 +1332,7 @@ describe('ConditioningDataService', () => {
 				
 				// act/assert
 				try {
-					await service.fetchActivityCounts(userContext, randomUserIdDTO);
+					await service.fetchActivityCounts(normalUserCtx, randomUserIdDTO);
 				}
 				catch (e) {
 					error = e;					
@@ -1288,10 +1351,10 @@ describe('ConditioningDataService', () => {
 			
 			it('can aggregate a time series of all ConditioningLogs owned by a user', async () => {
 				// arrange
-				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(userContext, userIdDTO));
+				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO));
 				
 				// act
-				const aggregatedSeries = await service.fetchAggretagedLogs(userContext, aggregationQueryDTO);
+				const aggregatedSeries = await service.fetchAggretagedLogs(normalUserCtx, aggregationQueryDTO);
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalled();
@@ -1301,11 +1364,11 @@ describe('ConditioningDataService', () => {
 			
 			it(`can aggregate a time series of all ConditioningLogs for all users if user role is 'admin'`, async () => {
 				// arrange
-				userContext.roles = ['admin'];
+				normalUserCtx.roles = ['admin'];
 
 				// act
-				const aggregatedSeries = await service.fetchAggretagedLogs(userContext, aggregationQueryDTO);
-				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(userContext, userIdDTO));
+				const aggregatedSeries = await service.fetchAggretagedLogs(normalUserCtx, aggregationQueryDTO);
+				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO));
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalled();
@@ -1315,14 +1378,14 @@ describe('ConditioningDataService', () => {
 			
 			it('aggreates only logs matching query, if provided', async () => {			
 				// arrange
-				const searchableLogs = service['cache'].value.find((entry) => entry.userId === userContext.userId)?.logs ?? [];
+				const searchableLogs = service['cache'].value.find((entry) => entry.userId === normalUserCtx.userId)?.logs ?? [];
 				const queryDTO = new QueryDTO({'activity': ActivityType.MTB});
 				const query = queryMapper.toDomain(queryDTO);
 				const matchingLogs = query.execute(searchableLogs);
 				const expectedTimeSeries = service['toConditioningLogSeries'](matchingLogs);
 
 				// act
-				const aggregatedSeries = await service.fetchAggretagedLogs(userContext, aggregationQueryDTO, queryDTO);
+				const aggregatedSeries = await service.fetchAggretagedLogs(normalUserCtx, aggregationQueryDTO, queryDTO);
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalled();
@@ -1336,12 +1399,12 @@ describe('ConditioningDataService', () => {
 				deletedLog['_updatedOn'] = undefined;
 				deletedLog.deletedOn = new Date(deletedLog.createdOn!.getTime() + 1000);
 
-				userContext.roles = ['admin'];
-				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(userContext, userIdDTO)); // deleted logs excluded by default
+				normalUserCtx.roles = ['admin'];
+				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO)); // deleted logs excluded by default
 				expectedTimeSeries.data.forEach((dataPoint: any) => expect(dataPoint.value.deletedOn).toBeUndefined()); // sanity check, no deleted logs in expected series
 				
 				// act
-				void await service.fetchAggretagedLogs(userContext, aggregationQueryDTO);
+				void await service.fetchAggretagedLogs(normalUserCtx, aggregationQueryDTO);
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
@@ -1353,12 +1416,12 @@ describe('ConditioningDataService', () => {
 				deletedLog['_updatedOn'] = undefined;
 				deletedLog.deletedOn = new Date(deletedLog.createdOn!.getTime() + 1000);
 
-				userContext.roles = ['admin'];
-				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(userContext, userIdDTO, undefined, true)); // include deleted logs
+				normalUserCtx.roles = ['admin'];
+				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO, undefined, true)); // include deleted logs
 				expect(expectedTimeSeries.data.some((dataPoint: any) => dataPoint.value.deletedOn !== undefined)).toBe(true); // sanity check, deleted logs in expected series
 				
 				// act
-				void await service.fetchAggretagedLogs(userContext, aggregationQueryDTO, undefined, true);
+				void await service.fetchAggretagedLogs(normalUserCtx, aggregationQueryDTO, undefined, true);
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
@@ -1367,7 +1430,7 @@ describe('ConditioningDataService', () => {
 			it('throws UnauthorizedAccessError if user tries to access logs of another user', async () => {
 				// arrange
 				const queryDTO = new QueryDTO({	userId: 'no-such-user'});
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				const otherUserContext = new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']});
 				
 				// act/assert
@@ -1385,7 +1448,7 @@ describe('ConditioningDataService', () => {
 				});
 				
 				//act
-				const detailedLog = await service.fetchLog(userContext, randomUserIdDTO, randomLogIdDTO);
+				const detailedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO);
 
 				// assert
 				expect(detailedLog!).toBeDefined();
@@ -1395,8 +1458,8 @@ describe('ConditioningDataService', () => {
 						
 			it(`can provide a details for other user's conditioning log if user role is 'admin'`, async () => {
 				// arrange
-				userContext.roles = ['admin'];
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				normalUserCtx.roles = ['admin'];
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 
@@ -1407,7 +1470,7 @@ describe('ConditioningDataService', () => {
 				});
 				
 				//act
-				const detailedLog = await service.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomOtherUserLog!.entityId!));
+				const detailedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomOtherUserLog!.entityId!));
 
 				// assert
 				expect(detailedLog!).toBeDefined();
@@ -1421,7 +1484,7 @@ describe('ConditioningDataService', () => {
 				randomLog.deletedOn = new Date(randomLog.createdOn!.getTime() + 1000);
 				
 				// act
-				const detailedLogPromise = service.fetchLog(userContext, randomUserIdDTO, randomLogIdDTO);
+				const detailedLogPromise = service.fetchLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO);
 				
 				// assert
 				expect(async () => await detailedLogPromise).rejects.toThrow(NotFoundError);
@@ -1433,7 +1496,7 @@ describe('ConditioningDataService', () => {
 				randomLog.deletedOn = new Date(randomLog.createdOn!.getTime() + 1000);
 				
 				// act
-				const detailedLog = await service.fetchLog(userContext, randomUserIdDTO, randomLogIdDTO, true);
+				const detailedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO, true);
 				
 				// assert
 				expect(detailedLog).toBeDefined();
@@ -1457,7 +1520,7 @@ describe('ConditioningDataService', () => {
 				cacheEntry!.logs[logIndex] = detailedLog;				
 				
 				//act
-				const retrievedLog = await service.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
+				const retrievedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
 
 				// assert
 				expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
@@ -1479,7 +1542,7 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act
-				const retrievedLog = await service.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
+				const retrievedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
 
 				// assert
 				expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
@@ -1495,7 +1558,7 @@ describe('ConditioningDataService', () => {
 				);
 				
 				//act
-				const retrievedLog = await service.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
+				const retrievedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
 
 				// assert
 				expect(retrievedLog?.isOverview).toBe(true);
@@ -1514,7 +1577,7 @@ describe('ConditioningDataService', () => {
 				});
 				
 				// act
-				void await service.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog?.entityId!));
+				void await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog?.entityId!));
 
 				// assert
 				const updatedLog = service['cache'].value.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
@@ -1534,7 +1597,7 @@ describe('ConditioningDataService', () => {
 				});
 				
 				// act
-				void await service.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog?.entityId!));
+				void await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog?.entityId!));
 
 				// assert
 				const updatedCache$ = service['cache'].asObservable();
@@ -1545,29 +1608,29 @@ describe('ConditioningDataService', () => {
 			
 			it('throws UnauthorizedAccessError submitted user id does not match user context decoded from access token', async () => {
 				// arrange
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				const otherUserId = new EntityIdDTO(otherUser.userId);
 
 				// act/assert
-				expect(async () => service.fetchLog(userContext, otherUserId, randomLogIdDTO)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => service.fetchLog(normalUserCtx, otherUserId, randomLogIdDTO)).rejects.toThrow(UnauthorizedAccessError);
 			});
 			
 			it('throws NotFoundError if no log is found matching provided log entity id', async () => {
 				// arrange
 				// act/assert
-				expect(async () => await service.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO('no-such-log'))).rejects.toThrow(NotFoundError);
+				expect(async () => await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO('no-such-log'))).rejects.toThrow(NotFoundError);
 			});			
 		
 			it('throws UnauthorizedAccessError if log is found but user is not authorized to access it', async () => {
 				// arrange
-				userContext.roles = ['user'];
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				normalUserCtx.roles = ['user'];
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 				
 				// act/assert
-				expect(() => service.fetchLog(userContext, randomUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+				expect(() => service.fetchLog(normalUserCtx, randomUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws PersistenceError if retrieving detailed log from persistence fails', async () => {
@@ -1580,7 +1643,7 @@ describe('ConditioningDataService', () => {
 
 				// act/assert
 					// tried, failed to verify that repoSpy is called using .toHaveBeenCalled()
-				expect(async () => await service.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
+				expect(async () => await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
 			});
 
 			it('throws NotFoundError if no log matching entity id is found in persistence', async () => {
@@ -1591,7 +1654,7 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act/assert
-				expect(async () => await service.fetchLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(NotFoundError);
+				expect(async () => await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(NotFoundError);
 			});
 
 			// TODO: Test default sorting of returned logs
@@ -1615,7 +1678,7 @@ describe('ConditioningDataService', () => {
 					start: earliestStart!.toISOString(),
 					end: latestEnd!.toISOString(),
 					activity: ActivityType.MTB,
-					userId: userContext.userId as unknown as string,
+					userId: normalUserCtx.userId as unknown as string,
 					sortBy: 'duration',
 					order: 'ASC',
 					//page: 1, // paging not yet implemented
@@ -1623,13 +1686,13 @@ describe('ConditioningDataService', () => {
 				};
 				queryDTO = new QueryDTO(queryDTOProps);
 
-				userIdDTO = new EntityIdDTO(userContext.userId);
+				userIdDTO = new EntityIdDTO(normalUserCtx.userId);
 			});
 
 			it('gives normal users access to a collection of all their conditioning logs', async () => {
 				// arrange
 				// act
-				const matches = await service.fetchLogs(userContext, userIdDTO);
+				const matches = await service.fetchLogs(normalUserCtx, userIdDTO);
 				
 				// assert
 				expect(matches).toBeDefined();
@@ -1645,7 +1708,7 @@ describe('ConditioningDataService', () => {
 				const expectedLogs = query.execute(logsForRandomUser);
 				
 				// act
-				const matches = await service.fetchLogs(userContext, userIdDTO, queryDTO);
+				const matches = await service.fetchLogs(normalUserCtx, userIdDTO, queryDTO);
 				
 				// assert
 				expect(matches).toBeDefined();
@@ -1660,7 +1723,7 @@ describe('ConditioningDataService', () => {
 				const expectedLogs = logsForRandomUser.filter(log => log.deletedOn === undefined);
 
 				// act
-				const matches = await service.fetchLogs(userContext, userIdDTO);
+				const matches = await service.fetchLogs(normalUserCtx, userIdDTO);
 				
 				// assert
 				expect(matches).toBeDefined();
@@ -1678,7 +1741,7 @@ describe('ConditioningDataService', () => {
 				const expectedLogs = logsForRandomUser;
 				
 				// act
-				const matches = await service.fetchLogs(userContext, userIdDTO, undefined, true);
+				const matches = await service.fetchLogs(normalUserCtx, userIdDTO, undefined, true);
 				
 				// assert
 				expect(matches).toBeDefined();
@@ -1692,19 +1755,19 @@ describe('ConditioningDataService', () => {
 
 			it('throws UnauthorizedAccessError if normal user tries to access logs for another user', async () => {
 				// arrange
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				queryDTO.userId = otherUser.userId as unknown as string;
 				
 				// act/assert
-				expect(async () => await service.fetchLogs(userContext, userIdDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => await service.fetchLogs(normalUserCtx, userIdDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
 			});
 			
 			it('gives admin users access to all logs for all users', async () => {
 				// arrange
-				userContext.roles = ['admin'];
+				normalUserCtx.roles = ['admin'];
 				
 				// act
-				const allLogs = await service.fetchLogs(userContext, userIdDTO);
+				const allLogs = await service.fetchLogs(normalUserCtx, userIdDTO);
 							
 				// assert
 				expect(allLogs).toBeDefined();
@@ -1714,7 +1777,7 @@ describe('ConditioningDataService', () => {
 
 			it('optionally gives admin users access to all logs matching a query', async () => {
 				// arrange
-				userContext.roles = ['admin'];
+				normalUserCtx.roles = ['admin'];
 				
 				const queryDtoClone = new QueryDTO(queryDTOProps);
 				queryDtoClone.userId = undefined; // logs don't have userId, so this should be ignored
@@ -1722,7 +1785,7 @@ describe('ConditioningDataService', () => {
 				const expectedLogs = query.execute(allCachedLogs); // get matching logs from test data			
 							
 				// act
-				const allLogs = await service.fetchLogs(userContext, userIdDTO, queryDTO);
+				const allLogs = await service.fetchLogs(normalUserCtx, userIdDTO, queryDTO);
 				
 				// assert
 				expect(allLogs).toBeDefined();
@@ -1732,10 +1795,10 @@ describe('ConditioningDataService', () => {
 			
 			it('by default sorts logs ascending by start date and time, if available', async () => {
 				// arrange
-				userContext.roles = ['admin'];
+				normalUserCtx.roles = ['admin'];
 				
 				// act
-				const allLogs = await service.fetchLogs(userContext, userIdDTO);
+				const allLogs = await service.fetchLogs(normalUserCtx, userIdDTO);
 				
 				// implicitly returns undefined if data is empty
 				allLogs?.forEach((log, index) => {
@@ -1849,7 +1912,7 @@ describe('ConditioningDataService', () => {
 				updatedLog.activity = ActivityType.RUN;
 				
 				// act
-				void await service.updateLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLog);
+				void await service.updateLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLog);
 
 				// assert
 				expect(logRepoUpdateSpy).toHaveBeenCalledTimes(1);
@@ -1858,7 +1921,7 @@ describe('ConditioningDataService', () => {
 
 			it('replaces log in cache with updated log following log repo update', async () => {
 				// arrange
-				service.updateLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLog).then(() => {
+				service.updateLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLog).then(() => {
 					const updateEvent = new ConditioningLogUpdatedEvent({
 						eventId: uuidv4(),
 						eventName: ConditioningLogUpdatedEvent.name,
@@ -1885,15 +1948,15 @@ describe('ConditioningDataService', () => {
 
 			it('succeeds if admin user updates log for another user', async () => {
 				// arrange
-				userContext.roles = ['admin'];
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				normalUserCtx.roles = ['admin'];
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
 				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 
 				// act
-				void await service.updateLog(userContext, otherUserIdDTO, randomOtherUserLogId, updatedLog);
+				void await service.updateLog(normalUserCtx, otherUserIdDTO, randomOtherUserLogId, updatedLog);
 
 				// assert
 				expect(logRepoUpdateSpy).toHaveBeenCalledTimes(1);
@@ -1902,7 +1965,7 @@ describe('ConditioningDataService', () => {
 
 			it('throws UnauthorizedAccessError if non-admin user tries to update log for another user', async () => {
 				// arrange
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
 				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
@@ -1912,7 +1975,7 @@ describe('ConditioningDataService', () => {
 				// act/assert
 				//expect(async () => await logService.updateLog(userContext, otherUserIdDTO, randomOtherUserLogId, updatedLogDTO)).rejects.toThrow(UnauthorizedAccessError);
 				try {
-					await service.updateLog(userContext, otherUserIdDTO, randomOtherUserLogId, updatedLog);
+					await service.updateLog(normalUserCtx, otherUserIdDTO, randomOtherUserLogId, updatedLog);
 				}
 				catch (e) {
 					error = e;
@@ -1936,7 +1999,7 @@ describe('ConditioningDataService', () => {
 				// act/assert
 				//expect(async () => await logService.updateLog(userContext, randomUserIdDTO, randomLogIdDTO, updatedLogDTO)).rejects.toThrow(NotFoundError);
 				try {
-					await service.updateLog(userContext, randomUserIdDTO, randomLogIdDTO, updatedLog);
+					await service.updateLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO, updatedLog);
 				}
 				catch (e) {
 					error = e;					
@@ -1960,7 +2023,7 @@ describe('ConditioningDataService', () => {
 				// act/assert
 				//expect(async () => await logService.updateLog(userContext, randomUserIdDTO, randomLogIdDTO, updatedLogDTO)).rejects.toThrow(PersistenceError);
 				try {
-					await service.updateLog(userContext, randomUserIdDTO, randomLogIdDTO, updatedLog);
+					await service.updateLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO, updatedLog);
 				}
 				catch (e) {
 					error = e;
@@ -1998,7 +2061,7 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.deleteLog(userContext, randomUserIdDTO, logIdDTO);
+				void await service.deleteLog(normalUserCtx, randomUserIdDTO, logIdDTO);
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -2010,7 +2073,7 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.deleteLog(userContext, randomUserIdDTO, logIdDTO);
+				void await service.deleteLog(normalUserCtx, randomUserIdDTO, logIdDTO);
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -2022,7 +2085,7 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.deleteLog(userContext, randomUserIdDTO, logIdDTO, false); // hard delete
+				void await service.deleteLog(normalUserCtx, randomUserIdDTO, logIdDTO, false); // hard delete
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -2034,7 +2097,7 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.deleteLog(userContext, randomUserIdDTO, logIdDTO, false); // hard delete
+				void await service.deleteLog(normalUserCtx, randomUserIdDTO, logIdDTO, false); // hard delete
 
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
@@ -2048,7 +2111,7 @@ describe('ConditioningDataService', () => {
 
 				expect(randomUser.logs).toContain(deletedLogId); // sanity check
 
-				service.deleteLog(userContext, randomUserIdDTO, deletedLogIdDTO).then(() => {
+				service.deleteLog(normalUserCtx, randomUserIdDTO, deletedLogIdDTO).then(() => {
 					const deleteEvent = new UserUpdatedEvent({
 						eventId: uuidv4(),
 						eventName: 'UserUpdatedEvent',
@@ -2076,27 +2139,27 @@ describe('ConditioningDataService', () => {
 
 			it('succeeds if admin user deletes log for another user', async () => {
 				// arrange
-				userContext.roles = ['admin'];
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				normalUserCtx.roles = ['admin'];
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
 				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 
 				// act
-				expect(() => service.deleteLog(userContext, otherUserIdDTO, randomOtherUserLogId)).not.toThrow();
+				expect(() => service.deleteLog(normalUserCtx, otherUserIdDTO, randomOtherUserLogId)).not.toThrow();
 			});
 
 			it('throws UnauthorizedAccessError if non-admin user tries to delete log for another user', async () => {
 				// arrange
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
 				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 
 				// act/assert
-				expect(() => service.deleteLog(userContext, otherUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+				expect(() => service.deleteLog(normalUserCtx, otherUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws NotFoundError if no log is found in persistence layer matching provided log entity id', async () => {
@@ -2110,7 +2173,7 @@ describe('ConditioningDataService', () => {
 
 				// act/assert
 				try { // cannot get jest to catch the error, so using try/catch
-					await service.deleteLog(userContext, randomUserIdDTO, new EntityIdDTO('no-such-log'));
+					await service.deleteLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO('no-such-log'));
 				}
 				catch (e) {
 					error = e;
@@ -2132,7 +2195,7 @@ describe('ConditioningDataService', () => {
 
 				// act/assert
 				try { // cannot get jest to catch the error, so using try/catch
-					await service.deleteLog(userContext, randomUserIdDTO, randomLogIdDTO, false); // user only updated when hard deleting
+					await service.deleteLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO, false); // user only updated when hard deleting
 				}
 				catch (e) {
 					error = e;
@@ -2149,7 +2212,7 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.deleteLog(userContext, randomUserIdDTO, logIdDTO);
+				void await service.deleteLog(normalUserCtx, randomUserIdDTO, logIdDTO);
 
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(0);
@@ -2165,7 +2228,7 @@ describe('ConditioningDataService', () => {
 
 				// act/assert
 				try { // cannot get jest to catch the error, so using try/catch
-					await service.deleteLog(userContext, randomUserIdDTO, randomLogIdDTO);
+					await service.deleteLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO);
 				}
 				catch (e) {
 					error = e;
@@ -2202,7 +2265,7 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.undeleteLog(userContext, randomUserIdDTO, logIdDTO);
+				void await service.undeleteLog(normalUserCtx, randomUserIdDTO, logIdDTO);
 
 				// assert
 				expect(logRepoUndeleteSpy).toHaveBeenCalledTimes(1);
@@ -2216,7 +2279,7 @@ describe('ConditioningDataService', () => {
 
 				expect(randomUser.logs).toContain(undeletedLogId); // sanity check
 
-				service.undeleteLog(userContext, randomUserIdDTO, undeletedLogIdDTO).then(() => {
+				service.undeleteLog(normalUserCtx, randomUserIdDTO, undeletedLogIdDTO).then(() => {
 					const undeleteEvent = new UserUpdatedEvent({
 						eventId: uuidv4(),
 						eventName: 'UserUpdatedEvent',
@@ -2245,27 +2308,27 @@ describe('ConditioningDataService', () => {
 
 			it(`succeeds if admin user tries to undelete other user's log`, async () => {
 				// arrange
-				userContext.roles = ['admin'];
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				normalUserCtx.roles = ['admin'];
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
 				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 
 				// act/assert
-				expect(() => service.undeleteLog(userContext, otherUserIdDTO, randomOtherUserLogId)).not.toThrow();
+				expect(() => service.undeleteLog(normalUserCtx, otherUserIdDTO, randomOtherUserLogId)).not.toThrow();
 			});
 
 			it(`throws UnauthorizedAccessError if non-admin user tries to undelete other user's log`, async () => {
 				// arrange
-				const otherUser = users.find(user => user.userId !== userContext.userId)!;
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
 				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 				
 				// act/assert
-				expect(() => service.undeleteLog(userContext, otherUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+				expect(() => service.undeleteLog(normalUserCtx, otherUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws NotFoundError if no log is found in persistence layer matching provided log entity id', async () => {
@@ -2279,7 +2342,7 @@ describe('ConditioningDataService', () => {
 
 				// act/assert
 				try { // cannot get jest to catch the error, so using try/catch
-					await service.undeleteLog(userContext, randomUserIdDTO, new EntityIdDTO('no-such-log'));
+					await service.undeleteLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO('no-such-log'));
 				}
 				catch (e) {
 					error = e;
@@ -2299,7 +2362,7 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act/assert
-				expect(async () => await service.undeleteLog(userContext, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
+				expect(async () => await service.undeleteLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
 			});
 		});
 	});
@@ -2741,12 +2804,12 @@ describe('ConditioningDataService', () => {
 		describe('toConditioningLogSeries', () => {
 			let userIdDTO: EntityIdDTO;
 			beforeEach(() => {
-				userIdDTO = new EntityIdDTO(userContext.userId);
+				userIdDTO = new EntityIdDTO(normalUserCtx.userId);
 			});
 
 			it('can convert an array of ConditioningLogs to a ConditioningLogSeries', async () => {
 				// arrange
-				const logs = await service.fetchLogs(userContext, userIdDTO);
+				const logs = await service.fetchLogs(normalUserCtx, userIdDTO);
 				
 				// act
 				const series = service['toConditioningLogSeries'](logs);
@@ -2766,7 +2829,7 @@ describe('ConditioningDataService', () => {
 			
 			it('sorts logs by start date', async () => {
 				// arrange
-				const logs = await service.fetchLogs(userContext, userIdDTO);
+				const logs = await service.fetchLogs(normalUserCtx, userIdDTO);
 				const unSortedLogs = logs.sort((a, b) => b.start!.getTime() - a.start!.getTime());
 				
 				// act
@@ -2784,7 +2847,7 @@ describe('ConditioningDataService', () => {
 
 			it('excludes logs without start date', async () => {
 				// arrange
-				const logs = await service.fetchLogs(userContext, userIdDTO);
+				const logs = await service.fetchLogs(normalUserCtx, userIdDTO);
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
@@ -2798,7 +2861,7 @@ describe('ConditioningDataService', () => {
 
 			it('logs entity id of logs without start date', async () => {
 				// arrange
-				const logs = await service.fetchLogs(userContext, userIdDTO);
+				const logs = await service.fetchLogs(normalUserCtx, userIdDTO);
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);

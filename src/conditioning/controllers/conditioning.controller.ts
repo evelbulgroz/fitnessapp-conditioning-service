@@ -120,7 +120,12 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const log = this.createLogFromDTO(logDTO); // validate the log DTO before passing it to the service
-			return await this.dataService.createLog(userContext, userIdDTO, log);
+			return await this.dataService.createLog(
+				userContext.userId, // requestingUserId
+				userIdDTO.value, // targetUserId
+				userContext.roles.includes('admin'), // isAdmin
+				log // log to create
+			);
 		} catch (error) {
 			const errorMessage = `Failed to create log: ${error.message}`;
 			this.logger.error(errorMessage);
