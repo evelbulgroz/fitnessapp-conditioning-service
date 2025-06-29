@@ -128,9 +128,9 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @remark Admins can create logs for any user, other users can only create logs for themselves
 	 */
 	public async createLog(
-		requestingUserId: EntityId, // user id of the user making the request, used for logging
-		targetUserId: EntityId, // user id of the user for whom to create the log, used for logging
-		isAdmin: boolean, // whether the user is an admin, used for authorization check
+		requestingUserId: EntityId,
+		targetUserId: EntityId,
+		isAdmin: boolean,
 		logtoCreate: ConditioningLog<any, ConditioningLogDTO>
 	): Promise<EntityId> {
 		// initialize service if necessary
