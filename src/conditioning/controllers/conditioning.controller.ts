@@ -410,7 +410,13 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO; 
 			}
 
-			return await this.dataService.fetchLogs(userContext, userIdDTO ?? undefined, queryDTO, includeDeletedDTO?.value);
+			return await this.dataService.fetchLogs(
+				userContext.userId,
+				userIdDTO?.value,
+				queryDTO,
+				includeDeletedDTO?.value ?? false,
+				userContext.roles.includes('admin')
+			);
 		}
 		catch (error) {
 			const errorMessage = `Request for logs failed: ${error.message}`;

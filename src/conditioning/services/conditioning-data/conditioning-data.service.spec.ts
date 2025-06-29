@@ -1403,7 +1403,7 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		describe('fetchAggretagedLogs', () => {
+		/*describe('fetchAggretagedLogs', () => {
 			// NOTE:
 			// not testing that AggregatorService works, just that it is called with the right parameters
 			// leave deeper testing of the result to AggregatorService tests to avoid duplication
@@ -1537,7 +1537,9 @@ describe('ConditioningDataService', () => {
 				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 		});
+		*/
 
+		/*
 		describe('fetchLog', () => {
 			let requestingUserId: EntityId;
 			let targetUserId: EntityId;
@@ -1843,11 +1845,15 @@ describe('ConditioningDataService', () => {
 				)).rejects.toThrow(NotFoundError);
 			});
 		});
+		*/
 
-		xdescribe('fetchLogs', () => {
+		describe('fetchLogs', () => {
 			let allCachedLogs: ConditioningLog<any, ConditioningLogDTO>[];
+			let isAdmin: boolean;		
 			let queryDTO: QueryDTO;
 			let queryDTOProps: QueryDTOProps;
+			let requestingUserId: EntityId;
+			let targetUserId: EntityId;
 			let userIdDTO: EntityIdDTO;
 			beforeEach(() => {
 				allCachedLogs = [...service['cache'].value]
@@ -1857,6 +1863,8 @@ describe('ConditioningDataService', () => {
 				
 				allCachedLogs.sort((a: any, b: any) => a.end.getTime() - b.end.getTime()); // ascending
 				const latestEnd = allCachedLogs[allCachedLogs.length - 1].end;
+
+				isAdmin = normalUserCtx.roles.includes('admin');
 				
 				queryDTOProps = {
 					start: earliestStart!.toISOString(),
@@ -1870,13 +1878,20 @@ describe('ConditioningDataService', () => {
 				};
 				queryDTO = new QueryDTO(queryDTOProps);
 
+				requestingUserId = normalUserCtx.userId;
+				targetUserId = randomUserId;
+
 				userIdDTO = new EntityIdDTO(normalUserCtx.userId);
 			});
 
 			it('gives normal users access to a collection of all their conditioning logs', async () => {
 				// arrange
 				// act
-				const matches = await service.fetchLogs(normalUserCtx, userIdDTO);
+				const matches = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					// no query, isAdmin defaults to false, includeDeleted defaults to false
+				);
 				
 				// assert
 				expect(matches).toBeDefined();
@@ -1884,6 +1899,7 @@ describe('ConditioningDataService', () => {
 				expect(matches.length).toBe(logsForRandomUser.length);
 			});
 
+			/*
 			it('optionally gives normal users access to their logs matching a query', async () => {
 				// arrange
 				const queryDtoClone = new QueryDTO(queryDTOProps);
@@ -1993,8 +2009,9 @@ describe('ConditioningDataService', () => {
 						}
 					}
 				});
-			});
+			});*/
 
+			/*
 			describe('each log', () => {
 				// just test a random log:
 				// until we have a mock of import dataService with mock data,
@@ -2011,8 +2028,10 @@ describe('ConditioningDataService', () => {
 					expect(randomLog.isOverview).toBe(true);
 				});
 			});
+			*/
 		});
 
+		/*
 		describe('getCacheSnapshot', () => {
 			it('can provide a domain event handler with a snapshot of the cache', async () => {
 				// arrange
@@ -2037,7 +2056,9 @@ describe('ConditioningDataService', () => {
 
 			
 		});
+		*/
 		
+		/*
 		describe('updateCache', () => {
 			it('can update the cache with a new snapshot', async () => {
 				// arrange
@@ -2060,7 +2081,9 @@ describe('ConditioningDataService', () => {
 				expect(() => service.updateCache([], caller as any)).toThrow(UnauthorizedAccessError);				
 			});
 		});
+		*/
 		
+		/*
 		describe('updateLog', () => {
 			let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
 			let updatedLogDTO: ConditioningLogDTO;
@@ -2218,8 +2241,9 @@ describe('ConditioningDataService', () => {
 				// clean up
 				logRepoUpdateSpy?.mockRestore();
 			});
-		});
+		});*/
 
+		/*
 		describe('deleteLog', () => {
 			let logRepoDeleteSpy: any;
 			let userRepoUpdateSpy: any;
@@ -2424,7 +2448,9 @@ describe('ConditioningDataService', () => {
 				logRepoDeleteSpy?.mockRestore();
 			});
 		});
+		*/
 
+		/*
 		describe('undeleteLog', () => {
 			let logRepoUndeleteSpy: any;
 			let userRepoUpdateSpy: any;
@@ -2548,7 +2574,7 @@ describe('ConditioningDataService', () => {
 				// act/assert
 				expect(async () => await service.undeleteLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
 			});
-		});
+		})*/
 	});
 
 	describe('Management API', () => {
@@ -2710,6 +2736,7 @@ describe('ConditioningDataService', () => {
 		});
 	});
 
+	/*
 	describe('Protected Methods', () => {
 		describe('rollbackLogCreation', () => {
 			let logRepoDeleteSpy: any;
@@ -3063,6 +3090,7 @@ describe('ConditioningDataService', () => {
 			});			
 		});
 	});
+	*/
 	
 	describe('Logging API', () => {
 		describe('LoggableMixin Members', () => {

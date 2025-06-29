@@ -407,9 +407,10 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	/**
 	 * New API: Get all conditioning logs for user and matching query (if provided)
 	 * 
-	 * @param ctx user context for the request (includes user id and roles)
-	 * @param userIdDTO Entity id of the user for whom to retrieve logs, wrapped in a DTO (optional for admin)
+	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
+	 * @param targetUserId Optional entity id of the user for whom to retrieve logs, used for logging and authorization check (if not provided, logs for requesting user are returned)
 	 * @param queryDTO Optional query to filter logs (else all accessible logs for role are returned)
+	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
 	 * @param includeDeleted Optional flag to include soft deleted logs in the response, default is false
 	 * @returns Array of conditioning logs (constrained by user context and query)
 	 * @throws UnauthorizedAccessError if user attempts authorized access to logs
@@ -419,27 +420,28 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
 	 */
 	public async fetchLogs(
-		ctx: UserContext,
-		userIdDTO?: EntityIdDTO,
+		requestingUserId: EntityId,
+		targetUserId?: EntityId,
 		queryDTO?: QueryDTO,
+		isAdmin = false,
 		includeDeleted = false
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
 		
-		// check if provided user id matches context decoded from access token
-		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
-			if (userIdDTO?.value !== ctx.userId) { // user id does not match -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${userIdDTO?.value}.`);
+		// check if user is authorized to access log(s)
+		if (!isAdmin) { // admin has access to all logs, authorization check not needed
+			if (targetUserId !== requestingUserId) { // user id does not match -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${targetUserId}.`);
 			}
 		}
 		
 		// constrain searchable logs to single user unless user is admin
 		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];		
-		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
-			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
+		if (!isAdmin) { // if the user isn't an admin, they can only access their own logs
+			if (queryDTO?.userId && queryDTO.userId !== requestingUserId) { // if query specifies a different user id, throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${queryDTO.userId}.`);
 			}						
-			accessibleLogs = this.cache.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
+			accessibleLogs = this.cache.value.find((entry) => entry.userId === targetUserId)?.logs ?? [];
 		}
 		else { // if the user is an admin, they can access all logs
 			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs);
@@ -456,7 +458,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		// filter out soft deleted logs, if not included
 		matchingLogs = matchingLogs.filter((log) => includeDeleted || !log.deletedOn );
 
-		// sort logs by start date and time, if no sort criteria provided
+		// sort logs ascending by start date and time, if no sort criteria provided
 		let sortedLogs = matchingLogs;
 		if (!query?.sortCriteria || query.sortCriteria.length === 0) {// default sort is ascending by start date and time
 			sortedLogs = matchingLogs.sort(compareLogsByStartDate);
