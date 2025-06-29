@@ -1571,12 +1571,14 @@ describe('ConditioningDataService', () => {
 				expect(detailedLog!.isOverview).toBe(false);
 			});
 						
-			/*
 			it(`can provide a details for other user's conditioning log if user role is 'admin'`, async () => {
 				// arrange
-				normalUserCtx.roles = ['admin'];
-				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
-				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				requestingUserId = adminUserCtx.userId; // admin user fetches log for another user
+				const otherUser = users.find(user => user.userId !== requestingUserId)!;
+				targetUserId = otherUser.userId;
+
+				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
+				const otherUserLogs = await service.fetchLogs(adminUserCtx, new EntityIdDTO(targetUserId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 
 				logRepoFetchByIdSpy?.mockRestore();
@@ -1586,7 +1588,13 @@ describe('ConditioningDataService', () => {
 				});
 				
 				//act
-				const detailedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomOtherUserLog!.entityId!));
+				const detailedLog = await service.fetchLog(
+					requestingUserId, // admin user
+					targetUserId, // any other user
+					randomOtherUserLog!.entityId!, // random log id
+					true, // isAdmin is true for admin user
+					// includeDeleted defaults to false
+				);
 
 				// assert
 				expect(detailedLog!).toBeDefined();
@@ -1594,6 +1602,7 @@ describe('ConditioningDataService', () => {
 				expect(detailedLog!.isOverview).toBe(false);
 			});
 
+			/*
 			it('by default excludes soft deleted logs', async () => {
 				// arrange
 				randomLog['_updatedOn'] = undefined;
