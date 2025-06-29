@@ -39,6 +39,7 @@ import { User, UserDTO, UserPersistenceDTO, UserRepository, UserUpdatedEvent, Us
 import UserContext from '../../../shared/domain/user-context.model';
 import { ShutdownSignal } from '@nestjs/common';
 import { request } from 'http';
+import { is } from 'date-fns/locale';
 
 //const originalTimeout = 5000;
 //jest.setTimeout(15000);
@@ -1407,12 +1408,23 @@ describe('ConditioningDataService', () => {
 			// not testing that AggregatorService works, just that it is called with the right parameters
 			// leave deeper testing of the result to AggregatorService tests to avoid duplication
 			
+			let requestingUserId: EntityId;
+			let isAdmin: boolean;
+			beforeEach(() => {
+				requestingUserId = normalUserCtx.userId;
+				isAdmin = normalUserCtx.roles.includes('admin');
+			});
+			
 			it('can aggregate a time series of all ConditioningLogs owned by a user', async () => {
 				// arrange
 				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO));
 				
 				// act
-				const aggregatedSeries = await service.fetchAggretagedLogs(normalUserCtx, aggregationQueryDTO);
+				const aggregatedSeries = await service.fetchAggretagedLogs(
+					requestingUserId,
+					aggregationQueryDTO,
+					// using default values for query, isAdmin and includeDeleted
+				);
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalled();
@@ -1422,11 +1434,19 @@ describe('ConditioningDataService', () => {
 			
 			it(`can aggregate a time series of all ConditioningLogs for all users if user role is 'admin'`, async () => {
 				// arrange
-				normalUserCtx.roles = ['admin'];
+				requestingUserId = adminUserCtx.userId; // admin user aggregates logs for all users
+				isAdmin = true; // isAdmin is true for admin user
 
 				// act
-				const aggregatedSeries = await service.fetchAggretagedLogs(normalUserCtx, aggregationQueryDTO);
-				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO));
+				const aggregatedSeries = await service.fetchAggretagedLogs(
+					requestingUserId, // admin user
+					aggregationQueryDTO, // aggregation query
+					undefined, // no query
+					isAdmin // isAdmin is true for admin user
+				);
+
+				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
+				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(adminUserCtx, userIdDTO));
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalled();
@@ -1443,8 +1463,14 @@ describe('ConditioningDataService', () => {
 				const expectedTimeSeries = service['toConditioningLogSeries'](matchingLogs);
 
 				// act
-				const aggregatedSeries = await service.fetchAggretagedLogs(normalUserCtx, aggregationQueryDTO, queryDTO);
-				
+				const aggregatedSeries = await service.fetchAggretagedLogs(
+					requestingUserId, // defaults to normal user
+					aggregationQueryDTO,
+					queryDTO, // query to filter logs
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
+
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalled();
 				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
@@ -1457,12 +1483,18 @@ describe('ConditioningDataService', () => {
 				deletedLog['_updatedOn'] = undefined;
 				deletedLog.deletedOn = new Date(deletedLog.createdOn!.getTime() + 1000);
 
-				normalUserCtx.roles = ['admin'];
+				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
 				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO)); // deleted logs excluded by default
 				expectedTimeSeries.data.forEach((dataPoint: any) => expect(dataPoint.value.deletedOn).toBeUndefined()); // sanity check, no deleted logs in expected series
 				
 				// act
-				void await service.fetchAggretagedLogs(normalUserCtx, aggregationQueryDTO);
+				void await service.fetchAggretagedLogs(
+					requestingUserId, // defaults to normal user
+					aggregationQueryDTO, // aggregation query
+					// no query
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
@@ -1474,12 +1506,18 @@ describe('ConditioningDataService', () => {
 				deletedLog['_updatedOn'] = undefined;
 				deletedLog.deletedOn = new Date(deletedLog.createdOn!.getTime() + 1000);
 
-				normalUserCtx.roles = ['admin'];
+				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
 				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO, undefined, true)); // include deleted logs
 				expect(expectedTimeSeries.data.some((dataPoint: any) => dataPoint.value.deletedOn !== undefined)).toBe(true); // sanity check, deleted logs in expected series
 				
 				// act
-				void await service.fetchAggretagedLogs(normalUserCtx, aggregationQueryDTO, undefined, true);
+				void await service.fetchAggretagedLogs(
+					requestingUserId, // defaults to normal user
+					aggregationQueryDTO, // aggregation query
+					undefined, // no query
+					isAdmin, // isAdmin defaults to false
+					true // includeDeleted is true
+				);
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
@@ -1489,10 +1527,14 @@ describe('ConditioningDataService', () => {
 				// arrange
 				const queryDTO = new QueryDTO({	userId: 'no-such-user'});
 				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
-				const otherUserContext = new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']});
+				requestingUserId = otherUser.userId; // other user tries to access logs of another user
 				
 				// act/assert
-				expect(async () => await service.fetchAggretagedLogs(otherUserContext, aggregationQueryDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => await service.fetchAggretagedLogs(
+					requestingUserId,
+					aggregationQueryDTO,
+					queryDTO
+				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 		});
 

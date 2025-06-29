@@ -254,31 +254,35 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	/**
 	 * New API: Get aggregated time series of conditioning logs
 	 * 
-	 * @param ctx User context for the request (includes user id and roles)
+	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
 	 * @param aggregationQueryDTO Validated aggregation query DTO speficifying aggregation parameters
 	 * @param queryDTO Optional query to select logs to aggregate (else all accessible logs are aggregated)
+	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
+	 * @param includeDeleted Optional flag to include soft deleted logs in the response (default is false)
 	 * @returns Aggregated time series of conditioning logs
 	 * @throws UnauthorizedAccessError if user attempts unauthorized access to logs
 	 * 
 	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
 	 */
 	public async fetchAggretagedLogs(
-		ctx: UserContext,
+		requestingUserId: EntityId,
 		aggregationQueryDTO: AggregationQueryDTO,
 		queryDTO?: QueryDTO,
+		isAdmin = false,
 		includeDeleted = false
 	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		await this.isReady(); // initialize service if necessary
 
-		// constrain searchable logs to single user if user id is provided
+		// constrain access to logs user is authorized to access
 		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];
-		if (!ctx.roles.includes('admin')) { // if the user isn't an admin, they can only access their own logs
-			if (queryDTO?.userId && queryDTO.userId !== ctx.userId) { // if query specifies a different user id, throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${queryDTO.userId}.`);
+		if (!isAdmin) { // if the user isn't an admin, they can only access their own logs
+			if (queryDTO?.userId && queryDTO.userId !== requestingUserId) { // if query specifies a different user id, throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${queryDTO.userId}.`);
 			}
-			accessibleLogs = this.cache.value.find((entry) => entry.userId === ctx.userId)?.logs ?? [];
+			accessibleLogs = this.cache.value.find((entry) => entry.userId === requestingUserId)?.logs ?? [];
 		}
 		else { // if the user is an admin, they can access all logs
+			// NOTE: This may be a very large dataset to flatmap -> reconsider approach if performance issues arise
 			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs);
 		}
 
