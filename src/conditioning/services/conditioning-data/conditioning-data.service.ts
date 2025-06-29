@@ -115,8 +115,8 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * New API: Create a new conditioning log for a user in the system
 	 * 
 	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
+	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
 	 * @param targetUserId Entity id of the user for whom to create the log, used for logging and authorization check
-	 * @param isAdmin Whether the user is an admin, used for authorization check
 	 * @param logtoCreate Conditioning log to create, with properties to set in the new log
 	 * @returns Entity id of the created log
 	 * @throws UnauthorizedAccessError if user is not authorized to create log
@@ -130,8 +130,8 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	public async createLog(
 		requestingUserId: EntityId,
 		targetUserId: EntityId,
-		isAdmin: boolean,
-		logtoCreate: ConditioningLog<any, ConditioningLogDTO>
+		logtoCreate: ConditioningLog<any, ConditioningLogDTO>,
+		isAdmin: boolean = false,
 	): Promise<EntityId> {
 		// initialize service if necessary
 		await this.isReady();
@@ -180,42 +180,44 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	/**
 	 * New API: Get list of the number of times each conditioning activity has been logged for a single user, or all users (admin only)
 	 * 
-	 * @param ctx User context for the request (includes user id and roles)
-	 * @param userIdDTO Entity id of the user for whom to retrieve the activity counts, wrapped in a DTO (optional for admin)
+	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
+	 * @param targetUserId Optional entity id of the user for whom to count logs, used for logging and authorization check (if not provided, counts for all users)
 	 * @param queryDTO Optional query to filter logs (else all accessible logs are counted)
-	 * @param includeDeletedDTO Optional flag to include soft deleted logs in the response
+	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
+	 * @param includeDeleted Optional flag to include soft deleted logs in the response (default is false)
 	 * @returns Record of activity types and the number of times each has been logged
 	 * @throws UnauthorizedAccessError if user is not authorized to access logs
 	 * 
 	 * @remark Admins can access logs for all users, other users can only access their own logs
 	 */
 	public async fetchActivityCounts(
-		ctx: UserContext,
-		userIdDTO?: EntityIdDTO,
+		requestingUserId: EntityId,
+		targetUserId?: EntityId,
 		queryDTO?: QueryDTO,
-		includeDeletedDTO?: BooleanDTO
+		isAdmin = false,		
+		includeDeleted: boolean = false
 	): Promise<Record<string, number>> {
 		await this.isReady(); // initialize service if necessary
 
 		// check if user is authorized to access log(s)
-		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
-			if(!userIdDTO) { // user id not provided -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for all users.`);
+		if (!isAdmin) { // admin has access to all logs, authorization check not needed
+			if(!targetUserId) { // user id not provided -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for all users.`);
 			}
-			else if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access logs for user ${userIdDTO?.value}.`);
+			else if (targetUserId !== requestingUserId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${targetUserId}.`);
 			}
 		}
 
 		// get accessible logs given user id and role
 		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];
-		if (userIdDTO) { // user id provided -> get logs for single user
-			const userResult = await this.userRepo.fetchById(userIdDTO.value!);
+		if (targetUserId) { // user id provided -> get logs for single user
+			const userResult = await this.userRepo.fetchById(targetUserId);
 			if (userResult.isFailure) { // fetch failed -> throw not found error
-				throw new NotFoundError(`${this.constructor.name}: User ${userIdDTO.value} not found.`);
+				throw new NotFoundError(`${this.constructor.name}: User ${targetUserId} not found.`);
 			}
 			else {// user exists -> get logs for single user
-				accessibleLogs = this.cache.value.find((entry) => entry.userId === userIdDTO.value)?.logs ?? [];
+				accessibleLogs = this.cache.value.find((entry) => entry.userId === targetUserId)?.logs ?? [];
 			}
 		}
 		else { // user id not provided -> get all logs for admin user
@@ -231,7 +233,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
 
 		// filter out soft deleted logs, unless expressly requested
-		matchingLogs = matchingLogs.filter((log) => !!includeDeletedDTO?.value || !log.deletedOn );
+		matchingLogs = matchingLogs.filter((log) => !!includeDeleted || !log.deletedOn );
 
 		// count activity types in matching logs (using interim Map for efficiency when aggregating large datasets)
 		const activityCounts = new Map<ActivityType, number>();

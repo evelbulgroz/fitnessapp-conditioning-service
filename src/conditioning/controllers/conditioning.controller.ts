@@ -123,8 +123,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			return await this.dataService.createLog(
 				userContext.userId, // requestingUserId
 				userIdDTO.value, // targetUserId
+				log, // log to create
 				userContext.roles.includes('admin'), // isAdmin
-				log // log to create
 			);
 		} catch (error) {
 			const errorMessage = `Failed to create log: ${error.message}`;
@@ -451,7 +451,13 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				(queryDTO as any).includeDeleted = undefined; // not currently part of queryDTO, remove just in case
 				queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO; 
 			}
-			return await this.dataService.fetchActivityCounts(userContext, userIdDTO, queryDTO, includeDeletedDTO);
+			return await this.dataService.fetchActivityCounts(
+				userContext.userId, // requestingUserId
+				userIdDTO?.value, // targetUserId
+				queryDTO, // query parameters for filtering logs
+				userContext.roles.includes('admin'), // isAdmin
+				includeDeletedDTO?.value // includeDeleted
+			);
 		}
 		catch (error) {
 			this.logger.error(`Request for activities failed: ${error.message}`);

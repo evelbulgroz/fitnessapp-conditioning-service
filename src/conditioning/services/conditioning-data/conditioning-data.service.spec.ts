@@ -959,8 +959,8 @@ describe('ConditioningDataService', () => {
 				const returnedLogId = await service.createLog(
 					requestingUserId,
 					targetUserId,
+					newLog,
 					isAdmin,
-					newLog
 				);
 				
 				// assert
@@ -976,8 +976,8 @@ describe('ConditioningDataService', () => {
 				void await service.createLog(
 					requestingUserId,
 					targetUserId,
+					newLog,
 					isAdmin,
-					newLog
 				);
 				
 				// assert
@@ -993,8 +993,8 @@ describe('ConditioningDataService', () => {
 				void await service.createLog(
 					requestingUserId,
 					targetUserId,
+					newLog,
 					isAdmin,
-					newLog
 				);
 				
 				// assert
@@ -1075,8 +1075,8 @@ describe('ConditioningDataService', () => {
 				void await service.createLog(
 					requestingUserId,
 					targetUserId,
+					newLog,
 					isAdmin,
-					newLog
 				);
 				// wait for the event to be emitted and handled
 				await eventPromise;
@@ -1118,8 +1118,8 @@ describe('ConditioningDataService', () => {
 				const returnedLogId = await service.createLog(
 					requestingUserId, // admin user
 					targetUserId, // any other user
+					newLog,
 					true, // isAdmin
-					newLog
 				);
 				
 				// assert
@@ -1136,8 +1136,8 @@ describe('ConditioningDataService', () => {
 				expect(async () => await service.createLog(
 					requestingUserId, // defaults to normal user
 					targetUserId, // any other user
+					newLog,
 					false, // isAdmin
-					newLog
 				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
@@ -1152,8 +1152,8 @@ describe('ConditioningDataService', () => {
 				expect(async () => await service.createLog(
 					requestingUserId,
 					targetUserId,
-					false,
-					newLog
+					newLog,
+					false, // isAdmin
 				)).rejects.toThrow(NotFoundError);
 			});
 
@@ -1168,8 +1168,8 @@ describe('ConditioningDataService', () => {
 				expect(async () => await service.createLog(
 					requestingUserId,
 					targetUserId,
-					false,
-					newLog
+					newLog,
+					false, // isAdmin
 				)).rejects.toThrow(PersistenceError);
 			});
 
@@ -1191,8 +1191,8 @@ describe('ConditioningDataService', () => {
 					void await service.createLog(
 						requestingUserId,
 						targetUserId,
-						false,
-						newLog
+						newLog,
+						false, // isAdmin
 					);
 				}
 				catch (e) {
@@ -1221,27 +1221,51 @@ describe('ConditioningDataService', () => {
 				return activityCounts;
 			}
 
+			let requestingUserId: EntityId;
+			let targetUserId: EntityId;
+			let isAdmin: boolean;
+			beforeEach(() => {
+				requestingUserId = normalUserCtx.userId;
+				targetUserId = randomUserId;
+				isAdmin = normalUserCtx.roles.includes('admin');
+			});
+
 			it('provides user a count of their own activities', async () => {
 				// arrange
 				const expectedCounts = getActivityCounts(logsForRandomUser);
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(normalUserCtx, randomUserIdDTO);
+				const activityCounts = await service.fetchActivityCounts(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					// no query, isAdmin defaults to false, includeDeleted defaults to false
+				);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
 				expect(activityCounts).toEqual(expectedCounts);
 			});
-
+			
 			it('provides admins with a count of activities for a different user by id', async () => {
 				// arrange
+				requestingUserId = adminUserCtx.userId; // admin user fetches activity counts for another user
+				isAdmin = true; // isAdmin is true for admin user
+				
 				const otherUser = users.find(user => user.userId !== randomUserId)!;
-				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
-				const logs = service['cache'].value.find(entry => entry.userId === otherUser.userId)?.logs ?? [];
+				targetUserId = otherUser.userId;
+				
+				const logs = service['cache'].value.find(entry => entry.userId === targetUserId)?.logs ?? [];
+				
 				const expectedCounts = getActivityCounts(logs);
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(adminUserCtx, otherUserIdDTO);
+				const activityCounts = await service.fetchActivityCounts(
+					requestingUserId, // admin user
+					targetUserId, // any other user
+					undefined,// no query
+					isAdmin
+					// no includeDeleted, so defaults to false
+				);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
@@ -1250,17 +1274,25 @@ describe('ConditioningDataService', () => {
 			
 			it('provides admins with a count of activities for all users', async () => {
 				// arrange
+				requestingUserId = adminUserCtx.userId; // admin user fetches activity counts for all users
+				isAdmin = true; // isAdmin is true for admin user
+
 				const logs = service['cache'].value ?? [];
 				const expectedCounts = getActivityCounts(logs.flatMap(entry => entry.logs));
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(adminUserCtx);				
+				const activityCounts = await service.fetchActivityCounts(
+					requestingUserId, // admin user
+					undefined, // no userId, so fetches for all users
+					undefined, // no query
+					isAdmin // isAdmin is true for admin user
+				);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
 				expect(activityCounts).toEqual(expectedCounts);
 			});
-
+			
 			it('optionally filters logs by provided query', async () => {
 				// arrange
 				const queryDTO = new QueryDTO({'activity': ActivityType.MTB});
@@ -1269,7 +1301,13 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(matchingLogs);
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(normalUserCtx, randomUserIdDTO, queryDTO);
+				const activityCounts = await service.fetchActivityCounts(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					queryDTO, // query to filter logs
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
@@ -1286,7 +1324,13 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(logs);
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(normalUserCtx, randomUserIdDTO);
+				const activityCounts = await service.fetchActivityCounts(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					undefined, // no query
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
@@ -1301,7 +1345,13 @@ describe('ConditioningDataService', () => {
 				const expectedCounts = getActivityCounts(logsForRandomUser);
 				
 				// act
-				const activityCounts = await service.fetchActivityCounts(normalUserCtx, randomUserIdDTO, undefined, new BooleanDTO(true));
+				const activityCounts = await service.fetchActivityCounts(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					undefined, // no query
+					false, // isAdmin
+					true // includeDeleted is true
+				);
 				
 				// assert
 				expect(activityCounts).toBeDefined();
@@ -1310,16 +1360,20 @@ describe('ConditioningDataService', () => {
 			
 			it('throws UnauthorizedAccessError if non-admin user tries to access activities of another user', async () => {
 				// arrange
-				const otherUser = users.find(user => user.userId !== randomUserId)!;
-				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
+				const otherUser = users.find(user => user.userId !== targetUserId)!;
+				targetUserId = otherUser.userId;
 				
 				// act/assert
-				expect(async () => await service.fetchActivityCounts(normalUserCtx, otherUserIdDTO)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => await service.fetchActivityCounts(
+					requestingUserId, // defaults to normal user
+					targetUserId, // any other user
+					// using default values for query, isAdmin and includeDeleted
+				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws UnauthorizedAccessError if non-admin user tries to access activities of all users', async () => {
 				// act/assert
-				expect(async () => await service.fetchActivityCounts(normalUserCtx)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => await service.fetchActivityCounts(requestingUserId)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws NotFoundError if user matching provided ID does not exist in persistence layer', async () => {
@@ -1332,7 +1386,11 @@ describe('ConditioningDataService', () => {
 				
 				// act/assert
 				try {
-					await service.fetchActivityCounts(normalUserCtx, randomUserIdDTO);
+					await service.fetchActivityCounts(
+						requestingUserId, // defaults to normal user
+						targetUserId, // any other user
+						// using default values for query, isAdmin and includeDeleted
+					);
 				}
 				catch (e) {
 					error = e;					
