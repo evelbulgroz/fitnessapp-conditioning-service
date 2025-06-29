@@ -1576,7 +1576,7 @@ describe('ConditioningDataService', () => {
 				requestingUserId = adminUserCtx.userId; // admin user fetches log for another user
 				const otherUser = users.find(user => user.userId !== requestingUserId)!;
 				targetUserId = otherUser.userId;
-
+				isAdmin = true; // isAdmin is true for admin user
 				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
 				const otherUserLogs = await service.fetchLogs(adminUserCtx, new EntityIdDTO(targetUserId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
@@ -1592,7 +1592,7 @@ describe('ConditioningDataService', () => {
 					requestingUserId, // admin user
 					targetUserId, // any other user
 					randomOtherUserLog!.entityId!, // random log id
-					true, // isAdmin is true for admin user
+					isAdmin, // isAdmin is true for admin user
 					// includeDeleted defaults to false
 				);
 
@@ -1602,14 +1602,19 @@ describe('ConditioningDataService', () => {
 				expect(detailedLog!.isOverview).toBe(false);
 			});
 
-			/*
 			it('by default excludes soft deleted logs', async () => {
 				// arrange
 				randomLog['_updatedOn'] = undefined;
 				randomLog.deletedOn = new Date(randomLog.createdOn!.getTime() + 1000);
 				
 				// act
-				const detailedLogPromise = service.fetchLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO);
+				const detailedLogPromise = service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					randomLog.entityId! // random log id
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
 				
 				// assert
 				expect(async () => await detailedLogPromise).rejects.toThrow(NotFoundError);
@@ -1621,7 +1626,13 @@ describe('ConditioningDataService', () => {
 				randomLog.deletedOn = new Date(randomLog.createdOn!.getTime() + 1000);
 				
 				// act
-				const detailedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO, true);
+				const detailedLog = await service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					randomLog.entityId!, // random log id
+					undefined, // isAdmin defaults to false
+					true // includeDeleted is true
+				);
 				
 				// assert
 				expect(detailedLog).toBeDefined();
@@ -1630,12 +1641,11 @@ describe('ConditioningDataService', () => {
 			});
 
 			it('returns log directly from cache if already detailed', async () => {
-				// arrange
-					// reset spy to avoid side effects
-				logRepoFetchByIdSpy?.mockRestore();
+				// arrange					
+				logRepoFetchByIdSpy?.mockRestore(); // reset spy to avoid side effects
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById'); // should not be called
 				
-					// replace random log in cache with detailed log
+				// replace random log in cache with detailed log
 				const randomLogId = randomLog!.entityId!;
 				const dto = testDTOs.find(dto => dto.entityId === randomLogId)!;
 				const detailedLog = ConditioningLog.create(dto, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
@@ -1645,7 +1655,12 @@ describe('ConditioningDataService', () => {
 				cacheEntry!.logs[logIndex] = detailedLog;				
 				
 				//act
-				const retrievedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
+				const retrievedLog = await service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					randomLog.entityId!
+					// using default values for isAdmin and includeDeleted
+				);
 
 				// assert
 				expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
@@ -1667,7 +1682,12 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act
-				const retrievedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
+				const retrievedLog = await service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					randomLog.entityId! // random log id
+					// using default values for isAdmin and includeDeleted
+				);
 
 				// assert
 				expect(retrievedLog?.entityId).toBe(randomLog?.entityId);
@@ -1676,14 +1696,19 @@ describe('ConditioningDataService', () => {
 			
 			it('passes through log from persistence as-is, without checking if details are actually available ', async () => {
 				// arrange
-					// create a new log with isOverview set to true, and no detailed properties -> should be returned without checking for details
+				  // create a new log with isOverview set to true, and no detailed properties -> should be returned without checking for details
 				const detailedLogMock = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () =>
 					Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(detailedLogMock)))
 				);
 				
 				//act
-				const retrievedLog = await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!));
+				const retrievedLog = await service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					randomLog.entityId! // random log id
+					// using default values for isAdmin and includeDeleted
+				);
 
 				// assert
 				expect(retrievedLog?.isOverview).toBe(true);
@@ -1702,7 +1727,12 @@ describe('ConditioningDataService', () => {
 				});
 				
 				// act
-				void await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog?.entityId!));
+				void await service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					randomLog.entityId! // random log id
+					// using default values for isAdmin and includeDeleted
+				);
 
 				// assert
 				const updatedLog = service['cache'].value.find(entry => entry.userId === randomUserId)?.logs.find(log => log.entityId === randomLogId);
@@ -1722,7 +1752,12 @@ describe('ConditioningDataService', () => {
 				});
 				
 				// act
-				void await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog?.entityId!));
+				void await service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					randomLog.entityId! // random log id
+					// using default values for isAdmin and includeDeleted
+				);
 
 				// assert
 				const updatedCache$ = service['cache'].asObservable();
@@ -1731,31 +1766,47 @@ describe('ConditioningDataService', () => {
 				expect(updatedLog).toBe(detailedLog);
 			});
 			
-			it('throws UnauthorizedAccessError submitted user id does not match user context decoded from access token', async () => {
+			it('throws UnauthorizedAccessError if user is not authorized to access log', async () => {
 				// arrange
 				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
-				const otherUserId = new EntityIdDTO(otherUser.userId);
+				targetUserId = otherUser.userId;
 
 				// act/assert
-				expect(async () => service.fetchLog(normalUserCtx, otherUserId, randomLogIdDTO)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // any other user
+					randomLog.entityId! // random log id
+					// using default values for isAdmin and includeDeleted
+				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 			
 			it('throws NotFoundError if no log is found matching provided log entity id', async () => {
 				// arrange
 				// act/assert
-				expect(async () => await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO('no-such-log'))).rejects.toThrow(NotFoundError);
-			});			
+				expect(async () => await service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					'no-such-log',
+					// using default values for isAdmin and includeDeleted
+				)).rejects.toThrow(NotFoundError);
+			});
 		
 			it('throws UnauthorizedAccessError if log is found but user is not authorized to access it', async () => {
 				// arrange
 				normalUserCtx.roles = ['user'];
 				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
+				targetUserId = otherUser.userId;
 				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 				
 				// act/assert
-				expect(() => service.fetchLog(normalUserCtx, randomUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+				expect(() => service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // any other user
+					randomOtherUserLogId.value, // random log id
+					// using default values for isAdmin and includeDeleted
+				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws PersistenceError if retrieving detailed log from persistence fails', async () => {
@@ -1768,7 +1819,12 @@ describe('ConditioningDataService', () => {
 
 				// act/assert
 					// tried, failed to verify that repoSpy is called using .toHaveBeenCalled()
-				expect(async () => await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
+				expect(async () => await service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					randomLog.entityId! // random log id
+					// using default values for isAdmin and includeDeleted
+				)).rejects.toThrow(PersistenceError);
 			});
 
 			it('throws NotFoundError if no log matching entity id is found in persistence', async () => {
@@ -1779,11 +1835,13 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act/assert
-				expect(async () => await service.fetchLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(NotFoundError);
+				expect(async () => await service.fetchLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					randomLog.entityId! // random log id
+					// using default values for isAdmin and includeDeleted
+				)).rejects.toThrow(NotFoundError);
 			});
-			*/
-
-			// TODO: Test default sorting of returned logs
 		});
 
 		xdescribe('fetchLogs', () => {
