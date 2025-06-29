@@ -320,10 +320,11 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	/**
 	 * New API: Get single, detailed conditioning log by log entity id
 	 * 
-	 * @param ctx user context for the request (includes user id and roles)
-	 * @param userIdDTO Entity id of the user for whom to retrieve the log, wrapped in a DTO
-	 * @param logIdDTO Entity id of the conditioning log to retrieve, wrapped in a DTO
-	 * @param includeDeleted Optional flag to include soft deleted logs in the response
+	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
+	 * @param targetUserId Entity id of the user for whom to retrieve the log, used for logging and authorization check
+	 * @param logId Entity id of the conditioning log to retrieve
+	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
+	 * @param includeDeleted Optional flag to include soft deleted logs in the response (default is false)
 	 * @returns Detailed log matching the entity id, if found and authorized
 	 * @throws UnauthorizedAccessError if user is not authorized to access log
 	 * @throws NotFoundError if log is not initialized in cache or not found in persistence
@@ -332,20 +333,19 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @remark Replaces overview log in cache with detailed log from persistence on demand, and updates cache subscribers
 	 */
 	public async fetchLog(
-		ctx: UserContext,
-		userIdDTO: EntityIdDTO,
-		logIdDTO: EntityIdDTO,
+		requestingUserId: EntityId,
+		targetUserId: EntityId,
+		logId: EntityId,
+		isAdmin = false,
 		includeDeleted = false
 	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
 			await this.isReady(); // initialize service if necessary
 
-			const logId = logIdDTO.value; // extract sanitized entity id from DTO
-
-			// check if user id matches context decoded from access token
-			if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
-				if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
-					reject(new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access log for user ${userIdDTO.value}.`));
+			// check if user is authorized to access log
+			if (!isAdmin) { // admin has access to all logs, authorization check not needed
+				if (targetUserId !== requestingUserId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+					reject(new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access log for user ${targetUserId}.`));
 					return;
 				}
 			}
@@ -365,10 +365,10 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 			}
 				
 			// log exists, check if user is authorized to access it
-			if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
+			if (!isAdmin) { // admin has access to all logs, authorization check not needed
 				const logOwnwerId = entryWithLog.userId;
-				if (logOwnwerId !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
-					reject(new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to access log ${logId} for user ${logOwnwerId}.`));
+				if (logOwnwerId !== requestingUserId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+					reject(new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access log ${logId} for user ${logOwnwerId}.`));
 					return;
 				}
 			}

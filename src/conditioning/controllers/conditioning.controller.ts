@@ -158,6 +158,12 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
 		}
 	})
+	@ApiParam({
+		name: 'includeDeleted',
+		description: 'Include soft deleted logs in the response (true or false, optional, defaults to false)',
+		required: false,
+		type: 'boolean'
+	})
 	@ApiResponse({ status: 200, description: 'ConditioningLog object matching log ID, if found' })
 	@ApiResponse({ status: 204, description: 'Log updated successfully, no content returned' })
 	@ApiResponse({ status: 400, description: 'Request failed, see log for details' })
@@ -165,7 +171,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	public async fetchLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: EntityIdDTO,		
-		@Param('logId') logIdDTO: EntityIdDTO
+		@Param('logId') logIdDTO: EntityIdDTO,
+		@Param('includeDeleted') includeDeletedDTO?: BooleanDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			if (!userIdDTO || !logIdDTO) {
@@ -174,7 +181,13 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				throw new BadRequestException(errorMessage);
 			}
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps); // maps 1:1 with JwtAuthResult
-			const log = this.dataService.fetchLog(userContext, userIdDTO, logIdDTO);
+			const log = this.dataService.fetchLog(
+				userContext.userId,
+				userIdDTO.value,
+				logIdDTO.value,
+				userContext.roles.includes('admin'),
+				includeDeletedDTO?.value ?? false // includeDeleted is optional, defaults to false
+			);
 			if (!log) {
 				const errorMessage = `Log with id ${logIdDTO.value} not found`;
 				this.logger.error(errorMessage);
