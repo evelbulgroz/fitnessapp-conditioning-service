@@ -12,7 +12,6 @@ import { MergedStreamLogger, StreamLogger } from '../../libraries/stream-loggabl
 
 import { AggregationQueryDTO, AggregationQueryDTOProps } from '../dtos/aggregation-query.dto';
 import BcryptCryptoService from '../../authentication/services/crypto/bcrypt-crypto.service';
-import BooleanDTO from '../../shared/dtos/responses/boolean.dto';
 import ConditioningController from './conditioning.controller';
 import ConditioningDataService from '../services/conditioning-data/conditioning-data.service';
 import ConditioningLog from '../domain/conditioning-log.entity';
@@ -20,17 +19,19 @@ import ConditioningLogDTO from '../dtos/conditioning-log.dto';
 import { createTestingModule } from '../../test/test-utils';
 import CryptoService from '../../authentication/services/crypto/domain/crypto-service.model';
 import DomainTypeDTO from '../../shared/dtos/responses/domain-type.dto';
-import EntityIdDTO from '../../shared/dtos/responses/entity-id.dto';
 import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
 import JwtAuthStrategy from '../../infrastructure/strategies/jwt-auth.strategy';
 import JwtSecretService from '../../authentication/services/jwt/jwt-secret.service';
 import JwtService from '../../authentication/services/jwt/domain/jwt-service.model';
 import JsonWebtokenService from '../../authentication/services/jwt/json-webtoken.service';
+import LogIdDTO from '../../shared/dtos/requests/log-id.dto';
 import { QueryDTO, QueryDTOProps } from '../../shared/dtos/responses/query.dto';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
 import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
+import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
 import UserRepository from '../../user/repositories/user.repo';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
+import IncludeDeletedDTO from '../../shared/dtos/requests/include-deleted.dto';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -145,11 +146,11 @@ describe('ConditioningController', () => {
 	let adminProps: UserContextProps;
 	let adminUserCtx: UserContext;
 	let adminUserId: EntityId;
-	let adminUserIdDTO: EntityIdDTO;
+	let adminUserIdDTO: UserIdDTO;
 	let userAccessToken: string;
 	let userContxt: UserContext;
 	let userId: EntityId;
-	let userIdDTO: EntityIdDTO;
+	let userIdDTO: UserIdDTO;
 	let userMockRequest: any; // mock request object for testing purposes
 	let userPayload: UserJwtPayload;
 	let userProps: UserContextProps;
@@ -157,7 +158,7 @@ describe('ConditioningController', () => {
 	beforeEach(async () => {
 		adminUserId = uuid();
 
-		adminUserIdDTO = new EntityIdDTO(adminUserId);
+		adminUserIdDTO = new UserIdDTO(adminUserId);
 
 		adminProps = {
 			userId: adminUserId,
@@ -190,7 +191,7 @@ describe('ConditioningController', () => {
 
 		userId = uuid(); // generate a random user id for testing
 
-		userIdDTO = new EntityIdDTO(userId);
+		userIdDTO = new UserIdDTO(userId);
 
 		userProps = {
 			userId: userId,
@@ -257,7 +258,7 @@ describe('ConditioningController', () => {
 			
 			it('provides summary of conditioning activities performed by type', async () => {
 				// arrange
-				const includeDeletedDTO = new BooleanDTO(false);
+				const includeDeletedDTO = new IncludeDeletedDTO(false);
 				const serviceSpy = jest.spyOn(service, 'fetchActivityCounts');
 				
 				// act
@@ -272,7 +273,7 @@ describe('ConditioningController', () => {
 				expect(serviceSpy).toHaveBeenCalledTimes(1);
 				const args = serviceSpy.mock.calls[0];
 				expect(args[0]).toEqual(userContxt);
-				expect(args[1]).toEqual(userIdDTO);
+				expect(args[1]).toEqual(userId);
 				expect(args[2]).toEqual(expectedQueryDTO);
 				expect(args[3]).toEqual(includeDeletedDTO);
 
@@ -282,7 +283,7 @@ describe('ConditioningController', () => {
 
 			it('can be called without a user id', async () => {
 				// arrange
-				const includeDeletedDTO = new BooleanDTO(false);
+				const includeDeletedDTO = new IncludeDeletedDTO(false);
 				const mockRequest = {
 					headers: { Authorization: `Bearer ${userAccessToken}` },
 					user: userProps,
@@ -317,7 +318,7 @@ describe('ConditioningController', () => {
 				// act
 				void await controller.activities(
 					userMockRequest,
-					new EntityIdDTO(userContxt.userId),
+					new UserIdDTO(userContxt.userId),
 					undefined, // no includeDeleted
 					expectedQueryDTO,
 				);
@@ -326,7 +327,7 @@ describe('ConditioningController', () => {
 				expect(serviceSpy).toHaveBeenCalledTimes(1);
 				const args = serviceSpy.mock.calls[0];
 				expect(args[0]).toEqual(userContxt);// user context
-				expect(args[1]).toEqual(userIdDTO); // user id
+				expect(args[1]).toEqual(userId); // user id
 				expect(args[2]).toBe(expectedQueryDTO); // query
 				expect(args[3]).toBeUndefined(); // includeDeleted
 
@@ -336,13 +337,13 @@ describe('ConditioningController', () => {
 
 			it('can be called with without a query', async () => {
 				// arrange
-				const includeDeletedDTO = new BooleanDTO(false);				
+				const includeDeletedDTO = new IncludeDeletedDTO(false);				
 				const spy = jest.spyOn(service, 'fetchActivityCounts');				
 				
 				// act/assert
 				void await controller.activities(
 					userMockRequest,
-					new EntityIdDTO(userContxt.userId),
+					new UserIdDTO(userContxt.userId),
 					includeDeletedDTO,
 					undefined, // no query
 				);
@@ -351,9 +352,9 @@ describe('ConditioningController', () => {
 				expect(spy).toHaveBeenCalledTimes(1);
 				const args = spy.mock.calls[0];
 				expect(args[0]).toEqual(userContxt);// user context
-				expect(args[1]).toEqual(new EntityIdDTO(userContxt.userId)); // user id
+				expect(args[1]).toEqual(new UserIdDTO(userContxt.userId)); // user id
 				expect(args[2]).toBeUndefined(); // query
-				expect(args[3]).toEqual(new BooleanDTO(false)); // includeDeleted
+				expect(args[3]).toEqual(new IncludeDeletedDTO(false)); // includeDeleted
 
 				// clean up
 				spy?.mockRestore();
@@ -551,8 +552,8 @@ describe('ConditioningController', () => {
 						sourceLogDto = sourceLog.toDTO();
 
 						serviceSpy = jest.spyOn(service, 'createLog')
-							.mockImplementation((ctx: any, userIdDTO: EntityIdDTO, log: ConditioningLog<any,ConditioningLogDTO>) => {
-								void ctx, userIdDTO, log; // suppress unused variable warning
+							.mockImplementation((ctx: any, userId: EntityId, log: ConditioningLog<any,ConditioningLogDTO>) => {
+								void ctx, userId, log; // suppress unused variable warning
 								return Promise.resolve(newLogId); // return the log
 							});
 
@@ -578,7 +579,7 @@ describe('ConditioningController', () => {
 						expect(serviceSpy).toHaveBeenCalledTimes(1);
 						const params = serviceSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContxt);
-						expect(params[1]).toEqual(userIdDTO);
+						expect(params[1]).toEqual(userId);
 						expect(params[2]).toBeInstanceOf(ConditioningLog);
 						expect(params[2].toDTO()).toEqual(sourceLogDto);
 						
@@ -635,14 +636,14 @@ describe('ConditioningController', () => {
 				describe('fetchLog', () => {
 					let log: ConditioningLog<any, ConditioningLogDTO>;
 					let logId: EntityId;
-					let logIdDTO: EntityIdDTO;
+					let logIdDTO: LogIdDTO;
 					let serviceSpy: any;
 					beforeEach(() => {
 						log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
 						logId = uuid();
-						logIdDTO = new EntityIdDTO(logId);
+						logIdDTO = new LogIdDTO(logId);
 						serviceSpy = jest.spyOn(service, 'fetchLog')
-							.mockImplementation((ctx: any, entityId: EntityIdDTO) => {
+							.mockImplementation((ctx: any, entityId: EntityId) => {
 								void entityId;
 								if (ctx.roles?.includes('admin')) { // simulate an admin user requesting a log
 									return Promise.resolve(log); // return the log (admins can access all logs)
@@ -679,7 +680,7 @@ describe('ConditioningController', () => {
 						expect(serviceSpy).toHaveBeenCalledTimes(1);
 						const params = serviceSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContxt);
-						expect(params[1]).toEqual(userIdDTO);
+						expect(params[1]).toEqual(userId);
 						expect(params[2]).toEqual(logIdDTO);
 						expect(result).toBeDefined();
 					});					
@@ -732,10 +733,10 @@ describe('ConditioningController', () => {
 					let updatedLogDto: ConditioningLogDTO;
 					let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
 					let updatedLogId: EntityId;
-					let updatedLogIdDTO: EntityIdDTO;
+					let updatedLogIdDTO: LogIdDTO;
 					beforeEach(() => {
 						updatedLogId = uuid();
-						updatedLogIdDTO = new EntityIdDTO(updatedLogId);
+						updatedLogIdDTO = new LogIdDTO(updatedLogId);
 						updatedLog = ConditioningLog.create({
 							activity: ActivityType.SWIM,
 							isOverview: true,
@@ -745,21 +746,15 @@ describe('ConditioningController', () => {
 						updatedLogDto = updatedLog.toDTO();
 
 						serviceSpy = jest.spyOn(service, 'updateLog')
-							.mockImplementation(
-								(
-									ctx: UserContext,
-									userIdDTO: EntityIdDTO,
-									logIdDTO: EntityIdDTO,
-									partialLog: Partial<ConditioningLog<any,ConditioningLogDTO>>
-								) => {
-									void ctx, userIdDTO, logIdDTO, partialLog; // suppress unused variable warning
-									return Promise.resolve(); // return the log
-								}
-							);
+							.mockImplementation((requestingUserId: EntityId, targetUserId: EntityId, logId: EntityId, log: any) => {
+								void requestingUserId, targetUserId, logId, log; // suppress unused variable warning
+								return Promise.resolve(); // return nothing
+							}
+						);
 					});
 
 					afterEach(() => {
-						serviceSpy && serviceSpy.mockRestore();
+						serviceSpy?.mockRestore();
 						jest.clearAllMocks();
 					});
 
@@ -778,8 +773,8 @@ describe('ConditioningController', () => {
 						
 						const params = serviceSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContxt);
-						expect(params[1]).toEqual(new EntityIdDTO(userContxt.userId));
-						expect(params[2]).toEqual(new EntityIdDTO(updatedLogId));
+						expect(params[1]).toEqual(userContxt.userId);
+						expect(params[2]).toEqual(updatedLogId);
 						expect(params[3].toDTO()).toEqual(updatedLogDto);
 						
 						expect(result).toBeUndefined(); // void response returned as undefined				
@@ -836,12 +831,12 @@ describe('ConditioningController', () => {
 				describe('deleteLog', () => {
 					let serviceSpy: any;
 					let deletedLogId: EntityId;
-					let deletedLogIdDTO: EntityIdDTO;
+					let deletedLogIdDTO: LogIdDTO;
 					beforeEach(() => {
 						deletedLogId = uuid();
-						deletedLogIdDTO = new EntityIdDTO(deletedLogId);
+						deletedLogIdDTO = new LogIdDTO(deletedLogId);
 						serviceSpy = jest.spyOn(service, 'deleteLog')
-							.mockImplementation((ctx: UserContext, entityId: EntityIdDTO) => {
+							.mockImplementation((ctx: UserContext, entityId: LogIdDTO) => {
 								void ctx, entityId; // suppress unused variable warning
 								return Promise.resolve(); // return nothing
 							}
@@ -867,7 +862,7 @@ describe('ConditioningController', () => {
 						
 						const params = serviceSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContxt);
-						expect(params[1]).toEqual(userIdDTO);
+						expect(params[1]).toEqual(userId);
 						expect(params[2]).toEqual(deletedLogIdDTO);
 						
 						expect(result).toBeUndefined(); // void response returned as undefined
@@ -913,12 +908,12 @@ describe('ConditioningController', () => {
 				describe('undeleteLog', () => {
 					let serviceSpy: any;
 					let undeletedLogId: EntityId;
-					let undeletedLogIdDTO: EntityIdDTO;
+					let undeletedLogIdDTO: LogIdDTO;
 					beforeEach(() => {
 						undeletedLogId = uuid();
-						undeletedLogIdDTO = new EntityIdDTO(undeletedLogId);
+						undeletedLogIdDTO = new LogIdDTO(undeletedLogId);
 						serviceSpy = jest.spyOn(service, 'undeleteLog')
-							.mockImplementation((ctx: UserContext, entityId: EntityIdDTO) => {
+							.mockImplementation((ctx: UserContext, entityId: EntityId) => {
 								void ctx, entityId; // suppress unused variable warning
 								return Promise.resolve(); // return nothing
 							}
@@ -945,8 +940,8 @@ describe('ConditioningController', () => {
 
 						const params = serviceSpy.mock.calls[0];
 						expect(params[0]).toEqual(userContxt);
-						expect(params[1]).toEqual(new EntityIdDTO(userContxt.userId));
-						expect(params[2]).toEqual(new EntityIdDTO(undeletedLogId));
+						expect(params[1]).toEqual(new UserIdDTO(userContxt.userId));
+						expect(params[2]).toEqual(new LogIdDTO(undeletedLogId));
 						
 						expect(result).toBeUndefined(); // void response returned as undefined
 					});
@@ -1001,7 +996,7 @@ describe('ConditioningController', () => {
 					let serviceSpy: any;
 					let queryDTO: QueryDTO;
 					let queryDTOProps: QueryDTOProps;
-					let userIdDTO: EntityIdDTO;
+					let userIdDTO: UserIdDTO;
 					beforeEach(() => {
 						adminContext = new UserContext(adminProps);
 
@@ -1018,7 +1013,7 @@ describe('ConditioningController', () => {
 						queryDTO = new QueryDTO(queryDTOProps);
 						
 						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(
-							(ctx: UserContext, userIdDTO?: EntityIdDTO, queryDTO?: QueryDTO, includeDeleted?: boolean) => {
+							(ctx: UserContext, userIdDTO?: UserIdDTO, queryDTO?: QueryDTO, includeDeleted?: boolean) => {
 								void ctx, userIdDTO, queryDTO, includeDeleted; // suppress unused variable warning
 								if (ctx.roles?.includes('admin')) { // simulate an admin user requesting logs
 									return Promise.resolve([]); // return empty array for admin
@@ -1037,7 +1032,7 @@ describe('ConditioningController', () => {
 							}
 						);
 						
-						userIdDTO = new EntityIdDTO(userContxt.userId);
+						userIdDTO = new UserIdDTO(userContxt.userId);
 					});
 
 					afterEach(() => {
