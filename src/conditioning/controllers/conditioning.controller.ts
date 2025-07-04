@@ -418,8 +418,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				userContext.userId,
 				userIdDTO?.value,
 				queryDTO,
+				userContext.roles.includes('admin'),
 				includeDeletedDTO?.value ?? false,
-				userContext.roles.includes('admin')
 			);
 		}
 		catch (error) {
