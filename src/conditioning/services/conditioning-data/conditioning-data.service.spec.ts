@@ -1538,7 +1538,7 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		/*describe('fetchLog', () => {
+		describe('fetchLog', () => {
 			let requestingUserId: EntityId;
 			let targetUserId: EntityId;
 			let isAdmin: boolean;
@@ -1560,7 +1560,7 @@ describe('ConditioningDataService', () => {
 				const detailedLog = await service.fetchLog(
 					requestingUserId, // defaults to normal user
 					targetUserId, // same user
-					randomLogIdDTO.value, // random log id
+					randomLog.entityId!, // random
 					// isAdmin defaults to false
 					// includeDeleted defaults to false
 				);
@@ -1573,12 +1573,18 @@ describe('ConditioningDataService', () => {
 						
 			it(`can provide a details for other user's conditioning log if user role is 'admin'`, async () => {
 				// arrange
-				requestingUserId = adminUserCtx.userId; // admin user fetches log for another user
-				const otherUser = users.find(user => user.userId !== requestingUserId)!;
-				targetUserId = otherUser.userId;
 				isAdmin = true; // isAdmin is true for admin user
+				const otherUser = users.find(user => user.userId !== requestingUserId)!;
+				requestingUserId = adminUserCtx.userId; // admin user fetches log for another user
+				targetUserId = otherUser.userId;
 				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
-				const otherUserLogs = await service.fetchLogs(adminUserCtx, new EntityIdDTO(targetUserId));
+				const otherUserLogs = await service.fetchLogs(
+					requestingUserId, // admin user
+					targetUserId, // any other user
+					undefined, // no query
+					isAdmin, // isAdmin is true for admin user
+					// includeDeleted defaults to false
+				);
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 
 				logRepoFetchByIdSpy?.mockRestore();
@@ -1796,7 +1802,13 @@ describe('ConditioningDataService', () => {
 				normalUserCtx.roles = ['user'];
 				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				targetUserId = otherUser.userId;
-				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				const otherUserLogs = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // any other user
+					undefined, // no query
+					true, // isAdmin
+					// includeDeleted defaults to false
+				);
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 				
@@ -1843,7 +1855,6 @@ describe('ConditioningDataService', () => {
 				)).rejects.toThrow(NotFoundError);
 			});
 		});
-		*/
 
 		describe('fetchLogs', () => {
 			let allCachedLogs: ConditioningLog<any, ConditioningLogDTO>[];
