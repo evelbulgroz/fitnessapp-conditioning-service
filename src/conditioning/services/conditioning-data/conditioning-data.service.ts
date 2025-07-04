@@ -470,9 +470,11 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	/**
 	 * New API: Update an existing conditioning log for a user
 	 * 
-	 * @param ctx User context for the request (includes user id and roles)
-	 * @param logIdDTO Entity id of the conditioning log to update, wrapped in a DTO
+	 * @param requestingUserID Entity id of the user making the request, used for logging and authorization check
+	 * @param targetUserId Entity id of the user for whom to update the log, used for logging and authorization check
+	 * @param logId Entity id of the conditioning log to update
 	 * @param log Partial conditioning log with updated properties
+	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
 	 * @returns void
 	 * @throws UnauthorizedAccessError if user is not authorized to update log
 	 * @throws NotFoundError if log is not found in persistence while excluding soft deleted logs
@@ -484,32 +486,33 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @remark Does not support direct update of soft deleted logs, undelete first if necessary
 	 */
 	public async updateLog(
-		ctx: UserContext,
-		userIdDTO: EntityIdDTO,
-		logIdDTO: EntityIdDTO,
-		log: Partial<ConditioningLog<any, ConditioningLogDTO>>
+		requestingUserID: EntityId,
+		targetUserId: EntityId,
+		logId: EntityId,
+		log: Partial<ConditioningLog<any, ConditioningLogDTO>>,
+		isAdmin = false
 	): Promise<void> {
 		await this.isReady(); // initialize service if necessary
 
 		// check if user is authorized to update log
-		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
-			if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to update log for user ${userIdDTO.value}.`);
+		if (!isAdmin) { // admin has access to all logs, authorization check not needed
+			if (targetUserId !== requestingUserID) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserID} tried to update log for user ${targetUserId}.`);
 			}
 		}
 
 		// check if log exists in repo, else throw NotFoundError
-		const logResult = await this.logRepo.fetchById(logIdDTO.value!);
+		const logResult = await this.logRepo.fetchById(logId!);
 		if (logResult.isFailure) { // fetch failed -> throw persistence error
-			throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logIdDTO.value} not found.`);
+			throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logId} not found.`);
 		}
 
 		// update log in persistence layer
 		const logDTO = (log as ConditioningLog<any, ConditioningLogDTO>).toPersistenceDTO(); // convert log to DTO for persistence
-		logDTO.entityId = logIdDTO.value; // ensure entity id is set to target log in DTO
+		logDTO.entityId = logId; // ensure entity id is set to target log in DTO
 		const logUpdateResult = await this.logRepo.update(logDTO);
 		if (logUpdateResult.isFailure) { // update failed -> throw persistence error
-			throw new PersistenceError(`${this.constructor.name}: Error updating conditioning log ${logIdDTO.value}: ${logUpdateResult.error}`);
+			throw new PersistenceError(`${this.constructor.name}: Error updating conditioning log ${logId}: ${logUpdateResult.error}`);
 		}
 
 		// NOTE: cache is updated via subscription to user repo updates, no need to update cache here

@@ -253,7 +253,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const partialLog = this.createLogFromDTO(partialLogDTO); // validate the log DTO before passing it to the service
-			void await this.dataService.updateLog(userContext, userIdDTO, logIdDTO, partialLog);
+			void await this.dataService.updateLog(userContext.userId, userIdDTO.value, logIdDTO.value, partialLog);
 			// implicit return
 		} catch (error) {
 			const errorMessage = `Failed to update log with ID: ${logIdDTO.value}: ${error.message}`;

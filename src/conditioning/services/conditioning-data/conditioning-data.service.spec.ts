@@ -2126,16 +2126,23 @@ describe('ConditioningDataService', () => {
 			});
 		});
 		
-		/*describe('updateLog', () => {
+		describe('updateLog', () => {
+			let isAdmin: boolean;
+			let requestingUserId: EntityId;
+			let targetUserId: EntityId;
 			let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
 			let updatedLogDTO: ConditioningLogDTO;
 			let logRepoUpdateSpy: any;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
+				isAdmin = normalUserCtx.roles.includes('admin');
+				requestingUserId = normalUserCtx.userId;
+				targetUserId = randomUserId;
 				updatedLogDTO = {...randomLog!.toJSON()};
 				updatedLogDTO.activity = ActivityType.RUN;
 				updatedLogDTO.duration = {unit: 'ms', value: 100 }; // 100 ms
 				updatedLog = ConditioningLog.create(updatedLogDTO, undefined, false).value as ConditioningLog<any, ConditioningLogDTO>;
+								
 				logRepoUpdateSpy = jest.spyOn(logRepo, 'update').mockImplementation(() => {
 					return Promise.resolve(Result.ok<ConditioningLog<any, ConditioningLogDTO>>(updatedLog))
 				});
@@ -2143,7 +2150,7 @@ describe('ConditioningDataService', () => {
 				logRepoFetchByIdSpy?.mockRestore();
 				logRepoFetchByIdSpy = jest.spyOn(logRepo, 'fetchById').mockImplementation(async () => {
 					return Promise.resolve(Result.ok<Observable<ConditioningLog<any, ConditioningLogDTO>>>(of(updatedLog)))
-				});
+				});		
 
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.ok(randomUser))
@@ -2161,14 +2168,19 @@ describe('ConditioningDataService', () => {
 				updatedLog.activity = ActivityType.RUN;
 				
 				// act
-				void await service.updateLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLog);
+				void await service.updateLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					randomLog!.entityId!,
+					updatedLog
+				);
 
 				// assert
 				expect(logRepoUpdateSpy).toHaveBeenCalledTimes(1);
 				expect(logRepoUpdateSpy).toHaveBeenCalledWith(updatedLog.toPersistenceDTO());
 			});
 
-			it('replaces log in cache with updated log following log repo update', async () => {
+			/*it('replaces log in cache with updated log following log repo update', async () => {
 				// arrange
 				service.updateLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!), updatedLog).then(() => {
 					const updateEvent = new ConditioningLogUpdatedEvent({
@@ -2283,7 +2295,8 @@ describe('ConditioningDataService', () => {
 				// clean up
 				logRepoUpdateSpy?.mockRestore();
 			});
-		});*/
+			*/
+		});
 
 		/*describe('deleteLog', () => {
 			let logRepoDeleteSpy: any;
