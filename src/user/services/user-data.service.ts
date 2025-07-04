@@ -8,7 +8,7 @@ import { ComponentState, ManagedStatefulComponent, ManagedStatefulComponentMixin
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
-import EntityIdDTO from '../../shared/dtos/responses/entity-id.dto';
+import EntityIdDTO from '../../shared/dtos/requests/entity-id.dto';
 import PersistenceError from '../../shared/domain/persistence.error';
 import UnauthorizedAccessError from '../../shared/domain/unauthorized-access.error';
 import User from '../domain/user.entity';

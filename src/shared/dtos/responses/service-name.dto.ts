@@ -1,6 +1,6 @@
 import { IsDefined, IsString, InRange } from "@evelbulgroz/sanitizer-decorator";
 import { ToLowerCase, Trim } from "@evelbulgroz/sanitizer-decorator";
-import { SafePrimitive } from "./safe-primitive.class";
+import { SafePrimitive } from "../requests/safe-primitive.class";
 
 /** DTO for sanitizing the name of a service
  * @remarks Exists to facilitate validation of the request and convenient data transfer from the controller to the service

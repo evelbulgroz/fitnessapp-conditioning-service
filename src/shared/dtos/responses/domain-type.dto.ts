@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { IsNotEmpty, IsString, Matches, MaxLength } from "@evelbulgroz/sanitizer-decorator";
-import { SafePrimitive } from "./safe-primitive.class";
+import { SafePrimitive } from "../requests/safe-primitive.class";
 
 
 /** DTO for sanitizing a string parameter representing a domain type

@@ -4,7 +4,7 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { MergedStreamLogger, StreamLoggableMixin } from '../../libraries/stream-loggable';
 
-import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
+import { EntityIdDTO } from '../../shared/dtos/requests/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
 import { JwtAuthResult } from '../../authentication/services/jwt/domain/jwt-auth-result.model';
 import { RolesGuard } from '../../infrastructure/guards/roles.guard';

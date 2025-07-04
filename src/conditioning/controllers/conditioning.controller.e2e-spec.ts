@@ -12,7 +12,7 @@ import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLogger } from '../../libraries/stream-loggable';
 
 import { AggregationQueryDTO, AggregationQueryDTOProps } from '../dtos/aggregation-query.dto';
-import { BooleanDTO } from '../../shared/dtos/responses/boolean.dto';
+import { BooleanDTO } from '../../shared/dtos/requests/boolean.dto';
 import { ConditioningController } from './conditioning.controller';
 import { BcryptCryptoService } from '../../authentication/services/crypto/bcrypt-crypto.service';
 import { ConditioningDataService } from '../services/conditioning-data/conditioning-data.service';
@@ -20,7 +20,7 @@ import { ConditioningLog } from '../domain/conditioning-log.entity';
 import { ConditioningLogDTO } from '../dtos/conditioning-log.dto';
 import { createTestingModule } from '../../test/test-utils';
 import { CryptoService } from '../../authentication/services/crypto/domain/crypto-service.model';
-import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
+import { EntityIdDTO } from '../../shared/dtos/requests/entity-id.dto';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
 import { JwtAuthStrategy } from '../../infrastructure/strategies/jwt-auth.strategy';
 import { JwtSecretService } from '../../authentication/services/jwt/jwt-secret.service';

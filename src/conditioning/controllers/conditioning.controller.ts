@@ -5,14 +5,14 @@ import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLoggableMixin } from '../../libraries/stream-loggable';
 import AggregationQueryDTO from '../dtos/aggregation-query.dto';
-import BooleanDTO from '../../shared/dtos/responses/boolean.dto';
+import BooleanDTO from '../../shared/dtos/requests/boolean.dto';
 import { ConditioningData } from '../domain/conditioning-data.model';
 import ConditioningDataService from '../services/conditioning-data/conditioning-data.service';
 import ConditioningLog from '../domain/conditioning-log.entity';
 import ConditioningLogDTO from '../dtos/conditioning-log.dto';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
 import DomainTypeDTO from '../../shared/dtos/responses/domain-type.dto';
-import EntityIdDTO from '../../shared/dtos/responses/entity-id.dto';
+import EntityIdDTO from '../../shared/dtos/requests/entity-id.dto';
 import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
 import JwtAuthResult from '../../authentication/services/jwt/domain/jwt-auth-result.model';
 import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
@@ -22,6 +22,8 @@ import { Roles } from '../../infrastructure/decorators/roles.decorator';
 import { RolesGuard } from '../../infrastructure/guards/roles.guard';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
+import UserIdDTO from 'src/shared/dtos/requests/user-id.dto';
+import IncludeDeletedDTO from 'src/shared/dtos/requests/include-deleted.dto';
 
 /** Controller serving requests for conditioning datap
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests for conditioning data.
@@ -43,7 +45,10 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 	// todo: add rate limiting guard (e.g. RateLimitGuard, may require external package)
 )
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
-@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })) // whitelisting ignored with primitive types
+@UsePipes(
+	new ValidationPipe(
+		{ whitelist: true, forbidNonWhitelisted: false, transform: true }
+	)) // whitelisting ignored with primitive types
 export class ConditioningController extends StreamLoggableMixin(class {}) {
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
@@ -369,7 +374,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	})
 	@ApiQuery({
 		name: 'userId',
-		description: 'User ID (string or number, optional for admins)',
+		description: 'ID of user whose logs are being accessed (string or number, optional for admins)',
 		required: false,
 		schema: {
 			type: 'string',
@@ -396,12 +401,13 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	@ApiResponse({ status: 404, description: 'No logs found' })
 	public async fetchLogs(
 		@Req() req: any,
-		@Query('userId') userIdDTO?: EntityIdDTO,
-		@Query('includeDeleted') includeDeletedDTO?: BooleanDTO,
+		@Query('userId') userIdDTO?: UserIdDTO,
+		@Query('includeDeleted') includeDeletedDTO?: IncludeDeletedDTO,
 		@Query() queryDTO?: QueryDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
+			console.log({userContext, 'User ID': userIdDTO?.value, includeDeleted: includeDeletedDTO?.value, 'Query DTO': queryDTO});
 			// all params are optional -> defer validation to the service method
 			
 			if (queryDTO) {// query always instantiated by framework, using all query params -> remove if empty except for userId and includeDeleted

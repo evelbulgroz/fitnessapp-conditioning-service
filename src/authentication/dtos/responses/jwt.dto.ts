@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 
 import { InRange, IsDefined, IsString, Matches } from "@evelbulgroz/sanitizer-decorator";
 
-import { SafePrimitive } from '../../../shared/dtos/responses/safe-primitive.class';
+import { SafePrimitive } from '../../../shared/dtos/requests/safe-primitive.class';
 
 /** DTO for sanitizing a single JWT string in a response */
 export class JwtDTO extends SafePrimitive<string> {
