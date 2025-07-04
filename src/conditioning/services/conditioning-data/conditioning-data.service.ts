@@ -194,7 +194,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		requestingUserId: EntityId,
 		targetUserId?: EntityId,
 		queryDTO?: QueryDTO,
-		isAdmin = false,		
+		isAdmin: boolean = false,		
 		includeDeleted: boolean = false
 	): Promise<Record<string, number>> {
 		await this.isReady(); // initialize service if necessary
@@ -268,8 +268,8 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		requestingUserId: EntityId,
 		aggregationQueryDTO: AggregationQueryDTO,
 		queryDTO?: QueryDTO,
-		isAdmin = false,
-		includeDeleted = false
+		isAdmin: boolean = false,
+		includeDeleted: boolean = false
 	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		await this.isReady(); // initialize service if necessary
 
@@ -336,8 +336,8 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		requestingUserId: EntityId,
 		targetUserId: EntityId,
 		logId: EntityId,
-		isAdmin = false,
-		includeDeleted = false
+		isAdmin: boolean = false,
+		includeDeleted: boolean = false
 	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		return new Promise(async (resolve, reject) => {
 			await this.isReady(); // initialize service if necessary
@@ -423,8 +423,8 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		requestingUserId: EntityId,
 		targetUserId?: EntityId,
 		queryDTO?: QueryDTO,
-		isAdmin = false,
-		includeDeleted = false
+		isAdmin: boolean = false,
+		includeDeleted: boolean = false
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		await this.isReady(); // initialize service if necessary
 		
@@ -470,7 +470,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	/**
 	 * New API: Update an existing conditioning log for a user
 	 * 
-	 * @param requestingUserID Entity id of the user making the request, used for logging and authorization check
+	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
 	 * @param targetUserId Entity id of the user for whom to update the log, used for logging and authorization check
 	 * @param logId Entity id of the conditioning log to update
 	 * @param log Partial conditioning log with updated properties
@@ -486,18 +486,18 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @remark Does not support direct update of soft deleted logs, undelete first if necessary
 	 */
 	public async updateLog(
-		requestingUserID: EntityId,
+		requestingUserId: EntityId,
 		targetUserId: EntityId,
 		logId: EntityId,
 		log: Partial<ConditioningLog<any, ConditioningLogDTO>>,
-		isAdmin = false
+		isAdmin: boolean = false
 	): Promise<void> {
 		await this.isReady(); // initialize service if necessary
 
 		// check if user is authorized to update log
 		if (!isAdmin) { // admin has access to all logs, authorization check not needed
-			if (targetUserId !== requestingUserID) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserID} tried to update log for user ${targetUserId}.`);
+			if (targetUserId !== requestingUserId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to update log for user ${targetUserId}.`);
 			}
 		}
 
@@ -524,8 +524,8 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	/**
 	 * New API: Delete a conditioning log by entity id
 	 * 
-	 * @param ctx User context for the request (includes user id and roles)
-	 * @param logIdDTO Entity id of the conditioning log to delete, wrapped in a DTO
+	 * @param requestingUserId User context for the request (includes user id and roles)
+	 * @param logId Entity id of the conditioning log to delete, wrapped in a DTO
 	 * @returns void
 	 * @throws UnauthorizedAccessError if user is not authorized to delete log
 	 * @throws NotFoundError if either log or user is not found in persistence
@@ -534,27 +534,33 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @remark Logs are deleted from the persistence layer, and propagated to cache via subscription to user repo updates
 	 * @remark Admins can delete logs for any user, other users can only delete logs for themselves
 	 */
-	public async deleteLog(ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO, softDelete = true): Promise<void> {
+	public async deleteLog(
+		requestingUserId: EntityId,
+		targetUserId: EntityId,
+		logId: EntityId,
+		softDelete: boolean = true,
+		isAdmin: boolean = false
+	): Promise<void> {
 		// initialize service if necessary
 		await this.isReady();
 
 		// check if user is authorized to delete log
-		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
-			if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to create log for user ${userIdDTO.value}.`);
+		if (!isAdmin) { // admin has access to all logs, authorization check not needed
+			if (targetUserId !== requestingUserId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to create log for user ${targetUserId}.`);
 			}
 		}
 
 		// check if log exists in persistence layer
-		const logResult = await this.logRepo.fetchById(logIdDTO.value!);
+		const logResult = await this.logRepo.fetchById(logId!);
 		if (logResult.isFailure) { // fetch failed -> throw persistence error
-			throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logIdDTO.value} not found.`);
+			throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logId} not found.`);
 		}
 
 		// check if user exists in persistence layer
-		const userResult = await this.userRepo.fetchById(userIdDTO.value!);
+		const userResult = await this.userRepo.fetchById(targetUserId);
 		if (userResult.isFailure) { // fetch failed -> throw persistence error
-			throw new NotFoundError(`${this.constructor.name}: User ${userIdDTO.value} not found.`);
+			throw new NotFoundError(`${this.constructor.name}: User ${targetUserId} not found.`);
 		}
 		
 		// update user in persistence layer:
@@ -562,20 +568,20 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		const user = await firstValueFrom(userResult.value as Observable<User>);
 		const originalUserPersistenceDTO = user.toPersistenceDTO(); // save original user state for potential rollback
 		if (!softDelete) { // hard delete -> remove log from user (user entity has no concept of soft delete, so leave as is when soft deleting)
-			user.removeLog(logIdDTO.value!); // remove log
+			user.removeLog(logId); // remove log
 			const userUpdateResult = await this.userRepo.update(user.toPersistenceDTO());
 			if (userUpdateResult.isFailure) { // update failed -> throw persistence error
-				throw new PersistenceError(`${this.constructor.name}: Error updating user ${userIdDTO.value}: ${userUpdateResult.error}`);
+				throw new PersistenceError(`${this.constructor.name}: Error updating user ${targetUserId}: ${userUpdateResult.error}`);
 			}
 		}
 
 		// (soft) delete log in persistence layer
-		const logDeleteResult = await this.logRepo.delete(logIdDTO.value!, softDelete);
+		const logDeleteResult = await this.logRepo.delete(logId, softDelete);
 		if (logDeleteResult.isFailure) { // deletion failed -> roll back user update, then throw persistence error
 			if(!softDelete) { // hard delete -> roll back user update
 				this.rollBackUserUpdate(originalUserPersistenceDTO);
 			}
-			throw new PersistenceError(`${this.constructor.name}: Error deleting conditioning log ${logIdDTO.value}: ${logDeleteResult.error}`);
+			throw new PersistenceError(`${this.constructor.name}: Error deleting conditioning log ${logId}: ${logDeleteResult.error}`);
 		}
 
 		// NOTE: cache is updated via subscription to user repo updates, no need to update cache here

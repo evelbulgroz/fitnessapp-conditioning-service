@@ -2335,14 +2335,24 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		/*describe('deleteLog', () => {
+		describe('deleteLog', () => {
+			let isAdmin: boolean;
+			let logId: EntityId;
 			let logRepoDeleteSpy: any;
+			let requestingUserId: EntityId;
+			let targetUserId: EntityId;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
+				isAdmin = normalUserCtx.roles.includes('admin');
+				logId = randomLog!.entityId!;
+
 				logRepoDeleteSpy?.mockRestore();
 				logRepoDeleteSpy = jest.spyOn(logRepo, 'delete').mockImplementation(() => {
 					return Promise.resolve(Result.ok<void>());
 				});
+
+				requestingUserId = normalUserCtx.userId;
+				targetUserId = randomUserId;
 
 				userRepoUpdateSpy = jest.spyOn(userRepo, 'update').mockImplementation(() =>
 					Promise.resolve(Result.ok(randomUser))
@@ -2360,7 +2370,13 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.deleteLog(normalUserCtx, randomUserIdDTO, logIdDTO);
+				void await service.deleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					logId // log id to delete
+					// softDelete defaults to true
+					// isAdmin defaults to false
+				);
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -2372,7 +2388,13 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.deleteLog(normalUserCtx, randomUserIdDTO, logIdDTO);
+				void await service.deleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					logId // log id to delete
+					// softDelete defaults to true
+					// isAdmin defaults to false
+				);
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -2384,7 +2406,13 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.deleteLog(normalUserCtx, randomUserIdDTO, logIdDTO, false); // hard delete
+				void await service.deleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					logId, // log id to delete
+					false // hard delete
+					// isAdmin defaults to false
+				);
 
 				// assert
 				expect(logRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -2396,7 +2424,13 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.deleteLog(normalUserCtx, randomUserIdDTO, logIdDTO, false); // hard delete
+				void await service.deleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					logId, // log id to delete
+					false // hard delete
+					// isAdmin defaults to false
+				);
 
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(1);
@@ -2405,12 +2439,18 @@ describe('ConditioningDataService', () => {
 
 			it('removes deleted log from cache following user repo update', async () => {
 				// arrange
-				const deletedLogId = randomLog!.entityId!;
-				const deletedLogIdDTO = new EntityIdDTO(deletedLogId);
+				const deletedLogId = randomLog!.entityId!;				
 
 				expect(randomUser.logs).toContain(deletedLogId); // sanity check
 
-				service.deleteLog(normalUserCtx, randomUserIdDTO, deletedLogIdDTO).then(() => {
+				service.deleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					deletedLogId, // log id to delete
+					// softDelete defaults to false
+					// isAdmin defaults to false
+					
+				).then(() => {
 					const deleteEvent = new UserUpdatedEvent({
 						eventId: uuidv4(),
 						eventName: 'UserUpdatedEvent',
@@ -2438,27 +2478,51 @@ describe('ConditioningDataService', () => {
 
 			it('succeeds if admin user deletes log for another user', async () => {
 				// arrange
-				normalUserCtx.roles = ['admin'];
+				isAdmin = true; // isAdmin is true for admin user
 				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
-				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
-				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				requestingUserId = adminUserCtx.userId; // admin user deletes log for another user
+				targetUserId = otherUser.userId;
+				const otherUserLogs = await service.fetchLogs(
+					requestingUserId, // admin user
+					targetUserId, // any other user
+					undefined, // no query
+					isAdmin, // isAdmin is true for admin user
+					// includeDeleted defaults to false
+				)
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
-				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
+				const randomOtherUserLogId = randomOtherUserLog!.entityId!;
 
 				// act
-				expect(() => service.deleteLog(normalUserCtx, otherUserIdDTO, randomOtherUserLogId)).not.toThrow();
+				expect(() => service.deleteLog(
+					requestingUserId,
+					targetUserId,
+					randomOtherUserLogId,
+					false, // softDelete
+					isAdmin
+				)).not.toThrow();
 			});
 
 			it('throws UnauthorizedAccessError if non-admin user tries to delete log for another user', async () => {
 				// arrange
-				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
-				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
-				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				const otherUser = users.find(user => user.userId !== requestingUserId)!;
+				targetUserId = otherUser.userId;
+				const otherUserLogs = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // any other user
+					undefined, // no query
+					true, // isAdmin
+					// includeDeleted defaults to false
+				);
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
-				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
+				const randomOtherUserLogId = randomOtherUserLog!.entityId!;
 
 				// act/assert
-				expect(() => service.deleteLog(normalUserCtx, otherUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+				expect(() => service.deleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // any other user
+					randomOtherUserLogId, // random log id
+					// using default values for isAdmin and includeDeleted
+				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws NotFoundError if no log is found in persistence layer matching provided log entity id', async () => {
@@ -2472,7 +2536,12 @@ describe('ConditioningDataService', () => {
 
 				// act/assert
 				try { // cannot get jest to catch the error, so using try/catch
-					await service.deleteLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO('no-such-log'));
+					await service.deleteLog(
+						requestingUserId, // defaults to normal user
+						targetUserId, // same user
+						'no-such-log', // log id that does not exist
+						// using default values for softDelete and isAdmin
+					);
 				}
 				catch (e) {
 					error = e;
@@ -2494,7 +2563,13 @@ describe('ConditioningDataService', () => {
 
 				// act/assert
 				try { // cannot get jest to catch the error, so using try/catch
-					await service.deleteLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO, false); // user only updated when hard deleting
+					await service.deleteLog(
+						requestingUserId, // defaults to normal user
+						targetUserId, // same user
+						logId, // log id to delete
+						false // hard delete - user only updated when hard deleting
+						// isAdmin defaults to false
+					);
 				}
 				catch (e) {
 					error = e;
@@ -2508,10 +2583,14 @@ describe('ConditioningDataService', () => {
 
 			it('does not update user if soft deleting log', async () => {
 				// arrange
-				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
-
 				// act
-				void await service.deleteLog(normalUserCtx, randomUserIdDTO, logIdDTO);
+				void await service.deleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					logId, // log id to delete
+					// softDelete defaults to true
+					// isAdmin defaults to false
+				);
 
 				// assert
 				expect(userRepoUpdateSpy).toHaveBeenCalledTimes(0);
@@ -2527,7 +2606,12 @@ describe('ConditioningDataService', () => {
 
 				// act/assert
 				try { // cannot get jest to catch the error, so using try/catch
-					await service.deleteLog(normalUserCtx, randomUserIdDTO, randomLogIdDTO);
+					await service.deleteLog(
+						requestingUserId, // defaults to normal user
+						targetUserId, // same user
+						logId, // log id to delete
+						// using default values for softDelete and isAdmin
+					);
 				}
 				catch (e) {
 					error = e;
@@ -2539,7 +2623,6 @@ describe('ConditioningDataService', () => {
 				logRepoDeleteSpy?.mockRestore();
 			});
 		});
-		*/
 
 		/*describe('undeleteLog', () => {
 			let logRepoUndeleteSpy: any;
