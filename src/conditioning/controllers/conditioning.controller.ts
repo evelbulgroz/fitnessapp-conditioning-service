@@ -5,25 +5,24 @@ import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLoggableMixin } from '../../libraries/stream-loggable';
 import AggregationQueryDTO from '../dtos/aggregation-query.dto';
-import BooleanDTO from '../../shared/dtos/requests/boolean.dto';
 import { ConditioningData } from '../domain/conditioning-data.model';
 import ConditioningDataService from '../services/conditioning-data/conditioning-data.service';
 import ConditioningLog from '../domain/conditioning-log.entity';
 import ConditioningLogDTO from '../dtos/conditioning-log.dto';
 import DefaultStatusCodeInterceptor from '../../infrastructure/interceptors/status-code.interceptor';
 import DomainTypeDTO from '../../shared/dtos/responses/domain-type.dto';
-import EntityIdDTO from '../../shared/dtos/requests/entity-id.dto';
+import IncludeDeletedDTO from '../../shared/dtos/requests/include-deleted.dto';
 import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
 import JwtAuthResult from '../../authentication/services/jwt/domain/jwt-auth-result.model';
+import LogIdDTO from '../../shared/dtos/requests/log-id.dto';
 import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
 import Public from '../../infrastructure/decorators/public.decorator';
 import QueryDTO from '../../shared/dtos/responses/query.dto';
 import { Roles } from '../../infrastructure/decorators/roles.decorator';
 import { RolesGuard } from '../../infrastructure/guards/roles.guard';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
+import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
-import UserIdDTO from 'src/shared/dtos/requests/user-id.dto';
-import IncludeDeletedDTO from 'src/shared/dtos/requests/include-deleted.dto';
 
 /** Controller serving requests for conditioning datap
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests for conditioning data.
@@ -114,7 +113,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	@ApiResponse({ status: 400, description: 'Invalid data, see log for details' })
 	public async createLog(
 		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,
+		@Param('userId') userIdDTO: UserIdDTO,
 		@Body() logDTO: Record<string, any> // NestJS strips undecorated properties from the body, so we need to use a more basic type here
 	): Promise<EntityId> {
 		try {
@@ -175,9 +174,9 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	public async fetchLog(
 		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,		
-		@Param('logId') logIdDTO: EntityIdDTO,
-		@Param('includeDeleted') includeDeletedDTO?: BooleanDTO
+		@Param('userId') userIdDTO: UserIdDTO,		
+		@Param('logId') logIdDTO: LogIdDTO,
+		@Param('includeDeleted') includeDeletedDTO?: IncludeDeletedDTO
 	): Promise<ConditioningLog<any, ConditioningLogDTO> | undefined> {
 		try {
 			if (!userIdDTO || !logIdDTO) {
@@ -246,8 +245,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	@ApiResponse({ status: 400, description: 'Request failed, see log for details' })
 	public async updateLog(
 		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,
-		@Param('logId') logIdDTO: EntityIdDTO,
+		@Param('userId') userIdDTO: UserIdDTO,
+		@Param('logId') logIdDTO: LogIdDTO,
 		@Body() partialLogDTO: Record<string, any>// Partial<ConditioningLogDTO> // NestJS strips undecorated properties from the body, so we need to use a more basic type here
 	): Promise<void> {
 		try {
@@ -297,8 +296,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	public async deleteLog(
 		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,		
-		@Param('logId') logIdDTO: EntityIdDTO
+		@Param('userId') userIdDTO: UserIdDTO,		
+		@Param('logId') logIdDTO: LogIdDTO
 	): Promise<void> {
 		try {
 			if (!userIdDTO || !logIdDTO) {
@@ -346,8 +345,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	public async undeleteLog(
 		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,		
-		@Param('logId') logIdDTO: EntityIdDTO
+		@Param('userId') userIdDTO: UserIdDTO,		
+		@Param('logId') logIdDTO: LogIdDTO
 	): Promise<void> {
 		try {
 			if (!userIdDTO || !logIdDTO) {
@@ -407,7 +406,6 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
-			console.log({userContext, 'User ID': userIdDTO?.value, includeDeleted: includeDeletedDTO?.value, 'Query DTO': queryDTO});
 			// all params are optional -> defer validation to the service method
 			
 			if (queryDTO) {// query always instantiated by framework, using all query params -> remove if empty except for userId and includeDeleted
@@ -465,8 +463,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	@ApiResponse({ status: 404, description: 'No activities found' })
 	public async activities(
 		@Req() req: any,
-		@Query('userId') userIdDTO?: EntityIdDTO,
-		@Query('includeDeleted') includeDeletedDTO?: BooleanDTO,
+		@Query('userId') userIdDTO?: UserIdDTO,
+		@Query('includeDeleted') includeDeletedDTO?: IncludeDeletedDTO,
 		@Query() queryDTO?: QueryDTO,
 	): Promise<Record<string, number>> {
 		try {
