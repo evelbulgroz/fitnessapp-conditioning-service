@@ -676,7 +676,6 @@ describe('ConditioningDataService', () => {
 	let randomLog: ConditioningLog<any, ConditioningLogDTO>;
 	let randomUser: User;
 	let randomUserId: EntityId;
-	let randomUserIdDTO: EntityIdDTO;
 	let logsForRandomUser: ConditioningLog<any, ConditioningLogDTO>[];
 	let users: User[];
 	let normalUserCtx: UserContext;
@@ -687,7 +686,6 @@ describe('ConditioningDataService', () => {
 		const users$ = (await userRepo.fetchAll()).value as Observable<User[]>;		
 		users = await firstValueFrom(users$);
 		randomUserId = users[Math.floor(Math.random() * users.length)].userId;
-		randomUserIdDTO = new EntityIdDTO(randomUserId);
 		randomUser = users.find(user => user.userId === randomUserId)!;
 
 		adminUserCtx = new UserContext({
@@ -2801,119 +2799,6 @@ describe('ConditioningDataService', () => {
 		})
 	});
 
-	describe('Protected Methods', () => {
-		describe('toConditioningLogSeries', () => {
-			let requestingUserId: EntityId;
-			let targetUserId: EntityId;
-			beforeEach(() => {
-				requestingUserId = normalUserCtx.userId;
-				targetUserId = randomUserId;
-			});
-
-			it('converts an array of logs to a time series with correct structure', async () => {
-				// Arrange
-				const logs = await service.fetchLogs(requestingUserId, targetUserId);
-				
-				// Act
-				const series = service['toConditioningLogSeries'](logs);
-				
-				// Assert
-				expect(series).toBeDefined();
-				expect(series.unit).toBe('ConditioningLog');
-				expect(series.start).toEqual(logs[0].start);
-				expect(series.data).toBeInstanceOf(Array);
-				expect(series.data.length).toBe(logs.length);
-				
-				// Check data point structure
-				series.data.forEach((dataPoint, index) => {
-				expect(dataPoint.timeStamp).toEqual(logs[index].start);
-				expect(dataPoint.value).toBe(logs[index]);
-				});
-			});
-
-			it('sorts logs by start date in ascending order', async () => {
-				// Arrange
-				const logs = await service.fetchLogs(requestingUserId, targetUserId);
-				// Deliberately unsort logs to test sorting
-				const unsortedLogs = [...logs].sort((a, b) => 
-				(b.start?.getTime() || 0) - (a.start?.getTime() || 0)
-				);
-				
-				// Act
-				const series = service['toConditioningLogSeries'](unsortedLogs);
-
-				// Assert
-				expect(series.data.length).toBe(logs.length);
-				
-				// Verify ascending order
-				for (let i = 1; i < series.data.length; i++) {
-				expect((series.data[i].timeStamp as Date).getTime()).toBeGreaterThanOrEqual(
-					(series.data[i-1].timeStamp as Date).getTime()
-				);
-				}
-			});
-
-			it('excludes logs without start dates', async () => {
-				// Arrange
-				const logs = await service.fetchLogs(requestingUserId, targetUserId);
-				const logDTO = { ...randomLog.toDTO(), entityId: 'missing-start', start: undefined };
-				const logWithoutStart = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
-				const logsWithMissing = [...logs, logWithoutStart];
-				
-				// Act
-				const series = service['toConditioningLogSeries'](logsWithMissing);
-
-				// Assert
-				expect(series.data.length).toBe(logs.length); // Missing date log should be excluded
-				expect(series.data.some(dp => dp.value.entityId === 'missing-start')).toBe(false);
-			});
-
-			it('handles an empty array of logs', () => {
-				// Act
-				const series = service['toConditioningLogSeries']([]);
-				
-				// Assert
-				expect(series.unit).toBe('ConditioningLog');
-				expect(series.start).toBeUndefined();
-				expect(series.data).toEqual([]);
-			});
-
-			it('logs warnings for logs without start dates', async () => {
-				// Arrange
-				const logDTO = { entityId: 'no-start-date', activity: ActivityType.RUN, className: 'ConditioningLog' };
-				const logWithoutStart = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
-				const logSpy = jest.spyOn(service.logger, 'warn').mockImplementation(() => {});
-				
-				// Act
-				service['toConditioningLogSeries']([logWithoutStart]);
-
-				// Assert
-				expect(logSpy).toHaveBeenCalledWith(
-				`Conditioning log no-start-date has no start date, excluding from ConditioningLogSeries.`
-				);
-				
-				// Clean up
-				logSpy.mockRestore();
-			});
-			
-			it('preserves log references in data points', async () => {
-				// Arrange
-				const logs = await service.fetchLogs(requestingUserId, targetUserId);
-				
-				// Act
-				const series = service['toConditioningLogSeries'](logs);
-				
-				// Assert
-				series.data.forEach((dataPoint, index) => {
-				// Should be the same object reference, not a copy
-				expect(dataPoint.value).toBe(
-					logs.find(log => log.entityId === dataPoint.value.entityId)
-				);
-				});
-			});
-		});
-	});
-
 	describe('Management API', () => {
 		// NOTE: no need to fully retest ManagedStatefulComponentMixin methods,
 		 // as they are already tested in the mixin.
@@ -3073,9 +2958,8 @@ describe('ConditioningDataService', () => {
 		});
 	});
 
-	/*
 	describe('Protected Methods', () => {
-		describe('rollbackLogCreation', () => {
+		/*describe('rollbackLogCreation', () => {
 			let logRepoDeleteSpy: any;
 			beforeEach(() => {
 				logRepoDeleteSpy?.mockRestore();
@@ -3225,8 +3109,9 @@ describe('ConditioningDataService', () => {
 				logSpy?.mockRestore();
 			});
 		});
+		*/
 
-		describe('rollBackUserUpdate', () => {
+		/*describe('rollBackUserUpdate', () => {
 			let originalPersistenceDTO: UserPersistenceDTO;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
@@ -3345,19 +3230,29 @@ describe('ConditioningDataService', () => {
 				userRepoUpdateSpy?.mockRestore();
 				logSpy?.mockRestore();
 			});
-		});
+		});*/
 
 		//todo: subscribeToRepoEvents
 
 		describe('toConditioningLogSeries', () => {
-			let userIdDTO: EntityIdDTO;
+			let isAdmin: boolean;
+			let requestingUserId: EntityId;
+			let targetUserId: EntityId;
 			beforeEach(() => {
-				userIdDTO = new EntityIdDTO(normalUserCtx.userId);
+				isAdmin = normalUserCtx.roles.includes('admin');
+				requestingUserId = normalUserCtx.userId;
+				targetUserId = randomUserId;
 			});
 
-			it('can convert an array of ConditioningLogs to a ConditioningLogSeries', async () => {
+			it('converts an array of logs to a time series with correct structure', async () => {
 				// arrange
-				const logs = await service.fetchLogs(normalUserCtx, userIdDTO);
+				const logs = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					// no query
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
 				
 				// act
 				const series = service['toConditioningLogSeries'](logs);
@@ -3375,9 +3270,15 @@ describe('ConditioningDataService', () => {
 				});
 			});
 			
-			it('sorts logs by start date', async () => {
+			it('sorts logs by start date in ascending order', async () => {
 				// arrange
-				const logs = await service.fetchLogs(normalUserCtx, userIdDTO);
+				const logs = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					// no query
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
 				const unSortedLogs = logs.sort((a, b) => b.start!.getTime() - a.start!.getTime());
 				
 				// act
@@ -3393,9 +3294,25 @@ describe('ConditioningDataService', () => {
 				});
 			});
 
+			it('handles an empty array of logs', () => {
+				// act
+				const series = service['toConditioningLogSeries']([]);
+				
+				// assert
+				expect(series.unit).toBe('ConditioningLog');
+				expect(series.start).toBeUndefined();
+				expect(series.data).toEqual([]);
+			});
+
 			it('excludes logs without start date', async () => {
 				// arrange
-				const logs = await service.fetchLogs(normalUserCtx, userIdDTO);
+				const logs = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					// no query
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
@@ -3407,9 +3324,15 @@ describe('ConditioningDataService', () => {
 				expect(series.data.length).toBe(logs.length - 1);
 			});
 
-			it('logs entity id of logs without start date', async () => {
+			it('logs warning with entity id of logs without start date', async () => {
 				// arrange
-				const logs = await service.fetchLogs(normalUserCtx, userIdDTO);
+				const logs = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					// no query
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
 				logDTO.start = undefined;
 				const logWithoutStart = ConditioningLog.create(logDTO, undefined, true).value as ConditioningLog<any, ConditioningLogDTO>;
 				logs.push(logWithoutStart);
@@ -3424,10 +3347,28 @@ describe('ConditioningDataService', () => {
 				
 				// clean up
 				logSpy?.mockRestore();
-			});			
+			});	
+
+			it('preserves log references in data points', async () => {
+				// arrange
+				const logs = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					// no query
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
+				
+				// act
+				const series = service['toConditioningLogSeries'](logs);
+				
+				// assert
+				series.data.forEach((dataPoint: any, index: number) => {
+					expect(dataPoint.value).toBe(logs[index]);
+				});
+			});
 		});
 	});
-	*/
 	
 	describe('Logging API', () => {
 		describe('LoggableMixin Members', () => {
