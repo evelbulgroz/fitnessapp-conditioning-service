@@ -1,10 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import BooleanDTO from './boolean.dto';
-import SafePrimitive from './safe-primitive.class';
 import { IsDefined } from '@evelbulgroz/sanitizer-decorator';
 
-/** DTO for sanitizing a single user id value in a response
+import BooleanDTO from './boolean.dto';
+import SafePrimitive from './safe-primitive.class';
+
+/**
+ * DTO for sanitizing a single user id value in a response
+ * 
+ * @remark Defers validation to the BooleanDTO base class, which handles boolean values.
+ * 
  * @todo Remove APIProperty decorator if/when @evelbulgroz/sanitizer-decorator adds support for Swagger
  */
 export class IncludeDeletedDTO extends BooleanDTO {
@@ -31,10 +36,6 @@ export class IncludeDeletedDTO extends BooleanDTO {
 	get includeDeleted(): boolean {
 		return this.value; // local prop hides value from getter in parent class
 	}
-
-	// setter and getter for base class compatibility	
-	//set value(value: boolean) { this._value = value; }
-	//get value(): boolean { return this._value; } // getter for base class compatibility	
 }
 
 export default IncludeDeletedDTO;

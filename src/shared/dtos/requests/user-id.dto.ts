@@ -1,21 +1,23 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { EntityId } from '@evelbulgroz/ddd-base';
+import { IsDefined } from '@evelbulgroz/sanitizer-decorator';
 
-import { IsEntityId } from '../../../infrastructure/decorators/is-entity-id.decorator';
-import { SafePrimitive } from './safe-primitive.class';
+import SafePrimitive from './safe-primitive.class';
+import EntityIdDTO from './entity-id.dto';
 
 /**
  *  DTO for sanitizing a single user id value in a response
  * 
- * @todo Refactor to subclass EntityIdDTO, following example of IncludeDeletedDTO
+ * @remark Defers validation to the EntityIdDTO base class, which handles entity IDs.
+ * 
  * @todo Remove APIProperty decorator if/when @evelbulgroz/sanitizer-decorator adds support for Swagger
  */
-export class UserIdDTO extends SafePrimitive<EntityId> {
+export class UserIdDTO extends EntityIdDTO {
 	// _value is inherited from base class
 		
 	public constructor(value: EntityId) {
-		super();
+		super(value);
 		if ((value as unknown) instanceof SafePrimitive) {
 			// work around bug where tests call constructor with SafePrimitive after serialization
 			value = (value as unknown as SafePrimitive<EntityId>).value;
@@ -29,17 +31,15 @@ export class UserIdDTO extends SafePrimitive<EntityId> {
 		example: '12345678-1234-1234-1234-123456789012',
 		required: true
 	})
-	@IsEntityId()
+	@IsDefined() // Placeholder to satisfy Validation pipe: actual validation is done in EntityIdDTO
 	set userId(value: EntityId) {
-		this._value = value; // assigns to local prop, not the property in the parent class
+		this.value = value; // assigns to local prop, not the property in the parent class
 	}
 	get userId(): EntityId {
-		return this._value; // local prop hides value from getter in parent class
+		return this.value; // local prop hides value from getter in parent class
 	}
 
-	// setter and getter for base class compatibility	
-	set value(value: EntityId) { this.userId = value; }
-	get value(): EntityId { return this.userId; } // getter for base class compatibility	
+		
 }
 
 export default UserIdDTO;
