@@ -673,7 +673,6 @@ describe('ConditioningDataService', () => {
 	// set up random test data, initialize dataService
 	let adminUserCtx: UserContext;
 	let randomLog: ConditioningLog<any, ConditioningLogDTO>;
-	let randomLogIdDTO: EntityIdDTO;
 	let randomUser: User;
 	let randomUserId: EntityId;
 	let randomUserIdDTO: EntityIdDTO;
@@ -706,7 +705,6 @@ describe('ConditioningDataService', () => {
 		
 		logsForRandomUser = service['cache'].value.find(entry => entry.userId === randomUserId)?.logs || [];
 		randomLog = logsForRandomUser[Math.floor(Math.random() * logsForRandomUser.length)] as ConditioningLog<any, ConditioningLogDTO>;
-		randomLogIdDTO = new EntityIdDTO(randomLog.entityId!);
 	});	
 
 	// set up spies for fetchById methods
@@ -809,7 +807,6 @@ describe('ConditioningDataService', () => {
 	describe('Data API', () => {
 		let aggregationQueryDTO: AggregationQueryDTO;
 		let aggregatorSpy: any;
-		let userIdDTO: EntityIdDTO;
 		beforeEach(async () => {
 			aggregationQueryDTO = new AggregationQueryDTO({
 				aggregatedType: 'ConditioningLog',
@@ -824,8 +821,6 @@ describe('ConditioningDataService', () => {
 					void timeseries, query, extractor; // suppress unused variable warning
 					return {} as any
 				});
-
-			userIdDTO = new EntityIdDTO(normalUserCtx.userId);
 
 			await service.isReady();
 		});
@@ -1854,7 +1849,6 @@ describe('ConditioningDataService', () => {
 			let queryDTOProps: QueryDTOProps;
 			let requestingUserId: EntityId;
 			let targetUserId: EntityId;
-			let userIdDTO: EntityIdDTO;
 			beforeEach(() => {
 				allCachedLogs = [...service['cache'].value]
 					.flatMap(entry => entry.logs)				
@@ -1880,8 +1874,6 @@ describe('ConditioningDataService', () => {
 
 				requestingUserId = normalUserCtx.userId;
 				targetUserId = randomUserId;
-
-				userIdDTO = new EntityIdDTO(normalUserCtx.userId);
 			});
 
 			it('gives normal users access to a collection of all their conditioning logs', async () => {
@@ -1899,7 +1891,6 @@ describe('ConditioningDataService', () => {
 				expect(matches.length).toBe(logsForRandomUser.length);
 			});
 
-			/*
 			it('optionally gives normal users access to their logs matching a query', async () => {
 				// arrange
 				const queryDtoClone = new QueryDTO(queryDTOProps);
@@ -1908,7 +1899,13 @@ describe('ConditioningDataService', () => {
 				const expectedLogs = query.execute(logsForRandomUser);
 				
 				// act
-				const matches = await service.fetchLogs(normalUserCtx, userIdDTO, queryDTO);
+				const matches = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					queryDTO, // query to filter logs
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);					
 				
 				// assert
 				expect(matches).toBeDefined();
@@ -1923,7 +1920,13 @@ describe('ConditioningDataService', () => {
 				const expectedLogs = logsForRandomUser.filter(log => log.deletedOn === undefined);
 
 				// act
-				const matches = await service.fetchLogs(normalUserCtx, userIdDTO);
+				const matches = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					//  no query
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				);
 				
 				// assert
 				expect(matches).toBeDefined();
@@ -1941,7 +1944,13 @@ describe('ConditioningDataService', () => {
 				const expectedLogs = logsForRandomUser;
 				
 				// act
-				const matches = await service.fetchLogs(normalUserCtx, userIdDTO, undefined, true);
+				const matches = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					undefined, // no query
+					false, // isAdmin
+					true // includeDeleted is true
+				);
 				
 				// assert
 				expect(matches).toBeDefined();
@@ -1955,19 +1964,33 @@ describe('ConditioningDataService', () => {
 
 			it('throws UnauthorizedAccessError if normal user tries to access logs for another user', async () => {
 				// arrange
-				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
-				queryDTO.userId = otherUser.userId as unknown as string;
+				const targetUser = users.find(user => user.userId !== normalUserCtx.userId)!;
+				targetUserId = targetUser.userId;
+				queryDTO.userId = targetUserId as unknown as string;
 				
 				// act/assert
-				expect(async () => await service.fetchLogs(normalUserCtx, userIdDTO, queryDTO)).rejects.toThrow(UnauthorizedAccessError);
+				expect(async () => await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // any other user
+					queryDTO, // query to filter logs
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 			
 			it('gives admin users access to all logs for all users', async () => {
 				// arrange
-				normalUserCtx.roles = ['admin'];
+				isAdmin = true; // isAdmin is true for admin user
+				requestingUserId = adminUserCtx.userId; // admin user fetches logs for all users
 				
 				// act
-				const allLogs = await service.fetchLogs(normalUserCtx, userIdDTO);
+				const allLogs = await service.fetchLogs(
+					requestingUserId, // admin user
+					undefined, // no target user, so all users
+					undefined, // no query
+					isAdmin, // isAdmin is true for admin user
+					// includeDeleted defaults to false
+				);
 							
 				// assert
 				expect(allLogs).toBeDefined();
@@ -1977,7 +2000,8 @@ describe('ConditioningDataService', () => {
 
 			it('optionally gives admin users access to all logs matching a query', async () => {
 				// arrange
-				normalUserCtx.roles = ['admin'];
+				isAdmin = true; // isAdmin is true for admin user
+				requestingUserId = adminUserCtx.userId; // admin user fetches logs for
 				
 				const queryDtoClone = new QueryDTO(queryDTOProps);
 				queryDtoClone.userId = undefined; // logs don't have userId, so this should be ignored
@@ -1985,7 +2009,13 @@ describe('ConditioningDataService', () => {
 				const expectedLogs = query.execute(allCachedLogs); // get matching logs from test data			
 							
 				// act
-				const allLogs = await service.fetchLogs(normalUserCtx, userIdDTO, queryDTO);
+				const allLogs = await service.fetchLogs(
+					requestingUserId, // admin user
+					undefined, // no target user, so all users
+					queryDTO, // query to filter logs
+					isAdmin, // isAdmin is true for admin user
+					// includeDeleted defaults to false
+				);
 				
 				// assert
 				expect(allLogs).toBeDefined();
@@ -1995,10 +2025,17 @@ describe('ConditioningDataService', () => {
 			
 			it('by default sorts logs ascending by start date and time, if available', async () => {
 				// arrange
-				normalUserCtx.roles = ['admin'];
+				isAdmin = true; // isAdmin is true for admin user
+				requestingUserId = adminUserCtx.userId; // admin user fetches logs for all users
 				
 				// act
-				const allLogs = await service.fetchLogs(normalUserCtx, userIdDTO);
+				const allLogs = await service.fetchLogs(
+					requestingUserId, // admin user
+					undefined, // no target user, so all users
+					undefined, // no query
+					isAdmin, // isAdmin is true for admin user
+					// includeDeleted defaults to false
+				);
 				
 				// implicitly returns undefined if data is empty
 				allLogs?.forEach((log, index) => {
@@ -2009,9 +2046,8 @@ describe('ConditioningDataService', () => {
 						}
 					}
 				});
-			});*/
+			});
 
-			/*
 			describe('each log', () => {
 				// just test a random log:
 				// until we have a mock of import dataService with mock data,
@@ -2028,7 +2064,6 @@ describe('ConditioningDataService', () => {
 					expect(randomLog.isOverview).toBe(true);
 				});
 			});
-			*/
 		});
 
 		/*
