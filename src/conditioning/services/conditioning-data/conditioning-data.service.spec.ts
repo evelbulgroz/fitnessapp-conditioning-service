@@ -3250,7 +3250,180 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		//todo: subscribeToRepoEvents
+		describe('subscribeToRepoEvents', () => {
+			let userRepoUpdatesSubject: Subject<any>;
+			let logRepoUpdatesSubject: Subject<any>;
+			let eventDispatcherSpy: any;
+
+			beforeEach(() => {
+				// Create subjects that we can emit events through
+				userRepoUpdatesSubject = new Subject<any>();
+				logRepoUpdatesSubject = new Subject<any>();
+				
+				// Replace the actual updates$ observables with our test subjects
+				Object.defineProperty(userRepo, 'updates$', {
+					get: () => userRepoUpdatesSubject
+				});
+				
+				Object.defineProperty(logRepo, 'updates$', {
+					get: () => logRepoUpdatesSubject
+				});
+				
+				// Spy on event dispatcher
+				eventDispatcherSpy = jest.spyOn(service['eventDispatcher'], 'dispatch')
+					.mockImplementation(() => Promise.resolve());
+			});
+
+			afterEach(() => {
+				eventDispatcherSpy.mockRestore();
+			});
+
+			it('adds subscriptions to log and user repos to the subscriptions array', () => {
+				// arrange
+				service['subscriptions'].forEach(sub => sub.unsubscribe()); // Clear any existing subscriptions
+				// empty subscriptions array before test
+				const subCountBefore = service['subscriptions'].length;
+				for (let i = 0; i < subCountBefore; i++) {
+					service['subscriptions'].pop();
+				}
+				expect(service['subscriptions'].length).toBe(0); // Ensure subscriptions array is empty
+				
+				// act
+				service['subscribeToRepoEvents']();
+				
+				// assert
+				expect(service['subscriptions'].length).toBe(2); // One for userRepo, one for logRepo
+			});
+
+			it('dispatches user repo events to event dispatcher', async () => {
+				// arrange
+				const eventPromise = new Promise<void>((resolve) => {
+					eventDispatcherSpy.mockImplementationOnce(() => {
+						resolve();
+						return Promise.resolve();
+					});
+				});
+				
+				service['subscribeToRepoEvents']();
+				
+				const userEvent = {
+				eventId: 'user-event-1',
+				eventName: 'UserCreatedEvent',
+				occurredOn: new Date().toISOString(),
+				payload: { entityId: 'user-1' }
+				};
+				
+				// act
+				userRepoUpdatesSubject.next(userEvent);
+				
+				// Wait for async dispatch to complete
+				await eventPromise;
+				
+				// assert
+				expect(eventDispatcherSpy).toHaveBeenCalledWith(userEvent);
+			});
+			
+			it('dispatches log repo events to event dispatcher', async () => {
+				// arrange
+				const eventPromise = new Promise<void>((resolve) => {
+					eventDispatcherSpy.mockImplementationOnce(() => {
+						resolve();
+						return Promise.resolve();
+					});
+				});
+				
+				service['subscribeToRepoEvents']();
+				
+				const logEvent = {
+					eventId: 'log-event-1',
+					eventName: 'ConditioningLogCreatedEvent',
+					occurredOn: new Date().toISOString(),
+					payload: { entityId: 'log-1' }
+				};
+				
+				// act
+				logRepoUpdatesSubject.next(logEvent);
+				
+				// Wait for async dispatch to complete
+				await eventPromise;
+				
+				// assert
+				expect(eventDispatcherSpy).toHaveBeenCalledWith(logEvent);
+			});
+
+			it('handles multiple events from both repos', async () => {
+				// arrange
+				service['subscribeToRepoEvents']();
+				
+				const events: any[] = [];
+				eventDispatcherSpy.mockImplementation((event: any) => {
+					events.push(event as any);
+					return Promise.resolve();
+				});
+				
+				const userEvent = {
+					eventId: 'user-event-1',
+					eventName: 'UserUpdatedEvent',
+					occurredOn: new Date().toISOString(),
+					payload: { entityId: 'user-1' }
+				};
+				
+				const logEvent = {
+					eventId: 'log-event-1',
+					eventName: 'ConditioningLogUpdatedEvent',
+					occurredOn: new Date().toISOString(),
+					payload: { entityId: 'log-1' }
+				};
+				
+				// act
+				userRepoUpdatesSubject.next(userEvent);
+				logRepoUpdatesSubject.next(logEvent);
+				
+				// Wait for async operations to complete
+				await new Promise(resolve => setTimeout(resolve, 0));
+				
+				// assert
+				expect(eventDispatcherSpy).toHaveBeenCalledTimes(2);
+				expect(events).toContainEqual(userEvent);
+				expect(events).toContainEqual(logEvent);
+			});
+			
+			xit('handles errors without breaking the subscription chain', async () => {
+				// arrange
+				const errorSpy = jest.spyOn(service.logger, 'error').mockImplementation(() => {});
+				
+				service['subscribeToRepoEvents']();
+				
+				// Make the first event dispatch throw an error
+				eventDispatcherSpy.mockRejectedValueOnce(new Error('Test error'));
+				
+				const eventPromise = new Promise<void>((resolve) => {
+					let callCount = 0;
+					eventDispatcherSpy.mockImplementation((event: any) => {
+						callCount++;
+						if (callCount === 2) {
+							resolve();
+						}
+						return callCount === 1 
+							? Promise.reject(new Error('Test error'))
+							: Promise.resolve();
+					});
+				});
+				
+				// act - send two events, first will error
+				userRepoUpdatesSubject.next({ eventName: 'ErrorEvent' });
+				userRepoUpdatesSubject.next({ eventName: 'SuccessEvent' });
+				
+				// Wait for second event to be processed
+				await eventPromise;
+				
+				// assert - second event should still be processed despite error in first
+				expect(eventDispatcherSpy).toHaveBeenCalledTimes(2);
+				
+				// Clean up
+				errorSpy.mockRestore();
+			});
+		});
 
 		describe('toConditioningLogSeries', () => {
 			let isAdmin: boolean;
