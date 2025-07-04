@@ -2103,7 +2103,7 @@ describe('ConditioningDataService', () => {
 			});
 		});
 		
-		/*describe('updateCache', () => {
+		describe('updateCache', () => {
 			it('can update the cache with a new snapshot', async () => {
 				// arrange
 				const newCache = [...service['cache'].value];
@@ -2125,7 +2125,6 @@ describe('ConditioningDataService', () => {
 				expect(() => service.updateCache([], caller as any)).toThrow(UnauthorizedAccessError);				
 			});
 		});
-		*/
 		
 		/*describe('updateLog', () => {
 			let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
