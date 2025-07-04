@@ -15,7 +15,6 @@ import { StreamLogger } from '../../../libraries/stream-loggable';
 
 import AggregationQueryDTO from '../../dtos/aggregation-query.dto';
 import AggregatorService from '../aggregator/aggregator.service';
-import BooleanDTO from '../../../shared/dtos/responses/boolean.dto';
 import {
 	ConditioningDataService,
 	ConditioningLog,
@@ -37,10 +36,6 @@ import { QueryDTO, QueryDTOProps } from '../../../shared/dtos/responses/query.dt
 import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.error';
 import { User, UserDTO, UserPersistenceDTO, UserRepository, UserUpdatedEvent, UserCreatedHandler, UserUpdatedHandler, UserDeletedHandler } from '../../../user';
 import UserContext from '../../../shared/domain/user-context.model';
-import { ShutdownSignal } from '@nestjs/common';
-import { request } from 'http';
-import { is, ta } from 'date-fns/locale';
-import { log } from 'console';
 
 //const originalTimeout = 5000;
 //jest.setTimeout(15000);

@@ -6,14 +6,13 @@ import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { LogLevel, StreamLoggable, StreamLoggableMixin } from '../../../libraries/stream-loggable';
-import { ComponentState, ManagedStatefulComponent, ManagedStatefulComponentMixin } from '../../../libraries/managed-stateful-component';
+import { ManagedStatefulComponent, ManagedStatefulComponentMixin } from '../../../libraries/managed-stateful-component';
 
 import { Quantity } from '@evelbulgroz/quantity-class';
 import { Query } from '@evelbulgroz/query-fns';
 
 import AggregationQueryDTO from '../../dtos/aggregation-query.dto';
 import AggregatorService from '../aggregator/aggregator.service';
-import BooleanDTO from '../../../shared/dtos/responses/boolean.dto';
 import ComponentStateInfo from '../../../libraries/managed-stateful-component/models/component-state-info.model';
 import { ConditioningData } from '../../domain/conditioning-data.model';
 import ConditioningLog from '../../domain/conditioning-log.entity';
@@ -21,7 +20,6 @@ import ConditioningLogDTO from '../../dtos/conditioning-log.dto';
 import ConditioningLogRepository from '../../repositories/conditioning-log.repo';
 import ConditioningLogSeries from '../../domain/conditioning-log-series.model';
 import DomainEventHandler from '../../../shared/handlers/domain-event.handler';
-import EntityIdDTO from '../../../shared/dtos/responses/entity-id.dto';
 import EventDispatcherService from '../../../shared/services/utils/event-dispatcher/event-dispatcher.service';
 import NotFoundError from '../../../shared/domain/not-found.error';
 import PersistenceError from '../../../shared/domain/persistence.error';
@@ -29,7 +27,6 @@ import QueryDTO from '../../../shared/dtos/responses/query.dto';
 import QueryMapper from '../../mappers/query.mapper';
 import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.error';
 import User from '../../../user/domain/user.entity';
-import UserContext from '../../../shared/domain/user-context.model';
 import UserPersistenceDTO from '../../../user/dtos/user-persistence.dto';
 import UserRepository from '../../../user/repositories/user.repo';
 
