@@ -1429,7 +1429,7 @@ describe('ConditioningDataService', () => {
 				expect(aggregatedSeries).toBeDefined();			
 			});
 			
-			xit(`can aggregate a time series of all ConditioningLogs for all users if user role is 'admin'`, async () => {
+			it(`can aggregate a time series of all ConditioningLogs for all users if user role is admin`, async () => {
 				// arrange
 				isAdmin = true; // isAdmin is true for admin user
 				requestingUserId = adminUserCtx.userId; // admin user aggregates logs for all users
@@ -1443,9 +1443,12 @@ describe('ConditioningDataService', () => {
 				);
 
 				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
-				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(requestingUserId, targetUserId));
+				const logsForAllUsers = service['cache'].value.flatMap(entry => entry.logs);
+				const expectedTimeSeries = service['toConditioningLogSeries'](logsForAllUsers);
 				
 				// assert
+				const timeSeries = aggregatorSpy.mock.calls[0][0];
+				
 				expect(aggregatorSpy).toHaveBeenCalled();
 				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
 				expect(aggregatedSeries).toBeDefined();
