@@ -2624,10 +2624,19 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		/*describe('undeleteLog', () => {
+		describe('undeleteLog', () => {
+			let isAdmin: boolean;
+			let logId: EntityId;
 			let logRepoUndeleteSpy: any;
+			let requestingUserId: EntityId;
+			let targetUserId: EntityId;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
+				isAdmin = normalUserCtx.roles.includes('admin');
+				logId = randomLog!.entityId!;
+				requestingUserId = normalUserCtx.userId;
+				targetUserId = randomUserId;
+
 				logRepoUndeleteSpy = jest.spyOn(logRepo, 'undelete').mockImplementation(() => {
 					return Promise.resolve(Result.ok<void>());
 				});
@@ -2648,7 +2657,12 @@ describe('ConditioningDataService', () => {
 				const logIdDTO = new EntityIdDTO(randomLog!.entityId!);
 
 				// act
-				void await service.undeleteLog(normalUserCtx, randomUserIdDTO, logIdDTO);
+				void await service.undeleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					logId // log id to undelete
+					// isAdmin defaults to false
+				);
 
 				// assert
 				expect(logRepoUndeleteSpy).toHaveBeenCalledTimes(1);
@@ -2658,11 +2672,15 @@ describe('ConditioningDataService', () => {
 			it('restores undeleted log in cache following log repo update', async () => {
 				// arrange
 				const undeletedLogId = randomLog!.entityId!;
-				const undeletedLogIdDTO = new EntityIdDTO(undeletedLogId);
-
+				
 				expect(randomUser.logs).toContain(undeletedLogId); // sanity check
 
-				service.undeleteLog(normalUserCtx, randomUserIdDTO, undeletedLogIdDTO).then(() => {
+				service.undeleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					undeletedLogId // log id to undelete
+					// isAdmin defaults to false
+				).then(() => {
 					const undeleteEvent = new UserUpdatedEvent({
 						eventId: uuidv4(),
 						eventName: 'UserUpdatedEvent',
@@ -2691,27 +2709,50 @@ describe('ConditioningDataService', () => {
 
 			it(`succeeds if admin user tries to undelete other user's log`, async () => {
 				// arrange
-				normalUserCtx.roles = ['admin'];
+				isAdmin = true; // isAdmin is true for admin user
 				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
-				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
-				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				targetUserId = otherUser.userId;
+				const otherUserLogs = await service.fetchLogs(
+					requestingUserId, // admin user
+					targetUserId, // any other user
+					undefined, // no query
+					isAdmin, // isAdmin is true for admin user
+					// includeDeleted defaults to false
+				);
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
-				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
+				const randomOtherUserLogId = randomOtherUserLog!.entityId!;
+				requestingUserId = adminUserCtx.userId; // admin user undeletes log for another user
 
 				// act/assert
-				expect(() => service.undeleteLog(normalUserCtx, otherUserIdDTO, randomOtherUserLogId)).not.toThrow();
+				expect(() => service.undeleteLog(
+					requestingUserId, // admin user
+					targetUserId, // other user
+					randomOtherUserLogId, // random log id
+					isAdmin // isAdmin is true for admin user
+				)).not.toThrow();
 			});
 
 			it(`throws UnauthorizedAccessError if non-admin user tries to undelete other user's log`, async () => {
 				// arrange
-				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
-				const otherUserIdDTO = new EntityIdDTO(otherUser.userId);
-				const otherUserLogs = await service.fetchLogs(new UserContext({userId: otherUser.userId, userName: 'testuser', userType: 'user', roles: ['user']}), new EntityIdDTO(otherUser.userId));
+				const otherUser = users.find(user => user.userId !== requestingUserId)!;
+				targetUserId = otherUser.userId;
+				const otherUserLogs = await service.fetchLogs(
+					requestingUserId, // defaults to normal user
+					targetUserId, // any other user
+					undefined, // no query
+					true // isAdmin
+					// includeDeleted defaults to false
+				);
 				const randomOtherUserLog = otherUserLogs[Math.floor(Math.random() * otherUserLogs.length)];
 				const randomOtherUserLogId = new EntityIdDTO(randomOtherUserLog!.entityId!);
 				
 				// act/assert
-				expect(() => service.undeleteLog(normalUserCtx, otherUserIdDTO, randomOtherUserLogId)).rejects.toThrow(UnauthorizedAccessError);
+				expect(() => service.undeleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // any other user
+					randomOtherUserLogId.value, // random log id
+					// isAdmin defaults to false
+				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 
 			it('throws NotFoundError if no log is found in persistence layer matching provided log entity id', async () => {
@@ -2725,7 +2766,12 @@ describe('ConditioningDataService', () => {
 
 				// act/assert
 				try { // cannot get jest to catch the error, so using try/catch
-					await service.undeleteLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO('no-such-log'));
+					await service.undeleteLog(
+						requestingUserId, // defaults to normal user
+						targetUserId, // same user
+						'no-such-log', // log id that does not exist						
+						// isAdmin defaults to false
+					);
 				}
 				catch (e) {
 					error = e;
@@ -2745,9 +2791,14 @@ describe('ConditioningDataService', () => {
 				});
 
 				// act/assert
-				expect(async () => await service.undeleteLog(normalUserCtx, randomUserIdDTO, new EntityIdDTO(randomLog!.entityId!))).rejects.toThrow(PersistenceError);
+				expect(async () => await service.undeleteLog(
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					logId, // log id to undelete
+					// isAdmin defaults to false
+				)).rejects.toThrow(PersistenceError);
 			});
-		})*/
+		})
 	});
 
 	describe('Protected Methods', () => {

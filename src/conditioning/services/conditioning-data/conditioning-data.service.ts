@@ -593,9 +593,10 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	/**
 	 * New API: Undelete a conditioning log by entity id (soft delete only)
 	 * 
-	 * @param ctx User context for the request (includes user id and roles)
-	 * @param userIdDTO Entity id of the user for whom to undelete the log, wrapped in a DTO
-	 * @param logIdDTO Entity id of the conditioning log to undelete, wrapped in a DTO
+	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
+	 * @param targetUserId Entity id of the user for whom to undelete the log
+	 * @param logId Entity id of the conditioning log to undelete
+	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
 	 * @returns void
 	 * @throws UnauthorizedAccessError if user is not authorized to undelete log
 	 * @throws NotFoundError if log is not found in persistence
@@ -605,27 +606,32 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @remark Admins can undelete logs for any user, other users can only undelete logs for themselves
 	 * @remark Does not support direct undelete of hard deleted logs, use createLog() instead
 	 */
-	public async undeleteLog(ctx: UserContext, userIdDTO: EntityIdDTO, logIdDTO: EntityIdDTO): Promise<void> {
+	public async undeleteLog(
+		requestingUserId: EntityId,
+		targetUserId: EntityId,
+		logId: EntityId,
+		isAdmin: boolean = false
+	): Promise<void> {
 		// initialize service if necessary
 		await this.isReady();
 
 		// check if user is authorized to undelete log
-		if (!ctx.roles.includes('admin')) { // admin has access to all logs, authorization check not needed
-			if (userIdDTO.value !== ctx.userId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${ctx.userId} tried to undelete log for user ${userIdDTO.value}.`);
+		if (!isAdmin) { // admin has access to all logs, authorization check not needed
+			if (targetUserId !== requestingUserId) { // user is not admin and not owner of log -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to undelete log for user ${targetUserId}.`);
 			}
 		}
 
 		// check if log exists in persistence layer
-		const logFetchResult = await this.logRepo.fetchById(logIdDTO.value!);
+		const logFetchResult = await this.logRepo.fetchById(logId);
 		if (logFetchResult.isFailure) { // fetch failed -> throw persistence error
-			throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logIdDTO.value} not found.`);
+			throw new NotFoundError(`${this.constructor.name}: Conditioning log ${logId} not found.`);
 		}
 
 		// undelete log in persistence layer
-		const logUndeleteResult = await this.logRepo.undelete(logIdDTO.value!) as Result<undefined>;
+		const logUndeleteResult = await this.logRepo.undelete(logId) as Result<undefined>;
 		if (logUndeleteResult.isFailure) { // undelete failed -> throw persistence error
-			throw new PersistenceError(`${this.constructor.name}: Error undeleting conditioning log ${logIdDTO.value}: ${logUndeleteResult.error}`);
+			throw new PersistenceError(`${this.constructor.name}: Error undeleting conditioning log ${logId}: ${logUndeleteResult.error}`);
 		}
 
 		// NOTE: cache is updated via subscription to log repo updates, no need to update cache here

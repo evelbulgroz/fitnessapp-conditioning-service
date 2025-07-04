@@ -351,7 +351,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				throw new BadRequestException(errorMessage);
 			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.dataService.undeleteLog(userContext, userIdDTO, logIdDTO);
+			void await this.dataService.undeleteLog(userContext.userId, userIdDTO.value, logIdDTO.value);
 		} catch (error) {
 			const errorMessage = `Failed to undelete log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
