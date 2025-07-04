@@ -2080,7 +2080,7 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		/*describe('getCacheSnapshot', () => {
+		describe('getCacheSnapshot', () => {
 			it('can provide a domain event handler with a snapshot of the cache', async () => {
 				// arrange
 				const expectedCache = service['cache'].value;
@@ -2101,10 +2101,7 @@ describe('ConditioningDataService', () => {
 				// act/assert
 				expect(() => service.getCacheSnapshot(caller as any)).toThrow(UnauthorizedAccessError);				
 			});
-
-			
 		});
-		*/
 		
 		/*describe('updateCache', () => {
 			it('can update the cache with a new snapshot', async () => {
