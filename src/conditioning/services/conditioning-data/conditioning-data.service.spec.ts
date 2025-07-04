@@ -2959,7 +2959,7 @@ describe('ConditioningDataService', () => {
 	});
 
 	describe('Protected Methods', () => {
-		/*describe('rollbackLogCreation', () => {
+		describe('rollbackLogCreation', () => {
 			let logRepoDeleteSpy: any;
 			beforeEach(() => {
 				logRepoDeleteSpy?.mockRestore();
@@ -3109,9 +3109,8 @@ describe('ConditioningDataService', () => {
 				logSpy?.mockRestore();
 			});
 		});
-		*/
 
-		/*describe('rollBackUserUpdate', () => {
+		describe('rollBackUserUpdate', () => {
 			let originalPersistenceDTO: UserPersistenceDTO;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
@@ -3230,7 +3229,7 @@ describe('ConditioningDataService', () => {
 				userRepoUpdateSpy?.mockRestore();
 				logSpy?.mockRestore();
 			});
-		});*/
+		});
 
 		//todo: subscribeToRepoEvents
 
