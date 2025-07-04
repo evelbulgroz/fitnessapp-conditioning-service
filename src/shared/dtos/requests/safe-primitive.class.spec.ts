@@ -1,4 +1,4 @@
-import { SafePrimitive } from './safe-primitive.class';
+import SafePrimitive from './safe-primitive.class';
 
 class SafePrimitiveMock extends SafePrimitive<string> {
 	constructor(value: string) {

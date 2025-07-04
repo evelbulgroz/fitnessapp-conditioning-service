@@ -1,5 +1,5 @@
-import { IncludeDeletedDTO } from './include-deleted.dto';
-import { SafePrimitive } from './safe-primitive.class';
+import IncludeDeletedDTO from './include-deleted.dto';
+import SafePrimitive from './safe-primitive.class';
 
 class MockSafePrimitive extends SafePrimitive<boolean> {
 	constructor(value: boolean) {
