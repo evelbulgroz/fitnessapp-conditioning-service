@@ -1398,21 +1398,23 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		/*describe('fetchAggretagedLogs', () => {
+		describe('fetchAggretagedLogs', () => {
 			// NOTE:
 			// not testing that AggregatorService works, just that it is called with the right parameters
 			// leave deeper testing of the result to AggregatorService tests to avoid duplication
 			
-			let requestingUserId: EntityId;
 			let isAdmin: boolean;
+			let requestingUserId: EntityId;
+			let targetUserId: EntityId;
 			beforeEach(() => {
-				requestingUserId = normalUserCtx.userId;
 				isAdmin = normalUserCtx.roles.includes('admin');
+				requestingUserId = normalUserCtx.userId;
+				targetUserId = normalUserCtx.userId;
 			});
 			
 			it('can aggregate a time series of all ConditioningLogs owned by a user', async () => {
 				// arrange
-				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO));
+				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(requestingUserId, targetUserId));
 				
 				// act
 				const aggregatedSeries = await service.fetchAggretagedLogs(
@@ -1427,10 +1429,10 @@ describe('ConditioningDataService', () => {
 				expect(aggregatedSeries).toBeDefined();			
 			});
 			
-			it(`can aggregate a time series of all ConditioningLogs for all users if user role is 'admin'`, async () => {
+			xit(`can aggregate a time series of all ConditioningLogs for all users if user role is 'admin'`, async () => {
 				// arrange
-				requestingUserId = adminUserCtx.userId; // admin user aggregates logs for all users
 				isAdmin = true; // isAdmin is true for admin user
+				requestingUserId = adminUserCtx.userId; // admin user aggregates logs for all users
 
 				// act
 				const aggregatedSeries = await service.fetchAggretagedLogs(
@@ -1441,7 +1443,7 @@ describe('ConditioningDataService', () => {
 				);
 
 				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
-				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(adminUserCtx, userIdDTO));
+				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(requestingUserId, targetUserId));
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalled();
@@ -1479,7 +1481,7 @@ describe('ConditioningDataService', () => {
 				deletedLog.deletedOn = new Date(deletedLog.createdOn!.getTime() + 1000);
 
 				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
-				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO)); // deleted logs excluded by default
+				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(requestingUserId, targetUserId)); // deleted logs excluded by default
 				expectedTimeSeries.data.forEach((dataPoint: any) => expect(dataPoint.value.deletedOn).toBeUndefined()); // sanity check, no deleted logs in expected series
 				
 				// act
@@ -1502,7 +1504,7 @@ describe('ConditioningDataService', () => {
 				deletedLog.deletedOn = new Date(deletedLog.createdOn!.getTime() + 1000);
 
 				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
-				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(normalUserCtx, userIdDTO, undefined, true)); // include deleted logs
+				const expectedTimeSeries = service['toConditioningLogSeries'](await service.fetchLogs(requestingUserId, targetUserId, undefined, undefined, true)); // include deleted logs
 				expect(expectedTimeSeries.data.some((dataPoint: any) => dataPoint.value.deletedOn !== undefined)).toBe(true); // sanity check, deleted logs in expected series
 				
 				// act
@@ -1518,7 +1520,7 @@ describe('ConditioningDataService', () => {
 				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
 			});
 
-			it('throws UnauthorizedAccessError if user tries to access logs of another user', async () => {
+			it('throws UnauthorizedAccessError if non-admin user tries to access logs of another user', async () => {
 				// arrange
 				const queryDTO = new QueryDTO({	userId: 'no-such-user'});
 				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
@@ -1532,7 +1534,6 @@ describe('ConditioningDataService', () => {
 				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 		});
-		*/
 
 		/*
 		describe('fetchLog', () => {
@@ -2066,8 +2067,7 @@ describe('ConditioningDataService', () => {
 			});
 		});
 
-		/*
-		describe('getCacheSnapshot', () => {
+		/*describe('getCacheSnapshot', () => {
 			it('can provide a domain event handler with a snapshot of the cache', async () => {
 				// arrange
 				const expectedCache = service['cache'].value;
@@ -2093,8 +2093,7 @@ describe('ConditioningDataService', () => {
 		});
 		*/
 		
-		/*
-		describe('updateCache', () => {
+		/*describe('updateCache', () => {
 			it('can update the cache with a new snapshot', async () => {
 				// arrange
 				const newCache = [...service['cache'].value];
@@ -2118,8 +2117,7 @@ describe('ConditioningDataService', () => {
 		});
 		*/
 		
-		/*
-		describe('updateLog', () => {
+		/*describe('updateLog', () => {
 			let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
 			let updatedLogDTO: ConditioningLogDTO;
 			let logRepoUpdateSpy: any;
@@ -2278,8 +2276,7 @@ describe('ConditioningDataService', () => {
 			});
 		});*/
 
-		/*
-		describe('deleteLog', () => {
+		/*describe('deleteLog', () => {
 			let logRepoDeleteSpy: any;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
@@ -2485,8 +2482,7 @@ describe('ConditioningDataService', () => {
 		});
 		*/
 
-		/*
-		describe('undeleteLog', () => {
+		/*describe('undeleteLog', () => {
 			let logRepoUndeleteSpy: any;
 			let userRepoUpdateSpy: any;
 			beforeEach(() => {
