@@ -2957,6 +2957,25 @@ describe('ConditioningDataService', () => {
 			});
 		});
 	});
+	
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(service.log$).toBeDefined();
+				expect(service.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(service.logger).toBeDefined();
+				expect(service.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(service.logToStream).toBeDefined();
+				expect(typeof service.logToStream).toBe('function');
+			});
+		});
+	});
 
 	describe('Protected Methods', () => {
 		describe('rollbackLogCreation', () => {
@@ -3365,25 +3384,6 @@ describe('ConditioningDataService', () => {
 				series.data.forEach((dataPoint: any, index: number) => {
 					expect(dataPoint.value).toBe(logs[index]);
 				});
-			});
-		});
-	});
-	
-	describe('Logging API', () => {
-		describe('LoggableMixin Members', () => {
-			it('inherits log$', () => {
-				expect(service.log$).toBeDefined();
-				expect(service.log$).toBeInstanceOf(Subject);
-			});
-
-			it('inherits logger', () => {
-				expect(service.logger).toBeDefined();
-				expect(service.logger).toBeInstanceOf(StreamLogger);
-			});
-
-			it('inherits logToStream', () => {
-				expect(service.logToStream).toBeDefined();
-				expect(typeof service.logToStream).toBe('function');
 			});
 		});
 	});
