@@ -131,54 +131,6 @@ describe('UserDataService', () => {
 		await app.close();
 	});
 
-	/*describe('Component Lifecycle', () => {
-		it('can be created', () => {
-			expect(service).toBeDefined();
-			expect(service).toBeInstanceOf(UserDataService);
-		});
-
-		// NOTE: Mostly just testing that the lifecycle method calls are effectively routed to the base clase by the mixin.
-
-		describe('Initialization', () => {
-			it('can be initialized', async () => {
-				// arrange
-				// act/assert
-				expect(async () => await service.initialize()).not.toThrow(); // just check that it doesn't throw
-			});
-
-			// NOTE: UserDataService does not currently have any specific initialization logic, so no need to test it here.
-		});
-
-		describe('Shutdown', () => {
-			it('can be shut down', async () => {
-				// arrange
-				await service.initialize(); // initialize the repo
-				
-				// act/assert
-				expect(async () => await service.shutdown()).not.toThrow(); // just check that it doesn't throw
-			});
-
-			it('unsubscribes from all observables and clears subscriptions', async () => {
-				// arrange
-				const dummySubscription = new Observable((subscriber) => {
-					subscriber.next('dummy');
-					subscriber.complete();
-				});
-				service['subscriptions'].push(dummySubscription.subscribe());
-				expect(service['subscriptions'].length).toBe(1); // sanity check	
-				
-				await service.initialize(); // initialize the service
-				
-				// act
-				await service.shutdown();
-
-				// assert
-				expect(service['subscriptions'].length).toBe(0); // all subscriptions should be cleared
-			});
-		});	
-	});
-	*/	
-
 	describe('Data API', () => {
 		describe('createUser', () => {
 			let newUserId: EntityId;
@@ -421,7 +373,7 @@ describe('UserDataService', () => {
 		});
 	});
 
-	/*describe('Management API', () => {
+	describe('Management API', () => {
 		// NOTE: no need to fully retest ManagedStatefulComponentMixin methods,
 			 // as they are already tested in the mixin.
 			 // Just do a few checks that things are hooked up correctly,
@@ -591,33 +543,30 @@ describe('UserDataService', () => {
 			});
 		});
 	});
-	*/
 
-	/*describe('Logging API', () => {
-			describe('LoggableMixin Members', () => {
-				it('inherits log$', () => {
-					expect(service.log$).toBeDefined();
-					expect(service.log$).toBeInstanceOf(Subject);
-				});
-	
-				it('inherits logger', () => {
-					expect(service.logger).toBeDefined();
-					expect(service.logger).toBeInstanceOf(StreamLogger);
-				});
-	
-				it('inherits logToStream', () => {
-					expect(service.logToStream).toBeDefined();
-					expect(typeof service.logToStream).toBe('function');
-				});
+	describe('Logging API', () => {
+		describe('LoggableMixin Members', () => {
+			it('inherits log$', () => {
+				expect(service.log$).toBeDefined();
+				expect(service.log$).toBeInstanceOf(Subject);
+			});
+
+			it('inherits logger', () => {
+				expect(service.logger).toBeDefined();
+				expect(service.logger).toBeInstanceOf(StreamLogger);
+			});
+
+			it('inherits logToStream', () => {
+				expect(service.logToStream).toBeDefined();
+				expect(typeof service.logToStream).toBe('function');
 			});
 		});
-	*/	
+	});	
 
-	/*describe('Protected Methods', () => {
+	describe('Protected Methods', () => {
 		describe('checkIsValidCaller()', () => {  }); // todo: implement tests
 		describe('checkIsValidId()', () => {  }); // todo: implement tests
 		describe('findUserByMicroserviceId', () => {}); // todo: implement tests
 		describe('getUniqueUser()', () => {}); // todo: implement tests
 	});
-	*/
 });
