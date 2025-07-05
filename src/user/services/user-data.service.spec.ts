@@ -9,7 +9,7 @@ import { Result } from '@evelbulgroz/ddd-base';
 import { StreamLogger } from '../../libraries/stream-loggable';
 
 import { createTestingModule } from '../../test/test-utils';
-import { EntityIdDTO } from '../../shared/dtos/responses/entity-id.dto';
+import { EntityIdDTO } from '../../shared/dtos/requests/entity-id.dto';
 import { User, UserDataService, UserDTO, UserRepository } from '..';
 import { UserContext } from '../../shared/domain/user-context.model';
 
