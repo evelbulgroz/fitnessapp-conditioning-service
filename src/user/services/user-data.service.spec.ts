@@ -66,7 +66,6 @@ describe('UserDataService', () => {
 	let randomUserId: EntityId;
 	let requestingUserName: string;
 	let softDelete: boolean;
-	let userContext: UserContext;
 	let userDTOs: UserDTO[];
 	beforeEach(() => {
 		isAdmin = true; // set to true to allow admin operations in tests
@@ -86,13 +85,6 @@ describe('UserDataService', () => {
 		requestingUserName = config.get<any>('security.collaborators.user.serviceName'); // use the service name as the requesting user name
 
 		softDelete = true; // set to true to allow soft delete in tests
-
-		userContext = new UserContext({
-			userId: randomUser.userId,
-			userName: requestingUserName, // display name for user, or service name if user is a service account (subName from JWTPayload)
-			userType: 'service', // 'service' or 'user'
-			roles: ['admin'], // roles assigned to the user
-		});
 	});
 
 	// set up spies
