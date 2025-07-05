@@ -13,6 +13,9 @@ import UnauthorizedAccessError from '../../shared/domain/unauthorized-access.err
 import { User, UserDataService, UserDTO, UserRepository } from '..'; // shortcut import for all user-related modules
 import { isDataView } from 'util/types';
 import { is } from 'date-fns/locale';
+import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
+import { random } from 'lodash-es';
+import PersistenceError from '../../shared/domain/persistence.error';
 
 
 describe('UserDataService', () => {
@@ -65,6 +68,7 @@ describe('UserDataService', () => {
 	let randomUserId: EntityId;
 	let requestingUserName: string;
 	let softDelete: boolean;
+	let users: User[]; // array of User entities for testing
 	let userDTOs: UserDTO[];
 	beforeEach(() => {
 		isAdmin = true; // set to true to allow admin operations in tests
@@ -75,6 +79,8 @@ describe('UserDataService', () => {
 			{ entityId: uuidv4(), userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
 			{ entityId: uuidv4(), userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
 		];
+
+		users = userDTOs.map(dto => User.create(dto).value as unknown as User);
 
 		randomIndex = Math.floor(Math.random() * userDTOs.length);
 		randomDTO = userDTOs[randomIndex];
@@ -603,8 +609,100 @@ describe('UserDataService', () => {
 				}
 			});
 		});
-		describe('checkIsValidId()', () => {  }); // todo: implement tests
-		describe('findUserByMicroserviceId', () => {}); // todo: implement tests
-		describe('getUniqueUser()', () => {}); // todo: implement tests
+		describe('checkIsValidId', () => {  }); // todo: implement tests
+		
+		describe('findUserByMicroserviceId', () => {
+			it('creates query with correct search criteria', async () => {
+				// arrange
+				const expectedQuery = new Query({
+					searchCriteria: [
+						{
+							key: 'userId',
+							operation: SearchFilterOperation.EQUALS,
+							value: randomUserId
+						}
+					]
+				});
+				
+				// act
+				await service['findUserByMicroserviceId'](randomUserId);
+				
+				// assert
+				expect(userRepo.fetchByQuery).toHaveBeenCalledTimes(1);
+
+				const params = userRepoFetchByQuerySpy.mock.calls[0];
+				const [ query, _] = params; // destructure the first two parameters
+
+				expect(query.searchCriteria).toEqual(expectedQuery.searchCriteria);
+			});
+			
+			it('returns user from observable when query succeeds with single match', async () => {
+				// arrange
+				// act
+				const result = await service['findUserByMicroserviceId'](randomUserId);
+				
+				// assert
+				expect(result).toBeDefined();
+				expect(result!.userId).toBe(randomUserId);
+			});
+
+			it('returns undefined when no user with matching user id is found', async () => {
+				// arrange
+				jest.spyOn(userRepo, 'fetchByQuery').mockResolvedValue(
+					Result.ok(of([]))
+				);
+				
+				// act
+				const result = await service['findUserByMicroserviceId']('non-existing-user-id');
+				
+				// assert
+				expect(result).toBeUndefined();
+			});
+
+			it('throws PersistenceError if query fails', async () => {
+				// arrange
+				const errorMessage = 'Database connection failed';
+				jest.spyOn(userRepo, 'fetchByQuery').mockResolvedValue(
+					Result.fail(errorMessage)
+				);
+				
+				// act & assert
+				await expect(service['findUserByMicroserviceId'](randomUserId))
+					.rejects
+					.toThrow(new PersistenceError(`Failed to fetch user entity: ${errorMessage}`));
+			});
+
+			it('throws PersistenceError if more than one user with matching user id is found', async () => {
+				// arrange
+				userRepoFetchByQuerySpy.mockRestore();
+				userRepoFetchByQuerySpy.mockResolvedValue(
+					Result.ok(of([randomUser, randomUser])) // simulate multiple users with the same user
+					// id, which should not happen in a well-designed system
+				);
+				
+				// act & assert
+				await expect(service['findUserByMicroserviceId'](randomUserId))
+					.rejects
+					.toThrow(new PersistenceError(`User entity with id ${randomUserId} is not unique`));
+			});
+			
+			/*it('takes only the first emission from the observable', async () => {
+				// arrange
+				const observableSpy = jest.fn(() => of(users));
+				
+				jest.spyOn(userRepo, 'fetchByQuery').mockResolvedValue(
+					Result.ok(observableSpy())
+				);
+				
+				// act
+				await service['findUserByMicroserviceId'](randomUserId);
+				
+				// assert
+				expect(observableSpy).toHaveBeenCalledTimes(1);
+			});
+			*/
+		});
+		
+		describe('getUniqueUser', () => {}); // todo: implement tests
 	});
 });

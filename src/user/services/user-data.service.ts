@@ -71,8 +71,8 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		this.checkIsValidId(userId, 'createUser');
 
 		// check if user already exists in the repository
-		const users = await this.findUserByMicroserviceId(userId);
-		if (users && users.length > 0) {
+		const existingUser = await this.findUserByMicroserviceId(userId);
+		if (existingUser !== undefined) {
 			throw new PersistenceError(`User entity with id ${userId} already exists`);
 		}
 		
@@ -278,7 +278,7 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * 
 	 * @remark Intended to be used by other methods to find a user entity by its user id in the user microservice
 	 */
-	protected async findUserByMicroserviceId(userId: EntityId): Promise<User[] | undefined> {
+	protected async findUserByMicroserviceId(userId: EntityId): Promise<User | undefined> {
 		// check if user exists and is unique in the repository
 		const query = new Query<User, any>({
 			searchCriteria: [
@@ -298,7 +298,15 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		const users$ = queryResult.value as Observable<User[]>;
 		const users = await firstValueFrom(users$.pipe(take(1)));
 
-		return users;
+		if (!users || users.length === 0) { // no user found
+			return undefined;
+		}
+		else if (users.length > 1) { // more than one user found
+			// this should not happen, as userId should be unique in the user microservice
+			throw new PersistenceError(`User entity with id ${userId} is not unique`);
+		}
+
+		return users[0]; // return the single user found
 	}
 
 	/*
@@ -312,15 +320,12 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * @remark Intended to be used by other methods to check if the user entity exists in the persistence layer
 	 */
 	protected async getUniqueUser(userId: EntityId, callerName: string): Promise<User> {
-		const users = await this.findUserByMicroserviceId(userId as string);
-		if (!users || users.length === 0) {
+		const existingUser = await this.findUserByMicroserviceId(userId as string);
+		if (existingUser === undefined) {
 			throw new PersistenceError(`${this.constructor.name}.${callerName}: User entity with id ${userId} does not exist`);
 		}
-		else if (users.length > 1) {
-			throw new PersistenceError(`${this.constructor.name}.${callerName}: User entity with id ${userId} is not unique`);
-		}
-		const user = users[0];
-		return user;
+		// findUserByMicroserviceId throws if user is not unique, so we can assume it is unique here
+		return existingUser;
 	}
 }
 
