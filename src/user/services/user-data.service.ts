@@ -68,8 +68,7 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		// do common checks
 		await this.isReady();
 		this.checkIsValidCaller(requestingServiceName, 'createUser', isAdmin);
-		this.checkIsValidId(userId, 'createUser');
-
+		
 		// check if user already exists in the repository
 		const existingUser = await this.findUserByMicroserviceId(userId);
 		if (existingUser !== undefined) {
@@ -108,7 +107,6 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		// do common checks
 		await this.isReady();
 		this.checkIsValidCaller(requestingServiceName, 'delete', isAdmin);
-		this.checkIsValidId(userId, 'delete');
 		const user = await this.getUniqueUser(userId, 'delete');
 		
 		// check if user is already soft deleted and soft delete is requested
@@ -146,7 +144,6 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 		// do common checks
 		await this.isReady();
 		this.checkIsValidCaller(requestingServiceName, 'undeleteUser', isAdmin);
-		this.checkIsValidId(userId, 'undeleteUser');
 		const user = await this.getUniqueUser(userId, 'undeleteUser');
 		
 		// check if user is soft deleted 
@@ -252,24 +249,6 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	}
 
 	/*
-	 * Check if provided user id is valid
-	 *
-	 * @param userId The user id in the user microservice of the user to be accessed
-	 * @param callerName The name of the calling method
-	 * 
-	 * @returns True if the user id is valid, false if not
-	 * @throws An error if the user id is not valid
-	 * 
-	 * @remark Intended to be used by other methods to check if the provided user id is valid
-	 */
-	protected checkIsValidId(userId: EntityId, callerName: string): boolean {
-		if (!userId) {
-			throw new Error(`${this.constructor.name}.${callerName} requires a valid user id, got: ${userId}`);
-		}
-		return true;
-	}
-
-	/*
 	 * Find user by microservice id
 	 *
 	 * @param userId The user id in the user microservice
@@ -312,17 +291,18 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	/*
 	 * Check if user exists in persistence layer
 	 *
-	 * @param userIdDTO The user id in the user microservice of the user to be accessed
-	 * @param callerName The name of the method being accessed
+	 * @param userId The user id in the user microservice of the user to be accessed
+	 * @param callingMethodName The name of the method being accessed
+	 * 
 	 * @returns True if the user exists, false if not
 	 * @throws An error if the user entity does not exist
 	 * 
 	 * @remark Intended to be used by other methods to check if the user entity exists in the persistence layer
 	 */
-	protected async getUniqueUser(userId: EntityId, callerName: string): Promise<User> {
+	protected async getUniqueUser(userId: EntityId, callingMethodName: string): Promise<User> {
 		const existingUser = await this.findUserByMicroserviceId(userId as string);
 		if (existingUser === undefined) {
-			throw new PersistenceError(`${this.constructor.name}.${callerName}: User entity with id ${userId} does not exist`);
+			throw new PersistenceError(`${this.constructor.name}.${callingMethodName}: User entity with id ${userId} does not exist`);
 		}
 		// findUserByMicroserviceId throws if user is not unique, so we can assume it is unique here
 		return existingUser;

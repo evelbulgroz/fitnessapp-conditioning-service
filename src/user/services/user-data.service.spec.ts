@@ -607,8 +607,6 @@ describe('UserDataService', () => {
 			});
 		});
 		
-		describe('checkIsValidId', () => {  }); // todo: implement tests
-		
 		describe('findUserByMicroserviceId', () => {
 			it('creates query with correct search criteria', async () => {
 				// arrange
