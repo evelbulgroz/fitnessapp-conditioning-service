@@ -65,7 +65,6 @@ describe('UserDataService', () => {
 	let randomUserId: EntityId;
 	let requestingUserName: string;
 	let softDelete: boolean;
-	let users: User[]; // array of User entities for testing
 	let userDTOs: UserDTO[];
 	beforeEach(() => {
 		isAdmin = true; // set to true to allow admin operations in tests
@@ -76,8 +75,6 @@ describe('UserDataService', () => {
 			{ entityId: uuidv4(), userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
 			{ entityId: uuidv4(), userId: uuidv4(), logs: [uuidv4(), uuidv4(), uuidv4()], className: 'User' },
 		];
-
-		users = userDTOs.map(dto => User.create(dto).value as unknown as User);
 
 		randomIndex = Math.floor(Math.random() * userDTOs.length);
 		randomDTO = userDTOs[randomIndex];

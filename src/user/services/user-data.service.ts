@@ -15,6 +15,7 @@ import UserDTO from '../dtos/user.dto';
 import UserRepository from '../repositories/user.repo';
 
 /**
+ * 
  * Processes {@link User} CRUD events received via requests from the User microservice.
  * 
  * @remark The user microservice holds all business data for the user, name, contact info, etc.
@@ -23,6 +24,7 @@ import UserRepository from '../repositories/user.repo';
  * @remark Clients have no reason to request user retrieval from this microservice, only logs.
  * @remark Therefore, this service only needs to process create, delete and undelete events received from the user microservice.
  * @remark Depends on the User repository for caching and persistence of user entities.
+ * @remark Defers to the {@link Usercontroller} for primary request data validation; only secondary validation (e.g. of business rules) is done here.
  * @remark It applies the {@link ManagedStatefulComponentMixin} mixin as it is a key component whose state needs to be managed.
  */
 @Injectable()
@@ -232,7 +234,7 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * Check if caller is authorized to access a method
 	 *
 	 * @param requestingServiceName The name of the service making the request
-	 * @param callerName The name of the calling method
+	 * @param callingMethodName The name of the calling method
 	 * @param isAdmin Whether the caller is an admin user (default: false)
 	 * 
 	 * @returns True if the caller is authorized, false if not	 * 
@@ -240,10 +242,10 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * 
 	 * @remark Intended to be used by other methods to check if the caller is authorized to access the method
 	 */
-	protected checkIsValidCaller(requestingServiceName: string, callerName: string, isAdmin: boolean = false): boolean {
+	protected checkIsValidCaller(requestingServiceName: string, callingMethodName: string, isAdmin: boolean = false): boolean {
 		let userServiceName = this.config.get<any>('security.collaborators.user.serviceName');
 		if (requestingServiceName !== userServiceName || !isAdmin) {
-			throw new UnauthorizedAccessError(`User ${requestingServiceName} not authorized to access ${this.constructor.name}.${callerName}`);
+			throw new UnauthorizedAccessError(`User ${requestingServiceName} not authorized to access ${this.constructor.name}.${callingMethodName}`);
 		}		
 		return true;
 	}
@@ -252,7 +254,8 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * Find user by microservice id
 	 *
 	 * @param userId The user id in the user microservice
-	 * @returns A promise that resolves to the user entity if found, or undefined if not found
+	 
+	* @returns A promise that resolves to the user entity if found, or undefined if not found
 	 * @throws An error if the user entity could not be fetched from the repository
 	 * 
 	 * @remark Intended to be used by other methods to find a user entity by its user id in the user microservice
