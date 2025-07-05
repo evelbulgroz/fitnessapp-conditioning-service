@@ -9,11 +9,10 @@ import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { StreamLogger } from '../../libraries/stream-loggable';
 
 import createTestingModule from '../../test/test-utils';
-import EntityIdDTO from '../../shared/dtos/requests/entity-id.dto';
+import UnauthorizedAccessError from '../../shared/domain/unauthorized-access.error';
 import { User, UserDataService, UserDTO, UserRepository } from '..'; // shortcut import for all user-related modules
-import UserContext from '../../shared/domain/user-context.model';
-import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
-import exp from 'constants';
+import { isDataView } from 'util/types';
+import { is } from 'date-fns/locale';
 
 
 describe('UserDataService', () => {
@@ -556,7 +555,54 @@ describe('UserDataService', () => {
 	});	
 
 	describe('Protected Methods', () => {
-		describe('checkIsValidCaller()', () => {  }); // todo: implement tests
+		describe('checkIsValidCaller', () => {
+			let callingMethodName: string;
+			let INVALID_SERVICE_NAME: string;
+			let isAdmin: boolean;
+			let VALID_SERVICE_NAME: string;
+			beforeEach(() => {
+				callingMethodName = 'testMethod';
+				INVALID_SERVICE_NAME = 'invalid-service-name'; // use a dummy service name for testing
+				isAdmin = true; // set to true to allow admin operations in tests
+				VALID_SERVICE_NAME = config.get<string>('security.collaborators.user.serviceName')!;
+			});
+
+			it('returns true when calling service name matches config value', () => {
+				// arrange
+				// act & assert
+				expect(service['checkIsValidCaller'](VALID_SERVICE_NAME, callingMethodName, isAdmin)).toBe(true);
+			});
+
+			it('throws UnauthorizedAccessError when calling service name does not match config value', () => {
+				// arrange
+				// act & assert
+				expect(() => service['checkIsValidCaller'](INVALID_SERVICE_NAME, callingMethodName, false))
+					.toThrow(UnauthorizedAccessError);
+			});
+
+			it('throws UnauthorizedAccessError when isAdmin is false regardless of calling service name', () => {
+				// arrange
+				isAdmin = false; // set to false to simulate non-admin user
+				
+				// act & assert
+				expect(() => service['checkIsValidCaller'](VALID_SERVICE_NAME, callingMethodName, isAdmin))
+					.toThrow(UnauthorizedAccessError);
+			});
+
+			it('includes the callerName and requestingServiceName in error message', () => {
+				// arrange
+				// act & assert
+				try {
+					service['checkIsValidCaller'](INVALID_SERVICE_NAME, callingMethodName, false);
+					fail('Should have thrown an error');
+				} catch (error) {
+					expect(error).toBeInstanceOf(UnauthorizedAccessError);
+					expect(error.message).toContain(INVALID_SERVICE_NAME);
+					expect(error.message).toContain(callingMethodName);
+					expect(error.message).toContain(service.constructor.name);
+				}
+			});
+		});
 		describe('checkIsValidId()', () => {  }); // todo: implement tests
 		describe('findUserByMicroserviceId', () => {}); // todo: implement tests
 		describe('getUniqueUser()', () => {}); // todo: implement tests

@@ -131,7 +131,10 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * 
 	 * @param requestingServiceName The user context for the user to be undeleted
 	 * @param userId The user id in the user microservice of the user to be undeleted
+	 * @param isAdmin Whether the caller is an admin user (default: false)
+	 * 
 	 * @returns A promise that resolves when the user entity has been undeleted
+	 * 
 	 * @throws An error if the user id is not defined
 	 * @throws An error if the user entity could not be undeleted in the repository
 	 * @throws An error if the user entity is not soft deleted
@@ -235,7 +238,7 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * @param callerName The name of the calling method
 	 * @param isAdmin Whether the caller is an admin user (default: false)
 	 * 
-	 * @returns True if the caller is authorized, false if not
+	 * @returns True if the caller is authorized, false if not	 * 
 	 * @throws An error if the caller is not authorized to access the method
 	 * 
 	 * @remark Intended to be used by other methods to check if the caller is authorized to access the method
