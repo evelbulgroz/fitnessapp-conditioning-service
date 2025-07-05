@@ -142,9 +142,9 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	public async undeleteUser(requestingServiceName: string, userId: EntityId, isAdmin: boolean = false): Promise<void> {
 		// do common checks
 		await this.isReady();
-		this.checkIsValidCaller(requestingServiceName, 'undelete', isAdmin);
-		this.checkIsValidId(userId, 'undelete');
-		const user = await this.getUniqueUser(userId, 'undelete');
+		this.checkIsValidCaller(requestingServiceName, 'undeleteUser', isAdmin);
+		this.checkIsValidId(userId, 'undeleteUser');
+		const user = await this.getUniqueUser(userId, 'undeleteUser');
 		
 		// check if user is soft deleted 
 		if (user.deletedOn === undefined) {

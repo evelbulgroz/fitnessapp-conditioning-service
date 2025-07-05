@@ -355,23 +355,13 @@ describe('UserDataService', () => {
 			});
 		});
 		
-		/*describe('undeleteUser', () => {
-			xit('initializes the service', async () => {
-				// arrange
-				
-				// act
-				const result = await service.undeleteUser(userContext, randomUserId);
-
-				// assert
-				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
-			});
-
+		describe('undeleteUser', () => {
 			it('can undelete a User entity by its user id in the user microservice', async () => {
 				// arrange
 				randomUser.deletedOn = new Date(randomUser.createdOn!.getTime() + 1000);
 				
 				// act
-				const result = await service.undeleteUser(userContext, randomUserId);
+				const result = await service.undeleteUser(requestingUserName, randomUserId, isAdmin);
 
 				// assert
 				expect(userRepoUndeleteSpy).toHaveBeenCalledTimes(1);
@@ -383,10 +373,10 @@ describe('UserDataService', () => {
 
 			it('succeeds with no change if user exists and is not soft deleted', async () => {
 				// arrange
-				randomUser.deletedOn = undefined; // sanity check
+				randomUser.deletedOn = undefined; // ake sure user is not marked as soft deleted
 				
 				// act
-				const result = await service.undeleteUser(userContext, randomUserId);
+				const result = await service.undeleteUser(requestingUserName, randomUserId, isAdmin);
 
 				// assert
 				expect(userRepoUndeleteSpy).not.toHaveBeenCalled();
@@ -396,59 +386,39 @@ describe('UserDataService', () => {
 
 			it('throws error if caller is not user microservice', async () => {
 				// arrange
-				const invalidContext = new UserContext({
-					userId: randomUser.userId,
-					userName: 'invalid',
-					userType: 'service',
-					roles: ['admin'],
-				});
+				const invalidServiceName = 'invalid-requesting-service';
 
 				// act
-				const result = service.undeleteUser(invalidContext, randomUserId);
+				const result = service.undeleteUser(invalidServiceName, randomUserId, isAdmin);
 
 				// assert
-				await expect(result).rejects.toThrow('User invalid not authorized to access UserDataService.undelete');
+				await expect(result).rejects.toThrow(`User ${invalidServiceName} not authorized to access UserDataService.undeleteUser`);
 			});
 
 			it('throws error if caller is not admin', async () => {
 				// arrange
-				const invalidContext = new UserContext({
-					userId: randomUser.userId,
-					userName: config.get<any>('security.collaborators.user.serviceName'),
-					userType: 'service',
-					roles: ['invalid'],
-				});
+				isAdmin = false; // set to false to simulate non-admin user
 
 				// act
-				const result = service.undeleteUser(invalidContext, randomUserId);
+				const result = service.undeleteUser(requestingUserName, randomUserId, isAdmin);
 
 				// assert
-				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserDataService.undelete');
-			});
-
-			it('throws error if user id is invalid', async () => {
-				// arrange
-				randomUserId['_value'] = null as unknown as string;
-				
-				// act
-				const result = service.undeleteUser(userContext, randomUserId);
-
-				// assert
-				await expect(result).rejects.toThrow("UserDataService.undelete requires a valid user id, got: null");
+				await expect(result).rejects.toThrow(`User ${requestingUserName} not authorized to access UserDataService.undeleteUser`);
 			});
 
 			it('throws error if user does not exist', async () => {
 				// arrange
 				userRepoFetchByQuerySpy.mockRestore();
-				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
+				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery')
+					.mockReturnValue(Promise.resolve(Result.ok(of([]))));
 
 				// act
-				const result = service.undeleteUser(userContext, randomUserId);
+				const result = service.undeleteUser(requestingUserName, randomUserId, isAdmin);
 
 				// assert
 				await expect(result).rejects.toThrow(/does not exist/);
 			});
-		});*/
+		});
 	});
 
 	/*describe('Management API', () => {
