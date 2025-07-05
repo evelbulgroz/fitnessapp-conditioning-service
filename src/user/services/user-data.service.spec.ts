@@ -6,16 +6,13 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {ComponentState, ComponentStateInfo} from "../../libraries/managed-stateful-component";
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
+import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 import { StreamLogger } from '../../libraries/stream-loggable';
 
 import createTestingModule from '../../test/test-utils';
+import PersistenceError from '../../shared/domain/persistence.error';
 import UnauthorizedAccessError from '../../shared/domain/unauthorized-access.error';
 import { User, UserDataService, UserDTO, UserRepository } from '..'; // shortcut import for all user-related modules
-import { isDataView } from 'util/types';
-import { is } from 'date-fns/locale';
-import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
-import { random } from 'lodash-es';
-import PersistenceError from '../../shared/domain/persistence.error';
 
 
 describe('UserDataService', () => {
@@ -609,6 +606,7 @@ describe('UserDataService', () => {
 				}
 			});
 		});
+		
 		describe('checkIsValidId', () => {  }); // todo: implement tests
 		
 		describe('findUserByMicroserviceId', () => {
@@ -703,6 +701,83 @@ describe('UserDataService', () => {
 			*/
 		});
 		
-		describe('getUniqueUser', () => {}); // todo: implement tests
+		describe('getUniqueUser', () => {
+			let testCallerName: string;
+			beforeEach(() => {
+				testCallerName = 'getUniqueUser';
+			});
+			
+			it('returns the user when found', async () => {
+				// Arrange
+				jest.spyOn(service as any, 'findUserByMicroserviceId').mockResolvedValue(randomUser);
+				
+				// Act
+				const result = await service['getUniqueUser'](randomUserId, testCallerName);
+				
+				// Assert
+				expect(result).toBe(randomUser);
+				expect(service['findUserByMicroserviceId']).toHaveBeenCalledWith(randomUserId);
+			});
+			
+			it('throws PersistenceError when user is not found', async () => {
+				// Arrange
+				jest.spyOn(service as any, 'findUserByMicroserviceId').mockResolvedValue(undefined);
+				
+				// Act & Assert
+				await expect(service['getUniqueUser'](randomUserId, testCallerName))
+				.rejects
+				.toThrow(PersistenceError);
+			});
+			
+			it('includes userId in error message when user not found', async () => {
+				// Arrange
+				jest.spyOn(service as any, 'findUserByMicroserviceId').mockResolvedValue(undefined);
+				
+				// Act & Assert
+				try {
+				await service['getUniqueUser'](randomUserId, testCallerName);
+				fail('Should have thrown an error');
+				} catch (error) {
+				expect(error.message).toContain(randomUserId);
+				}
+			});
+			
+			it('includes caller name in error message when user not found', async () => {
+				// Arrange
+				jest.spyOn(service as any, 'findUserByMicroserviceId').mockResolvedValue(undefined);
+				
+				// Act & Assert
+				try {
+				await service['getUniqueUser'](randomUserId, testCallerName);
+				fail('Should have thrown an error');
+				} catch (error) {
+				expect(error.message).toContain(testCallerName);
+				}
+			});
+			
+			it('includes service name in error message when user not found', async () => {
+				// Arrange
+				jest.spyOn(service as any, 'findUserByMicroserviceId').mockResolvedValue(undefined);
+				
+				// Act & Assert
+				try {
+				await service['getUniqueUser'](randomUserId, testCallerName);
+				fail('Should have thrown an error');
+				} catch (error) {
+				expect(error.message).toContain(service.constructor.name);
+				}
+			});
+			
+			it('passes through errors from findUserByMicroserviceId', async () => {
+				// Arrange
+				const expectedError = new PersistenceError('Database connection failed');
+				jest.spyOn(service as any, 'findUserByMicroserviceId').mockRejectedValue(expectedError);
+				
+				// Act & Assert
+				await expect(service['getUniqueUser'](randomUserId, testCallerName))
+				.rejects
+				.toBe(expectedError);
+			});
+		});
 	});
 });
