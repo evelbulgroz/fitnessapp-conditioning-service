@@ -33,6 +33,7 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
  * @remark Streams logging using the {@link StreamLoggableMixin}, which provides a unified logging interface for all components.
  * @remark Does not implement {@link ManagedStatefulComponentMixin} as it does not manage any stateful components.
  * - Standard health checks are sufficient for this controller.
+ * @todo Consider adding soft delete option to deleteLog endpoint (currently defers to data service default behavior).
  * @todo Retire unsecured /session endpoint when all clients have migrated to JWT authentication.
  */
 @ApiTags('conditioning')
@@ -271,7 +272,6 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	@ApiOperation({
 		summary: 'Delete a conditioning log by ID',
 		description: 'Deletes a conditioning log by ID, returning no content. Example: http://localhost:3060/api/v3/conditioning/log/3e020b33-55e0-482f-9c52-7bf45b4276ef/3e020b33-55e0-482f-9c52-7bf45b4276ef'
-
 	})
 	@ApiParam({
 		name: 'userId',
@@ -365,7 +365,6 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			throw new BadRequestException(errorMessage);
 		}
 	}
-
 
 	//---------------------------------- PUBLIC API: BATCH CRUD ---------------------------------//
 
