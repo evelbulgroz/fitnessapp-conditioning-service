@@ -4,16 +4,17 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { MergedStreamLogger, StreamLoggableMixin } from '../../libraries/stream-loggable';
 
-import { EntityIdDTO } from '../../shared/dtos/requests/entity-id.dto';
-import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
-import { JwtAuthResult } from '../../authentication/services/jwt/domain/jwt-auth-result.model';
-import { RolesGuard } from '../../infrastructure/guards/roles.guard';
-import { Roles } from '../../infrastructure/decorators/roles.decorator';
-import { ServiceNameDTO } from '../../shared/dtos/responses/service-name.dto';
-import { UnauthorizedAccessError } from '../../shared/domain/unauthorized-access.error';
-import { UserDataService } from '../services/user-data.service';
+import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
+import JwtAuthResult from '../../authentication/services/jwt/domain/jwt-auth-result.model';
+import RolesGuard from '../../infrastructure/guards/roles.guard';
+import Roles from '../../infrastructure/decorators/roles.decorator';
+import ServiceNameDTO from '../../shared/dtos/responses/service-name.dto';
+import SoftDeleteDTO from '../../shared/dtos/requests/soft-delete.dto';
+import UnauthorizedAccessError from '../../shared/domain/unauthorized-access.error';
+import UserDataService from '../services/user-data.service';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
-import { ValidationPipe } from '../../infrastructure/pipes/validation.pipe';
+import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
+import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 
 /** Controller for user-related operations.
  * @remark This controller is responsible for handling user-related operations, such as creating a new user when a user is created in the user microservice.
@@ -74,12 +75,13 @@ export class UserController extends StreamLoggableMixin(class {}) {
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))		
 	async createUser(
 		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,
+		@Param('userId') userIdDTO: UserIdDTO,
 	): Promise<void> {
 		try {
 			// sanitize user context 
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps); // maps 1:1 with JwtAuthResult
-			
+			const isAdmin = userContext.roles.includes('admin');
+
 			// validate that request is from user microservice
 			if(!this.isCallerUserMicroservice(userContext)) {
 				this.logger.error(`Unauthorized: Only user microservice can create users`);
@@ -93,7 +95,7 @@ export class UserController extends StreamLoggableMixin(class {}) {
 			}
 			
 			// create user			
-			void await this.userService.createUser(userContext, userIdDTO); // Implement this method in your service			
+			void await this.userService.createUser(userContext.userName, userIdDTO.value, isAdmin); // Implement this method in your service			
 		} catch (error) {
 			const errorMessage = `Failed to create user: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -124,13 +126,15 @@ export class UserController extends StreamLoggableMixin(class {}) {
 	@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 	async deleteUser(
 		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,
-		@Query('softDelete') softDelete: boolean = true,
+		@Param('userId') userIdDTO: UserIdDTO,
+		@Query('softDelete') softDeleteDTO: SoftDeleteDTO
+		,
 	): Promise<void> {
 		try {
 			// sanitize user context 
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps); // maps 1:1 with JwtAuthResult
-			
+			const isAdmin = userContext.roles.includes('admin');
+
 			// validate that request is from user microservice
 			if(!this.isCallerUserMicroservice(userContext)) {
 				this.logger.error(`Unauthorized: Only user microservice can delete users`);
@@ -138,7 +142,7 @@ export class UserController extends StreamLoggableMixin(class {}) {
 			}
 
 			// delete user
-			void await this.userService.deleteUser(userContext, userIdDTO, softDelete);
+			void await this.userService.deleteUser(userContext.userName, userIdDTO.userId, softDeleteDTO.softDelete, isAdmin);
 		} catch (error) {
 			const errorMessage = `Failed to delete user: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -168,11 +172,12 @@ export class UserController extends StreamLoggableMixin(class {}) {
 	@Roles('admin')
 	async undeleteUser(
 		@Req() req: any,
-		@Param('userId') userIdDTO: EntityIdDTO,		
+		@Param('userId') userIdDTO: UserIdDTO,		
 	): Promise<void> {
 		try {
 			// sanitize user context 
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps); // maps 1:1 with JwtAuthResult
+			const isAdmin = userContext.roles.includes('admin');
 
 			// validate that request is from user microservice
 			if(!this.isCallerUserMicroservice(userContext)) {
@@ -181,7 +186,7 @@ export class UserController extends StreamLoggableMixin(class {}) {
 			}
 
 			// restore user
-			await this.userService.undeleteUser(userContext, userIdDTO);
+			await this.userService.undeleteUser(userContext.userName, userIdDTO.value, isAdmin);
 		}
 		catch (error) {
 			const errorMessage = `Failed to restore user: ${error.message}`;

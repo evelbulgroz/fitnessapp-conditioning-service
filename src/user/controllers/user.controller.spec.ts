@@ -9,21 +9,21 @@ import { v4 as uuid } from 'uuid';
 import { Result } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLogger } from '../../libraries/stream-loggable';
 
-import { BcryptCryptoService } from '../../authentication/services/crypto/bcrypt-crypto.service';
-import { createTestingModule } from '../../test/test-utils';
-import { CryptoService } from '../../authentication/services/crypto/domain/crypto-service.model';
-import { EntityIdDTO } from '../../shared/dtos/requests/entity-id.dto';
-import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
-import { JwtAuthStrategy } from '../../infrastructure/strategies/jwt-auth.strategy';
-import { JwtSecretService } from '../../authentication/services/jwt/jwt-secret.service';
-import { JwtService } from '../../authentication/services/jwt/domain/jwt-service.model';
-import { JsonWebtokenService } from '../../authentication/services/jwt/json-webtoken.service';
-import { UserContext } from '../../shared/domain/user-context.model';
-import { UserController } from '../../user/controllers/user.controller';
-import { UserJwtPayload } from '../../authentication/services/jwt/domain/user-jwt-payload.model';
-import { UserRepository } from '../../user/repositories/user.repo';
-import { UserDataService } from '../services/user-data.service';
-import { ValidationPipe } from '../../infrastructure//pipes/validation.pipe';
+import BcryptCryptoService from '../../authentication/services/crypto/bcrypt-crypto.service';
+import createTestingModule from '../../test/test-utils';
+import CryptoService from '../../authentication/services/crypto/domain/crypto-service.model';
+import EntityIdDTO from '../../shared/dtos/requests/entity-id.dto';
+import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
+import JwtAuthStrategy from '../../infrastructure/strategies/jwt-auth.strategy';
+import JwtSecretService from '../../authentication/services/jwt/jwt-secret.service';
+import JwtService from '../../authentication/services/jwt/domain/jwt-service.model';
+import JsonWebtokenService from '../../authentication/services/jwt/json-webtoken.service';
+import UserContext from '../../shared/domain/user-context.model';
+import UserController from '../../user/controllers/user.controller';
+import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
+import UserRepository from '../../user/repositories/user.repo';
+import UserDataService from '../services/user-data.service';
+import ValidationPipe from '../../infrastructure//pipes/validation.pipe';
 
 // NOTE:
   // Testing over http to enable decorators and guards without having to do a ton of additional setup/mocking.

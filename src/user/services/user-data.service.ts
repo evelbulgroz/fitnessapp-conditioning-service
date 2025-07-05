@@ -4,15 +4,13 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
 import { EntityId } from '@evelbulgroz/ddd-base';
-import { ComponentState, ManagedStatefulComponent, ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component";
+import {  ManagedStatefulComponent, ManagedStatefulComponentMixin } from "../../libraries/managed-stateful-component";
 import { Query, SearchFilterOperation } from '@evelbulgroz/query-fns';
 import { StreamLoggableMixin } from '../../libraries/stream-loggable';
 
-import EntityIdDTO from '../../shared/dtos/requests/entity-id.dto';
 import PersistenceError from '../../shared/domain/persistence.error';
 import UnauthorizedAccessError from '../../shared/domain/unauthorized-access.error';
 import User from '../domain/user.entity';
-import UserContext from '../../shared/domain/user-context.model';
 import UserDTO from '../dtos/user.dto';
 import UserRepository from '../repositories/user.repo';
 
@@ -53,9 +51,12 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	/**
 	 * Create a new user
 	 * 
-	 * @param ctx The user context for the user to be created
-	 * @param userIdDTO The user id in the user microservice of the user to be created
+	 * @param requestingServiceName The user context for the user to be created
+	 * @param userId The user id in the user microservice of the user to be created
+	 * @param isAdmin Whether the caller is an admin user (default: false)
+	 * 
 	 * @returns A promise that resolves to the new (local) user id when the user has been created
+	 * 
 	 * @throws An error if the user id is not defined
 	 * @throws An error if the user entity could not be created in the 
 	 * 
@@ -63,20 +64,20 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * @remark Created user holds both entity unique to this microservice and the user id from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	*/
-	public async createUser(ctx: UserContext, userIdDTO: EntityIdDTO): Promise<EntityId> {
+	public async createUser(requestingServiceName: string, userId: EntityId, isAdmin: boolean = false): Promise<EntityId> {
 		// do common checks
 		await this.isReady();
-		this.checkIsValidCaller(ctx, 'createUser');
-		this.checkIsValidId(userIdDTO, 'createUser');
+		this.checkIsValidCaller(requestingServiceName, 'createUser', isAdmin);
+		this.checkIsValidId(userId, 'createUser');
 
 		// check if user already exists in the repository
-		const users = await this.findUserByMicroserviceId(userIdDTO.value!);
+		const users = await this.findUserByMicroserviceId(userId);
 		if (users && users.length > 0) {
-			throw new PersistenceError(`User entity with id ${userIdDTO.value} already exists`);
+			throw new PersistenceError(`User entity with id ${userId} already exists`);
 		}
 		
 		// request valid -> create new user
-		const dto: UserDTO = { className: 'User', userId: userIdDTO.value!,	};
+		const dto: UserDTO = { className: 'User', userId: userId,	};
 		const createResult = await this.userRepo.create(dto);
 		if (createResult.isFailure) {
 			throw new PersistenceError(`Failed to create user entity: ${createResult.error}`);
@@ -90,20 +91,25 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	/**
 	 * Delete a user
 	 * 
-	 * @param ctx The user context for the user to be deleted
-	 * @param userIdDTO The user id in the user microservice of the user to be deleted
-	 * @param softDelete Whether to soft delete (default) or hard delete the user entity
+	 * @param requestingServiceName The name of the service making the request
+	 * @param userId The user id in the user microservice of the user to be deleted
+	 * @param softDelete Whether to soft delete the user entity (default: true)
+	 * @param isAdmin Whether the caller is an admin user (default: true)
+	 * 
 	 * @returns A promise that resolves when the user entity has been deleted
+	 * 
+	 * @throws An error if the user id is not defined
+	 * @throws An error if the user entity could not be deleted in the repository
 	 * 
 	 * @remark Intended to be mostly triggered by a user delete event received from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	 */
-	public async deleteUser(ctx: UserContext, userIdDTO: EntityIdDTO, softDelete = true): Promise<void> {
+	public async deleteUser(requestingServiceName: string, userId: EntityId, softDelete: boolean = true, isAdmin: boolean = true): Promise<void> {
 		// do common checks
 		await this.isReady();
-		this.checkIsValidCaller(ctx, 'delete');
-		this.checkIsValidId(userIdDTO, 'delete');
-		const user = await this.getUniqueUser(userIdDTO, 'delete');
+		this.checkIsValidCaller(requestingServiceName, 'delete', isAdmin);
+		this.checkIsValidId(userId, 'delete');
+		const user = await this.getUniqueUser(userId, 'delete');
 		
 		// check if user is already soft deleted and soft delete is requested
 		if (softDelete && user.deletedOn !== undefined) {
@@ -123,8 +129,8 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	/**
 	 * Undelete a user (if soft deleted)
 	 * 
-	 * @param ctx The user context for the user to be undeleted
-	 * @param userIdDTO The user id in the user microservice of the user to be undeleted
+	 * @param requestingServiceName The user context for the user to be undeleted
+	 * @param userId The user id in the user microservice of the user to be undeleted
 	 * @returns A promise that resolves when the user entity has been undeleted
 	 * @throws An error if the user id is not defined
 	 * @throws An error if the user entity could not be undeleted in the repository
@@ -133,12 +139,12 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * @remark Intended to be mostly triggered by a user undelete event received from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	 */
-	public async undeleteUser(ctx: UserContext, userIdDTO: EntityIdDTO): Promise<void> {
+	public async undeleteUser(requestingServiceName: string, userId: EntityId, isAdmin: boolean = false): Promise<void> {
 		// do common checks
 		await this.isReady();
-		this.checkIsValidCaller(ctx, 'undelete');
-		this.checkIsValidId(userIdDTO, 'undelete');
-		const user = await this.getUniqueUser(userIdDTO, 'undelete');
+		this.checkIsValidCaller(requestingServiceName, 'undelete', isAdmin);
+		this.checkIsValidId(userId, 'undelete');
+		const user = await this.getUniqueUser(userId, 'undelete');
 		
 		// check if user is soft deleted 
 		if (user.deletedOn === undefined) {
@@ -225,18 +231,19 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	/*
 	 * Check if caller is authorized to access a method
 	 *
-	 * @param ctx The user context for the caller
-	 * @param userIdDTO The user id in the user microservice of the user to be accessed
-	 * @param callerName The name of the method being accessed
+	 * @param requestingServiceName The name of the service making the request
+	 * @param callerName The name of the calling method
+	 * @param isAdmin Whether the caller is an admin user (default: false)
+	 * 
 	 * @returns True if the caller is authorized, false if not
 	 * @throws An error if the caller is not authorized to access the method
 	 * 
 	 * @remark Intended to be used by other methods to check if the caller is authorized to access the method
 	 */
-	protected checkIsValidCaller(ctx: UserContext, callerName: string): boolean {
+	protected checkIsValidCaller(requestingServiceName: string, callerName: string, isAdmin: boolean = false): boolean {
 		let userServiceName = this.config.get<any>('security.collaborators.user.serviceName');
-		if (ctx.userName !== userServiceName || !ctx.roles.includes('admin')) {
-			throw new UnauthorizedAccessError(`User ${ctx.userName} not authorized to access ${this.constructor.name}.${callerName}`);
+		if (requestingServiceName !== userServiceName || !isAdmin) {
+			throw new UnauthorizedAccessError(`User ${requestingServiceName} not authorized to access ${this.constructor.name}.${callerName}`);
 		}		
 		return true;
 	}
@@ -244,15 +251,17 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	/*
 	 * Check if provided user id is valid
 	 *
-	 * @param userIdDTO The user id in the user microservice of the user to be accessed
-	 * @param callerName The name of the method being accessed
+	 * @param userId The user id in the user microservice of the user to be accessed
+	 * @param callerName The name of the calling method
+	 * 
 	 * @returns True if the user id is valid, false if not
 	 * @throws An error if the user id is not valid
+	 * 
 	 * @remark Intended to be used by other methods to check if the provided user id is valid
 	 */
-	protected checkIsValidId(userIdDTO: EntityIdDTO, callerName: string): boolean {
-		if (!userIdDTO.value) {
-			throw new Error(`${this.constructor.name}.${callerName} requires a valid user id, got: ${userIdDTO.value}`);
+	protected checkIsValidId(userId: EntityId, callerName: string): boolean {
+		if (!userId) {
+			throw new Error(`${this.constructor.name}.${callerName} requires a valid user id, got: ${userId}`);
 		}
 		return true;
 	}
@@ -299,13 +308,13 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * 
 	 * @remark Intended to be used by other methods to check if the user entity exists in the persistence layer
 	 */
-	protected async getUniqueUser(userIdDTO: EntityIdDTO, callerName: string): Promise<User> {
-		const users = await this.findUserByMicroserviceId(userIdDTO.value! as string);
+	protected async getUniqueUser(userId: EntityId, callerName: string): Promise<User> {
+		const users = await this.findUserByMicroserviceId(userId as string);
 		if (!users || users.length === 0) {
-			throw new PersistenceError(`${this.constructor.name}.${callerName}: User entity with id ${userIdDTO.value} does not exist`);
+			throw new PersistenceError(`${this.constructor.name}.${callerName}: User entity with id ${userId} does not exist`);
 		}
 		else if (users.length > 1) {
-			throw new PersistenceError(`${this.constructor.name}.${callerName}: User entity with id ${userIdDTO.value} is not unique`);
+			throw new PersistenceError(`${this.constructor.name}.${callerName}: User entity with id ${userId} is not unique`);
 		}
 		const user = users[0];
 		return user;
