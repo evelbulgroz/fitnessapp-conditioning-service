@@ -13,6 +13,7 @@ import EntityIdDTO from '../../shared/dtos/requests/entity-id.dto';
 import { User, UserDataService, UserDTO, UserRepository } from '..'; // shortcut import for all user-related modules
 import UserContext from '../../shared/domain/user-context.model';
 import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
+import exp from 'constants';
 
 
 describe('UserDataService', () => {
@@ -63,6 +64,8 @@ describe('UserDataService', () => {
 	let randomIndex: number;
 	let randomUser: User;
 	let randomUserId: EntityId;
+	let requestingUserName: string;
+	let softDelete: boolean;
 	let userContext: UserContext;
 	let userDTOs: UserDTO[];
 	beforeEach(() => {
@@ -80,9 +83,13 @@ describe('UserDataService', () => {
 		randomUser = User.create(randomDTO).value as unknown as User;
 		randomUserId = randomDTO.userId;
 
+		requestingUserName = config.get<any>('security.collaborators.user.serviceName'); // use the service name as the requesting user name
+
+		softDelete = true; // set to true to allow soft delete in tests
+
 		userContext = new UserContext({
 			userId: randomUser.userId,
-			userName: config.get<any>('security.collaborators.user.serviceName'), // display name for user, or service name if user is a service account (subName from JWTPayload)
+			userName: requestingUserName, // display name for user, or service name if user is a service account (subName from JWTPayload)
 			userType: 'service', // 'service' or 'user'
 			roles: ['admin'], // roles assigned to the user
 		});
@@ -181,19 +188,8 @@ describe('UserDataService', () => {
 				newUser = User.create({entityId: uuidv4(), userId: newUserId, logs: [], className: 'User' }).value as unknown as User;
 				
 				userRepoCreateSpy.mockRestore();
-				userRepoCreateSpy = jest.spyOn(userRepo, 'create').mockReturnValue(Promise.resolve(Result.ok(newUser)));				
-			});
-
-			xit('initializes the service', async () => {
-				// arrange
-				userRepoFetchByQuerySpy.mockRestore();
-				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
-				
-				// act
-				void await service.createUser(userContext.userName, newUserId);
-
-				// assert
-				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
+				userRepoCreateSpy = jest.spyOn(userRepo, 'create')
+					.mockReturnValue(Promise.resolve(Result.ok(newUser)));				
 			});
 
 			it('can create a new User entity', async () => {
@@ -202,7 +198,7 @@ describe('UserDataService', () => {
 				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
 
 				// act
-				const result = await service.createUser(userContext.userName, newUserId, isAdmin);
+				const result = await service.createUser(requestingUserName, newUserId, isAdmin);
 
 				// assert
 				expect(userRepoCreateSpy).toHaveBeenCalledTimes(1);
@@ -212,82 +208,73 @@ describe('UserDataService', () => {
 				expect(result).toEqual(newUser.entityId);
 			});
 
-			/*it('throws error if caller is not user microservice', async () => {
+			it('throws error if caller is not user microservice', async () => {
 				// arrange
-				const invalidContext = new UserContext({
-					userId: randomUser.userId,
-					userName: 'invalid',
-					userType: 'service',
-					roles: ['admin'],
-				});
-
+				const invalidServiceName = 'invalid-requesting-service';
+				
 				// act
-				const result = service.createUser(invalidContext, newUserIdDTO);
+				const result = service.createUser(invalidServiceName, newUserId);
 
 				// assert
-				await expect(result).rejects.toThrow('User invalid not authorized to access UserDataService.createUser');
+				await expect(result).rejects.toThrow(`User ${invalidServiceName} not authorized to access UserDataService.createUser`);
 			});
 
 			it('throws error if caller is not admin', async () => {
 				// arrange
-				const invalidContext = new UserContext({
-					userId: randomUser.userId,
-					userName: config.get<any>('security.collaborators.user.serviceName'),
-					userType: 'service',
-					roles: ['invalid'],
-				});
-
+				isAdmin = false; // set to false to simulate non-admin user
 				// act
-				const result = service.createUser(invalidContext, newUserIdDTO);
+				const resultPromise = service.createUser(requestingUserName, newUserId, isAdmin);
 
 				// assert
-				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserDataService.createUser');
+				await expect(resultPromise).rejects.toThrow('User fitnessapp-user-service not authorized to access UserDataService.createUser');
 			});
 
+			/* Note: Not sure whether/how to do this test, as any validated number or string is a valid user id
 			it('throws error if user id is invalid', async () => {
 				// arrange
-				randomUserId['_value'] = null as unknown as string;
+				const invalidUserId = 'invalid-user-id'; // use an invalid user id
+
+				userRepoFetchByQuerySpy.mockRestore();
+				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery')
+					.mockReturnValue(Promise.resolve(Result.ok(of([])))); // simulate that user doesn't already exists
 				
 				// act
-				const result = service.createUser(userContext, randomUserId);
+				const result = service.createUser(requestingUserName, invalidUserId, isAdmin);
 
 				// assert
-				await expect(result).rejects.toThrow("UserDataService.createUser requires a valid user id, got: null");
+				await expect(result).rejects.toThrow(`UserDataService.createUser requires a valid user id, got: ${invalidUserId}`);
+
+				expect(userRepoFetchByQuerySpy).toHaveBeenCalledTimes(1);
+				expect(userRepoCreateSpy).not.toHaveBeenCalled();
+
+				// clean up
+				userRepoFetchByQuerySpy?.mockRestore();
 			});
+			*/
 
 			it('throws error if user with same microservice user id already exists', async () => {
 				// arrange
 				userRepoFetchByQuerySpy.mockRestore();
-				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([newUser]))));
+				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery')
+					.mockReturnValue(Promise.resolve(Result.ok(of([newUser]))));
 
 				// act
-				const result = service.createUser(userContext, newUserIdDTO);
+				const result = service.createUser(requestingUserName, newUserId, isAdmin);
 
 				// assert
 				await expect(result).rejects.toThrow(/already exists/);
-			});*/
+			});
 		});
 		
-		/*describe('deleteUser', () => {
-			xit('initializes the service', async () => {
-				// arrange
-				
-				// act
-				const result = await service.deleteUser(userContext, randomUserId);
-
-				// assert
-				expect(userRepoIsReadySpy).toHaveBeenCalledTimes(1);
-			});
-
+		describe('deleteUser', () => {
 			it('can delete a User entity by its user id in the user microservice', async () => {
-				// arrange
-				
+				// arrange				
 				// act
-				const result = await service.deleteUser(userContext, randomUserId);
+				const result = await service.deleteUser(requestingUserName, randomUserId, softDelete, isAdmin);
 
 				// assert
 				expect(result).toBeUndefined();
-				expect(userRepoDeleteSpy).toHaveBeenCalledTimes(1);
+				expect(userRepoDeleteSpy).toHaveBeenCalledTimes(1);				
 			});
 
 			it('by default soft deletes the user entity', async () => {
@@ -295,7 +282,7 @@ describe('UserDataService', () => {
 				expect(randomUser.deletedOn).not.toBeDefined(); // sanity check
 				
 				// act
-				const result = await service.deleteUser(userContext, randomUserId);
+				const result = await service.deleteUser(requestingUserName, randomUserId, undefined, isAdmin);
 
 				// assert
 				expect(userRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -309,7 +296,7 @@ describe('UserDataService', () => {
 				randomUser.deletedOn = originalDeletedOn;
 				
 				// act
-				const result = await service.deleteUser(userContext, randomUserId, true);
+				const result = await service.deleteUser(requestingUserName, randomUserId, softDelete, isAdmin);
 
 				// assert
 				expect(userRepoDeleteSpy).not.toHaveBeenCalled();
@@ -319,10 +306,11 @@ describe('UserDataService', () => {
 
 			it('optionally hard deletes the user entity', async () => {
 				// arrange
-				const originalEntityId = randomUser.entityId;		
+				const originalEntityId = randomUser.entityId;
+				softDelete = false; // set to false to hard delete the user entity		
 				
 				// act
-				const result = await service.deleteUser(userContext, randomUserId, false);
+				const result = await service.deleteUser(requestingUserName, randomUserId, softDelete, isAdmin);
 
 				// assert
 				expect(userRepoDeleteSpy).toHaveBeenCalledTimes(1);
@@ -333,59 +321,39 @@ describe('UserDataService', () => {
 
 			it('throws error if caller is not user microservice', async () => {
 				// arrange
-				const invalidContext = new UserContext({
-					userId: randomUser.userId,
-					userName: 'invalid',
-					userType: 'service',
-					roles: ['admin'],
-				});
+				const invalidServiceName = 'invalid-requesting-service';
 
 				// act
-				const result = service.deleteUser(invalidContext, randomUserId);
+				const result = service.deleteUser(invalidServiceName, randomUserId, softDelete, isAdmin);
 
 				// assert
-				await expect(result).rejects.toThrow('User invalid not authorized to access UserDataService.delete');
+				await expect(result).rejects.toThrow(`User ${invalidServiceName} not authorized to access UserDataService.delete`);
 			});
 
 			it('throws error if caller is not admin', async () => {
 				// arrange
-				const invalidContext = new UserContext({
-					userId: randomUser.userId,
-					userName: config.get<any>('security.collaborators.user.serviceName'),
-					userType: 'service',
-					roles: ['invalid'],
-				});
+				isAdmin = false; // set to false to simulate non-admin user
 
 				// act
-				const result = service.deleteUser(invalidContext, randomUserId);
+				const result = service.deleteUser(requestingUserName, randomUserId, softDelete, isAdmin);
 
 				// assert
-				await expect(result).rejects.toThrow('User fitnessapp-user-service not authorized to access UserDataService.delete');
-			});
-
-			it('throws error if user id is invalid', async () => {
-				// arrange
-				randomUserId['_value'] = null as unknown as string;
-				
-				// act
-				const result = service.deleteUser(userContext, randomUserId);
-
-				// assert
-				await expect(result).rejects.toThrow("UserDataService.delete requires a valid user id, got: null");
+				await expect(result).rejects.toThrow(`User ${requestingUserName} not authorized to access UserDataService.delete`);
 			});
 
 			it('throws error if user does not exist', async () => {
 				// arrange
 				userRepoFetchByQuerySpy.mockRestore();
-				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery').mockReturnValue(Promise.resolve(Result.ok(of([]))));
+				userRepoFetchByQuerySpy = jest.spyOn(userRepo, 'fetchByQuery')
+					.mockReturnValue(Promise.resolve(Result.ok(of([]))));
 
 				// act
-				const result = service.deleteUser(userContext, randomUserId);
+				const result = service.deleteUser(requestingUserName, randomUserId, softDelete, isAdmin);
 
 				// assert
 				await expect(result).rejects.toThrow(/does not exist/);
 			});
-		});*/	
+		});
 		
 		/*describe('undeleteUser', () => {
 			xit('initializes the service', async () => {
