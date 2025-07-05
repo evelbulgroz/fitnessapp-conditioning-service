@@ -257,7 +257,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const partialLog = this.createLogFromDTO(partialLogDTO); // validate the log DTO before passing it to the service
-			void await this.dataService.updateLog(userContext.userId, userIdDTO.value, logIdDTO.value, partialLog);
+			const isAdmin = userContext.roles.includes('admin'); // check if the user is an admin
+			void await this.dataService.updateLog(userContext.userId, userIdDTO.value, logIdDTO.value, partialLog, isAdmin); // update the log
 			// implicit return
 		} catch (error) {
 			const errorMessage = `Failed to update log with ID: ${logIdDTO.value}: ${error.message}`;
@@ -306,7 +307,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				throw new BadRequestException(errorMessage);
 			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.dataService.deleteLog(userContext.userId, userIdDTO.value, logIdDTO.value);
+			const isAdmin = userContext.roles.includes('admin'); // check if the user is an admin
+			void await this.dataService.deleteLog(userContext.userId, userIdDTO.value, logIdDTO.value, undefined, isAdmin); // delete the log
 		} catch (error) {
 			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -355,7 +357,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				throw new BadRequestException(errorMessage);
 			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			void await this.dataService.undeleteLog(userContext.userId, userIdDTO.value, logIdDTO.value);
+			const isAdmin = userContext.roles.includes('admin'); // check if the user is an admin
+			void await this.dataService.undeleteLog(userContext.userId, userIdDTO.value, logIdDTO.value, isAdmin); // undelete the log
 		} catch (error) {
 			const errorMessage = `Failed to undelete log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
