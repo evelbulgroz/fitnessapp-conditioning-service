@@ -151,7 +151,10 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * @remark Intended to be mostly triggered by a user undelete event received from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	 */
-	public async undeleteUser(requestingServiceName: string, userId: EntityId, isAdmin: boolean = false): Promise<void> {
+	public async undeleteUser(
+		requestingServiceName: string,
+		userId: EntityId,
+		isAdmin: boolean = false): Promise<void> {
 		// do common checks
 		await this.isReady();
 		this.checkIsValidCaller(requestingServiceName, 'undeleteUser', isAdmin);

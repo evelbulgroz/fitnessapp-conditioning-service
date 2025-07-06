@@ -407,7 +407,7 @@ describe('UserController', () => {
 				// arrange
 				const deletePromise = controller.deleteUser(
 					adminMockRequest,
-					null as any, // intentionally passing null to simulate missing user id
+					null as any, // intentionally passing null to simulate invalid user id
 					// soft delete defaults to true
 				);
 
@@ -457,118 +457,95 @@ describe('UserController', () => {
 			});
 		});
 
-		xdescribe('undeleteUser', () => {
+		describe('undeleteUser', () => {
 			let requestConfig: any;
-			let url: string;
-			let userId: string;
-			let UserDataServiceUndeleteSpy: any;
+			let userDataServiceUndeleteSpy: any;
 			beforeEach(() => {
 				requestConfig = { };
-				userId = uuid();
-				url = `${baseUrl}/${userId}/undelete`;
-				UserDataServiceUndeleteSpy = jest.spyOn(userDataService, 'undeleteUser').mockImplementation(() => Promise.resolve());
+				userDataServiceUndeleteSpy = jest.spyOn(userDataService, 'undeleteUser')
+					.mockImplementation(() => Promise.resolve());
 			});
 
 			afterEach(() => {
-				UserDataServiceUndeleteSpy?.mockRestore();
+				userDataServiceUndeleteSpy?.mockRestore();
 			});
 
 			it('undeletes a user and returns an empty success message', async () => {
 				// arrange				
 				// act
-				const response = await lastValueFrom(http.patch(url, requestConfig, { headers: adminHeaders }));
+				const result = await controller.undeleteUser(
+					adminMockRequest,
+					userIdDTO
+				);
 				
 				// assert
-				expect(UserDataServiceUndeleteSpy).toHaveBeenCalledTimes(1);
-				expect(UserDataServiceUndeleteSpy).toHaveBeenCalledWith(adminUserCtx, new EntityIdDTO(userId));
-				expect(response.status).toBe(204);
-				expect(response.data).toBe('');
-			});
-
-			it('throws a BadRequestException if access token is missing', async () => {
-				// arrange
-				adminHeaders = {};
-				const response$ = http.patch(url, requestConfig, adminHeaders);
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('throws error if access token is invalid', async () => {
-				// arrange
-				adminHeaders = { Authorization: `Bearer invalid` };
-				const response$ = http.patch(url, requestConfig, adminHeaders);
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('throws error if user information in token payload is invalid', async () => {
-				// arrange
-				adminPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
-				adminAccessToken = await jwt.sign(adminPayload);
-				adminHeaders = { Authorization: `Bearer ${adminAccessToken}` };
-				const response$ = http.patch(url, { headers: adminHeaders } );
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				expect(userDataServiceUndeleteSpy).toHaveBeenCalledTimes(1);
+				expect(userDataServiceUndeleteSpy).toHaveBeenCalledWith(requestingServiceName, userIdDTO.userId, isAdmin);
+				expect(result).toBeUndefined();
 			});
 
 			it('throws error if user id is missing', async () => {
 				// arrange
-				const response$ = http.patch(baseUrl, { headers: adminHeaders });
+				const undeletePromise = controller.undeleteUser(
+					adminMockRequest,
+					undefined as any, // intentionally passing undefined to simulate missing user id
+				);
 
 				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				expect(async () => await undeletePromise).rejects.toThrow();
 			});
 
 			it('throws error if user id is invalid', async () => {
 				// arrange
-				const response$ = http.patch(baseUrl + '/invalid', { headers: adminHeaders });
+				const undeletePromise = controller.undeleteUser(
+					adminMockRequest,
+					null as any, // intentionally passing null to simulate invalid user id
+				);
 
 				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				expect(async () => await undeletePromise).rejects.toThrow();
 			});
 
 			it('throws error if requester is not user microservice', async () => {
 				// arrange
+				adminProps.userName = 'invalid'; // simulate a non-user microservice request
 				adminPayload.subName = 'invalid';
 				adminAccessToken = await jwt.sign(adminPayload);
-				adminHeaders = { Authorization: `Bearer ${adminAccessToken}` };
-				const response$ = http.patch(url, { headers: adminHeaders });
+				adminMockRequest = {
+					headers: { Authorization: `Bearer ${adminAccessToken}` },
+					user: adminProps, // mock user object
+				};
 
+				const undeletePromise = controller.undeleteUser(
+					adminMockRequest,
+					userIdDTO,
+					// soft delete defaults to true
+				);			
+				
 				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it(`throws if requester is not authorized to undelete user (i.e. not admin)`, async () => {
-				// arrange
-				adminHeaders = { Authorization: `Bearer ${userAccessToken}` };
-				const response$ = http.patch(url, { headers: adminHeaders });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				expect(async () => await undeletePromise).rejects.toThrow();
 			});
 
 			it('throws error if data service throws', async () => {
 				// arrange
 				const errorMessage = 'Request failed with status code 400';
-				const UserDataServiceSpy = jest.spyOn(userDataService, 'undeleteUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
-				const response$ = http.patch(url, requestConfig, { headers: adminHeaders });
-
+				
+				userDataServiceUndeleteSpy?.mockRestore(); // clean up previous spy
+				userDataServiceUndeleteSpy = jest.spyOn(userDataService, 'undeleteUser')
+					.mockImplementation(() => Promise.reject(new Error(errorMessage)));
+				
+				const undeletePromise = controller.undeleteUser(
+					adminMockRequest,
+					userIdDTO,
+					// soft delete defaults to true
+				);
+				
 				// act/assert
-				 // jest can't catch errors thrown in async functions, so we have to catch it ourselves
-				let error: any;
-				try {
-					void await lastValueFrom(response$);
-				}
-				catch (e) {
-					error = e;					
-				}
-				expect(error.message).toBe(errorMessage);
+				expect(async () => await undeletePromise).rejects.toThrow(errorMessage);
+				
 
 				// clean up
-				UserDataServiceSpy.mockRestore();
+				userDataServiceUndeleteSpy.mockRestore();
 			});
 		});
 	});
