@@ -127,7 +127,7 @@ export class UserController extends StreamLoggableMixin(class {}) {
 	async deleteUser(
 		@Req() req: any,
 		@Param('userId') userIdDTO: UserIdDTO,
-		@Query('softDelete') softDeleteDTO: SoftDeleteDTO
+		@Query('softDelete') softDeleteDTO?: SoftDeleteDTO
 		,
 	): Promise<void> {
 		try {
@@ -142,7 +142,12 @@ export class UserController extends StreamLoggableMixin(class {}) {
 			}
 
 			// delete user
-			void await this.userService.deleteUser(userContext.userName, userIdDTO.userId, softDeleteDTO.softDelete, isAdmin);
+			void await this.userService.deleteUser(
+				userContext.userName,
+				userIdDTO.userId,
+				softDeleteDTO?.softDelete ?? true, // default to soft delete
+				isAdmin
+			);
 		} catch (error) {
 			const errorMessage = `Failed to delete user: ${error.message}`;
 			this.logger.error(errorMessage);

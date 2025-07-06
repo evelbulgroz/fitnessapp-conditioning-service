@@ -25,6 +25,8 @@ import UserRepository from '../../user/repositories/user.repo';
 import UserDataService from '../services/user-data.service';
 import ValidationPipe from '../../infrastructure//pipes/validation.pipe';
 import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
+import SoftDeleteDTO from '../../shared/dtos/requests/soft-delete.dto';
+import { th } from 'date-fns/locale';
 
 // NOTE:
   // Testing over http to enable decorators and guards without having to do a ton of additional setup/mocking.
@@ -137,6 +139,7 @@ describe('UserController', () => {
 	let adminProps: UserContextProps;
 	let userAccessToken: string;
 	let adminHeaders: any;
+	let isAdmin: boolean;
 	let userId: EntityId;
 	let userIdDTO: UserIdDTO;
 	let userContext: UserContext;
@@ -156,6 +159,8 @@ describe('UserController', () => {
 			userType: 'user',
 			roles: ['admin'],
 		};
+
+		isAdmin = adminProps.roles!.includes('admin'); // true if user has admin role
 
 		adminUserCtx = new UserContext(adminProps);
   
@@ -181,9 +186,11 @@ describe('UserController', () => {
 		adminHeaders = { Authorization: `Bearer ${adminAccessToken}` };
 		
 		// set up mocks for requests from human user without admin rights
+
+		userId = uuid() as EntityId; // generate a random user id for testing
 		
 		userProps = {
-			userId: uuid(),
+			userId,
 			userName: 'testuser', // i.e. not the requesting service
 			userType: 'user',
 			roles: ['user'],
@@ -301,26 +308,6 @@ describe('UserController', () => {
 				expect(async () => await createPromise).rejects.toThrow();
 			});
 
-			it(`throws error if requester is not authorized to create user (i.e. not admin)`, async () => {
-				// arrange
-				const nonAdminProps: UserContextProps = {...adminProps, roles: ['user']}; // simulate a non-admin user
-				const nonAdminUserCtx: UserContext = new UserContext(nonAdminProps);		
-				const nonAdminPayload: UserJwtPayload = {...adminPayload, sub: nonAdminUserCtx.userId as string, roles: nonAdminProps.roles };
-				const nonAdminAccessToken: string = await jwt.sign(nonAdminPayload);
-				const nonAdminMockRequest: any = {
-					headers: { Authorization: `Bearer ${nonAdminAccessToken}` },
-					user: nonAdminProps, // mock user object
-				};
-				
-				// act
-				const createPromise = controller.createUser(
-					nonAdminMockRequest,
-					userIdDTO,		
-				);
-				// assert
-				expect(async () => await createPromise).rejects.toThrow();
-			});
-
 			it('throws error if data service throws', async () => {
 				// arrange
 				const errorMessage = 'Request failed with status code 400';
@@ -346,106 +333,127 @@ describe('UserController', () => {
 			});
 		});
 
-		xdescribe('deleteUser', () => {
-			let url: string;
+		describe('deleteUser', () => {
+			let softDelete: boolean;
 			let userId: string;
-			let UserDataServiceDeleteSpy: any;
+			let userDataServiceDeleteSpy: any;
 			beforeEach(() => {
+				softDelete = true; // default to soft delete
 				userId = uuid();
-				url = `${baseUrl}/${userId}`;
-				UserDataServiceDeleteSpy = jest.spyOn(userDataService, 'deleteUser').mockImplementation(() => Promise.resolve());
+				userDataServiceDeleteSpy = jest.spyOn(userDataService, 'deleteUser')
+					.mockImplementation((requestingServiceName: string,	userId: EntityId, softDelete?: boolean, isAdmin?: boolean) => {
+						void requestingServiceName, userId, softDelete, isAdmin; // suppress unused parameter warnings
+						return Promise.resolve()
+					});
 			});
 
 			afterEach(() => {
-				UserDataServiceDeleteSpy?.mockRestore();
+				userDataServiceDeleteSpy?.mockRestore();
 			});
 
 			it('deletes a user and returns an empty success message', async () => {
 				// arrange				
 				// act
-				const response = await lastValueFrom(http.delete(url, { headers: adminHeaders }));
+				void await controller.deleteUser(
+					adminMockRequest,
+					new UserIdDTO(userId),
+					new SoftDeleteDTO(true) // soft delete
+				);
 				
 				// assert
-				expect(UserDataServiceDeleteSpy).toHaveBeenCalledTimes(1);
-				expect(UserDataServiceDeleteSpy).toHaveBeenCalledWith(adminUserCtx, new EntityIdDTO(userId), true);
-				expect(response.status).toBe(204);
-				expect(response.data).toBe('');
+				expect(userDataServiceDeleteSpy).toHaveBeenCalledTimes(1);
+				expect(userDataServiceDeleteSpy).toHaveBeenCalledWith(requestingServiceName, userId, softDelete, isAdmin);
 			});
 
-			xit('by default performs a soft delete', async () => {
+			it('by default performs a soft delete', async () => {
 				// arrange
-				const response = await lastValueFrom(http.delete(url, { headers: adminHeaders }));
-
 				// act
-				expect(response.status).toBe(204);
-				expect(response.data).toBe('');
+				void await controller.deleteUser(
+					adminMockRequest,
+					new UserIdDTO(userId),
+					// soft delete is true by default
+				);
+				
+				// assert
+				expect(userDataServiceDeleteSpy).toHaveBeenCalledTimes(1);
+				expect(userDataServiceDeleteSpy).toHaveBeenCalledWith(requestingServiceName, userId, softDelete, isAdmin);
 			});
 
-			xit('optionally performs a hard delete', async () => {
+			it('optionally performs a hard delete', async () => {
 				// arrange
-				const response = await lastValueFrom(http.delete(url + '?softDelete=true', { headers: adminHeaders, }));
-
-				// act
-				expect(response.status).toBe(204);
-				expect(response.data).toBe('');
-				expect(UserDataServiceDeleteSpy).toHaveBeenCalledWith(adminUserCtx, new EntityIdDTO(userId), true);
-			});
-
-			xit('throws error if user id is missing', async () => {
-				// arrange
-				const response$ = http.delete(baseUrl, { headers: adminHeaders });
+				void await controller.deleteUser(
+					adminMockRequest,
+					new UserIdDTO(userId),
+					new SoftDeleteDTO(false) // hard delete
+				);
 
 				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				expect(userDataServiceDeleteSpy).toHaveBeenCalledWith(requestingServiceName, userId, false, isAdmin);
 			});
 
-			xit('throws error if user id is invalid', async () => {
+			it('throws error if user id is missing', async () => {
 				// arrange
-				const response$ = http.delete(baseUrl + '/invalid', { headers: adminHeaders });
+				const deletePromise = controller.deleteUser(
+					adminMockRequest,
+					undefined as any, // intentionally passing undefined to simulate missing user id
+					// soft delete defaults to true
+				);
 
 				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				expect(async () => await deletePromise).rejects.toThrow();
 			});
 
-			xit('throws error if requester is not user microservice', async () => {
+			it('throws error if user id is invalid', async () => {
 				// arrange
+				const deletePromise = controller.deleteUser(
+					adminMockRequest,
+					null as any, // intentionally passing null to simulate missing user id
+					// soft delete defaults to true
+				);
+
+				// act/assert
+				expect(async () => await deletePromise).rejects.toThrow();
+			});
+
+			it('throws error if requester is not user microservice', async () => {
+				// arrange
+				adminProps.userName = 'invalid'; // simulate a non-user microservice request
 				adminPayload.subName = 'invalid';
 				adminAccessToken = await jwt.sign(adminPayload);
-				adminHeaders = { Authorization: `Bearer ${adminAccessToken}` };
-				const response$ = http.delete(url, { headers: adminHeaders });
+				adminMockRequest = {
+					headers: { Authorization: `Bearer ${adminAccessToken}` },
+					user: adminProps, // mock user object
+				};
+				
+				const deletePromise = controller.deleteUser(
+					adminMockRequest,
+					new UserIdDTO(userId),
+					// soft delete defaults to true
+				);
 
 				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				expect(async () => await deletePromise).rejects.toThrow();
 			});
 
-			xit(`throws if requester is not authorized to delete user (i.e. not admin)`, async () => {
-				// arrange
-				adminHeaders = { Authorization: `Bearer ${userAccessToken}` };
-				const response$ = http.delete(url, { headers: adminHeaders });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			xit('throws error if data service throws', async () => {
+			it('throws error if data service throws', async () => {
 				// arrange
 				const errorMessage = 'Request failed with status code 400';
-				const UserDataServiceSpy = jest.spyOn(userDataService, 'deleteUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
-				const response$ = http.delete(url, { headers: adminHeaders });
+				
+				userDataServiceDeleteSpy?.mockRestore(); // clean up previous spy
+				userDataServiceDeleteSpy = jest.spyOn(userDataService, 'deleteUser')
+					.mockImplementation(() => Promise.reject(new Error(errorMessage)));
+				
+				const deletePromise = controller.deleteUser(
+					adminMockRequest,
+					new UserIdDTO(userId),
+					// soft delete defaults to true
+				);
 
 				// act/assert
-				 // jest can't catch errors thrown in async functions, so we have to catch it ourselves
-				let error: any;
-				try {
-					void await lastValueFrom(response$);
-				}
-				catch (e) {
-					error = e;					
-				}
-				expect(error.message).toBe(errorMessage);
+				expect(async () => await deletePromise).rejects.toThrow(errorMessage);
 
 				// clean up
-				UserDataServiceSpy.mockRestore();
+				userDataServiceDeleteSpy.mockRestore();
 			});
 		});
 

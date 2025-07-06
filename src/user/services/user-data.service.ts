@@ -66,7 +66,11 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * @remark Created user holds both entity unique to this microservice and the user id from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	*/
-	public async createUser(requestingServiceName: string, userId: EntityId, isAdmin: boolean = false): Promise<EntityId> {
+	public async createUser(
+		requestingServiceName: string,
+		userId: EntityId,
+		isAdmin: boolean = false
+	): Promise<EntityId> {
 		// do common checks
 		await this.isReady();
 		this.checkIsValidCaller(requestingServiceName, 'createUser', isAdmin);
@@ -105,7 +109,12 @@ export class UserDataService extends StreamLoggableMixin(ManagedStatefulComponen
 	 * @remark Intended to be mostly triggered by a user delete event received from the user microservice
 	 * @remark Caller is expected to catch, handle and log any errors
 	 */
-	public async deleteUser(requestingServiceName: string, userId: EntityId, softDelete: boolean = true, isAdmin: boolean = true): Promise<void> {
+	public async deleteUser(
+		requestingServiceName: string,
+		userId: EntityId,
+		softDelete: boolean = true,
+		isAdmin: boolean = false
+	): Promise<void> {
 		// do common checks
 		await this.isReady();
 		this.checkIsValidCaller(requestingServiceName, 'delete', isAdmin);
