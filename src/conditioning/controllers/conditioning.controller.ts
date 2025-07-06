@@ -1,9 +1,11 @@
-import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Inject, NotFoundException, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
 import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, getSchemaPath } from '@nestjs/swagger';
 
 import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
 import { EntityId } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLoggableMixin } from '../../libraries/stream-loggable';
+import { Query as QueryModel } from '@evelbulgroz/query-fns';
+
 import AggregationQueryDTO from '../dtos/aggregation-query.dto';
 import { ConditioningData } from '../domain/conditioning-data.model';
 import ConditioningDataService from '../services/conditioning-data/conditioning-data.service';
@@ -23,6 +25,9 @@ import { RolesGuard } from '../../infrastructure/guards/roles.guard';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
 import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
+import QueryMapper from '../mappers/query.mapper';
+
+export type QueryType = QueryModel<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>;
 
 /** Controller serving requests for conditioning datap
  * @remark This controller is responsible for handling, parsing and sanitizing all incoming requests for conditioning data.
@@ -50,6 +55,11 @@ import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
 		{ whitelist: true, forbidNonWhitelisted: false, transform: true }
 	)) // whitelisting ignored with primitive types
 export class ConditioningController extends StreamLoggableMixin(class {}) {
+	//----------------------------------- PROPERTIES ------------------------------------//
+	
+	// Inject separately to keep constructor signature clean
+	@Inject(QueryMapper) protected readonly queryMapper: QueryMapper<QueryModel<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>;
+	
 	//--------------------------------------- CONSTRUCTOR ---------------------------------------//
 
 	constructor(
@@ -410,10 +420,13 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
 			// all params are optional -> defer validation to the service method
 			
+			let query: QueryType | undefined;
 			if (queryDTO) {// query always instantiated by framework, using all query params -> remove if empty except for userId and includeDeleted
 				queryDTO.userId = undefined;
 				(queryDTO as any).includeDeleted = undefined; // not currently part of queryDTO, remove just in case
-				queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO; 
+				queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
+				query = (queryDTO !== undefined) ? this.queryMapper.toDomain(queryDTO!): undefined; // mapper excludes dto props that are undefined
+				console.debug('Query parameters for logs:', query?.toJSON());
 			}
 
 			return await this.dataService.fetchLogs(

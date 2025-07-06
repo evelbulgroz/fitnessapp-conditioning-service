@@ -9,13 +9,17 @@ import { v4 as uuid } from 'uuid';
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLogger } from '../../libraries/stream-loggable';
+import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO, AggregationQueryDTOProps } from '../dtos/aggregation-query.dto';
 import BcryptCryptoService from '../../authentication/services/crypto/bcrypt-crypto.service';
 import ConditioningController from './conditioning.controller';
-import ConditioningDataService from '../services/conditioning-data/conditioning-data.service';
-import ConditioningLog from '../domain/conditioning-log.entity';
-import ConditioningLogDTO from '../dtos/conditioning-log.dto';
+import {
+	ConditioningDataService,
+	ConditioningLog,
+	ConditioningLogDTO,
+	QueryMapper
+} from '../index';
 import { createTestingModule } from '../../test/test-utils';
 import CryptoService from '../../authentication/services/crypto/domain/crypto-service.model';
 import DomainTypeDTO from '../../shared/dtos/responses/domain-type.dto';
@@ -27,6 +31,7 @@ import JwtService from '../../authentication/services/jwt/domain/jwt-service.mod
 import JsonWebtokenService from '../../authentication/services/jwt/json-webtoken.service';
 import LogIdDTO from '../../shared/dtos/requests/log-id.dto';
 import { QueryDTO, QueryDTOProps } from '../../shared/dtos/responses/query.dto';
+import { QueryType } from './conditioning.controller';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
 import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
 import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
@@ -53,6 +58,7 @@ describe('ConditioningController', () => {
 	let config: ConfigService;
 	let crypto: CryptoService;
 	let jwt: JwtService;
+	let queryMapper: QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>;
 	let userRepo: UserRepository;
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
@@ -112,6 +118,7 @@ describe('ConditioningController', () => {
 						undeleteLog: jest.fn(),						
 					},
 				},
+				QueryMapper,
 				{ // User repository
 					provide: UserRepository,
 					useValue: {
@@ -128,6 +135,7 @@ describe('ConditioningController', () => {
 		config = module.get<ConfigService>(ConfigService);
 		crypto = module.get<CryptoService>(CryptoService);
 		jwt = module.get<JwtService>(JwtService);
+		queryMapper = module.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
 		userRepo = module.get<UserRepository>(UserRepository);
 	});
 
@@ -1079,6 +1087,7 @@ describe('ConditioningController', () => {
 				describe('fetchLogs', () => {
 					let adminContext: UserContext;
 					let serviceSpy: any;
+					let query: QueryType;
 					let queryDTO: QueryDTO;
 					let queryDTOProps: QueryDTOProps;
 					let userIdDTO: UserIdDTO;
@@ -1096,6 +1105,7 @@ describe('ConditioningController', () => {
 							pageSize: 10,
 						};
 						queryDTO = new QueryDTO(queryDTOProps);
+						query = new Query(queryDTO);
 						
 						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(
 							(requestingUserId: EntityId, targetUserId?: EntityId | undefined, queryDTO?: QueryDTO, isAdmin?: boolean, includeDeleted?: boolean) => {
@@ -1178,7 +1188,7 @@ describe('ConditioningController', () => {
 						expect(serviceSpy).toHaveBeenCalledWith(adminContext.userId, adminUserIdDTO.value, undefined, true, false);
 					});
 
-					it('optionally gives admin users access to logs matching a query', async () => {
+					it('optionally gives admin users access to all logs matching a query', async () => {
 						// arrange
 						// act
 						const result = await controller.fetchLogs(
@@ -1190,7 +1200,13 @@ describe('ConditioningController', () => {
 
 						// assert
 						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						expect(serviceSpy).toHaveBeenCalledWith(adminContext.userId, adminUserIdDTO.value, queryDTO, true, false);
+						expect(serviceSpy).toHaveBeenCalledWith(
+							adminContext.userId,
+							adminUserIdDTO.value,
+							queryDTO, // todo: pass validated (i.e. parsed) query, not DTO
+							true, // isAdmin
+							false // includeDeleted
+						);
 
 						expect(result).toBeDefined();
 						expect(result).toBeInstanceOf(Array);
