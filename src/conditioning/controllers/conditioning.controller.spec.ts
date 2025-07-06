@@ -37,16 +37,16 @@ import e, { query } from 'express';
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
 // NOTE:
-// This unit test suite is designed to test the ConditioningController and the logic supporting its endpoints.
-//
-// It mocks the ConditioningDataService and other dependencies to isolate the controller's functionality.
-//
-// It calls controller methods directly, rather than over HTTP.
-// This allows for faster, more focused testing of the controller's logic without the overhead of HTTP requests.
-//
-// Since the controller methods are called directly, no guards or other decorators are applied to the methods.
-// This means that, e.g. access token validation and user role checks are not performed in this test suite.
-// Instead, these should be tested in e2e tests, where the controller is called over HTTP, activating all decorators and guards.
+  // This unit test suite is designed to test the ConditioningController and the logic supporting its endpoints.
+  //
+  // It mocks the ConditioningDataService and other dependencies to isolate the controller's functionality.
+  //
+  // It calls controller methods directly, rather than over HTTP.
+  // This allows for faster, more focused testing of the controller's logic without the overhead of HTTP requests.
+  //
+  // Since the controller methods are called directly, no guards or other decorators are applied to the methods.
+  // This means that, e.g. access token validation and user role checks are not performed in this test suite.
+  // Instead, these should be tested in e2e tests, where the controller is called over HTTP, activating all decorators and guards.
 
 describe('ConditioningController', () => {
 	let app: INestApplication;

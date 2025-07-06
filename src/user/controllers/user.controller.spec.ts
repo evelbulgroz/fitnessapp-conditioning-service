@@ -1,9 +1,7 @@
-import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TestingModule } from '@nestjs/testing';
-import { HttpService, HttpModule } from '@nestjs/axios';
 
-import { lastValueFrom, of, Subject } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
@@ -12,44 +10,44 @@ import { MergedStreamLogger, StreamLogger } from '../../libraries/stream-loggabl
 import BcryptCryptoService from '../../authentication/services/crypto/bcrypt-crypto.service';
 import createTestingModule from '../../test/test-utils';
 import CryptoService from '../../authentication/services/crypto/domain/crypto-service.model';
-import EntityIdDTO from '../../shared/dtos/requests/entity-id.dto';
 import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
 import JwtAuthStrategy from '../../infrastructure/strategies/jwt-auth.strategy';
 import JwtSecretService from '../../authentication/services/jwt/jwt-secret.service';
 import JwtService from '../../authentication/services/jwt/domain/jwt-service.model';
 import JsonWebtokenService from '../../authentication/services/jwt/json-webtoken.service';
+import SoftDeleteDTO from '../../shared/dtos/requests/soft-delete.dto';
 import UserContext, { UserContextProps } from '../../shared/domain/user-context.model';
 import UserController from '../../user/controllers/user.controller';
 import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
 import UserRepository from '../../user/repositories/user.repo';
 import UserDataService from '../services/user-data.service';
-import ValidationPipe from '../../infrastructure//pipes/validation.pipe';
 import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
-import SoftDeleteDTO from '../../shared/dtos/requests/soft-delete.dto';
-import { th } from 'date-fns/locale';
+
+//process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
 // NOTE:
-  // Testing over http to enable decorators and guards without having to do a ton of additional setup/mocking.
-  // This also ensures request/response objects are correctly formatted and that the controller is correctly configured.
-  // This is a bit of a hack, but it works for now. Clean up later when setting up e2e tests.
+  // This unit test suite is designed to test the UserController and the logic supporting its endpoints.
+  //
+  // It mocks the UserDataService and other dependencies to isolate the controller's functionality.
+  //
+  // It calls controller methods directly, rather than over HTTP.
+  // This allows for faster, more focused testing of the controller's logic without the overhead of HTTP requests.
+  //
+  // Since the controller methods are called directly, no guards or other decorators are applied to the methods.
+  // This means that, e.g. access token validation and user role checks are not performed in this test suite.
+  // Instead, these should be tested in e2e tests, where the controller is called over HTTP, activating all decorators and guards.
 
 describe('UserController', () => {
   	// Set up the testing module with the necessary imports, controllers, and providers
-	let app: INestApplication;
 	let controller: UserController;
 	let userDataService: UserDataService;
 	let config: ConfigService;
 	let crypto: CryptoService;
-	let http: HttpService;
 	let jwt: JwtService;
-	let baseUrl: string;
 	let userRepo: UserRepository;
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
 			// ConfigModule is imported automatically by createTestingModule
-			imports: [
-				HttpModule, // implicitly imports HttpService, adding service to providers array causes error
-			],
 			controllers: [UserController],
 			providers: [
 				ConfigService,
@@ -115,20 +113,12 @@ describe('UserController', () => {
 		*/
 		.compile();
 		
-		app = module.createNestApplication();
 		controller = module.get<UserController>(UserController);
 		userDataService = module.get<UserDataService>(UserDataService);
 		config = module.get<ConfigService>(ConfigService);
 		crypto = module.get<CryptoService>(CryptoService);
-		http = module.get<HttpService>(HttpService);
 		jwt = module.get<JwtService>(JwtService);
 		userRepo = module.get<UserRepository>(UserRepository);
-  
-		app.useGlobalPipes(new ValidationPipe());
-		await app.listen(0); // enter 0 to let the OS choose a free port
-  
-		const port = app.getHttpServer().address().port; // random port, e.g. 60703
-		baseUrl = `http://localhost:${port}/user`; // prefix not applied during testing, so omit it
 	});
   
 	// set up test data
@@ -137,15 +127,9 @@ describe('UserController', () => {
 	let adminMockRequest: any;
 	let adminPayload: UserJwtPayload;
 	let adminProps: UserContextProps;
-	let userAccessToken: string;
-	let adminHeaders: any;
 	let isAdmin: boolean;
 	let userId: EntityId;
 	let userIdDTO: UserIdDTO;
-	let userContext: UserContext;
-	let userHeaders: any;
-	let userMockRequest: any;
-	let userPayload: UserJwtPayload;
 	let userProps: UserContextProps;
 	let requestingServiceName: string;
 	beforeEach(async () => {
@@ -183,8 +167,6 @@ describe('UserController', () => {
 			user: adminProps, // mock user object
 		};
 		
-		adminHeaders = { Authorization: `Bearer ${adminAccessToken}` };
-		
 		// set up mocks for requests from human user without admin rights
 
 		userId = uuid() as EntityId; // generate a random user id for testing
@@ -195,29 +177,6 @@ describe('UserController', () => {
 			userType: 'user',
 			roles: ['user'],
 		};
-
-		userContext = new UserContext(userProps);
-
-		userPayload = { 
-			iss: await crypto.hash(config.get<string>('security.authentication.jwt.issuer')!),
-			sub: userContext.userId as string,
-			aud: await crypto.hash(config.get<string>('app.servicename')!),
-			exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour from now
-			iat: Math.floor(Date.now() / 1000),
-			jti: uuid(),
-			subName: userContext.userName,
-			subType: userContext.userType,
-			roles: userContext.roles,
-		};		
-
-		userAccessToken = await jwt.sign(userPayload);
-
-		userMockRequest = {
-			headers: { Authorization: `Bearer ${userAccessToken}` },
-			user: userProps, // mock user object
-		};
-
-		userHeaders = { Authorization: `Bearer ${userAccessToken}` };
 
 		userIdDTO = new UserIdDTO(userProps.userId);		
 	});
@@ -230,8 +189,7 @@ describe('UserController', () => {
 	});
 		  
 	afterEach(() => {
-		app.close();
-		userRepoFetchByIdSpy && userRepoFetchByIdSpy.mockRestore();
+		userRepoFetchByIdSpy?.mockRestore();
 		jest.clearAllMocks();
 	});
 
@@ -550,7 +508,7 @@ describe('UserController', () => {
 		});
 	});
 
-	xdescribe('Logging API', () => {
+	describe('Logging API', () => {
 		describe('LoggableMixin Members', () => {
 			it('inherits log$', () => {
 				expect(controller.log$).toBeDefined();
