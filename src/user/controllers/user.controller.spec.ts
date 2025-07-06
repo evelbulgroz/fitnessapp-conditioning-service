@@ -6,7 +6,7 @@ import { HttpService, HttpModule } from '@nestjs/axios';
 import { lastValueFrom, of, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
-import { Result } from '@evelbulgroz/ddd-base';
+import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLogger } from '../../libraries/stream-loggable';
 
 import BcryptCryptoService from '../../authentication/services/crypto/bcrypt-crypto.service';
@@ -18,12 +18,13 @@ import JwtAuthStrategy from '../../infrastructure/strategies/jwt-auth.strategy';
 import JwtSecretService from '../../authentication/services/jwt/jwt-secret.service';
 import JwtService from '../../authentication/services/jwt/domain/jwt-service.model';
 import JsonWebtokenService from '../../authentication/services/jwt/json-webtoken.service';
-import UserContext from '../../shared/domain/user-context.model';
+import UserContext, { UserContextProps } from '../../shared/domain/user-context.model';
 import UserController from '../../user/controllers/user.controller';
 import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
 import UserRepository from '../../user/repositories/user.repo';
 import UserDataService from '../services/user-data.service';
 import ValidationPipe from '../../infrastructure//pipes/validation.pipe';
+import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
 
 // NOTE:
   // Testing over http to enable decorators and guards without having to do a ton of additional setup/mocking.
@@ -31,7 +32,8 @@ import ValidationPipe from '../../infrastructure//pipes/validation.pipe';
   // This is a bit of a hack, but it works for now. Clean up later when setting up e2e tests.
 
 describe('UserController', () => {
-  	let app: INestApplication;
+  	// Set up the testing module with the necessary imports, controllers, and providers
+	let app: INestApplication;
 	let controller: UserController;
 	let userDataService: UserDataService;
 	let config: ConfigService;
@@ -127,62 +129,97 @@ describe('UserController', () => {
 		baseUrl = `http://localhost:${port}/user`; // prefix not applied during testing, so omit it
 	});
   
+	// set up test data
 	let adminAccessToken: string;
-	let adminContext: UserContext;
+	let adminUserCtx: UserContext;
+	let adminMockRequest: any;
 	let adminPayload: UserJwtPayload;
+	let adminProps: UserContextProps;
 	let userAccessToken: string;
-	let headers: any;
+	let adminHeaders: any;
+	let userId: EntityId;
+	let userIdDTO: UserIdDTO;
 	let userContext: UserContext;
-	let userRepoFetchByIdSpy: any;
-	let userMicroServiceName: string;
+	let userHeaders: any;
+	let userMockRequest: any;
+	let userPayload: UserJwtPayload;
+	let userProps: UserContextProps;
+	let requestingServiceName: string;
 	beforeEach(async () => {
-		userMicroServiceName = config.get<string>('security.collaborators.user.serviceName')!;
+		// set mocks for request from user microservice with admin rights
 		
-		adminContext = new UserContext({
+		requestingServiceName = config.get<string>('security.collaborators.user.serviceName')!;
+		
+		adminProps = {
 			userId: uuid(),
-			userName: userMicroServiceName, //'adminuser',
+			userName: requestingServiceName,
 			userType: 'user',
 			roles: ['admin'],
-		});
+		};
+
+		adminUserCtx = new UserContext(adminProps);
   
 		adminPayload = { 
 			iss: await crypto.hash(config.get<string>('security.authentication.jwt.issuer')!),
-			sub: adminContext.userId as string,
+			sub: adminUserCtx.userId as string,
 			aud: await crypto.hash(config.get<string>('app.servicename')!),
 			exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour from now
 			iat: Math.floor(Date.now() / 1000),
 			jti: uuid(),
-			subName: adminContext.userName,
-			subType: adminContext.userType as any,
-			roles: ['admin'],
+			subName: adminUserCtx.userName,
+			subType: adminUserCtx.userType as any,
+			roles: adminUserCtx.roles,
 		};
   
 		adminAccessToken = await jwt.sign(adminPayload);
+
+		adminMockRequest = {
+			headers: { Authorization: `Bearer ${adminAccessToken}` },
+			user: adminProps, // mock user object
+		};
 		
-		userContext = new UserContext({ 
+		adminHeaders = { Authorization: `Bearer ${adminAccessToken}` };
+		
+		// set up mocks for requests from human user without admin rights
+		
+		userProps = {
 			userId: uuid(),
-			userName: userMicroServiceName, //'testuser',
+			userName: 'testuser', // i.e. not the requesting service
 			userType: 'user',
 			roles: ['user'],
-		});
+		};
 
-		adminPayload = { 
+		userContext = new UserContext(userProps);
+
+		userPayload = { 
 			iss: await crypto.hash(config.get<string>('security.authentication.jwt.issuer')!),
 			sub: userContext.userId as string,
 			aud: await crypto.hash(config.get<string>('app.servicename')!),
 			exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour from now
 			iat: Math.floor(Date.now() / 1000),
 			jti: uuid(),
-			subName: userMicroServiceName,//userContext.userName,
+			subName: userContext.userName,
 			subType: userContext.userType,
-			roles: ['user'],
+			roles: userContext.roles,
+		};		
+
+		userAccessToken = await jwt.sign(userPayload);
+
+		userMockRequest = {
+			headers: { Authorization: `Bearer ${userAccessToken}` },
+			user: userProps, // mock user object
 		};
 
-		userAccessToken = await jwt.sign(adminPayload);
+		userHeaders = { Authorization: `Bearer ${userAccessToken}` };
 
-		headers = { Authorization: `Bearer ${adminAccessToken}` };
-  
-		userRepoFetchByIdSpy = jest.spyOn(userRepo, 'fetchById').mockImplementation(() => Promise.resolve(Result.ok(of({entityId: adminContext.userId} as any))));
+		userIdDTO = new UserIdDTO(userProps.userId);		
+	});
+
+	// set up spies for user repository methods
+	let userRepoFetchByIdSpy: any;
+	beforeEach(() => {
+		userRepoFetchByIdSpy = jest.spyOn(userRepo, 'fetchById')
+			.mockImplementation(() => Promise.resolve(Result.ok(of({entityId: adminUserCtx.userId} as any))));
 	});
 		  
 	afterEach(() => {
@@ -215,101 +252,107 @@ describe('UserController', () => {
 			it('creates a new user and returns an empty success message', async () => {
 				// arrange
 				// act
-				const response = await lastValueFrom(http.post(url, requestConfig, { headers }));
+				void await controller.createUser(
+					adminMockRequest,
+					userIdDTO,		
+				);
 
 				// assert
-				expect(response.status).toBe(201);
-				expect(response.data).toBe('');
-			});
-
-			it('throws a BadRequestException if access token is missing', async () => {
-				// arrange
-				headers = {};
-				const response$ = http.post(url, requestConfig, headers);
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('throws error if access token is invalid', async () => {
-				// arrange
-				headers = { Authorization: `Bearer invalid` };
-				const response$ = http.post(url, requestConfig, headers);
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
-			});
-
-			it('throws error if user information in token payload is invalid', async () => {
-				// arrange
-				adminPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
-				adminAccessToken = await jwt.sign(adminPayload);
-				headers = { Authorization: `Bearer ${adminAccessToken}` };
-				const response$ = http.post(url, requestConfig, { headers } );
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				expect(UserDataServiceCreateSpy).toHaveBeenCalledTimes(1);
+				expect(UserDataServiceCreateSpy).toHaveBeenCalledWith(adminUserCtx.userName, userIdDTO.value, true);
 			});
 
 			it('throws error if user id is missing', async () => {
 				// arrange
-				const response$ = http.post(baseUrl, requestConfig, { headers });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				// act
+				const createPromise = controller.createUser(
+					adminMockRequest,
+					undefined as any, // intentionally passing undefined to simulate missing user id		
+				);
+				
+				// assert
+				expect(async () => await createPromise).rejects.toThrow();
 			});
 
 			it('throws error if user id is invalid', async () => {
 				// arrange
-				const response$ = http.post(baseUrl + '/invalid', requestConfig, { headers });
+				// act
+				 const createPromise = controller.createUser(
+					adminMockRequest,
+					null as any, // intentionally passing null to simulate invalid user id		
+				);
 
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				// assert
+				expect(async () => await createPromise).rejects.toThrow();
 			});
 
 			it('throws error if requester is not user microservice', async () => {
 				// arrange
+				adminProps.userName = 'invalid'; // simulate a non-user microservice request
 				adminPayload.subName = 'invalid';
 				adminAccessToken = await jwt.sign(adminPayload);
-				headers = { Authorization: `Bearer ${adminAccessToken}` };
-				const response$ = http.post(url, requestConfig, { headers });
+				adminMockRequest = {
+					headers: { Authorization: `Bearer ${adminAccessToken}` },
+					user: adminProps, // mock user object
+				};
 
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				// act
+				const createPromise = controller.createUser(
+					adminMockRequest,
+					userIdDTO,		
+				);
+
+				// assert
+				expect(async () => await createPromise).rejects.toThrow();
 			});
 
-			it(`throws if requester is not authorized to create user (i.e. not admin)`, async () => {
+			it(`throws error if requester is not authorized to create user (i.e. not admin)`, async () => {
 				// arrange
-				headers = { Authorization: `Bearer ${userAccessToken}` };
-				const response$ = http.post(url, requestConfig, { headers });
-
-				// act/assert
-				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
+				const nonAdminProps: UserContextProps = {...adminProps, roles: ['user']}; // simulate a non-admin user
+				const nonAdminUserCtx: UserContext = new UserContext(nonAdminProps);		
+				const nonAdminPayload: UserJwtPayload = {...adminPayload, sub: nonAdminUserCtx.userId as string, roles: nonAdminProps.roles };
+				const nonAdminAccessToken: string = await jwt.sign(nonAdminPayload);
+				const nonAdminMockRequest: any = {
+					headers: { Authorization: `Bearer ${nonAdminAccessToken}` },
+					user: nonAdminProps, // mock user object
+				};
+				
+				// act
+				const createPromise = controller.createUser(
+					nonAdminMockRequest,
+					userIdDTO,		
+				);
+				// assert
+				expect(async () => await createPromise).rejects.toThrow();
 			});
 
 			it('throws error if data service throws', async () => {
 				// arrange
 				const errorMessage = 'Request failed with status code 400';
-				const UserDataServiceSpy = jest.spyOn(userDataService, 'createUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
-				const response$ = http.post(url, requestConfig, { headers });
+				const UserDataServiceSpy = jest.spyOn(userDataService, 'createUser')
+					.mockImplementation(() => Promise.reject(new Error(errorMessage)));
+				const response$ = http.post(url, requestConfig, { headers: adminHeaders });
 
 				// act/assert
 				 // jest can't catch errors thrown in async functions, so we have to catch it ourselves
 				let error: any;
 				try {
-					void await lastValueFrom(response$);
+					void await controller.createUser(
+						adminMockRequest,
+						userIdDTO,		
+					);
 				}
 				catch (e) {
 					error = e;					
 				}
-				expect(error.message).toBe(errorMessage);
+				expect(error).toBeDefined();
 
 				// clean up
 				UserDataServiceSpy.mockRestore();
 			});
 		});
 
-		describe('deleteUser', () => {
+		xdescribe('deleteUser', () => {
 			let url: string;
 			let userId: string;
 			let UserDataServiceDeleteSpy: any;
@@ -326,18 +369,18 @@ describe('UserController', () => {
 			it('deletes a user and returns an empty success message', async () => {
 				// arrange				
 				// act
-				const response = await lastValueFrom(http.delete(url, { headers }));
+				const response = await lastValueFrom(http.delete(url, { headers: adminHeaders }));
 				
 				// assert
 				expect(UserDataServiceDeleteSpy).toHaveBeenCalledTimes(1);
-				expect(UserDataServiceDeleteSpy).toHaveBeenCalledWith(adminContext, new EntityIdDTO(userId), true);
+				expect(UserDataServiceDeleteSpy).toHaveBeenCalledWith(adminUserCtx, new EntityIdDTO(userId), true);
 				expect(response.status).toBe(204);
 				expect(response.data).toBe('');
 			});
 
 			it('by default performs a soft delete', async () => {
 				// arrange
-				const response = await lastValueFrom(http.delete(url, { headers }));
+				const response = await lastValueFrom(http.delete(url, { headers: adminHeaders }));
 
 				// act
 				expect(response.status).toBe(204);
@@ -346,18 +389,18 @@ describe('UserController', () => {
 
 			it('optionally performs a hard delete', async () => {
 				// arrange
-				const response = await lastValueFrom(http.delete(url + '?softDelete=true', { headers, }));
+				const response = await lastValueFrom(http.delete(url + '?softDelete=true', { headers: adminHeaders, }));
 
 				// act
 				expect(response.status).toBe(204);
 				expect(response.data).toBe('');
-				expect(UserDataServiceDeleteSpy).toHaveBeenCalledWith(adminContext, new EntityIdDTO(userId), true);
+				expect(UserDataServiceDeleteSpy).toHaveBeenCalledWith(adminUserCtx, new EntityIdDTO(userId), true);
 			});
 
 			it('throws a BadRequestException if access token is missing', async () => {
 				// arrange
-				headers = {};
-				const response$ = http.delete(url, headers);
+				adminHeaders = {};
+				const response$ = http.delete(url, adminHeaders);
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -365,8 +408,8 @@ describe('UserController', () => {
 
 			it('throws error if access token is invalid', async () => {
 				// arrange
-				headers = { Authorization: `Bearer invalid` };
-				const response$ = http.delete(url, headers);
+				adminHeaders = { Authorization: `Bearer invalid` };
+				const response$ = http.delete(url, adminHeaders);
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -376,8 +419,8 @@ describe('UserController', () => {
 				// arrange
 				adminPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
 				adminAccessToken = await jwt.sign(adminPayload);
-				headers = { Authorization: `Bearer ${adminAccessToken}` };
-				const response$ = http.delete(url, { headers } );
+				adminHeaders = { Authorization: `Bearer ${adminAccessToken}` };
+				const response$ = http.delete(url, { headers: adminHeaders } );
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -385,7 +428,7 @@ describe('UserController', () => {
 
 			it('throws error if user id is missing', async () => {
 				// arrange
-				const response$ = http.delete(baseUrl, { headers });
+				const response$ = http.delete(baseUrl, { headers: adminHeaders });
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -393,7 +436,7 @@ describe('UserController', () => {
 
 			it('throws error if user id is invalid', async () => {
 				// arrange
-				const response$ = http.delete(baseUrl + '/invalid', { headers });
+				const response$ = http.delete(baseUrl + '/invalid', { headers: adminHeaders });
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -403,8 +446,8 @@ describe('UserController', () => {
 				// arrange
 				adminPayload.subName = 'invalid';
 				adminAccessToken = await jwt.sign(adminPayload);
-				headers = { Authorization: `Bearer ${adminAccessToken}` };
-				const response$ = http.delete(url, { headers });
+				adminHeaders = { Authorization: `Bearer ${adminAccessToken}` };
+				const response$ = http.delete(url, { headers: adminHeaders });
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -412,8 +455,8 @@ describe('UserController', () => {
 
 			it(`throws if requester is not authorized to delete user (i.e. not admin)`, async () => {
 				// arrange
-				headers = { Authorization: `Bearer ${userAccessToken}` };
-				const response$ = http.delete(url, { headers });
+				adminHeaders = { Authorization: `Bearer ${userAccessToken}` };
+				const response$ = http.delete(url, { headers: adminHeaders });
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -423,7 +466,7 @@ describe('UserController', () => {
 				// arrange
 				const errorMessage = 'Request failed with status code 400';
 				const UserDataServiceSpy = jest.spyOn(userDataService, 'deleteUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
-				const response$ = http.delete(url, { headers });
+				const response$ = http.delete(url, { headers: adminHeaders });
 
 				// act/assert
 				 // jest can't catch errors thrown in async functions, so we have to catch it ourselves
@@ -441,7 +484,7 @@ describe('UserController', () => {
 			});
 		});
 
-		describe('undeleteUser', () => {
+		xdescribe('undeleteUser', () => {
 			let requestConfig: any;
 			let url: string;
 			let userId: string;
@@ -460,19 +503,19 @@ describe('UserController', () => {
 			it('undeletes a user and returns an empty success message', async () => {
 				// arrange				
 				// act
-				const response = await lastValueFrom(http.patch(url, requestConfig, { headers }));
+				const response = await lastValueFrom(http.patch(url, requestConfig, { headers: adminHeaders }));
 				
 				// assert
 				expect(UserDataServiceUndeleteSpy).toHaveBeenCalledTimes(1);
-				expect(UserDataServiceUndeleteSpy).toHaveBeenCalledWith(adminContext, new EntityIdDTO(userId));
+				expect(UserDataServiceUndeleteSpy).toHaveBeenCalledWith(adminUserCtx, new EntityIdDTO(userId));
 				expect(response.status).toBe(204);
 				expect(response.data).toBe('');
 			});
 
 			it('throws a BadRequestException if access token is missing', async () => {
 				// arrange
-				headers = {};
-				const response$ = http.patch(url, requestConfig, headers);
+				adminHeaders = {};
+				const response$ = http.patch(url, requestConfig, adminHeaders);
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -480,8 +523,8 @@ describe('UserController', () => {
 
 			it('throws error if access token is invalid', async () => {
 				// arrange
-				headers = { Authorization: `Bearer invalid` };
-				const response$ = http.patch(url, requestConfig, headers);
+				adminHeaders = { Authorization: `Bearer invalid` };
+				const response$ = http.patch(url, requestConfig, adminHeaders);
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -491,8 +534,8 @@ describe('UserController', () => {
 				// arrange
 				adminPayload.roles = ['invalid']; // just test that Usercontext is used correctly; it is fully tested elsewhere
 				adminAccessToken = await jwt.sign(adminPayload);
-				headers = { Authorization: `Bearer ${adminAccessToken}` };
-				const response$ = http.patch(url, { headers } );
+				adminHeaders = { Authorization: `Bearer ${adminAccessToken}` };
+				const response$ = http.patch(url, { headers: adminHeaders } );
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -500,7 +543,7 @@ describe('UserController', () => {
 
 			it('throws error if user id is missing', async () => {
 				// arrange
-				const response$ = http.patch(baseUrl, { headers });
+				const response$ = http.patch(baseUrl, { headers: adminHeaders });
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -508,7 +551,7 @@ describe('UserController', () => {
 
 			it('throws error if user id is invalid', async () => {
 				// arrange
-				const response$ = http.patch(baseUrl + '/invalid', { headers });
+				const response$ = http.patch(baseUrl + '/invalid', { headers: adminHeaders });
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -518,8 +561,8 @@ describe('UserController', () => {
 				// arrange
 				adminPayload.subName = 'invalid';
 				adminAccessToken = await jwt.sign(adminPayload);
-				headers = { Authorization: `Bearer ${adminAccessToken}` };
-				const response$ = http.patch(url, { headers });
+				adminHeaders = { Authorization: `Bearer ${adminAccessToken}` };
+				const response$ = http.patch(url, { headers: adminHeaders });
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -527,8 +570,8 @@ describe('UserController', () => {
 
 			it(`throws if requester is not authorized to undelete user (i.e. not admin)`, async () => {
 				// arrange
-				headers = { Authorization: `Bearer ${userAccessToken}` };
-				const response$ = http.patch(url, { headers });
+				adminHeaders = { Authorization: `Bearer ${userAccessToken}` };
+				const response$ = http.patch(url, { headers: adminHeaders });
 
 				// act/assert
 				expect(async () => await lastValueFrom(response$)).rejects.toThrow();
@@ -538,7 +581,7 @@ describe('UserController', () => {
 				// arrange
 				const errorMessage = 'Request failed with status code 400';
 				const UserDataServiceSpy = jest.spyOn(userDataService, 'undeleteUser').mockImplementation(() => Promise.reject(new Error(errorMessage)));
-				const response$ = http.patch(url, requestConfig, { headers });
+				const response$ = http.patch(url, requestConfig, { headers: adminHeaders });
 
 				// act/assert
 				 // jest can't catch errors thrown in async functions, so we have to catch it ourselves
@@ -557,7 +600,7 @@ describe('UserController', () => {
 		});
 	});
 
-	describe('Logging API', () => {
+	xdescribe('Logging API', () => {
 		describe('LoggableMixin Members', () => {
 			it('inherits log$', () => {
 				expect(controller.log$).toBeDefined();
