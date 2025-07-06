@@ -1,6 +1,6 @@
 import { TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { ForbiddenException, INestApplication } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 
 import { jest } from '@jest/globals';
 import { of, Subject } from 'rxjs';
@@ -19,6 +19,7 @@ import ConditioningLogDTO from '../dtos/conditioning-log.dto';
 import { createTestingModule } from '../../test/test-utils';
 import CryptoService from '../../authentication/services/crypto/domain/crypto-service.model';
 import DomainTypeDTO from '../../shared/dtos/responses/domain-type.dto';
+import IncludeDeletedDTO from '../../shared/dtos/requests/include-deleted.dto';
 import JwtAuthGuard from '../../infrastructure/guards/jwt-auth.guard';
 import JwtAuthStrategy from '../../infrastructure/strategies/jwt-auth.strategy';
 import JwtSecretService from '../../authentication/services/jwt/jwt-secret.service';
@@ -27,12 +28,9 @@ import JsonWebtokenService from '../../authentication/services/jwt/json-webtoken
 import LogIdDTO from '../../shared/dtos/requests/log-id.dto';
 import { QueryDTO, QueryDTOProps } from '../../shared/dtos/responses/query.dto';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
-import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
 import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
+import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
 import UserRepository from '../../user/repositories/user.repo';
-import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
-import IncludeDeletedDTO from '../../shared/dtos/requests/include-deleted.dto';
-import e, { query } from 'express';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -49,13 +47,12 @@ import e, { query } from 'express';
   // Instead, these should be tested in e2e tests, where the controller is called over HTTP, activating all decorators and guards.
 
 describe('ConditioningController', () => {
-	let app: INestApplication;
+	// set up the testing module with the necessary imports, controllers, and providers
 	let controller: ConditioningController;
 	let service: ConditioningDataService;
 	let config: ConfigService;
 	let crypto: CryptoService;
 	let jwt: JwtService;
-	let baseUrl: string;
 	let userRepo: UserRepository;
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
@@ -126,21 +123,15 @@ describe('ConditioningController', () => {
 		}))
 		.compile();
 		
-		app = module.createNestApplication();
 		controller = module.get<ConditioningController>(ConditioningController);
 		service = module.get<ConditioningDataService>(ConditioningDataService);
 		config = module.get<ConfigService>(ConfigService);
 		crypto = module.get<CryptoService>(CryptoService);
 		jwt = module.get<JwtService>(JwtService);
 		userRepo = module.get<UserRepository>(UserRepository);
-
-		app.useGlobalPipes(new ValidationPipe());
-		await app.listen(0); // enter 0 to let the OS choose a free port
-
-		const port = app?.getHttpServer()?.address()?.port; // random port, e.g. 60703
-		baseUrl = `http://localhost:${port}/conditioning`; // prefix not applied during testing, so omit it
 	});
 
+	// set up test data
 	let adminAccessToken: string;
 	let adminMockRequest: any; // mock request object for testing purposes
 	let adminPayload: UserJwtPayload;
@@ -226,7 +217,7 @@ describe('ConditioningController', () => {
 	});
 
 	afterEach(() => {
-		app.close();
+		//app.close();
 		userRepoSpy && userRepoSpy.mockRestore();
 		jest.clearAllMocks();
 	});
@@ -590,8 +581,6 @@ describe('ConditioningController', () => {
 					let sourceLog : ConditioningLog<any, ConditioningLogDTO>;
 					let serviceSpy: any;
 					let newLogId: EntityId;
-					let url: string;
-					let urlPath: string;
 					beforeEach(() => {
 						newLogId = uuid();
 						sourceLog = ConditioningLog.create({
@@ -607,9 +596,6 @@ describe('ConditioningController', () => {
 								void ctx, userId, log; // suppress unused variable warning
 								return Promise.resolve(newLogId); // return the log
 							});
-
-						urlPath = `${baseUrl}/log/`;
-						url = urlPath + userContxt.userId;
 					});
 
 					afterEach(() => {

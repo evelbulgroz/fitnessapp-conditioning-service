@@ -38,7 +38,7 @@ import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
   // Instead, these should be tested in e2e tests, where the controller is called over HTTP, activating all decorators and guards.
 
 describe('UserController', () => {
-  	// Set up the testing module with the necessary imports, controllers, and providers
+  	// set up the testing module with the necessary imports, controllers, and providers
 	let controller: UserController;
 	let userDataService: UserDataService;
 	let config: ConfigService;
@@ -102,15 +102,7 @@ describe('UserController', () => {
 					}
 				}
 			],
-		}))
-		/* TODO: shift to this more compact form when shifting from e2e to unit tests
-		.overrideGuard(JwtAuthGuard)
-		.useValue({ canActivate: jest.fn(() => true) })
-		.overrideGuard(RolesGuard)
-		.useValue({ canActivate: jest.fn(() => true) })
-		.overrideGuard(LoggingGuard)
-		.useValue({ canActivate: jest.fn(() => true) })
-		*/
+		}))		
 		.compile();
 		
 		controller = module.get<UserController>(UserController);
