@@ -79,6 +79,7 @@ import QueryMapper from './mappers/query.mapper';
 		ConditioningLogRepository,
 		ConditioningLogUndeletedHandler,
 		ConditioningLogUpdatedHandler,
+		QueryMapper
 	],
 })
 export class ConditioningModule {	

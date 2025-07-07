@@ -22,10 +22,14 @@ import UserController from './user/controllers/user.controller';
 import AppDomainStateManager from './app-domain-state-manager';
 import { update } from 'lodash-es';
 import { ComponentState, DomainStateManager } from './libraries/managed-stateful-component';
+import { ConditioningLog, ConditioningLogDTO, QueryMapper } from './conditioning';
+import { Query } from '@evelbulgroz/query-fns';
+import QueryDTO from './shared/dtos/responses/query.dto';
 
 describe('AppModule', () => {
 	let appModule: AppModule;	
 	let authService: AuthService;
+	let queryMapper: QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>;
 	let registrationService: RegistrationService;
 	beforeEach(async () => {
 		const module: TestingModule = await (await createTestingModule({
@@ -118,6 +122,7 @@ describe('AppModule', () => {
 
 		appModule = module.get<AppModule>(AppModule);
 		authService = module.get<AuthService>(AuthService); // bug: returns the real AuthService, not the mock
+		queryMapper = module.get<QueryMapper<Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>, QueryDTO>>(QueryMapper);
 		registrationService = module.get<RegistrationService>(RegistrationService);
 		
 	});
