@@ -33,6 +33,7 @@ import EventDispatcherService from '../../../shared/services/utils/event-dispatc
 import NotFoundError from '../../../shared/domain/not-found.error';
 import PersistenceError from '../../../shared/domain/persistence.error';
 import { QueryDTO, QueryDTOProps } from '../../../shared/dtos/responses/query.dto';
+import { QueryType } from './conditioning-data.service';
 import UnauthorizedAccessError from '../../../shared/domain/unauthorized-access.error';
 import { User, UserDTO, UserPersistenceDTO, UserRepository, UserUpdatedEvent, UserCreatedHandler, UserUpdatedHandler, UserDeletedHandler } from '../../../user';
 import UserContext from '../../../shared/domain/user-context.model';
@@ -1852,7 +1853,8 @@ describe('ConditioningDataService', () => {
 
 		describe('fetchLogs', () => {
 			let allCachedLogs: ConditioningLog<any, ConditioningLogDTO>[];
-			let isAdmin: boolean;		
+			let isAdmin: boolean;
+			let query: QueryType;
 			let queryDTO: QueryDTO;
 			let queryDTOProps: QueryDTOProps;
 			let requestingUserId: EntityId;
@@ -1879,6 +1881,7 @@ describe('ConditioningDataService', () => {
 					//pageSize: 10,
 				};
 				queryDTO = new QueryDTO(queryDTOProps);
+				query = queryMapper.toDomain(queryDTO); // mapper excludes undefined properties
 
 				requestingUserId = normalUserCtx.userId;
 				targetUserId = randomUserId;
@@ -1910,7 +1913,7 @@ describe('ConditioningDataService', () => {
 				const matches = await service.fetchLogs(
 					requestingUserId, // defaults to normal user
 					targetUserId, // same user
-					queryDTO, // query to filter logs
+					query, // query to filter logs
 					// isAdmin defaults to false
 					// includeDeleted defaults to false
 				);					
@@ -1975,12 +1978,13 @@ describe('ConditioningDataService', () => {
 				const targetUser = users.find(user => user.userId !== normalUserCtx.userId)!;
 				targetUserId = targetUser.userId;
 				queryDTO.userId = targetUserId as unknown as string;
+				query = queryMapper.toDomain(queryDTO); // mapper excludes undefined properties
 				
 				// act/assert
 				expect(async () => await service.fetchLogs(
 					requestingUserId, // defaults to normal user
 					targetUserId, // any other user
-					queryDTO, // query to filter logs
+					query, // query to filter logs
 					// isAdmin defaults to false
 					// includeDeleted defaults to false
 				)).rejects.toThrow(UnauthorizedAccessError);
@@ -2013,14 +2017,14 @@ describe('ConditioningDataService', () => {
 				
 				const queryDtoClone = new QueryDTO(queryDTOProps);
 				queryDtoClone.userId = undefined; // logs don't have userId, so this should be ignored
-				const query = queryMapper.toDomain(queryDtoClone); // mapper excludes undefined properties
+				query = queryMapper.toDomain(queryDtoClone); // mapper excludes undefined properties
 				const expectedLogs = query.execute(allCachedLogs); // get matching logs from test data			
 							
 				// act
 				const allLogs = await service.fetchLogs(
 					requestingUserId, // admin user
 					undefined, // no target user, so all users
-					queryDTO, // query to filter logs
+					query, // query to filter logs
 					isAdmin, // isAdmin is true for admin user
 					// includeDeleted defaults to false
 				);

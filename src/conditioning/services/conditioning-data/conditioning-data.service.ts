@@ -9,7 +9,7 @@ import { LogLevel, StreamLoggable, StreamLoggableMixin } from '../../../librarie
 import { ManagedStatefulComponent, ManagedStatefulComponentMixin } from '../../../libraries/managed-stateful-component';
 
 import { Quantity } from '@evelbulgroz/quantity-class';
-import { Query } from '@evelbulgroz/query-fns';
+import { Query, SearchFilterCriterion } from '@evelbulgroz/query-fns';
 
 import AggregationQueryDTO from '../../dtos/aggregation-query.dto';
 import AggregatorService from '../aggregator/aggregator.service';
@@ -40,7 +40,7 @@ function compareLogsByStartDate(a: ConditioningLog<any, ConditioningLogDTO>, b: 
 /**
  * Represents a query for conditioning logs (typing shorthand)
  */
-type QueryType = Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>;
+export type QueryType = Query<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>;
 
 /**
  * Specifies the properties of a user logs cache entry
@@ -419,7 +419,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	public async fetchLogs(
 		requestingUserId: EntityId,
 		targetUserId?: EntityId,
-		queryDTO?: QueryDTO,
+		query?: QueryType,
 		isAdmin: boolean = false,
 		includeDeleted: boolean = false
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
@@ -434,10 +434,15 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		
 		// constrain searchable logs to single user unless user is admin
 		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];		
-		if (!isAdmin) { // if the user isn't an admin, they can only access their own logs
-			if (queryDTO?.userId && queryDTO.userId !== requestingUserId) { // if query specifies a different user id, throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${queryDTO.userId}.`);
-			}						
+		if (!isAdmin) { // if the user isn't an admin, prevent access to other users' logs
+			if (query !== undefined) { // if query is provided, check if it contains userId criteria
+				const userIdCriteria = this.getSearchCriteriaByKey('userId', query);
+				userIdCriteria?.forEach((criterion: SearchFilterCriterion<any,any>) => { // if criterion specifies a different user id, throw UnauthorizedAccessError
+					if (criterion.value && criterion.value !== requestingUserId) {
+						throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${criterion.value}.`);
+					}
+				});
+			}			
 			accessibleLogs = this.cache.value.find((entry) => entry.userId === targetUserId)?.logs ?? [];
 		}
 		else { // if the user is an admin, they can access all logs
@@ -445,11 +450,6 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		}
 
 		// filter logs by query, if provided, else use all accessible logs
-		let query: QueryType | undefined;
-		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
-			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
-			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
-		}
 		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
 
 		// filter out soft deleted logs, if not included
@@ -836,6 +836,18 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	}
 	
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
+
+	/* Get search criteria by key from query
+	 * @param key Key to search for in the query's search criteria
+	 * @param query Query to search in
+	 * @return Array of search criteria matching the key, or undefined if not found
+	 * @remark Used to extract specific search criteria from the query for further processing
+	 * @todo Move this to query-fns library, as a method of Query
+	 */
+	protected getSearchCriteriaByKey(key: string, query: QueryType): SearchFilterCriterion<any, any>[] | undefined {
+		const matches = query.searchCriteria?.filter((criterion: SearchFilterCriterion<any,any>) => criterion.key === key);
+		return matches && matches.length > 0 ? matches as SearchFilterCriterion<any, any>[]: undefined;
+	}
 
 	/*
 	 * Purge log from log repo that has been orphaned by failed user update (log creation helper)

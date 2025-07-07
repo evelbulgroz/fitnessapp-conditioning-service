@@ -1124,8 +1124,8 @@ describe('ConditioningController', () => {
 						expectedQuery = queryMapper.toDomain(queryDTO);
 						
 						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(
-							(requestingUserId: EntityId, targetUserId?: EntityId | undefined, queryDTO?: QueryDTO, isAdmin?: boolean, includeDeleted?: boolean) => {
-								void requestingUserId, targetUserId, queryDTO, isAdmin, includeDeleted; // suppress unused variable warning
+							(requestingUserId: EntityId, targetUserId?: EntityId | undefined, query?: QueryType, isAdmin?: boolean, includeDeleted?: boolean) => {
+								void requestingUserId, targetUserId, query, isAdmin, includeDeleted; // suppress unused variable warning
 								if (isAdmin) { // simulate an admin user requesting logs
 									return Promise.resolve([]); // return empty array for admin
 								}
