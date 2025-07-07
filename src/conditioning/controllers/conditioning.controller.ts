@@ -378,6 +378,9 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 
 	//---------------------------------- PUBLIC API: BATCH CRUD ---------------------------------//
 
+	/**
+	 * @todo Add support for querying multiple users's logs, not just single or all users.
+	 */
 	@Get('logs')
 	@ApiOperation({
 		summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)',
@@ -387,7 +390,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	})
 	@ApiQuery({
 		name: 'userId',
-		description: 'ID of user whose logs are being accessed (string or number, optional for admins)',
+		description: 'ID of user whose logs are being accessed (string or number, optional for admins who can access all users\' logs)',
 		required: false,
 		schema: {
 			type: 'string',
@@ -406,7 +409,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		required: false,
 		type: 'object',
 		schema: { $ref: getSchemaPath(QueryDTO) },
-		description: 'Optional query parameters for filtering logs.'
+		description: 'Optional query parameters for filtering logs. Should not include duplicate userId or includeDeleted, or request may fail.'
 	})
 	@ApiExtraModels(QueryDTO) // Trigger inclusion of QueryDTO in Swagger, getSchemaPath(QueryDTO) is not enough
 	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
@@ -423,8 +426,16 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			const isAdmin = userContext.roles.includes('admin'); // check if the user is an admin
 			
 			let query: QueryType | undefined;			
-			if (queryDTO && !queryDTO.isEmpty()) { // queryDTO always instantiated by NestJS, ignore if empty
-				query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+			if (queryDTO) { // queryDTO always instantiated by NestJS
+				// sanitize queryDTO to remove any properties that overlap
+				  // with other url query params but do not apply to logs
+				queryDTO.userId = undefined;
+				(queryDTO as any).includeDeleted = undefined; // not currently part of queryDTO, remove just in case
+				
+				// if queryDTO is not empty after cleanup, map it to a QueryType
+				if (!queryDTO.isEmpty()) {
+					query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+				}
 			}
 
 			return await this.dataService.fetchLogs(
@@ -513,7 +524,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	})
 	@ApiQuery({
 		name: 'userId',
-		description: 'ID of user whose logs are being accessed (string or number, optional for admins)',
+		description: 'ID of user whose logs to aggregate (string or number, optional for admins who can aggregate all users\' logs)',
 		required: false,
 		schema: {
 			type: 'string',
@@ -529,7 +540,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	})	
 	@ApiQuery({
 		name: 'queryDTO',
-		description: 'Optional query parameters for filtering logs to aggregate',
+		description: 'Optional query parameters for filtering logs to aggregate. Should not include duplicate userId or includeDeleted, or request may fail',
 		required: false,
 		type: 'object', schema: { $ref: getSchemaPath(QueryDTO) }
 	})
@@ -548,10 +559,19 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const isAdmin = userContext.roles.includes('admin'); // check if the user is an admin
 			
-			let query: QueryType | undefined;
-			if (queryDTO && !queryDTO?.isEmpty()) { // queryDTO always instantiated by NestJS, ignore if empty
-				query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+			let query: QueryType | undefined;			
+			if (queryDTO) { // queryDTO always instantiated by NestJS
+				// sanitize queryDTO to remove any properties that overlap
+				  // with other url query params but do not apply to logs
+				queryDTO.userId = undefined;
+				(queryDTO as any).includeDeleted = undefined; // not currently part of queryDTO, remove just in case
+				
+				// if queryDTO is not empty after cleanup, map it to a QueryType
+				if (!queryDTO.isEmpty()) {
+					query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+				}
 			}
+			
 			return this.dataService.fetchAggretagedLogs(
 				aggregationQueryDTO as any,
 				userContext.userId,

@@ -423,10 +423,10 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 
 		// filter logs by query, if provided, else use all accessible logs
 		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
-
+		
 		// filter out soft deleted logs, if not included
 		matchingLogs = matchingLogs.filter((log) => includeDeleted || !log.deletedOn );
-
+		
 		// sort logs ascending by start date and time, if no sort criteria provided
 		let sortedLogs = matchingLogs;
 		if (!query?.sortCriteria || query.sortCriteria.length === 0) {// default sort is ascending by start date and time
@@ -868,7 +868,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 */
 	protected getSearchCriteriaByKey(key: string, query: QueryType): SearchFilterCriterion<any, any>[] | undefined {
 		const matches = query.searchCriteria?.filter((criterion: SearchFilterCriterion<any,any>) => criterion.key === key);
-		return matches && matches.length > 0 ? matches as SearchFilterCriterion<any, any>[]: undefined;
+		return (matches && matches.length > 0) ? matches as SearchFilterCriterion<any, any>[]: undefined;
 	}
 
 	/*

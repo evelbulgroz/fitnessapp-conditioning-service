@@ -450,7 +450,6 @@ describe('ConditioningController', () => {
 					start: '2021-01-01',
 					end: '2021-12-31',
 					activity: ActivityType.MTB,
-					userId: userContxt.userId as unknown as string,
 					sortBy: 'duration',
 					order: 'ASC',
 					page: 1,
@@ -544,11 +543,7 @@ describe('ConditioningController', () => {
 			});
 
 			it('optionally gives admin users access to aggregate logs matching a query', async () => {
-				// arrange
-				queryDTOProps.userId = adminUserCtx.userId as unknown as string; // set userId to admin user id
-				queryDTO = new QueryDTO(queryDTOProps); // create query DTO with userId set to admin user id
-				query = queryMapper.toDomain(queryDTO); // convert to domain query
-
+				// arrange				
 				// act
 				const result = await controller.aggregate(
 					adminMockRequest,
@@ -608,691 +603,685 @@ describe('ConditioningController', () => {
 			// Roles validation is handled by the JWT auth guard, so defer this test to e2e tests
 		});
 
-		describe('logs', () => {
-			describe('single log', () => {
-				describe('createLog', () => {
-					let sourceLogDto: ConditioningLogDTO;
-					let sourceLog : ConditioningLog<any, ConditioningLogDTO>;
-					let serviceSpy: any;
-					let newLogId: EntityId;
-					beforeEach(() => {
-						newLogId = uuid();
-						sourceLog = ConditioningLog.create({
-							activity: ActivityType.SWIM,
-							isOverview: true,
-							duration: { value: 3600, unit: 's' },
-							className: 'ConditioningLog'
-						}).value as ConditioningLog<any, ConditioningLogDTO>;
-						sourceLogDto = sourceLog.toDTO();
+		describe('createLog', () => {
+			let sourceLogDto: ConditioningLogDTO;
+			let sourceLog : ConditioningLog<any, ConditioningLogDTO>;
+			let serviceSpy: any;
+			let newLogId: EntityId;
+			beforeEach(() => {
+				newLogId = uuid();
+				sourceLog = ConditioningLog.create({
+					activity: ActivityType.SWIM,
+					isOverview: true,
+					duration: { value: 3600, unit: 's' },
+					className: 'ConditioningLog'
+				}).value as ConditioningLog<any, ConditioningLogDTO>;
+				sourceLogDto = sourceLog.toDTO();
 
-						serviceSpy = jest.spyOn(service, 'createLog')
-							.mockImplementation((ctx: any, userId: EntityId, log: ConditioningLog<any,ConditioningLogDTO>) => {
-								void ctx, userId, log; // suppress unused variable warning
-								return Promise.resolve(newLogId); // return the log
-							});
+				serviceSpy = jest.spyOn(service, 'createLog')
+					.mockImplementation((ctx: any, userId: EntityId, log: ConditioningLog<any,ConditioningLogDTO>) => {
+						void ctx, userId, log; // suppress unused variable warning
+						return Promise.resolve(newLogId); // return the log
 					});
+			});
 
-					afterEach(() => {
-						serviceSpy && serviceSpy.mockRestore();
-						jest.clearAllMocks();
-					});
+			afterEach(() => {
+				serviceSpy && serviceSpy.mockRestore();
+				jest.clearAllMocks();
+			});
 
-					it('creates a new conditioning log for a user and returns its unique id', async () => {
-						// arrange						
-						// act
-						const result = await controller.createLog(
-							userMockRequest,
-							userIdDTO,
-							sourceLogDto
-						);
-						
-						// assert
-						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						
-						const params = serviceSpy.mock.calls[0];
-						const [requestingId, targetId, logData, isAdmin] = params;
-						
-						expect(requestingId).toEqual(userContxt.userId);
-						expect(targetId).toEqual(userId);
-						// Check only a sample of log properties
-						expect(logData.activity).toEqual(sourceLog.activity);
-						expect(logData.activityOrder).toEqual(sourceLog.activityOrder);
-						expect(logData.constructor.name).toEqual(sourceLog.constructor.name);
-						expect(logData.isOverview).toEqual(sourceLog.isOverview);						
-						expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
-						
-						expect(result).toEqual(newLogId);
-					});
+			it('creates a new conditioning log for a user and returns its unique id', async () => {
+				// arrange						
+				// act
+				const result = await controller.createLog(
+					userMockRequest,
+					userIdDTO,
+					sourceLogDto
+				);
+				
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				
+				const params = serviceSpy.mock.calls[0];
+				const [requestingId, targetId, logData, isAdmin] = params;
+				
+				expect(requestingId).toEqual(userContxt.userId);
+				expect(targetId).toEqual(userId);
+				// Check only a sample of log properties
+				expect(logData.activity).toEqual(sourceLog.activity);
+				expect(logData.activityOrder).toEqual(sourceLog.activityOrder);
+				expect(logData.constructor.name).toEqual(sourceLog.constructor.name);
+				expect(logData.isOverview).toEqual(sourceLog.isOverview);						
+				expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
+				
+				expect(result).toEqual(newLogId);
+			});
 
-					it('throws if user id is missing', async () => {
-						// arrange
-						userMockRequest.user = undefined; // simulate missing user id in request
+			it('throws if user id is missing', async () => {
+				// arrange
+				userMockRequest.user = undefined; // simulate missing user id in request
 
-						// act/assert
-						expect(async () => await controller.createLog(userMockRequest, undefined as any, sourceLogDto)).rejects.toThrow();
-					});
+				// act/assert
+				expect(async () => await controller.createLog(userMockRequest, undefined as any, sourceLogDto)).rejects.toThrow();
+			});
 
-					// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
+			// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
 
-					it('throws if log data is missing', async () => {
-						// arrange						
-						// act/assert
-						expect(async () => await controller.createLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
-					});
+			it('throws if log data is missing', async () => {
+				// arrange						
+				// act/assert
+				expect(async () => await controller.createLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
+			});
 
-					it('throws if log data is invalid', async () => {
-						// arrange
-						// act/assert
-						expect(async () => await controller.createLog(userMockRequest, userIdDTO, { activity: 'invalid' } as any)).rejects.toThrow();
-					});
+			it('throws if log data is invalid', async () => {
+				// arrange
+				// act/assert
+				expect(async () => await controller.createLog(userMockRequest, userIdDTO, { activity: 'invalid' } as any)).rejects.toThrow();
+			});
 
-					it('throws if data service rejects', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'createLog').mockImplementation(() => { return Promise.reject(new Error('Log not created')); });
-						
-						// act/assert
-						await expect(controller.createLog(userMockRequest, userIdDTO, sourceLogDto)).rejects.toThrow();
+			it('throws if data service rejects', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'createLog').mockImplementation(() => { return Promise.reject(new Error('Log not created')); });
+				
+				// act/assert
+				await expect(controller.createLog(userMockRequest, userIdDTO, sourceLogDto)).rejects.toThrow();
 
-						// Clean up
-						serviceSpy?.mockRestore();
-					});
+				// Clean up
+				serviceSpy?.mockRestore();
+			});
 
-					it('throws if data service throws', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'createLog').mockImplementation(() => { throw new Error('Test Error'); });
-						
-						// act/assert
-						await expect(controller.createLog(userMockRequest, userIdDTO, sourceLogDto)).rejects.toThrow();
+			it('throws if data service throws', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'createLog').mockImplementation(() => { throw new Error('Test Error'); });
+				
+				// act/assert
+				await expect(controller.createLog(userMockRequest, userIdDTO, sourceLogDto)).rejects.toThrow();
 
-						// Clean up
-						serviceSpy?.mockRestore();
-					});
-				});
+				// Clean up
+				serviceSpy?.mockRestore();
+			});
+		});
 
-				describe('fetchLog', () => {
-					let log: ConditioningLog<any, ConditioningLogDTO>;
-					let logId: EntityId;
-					let logIdDTO: LogIdDTO;
-					let serviceSpy: any;
-					beforeEach(() => {
-						log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
-						logId = uuid();
-						logIdDTO = new LogIdDTO(logId);
-						serviceSpy = jest.spyOn(service, 'fetchLog')
-							.mockImplementation((
-								requestingUserId: EntityId,
-								targetUserId: EntityId,
-								logId: EntityId,
-								isAdmin: boolean = false,
-								includeDeleted: boolean = false
-							) => {
-								void requestingUserId, targetUserId, logId, isAdmin, includeDeleted; // suppress unused variable warning
-								if (isAdmin) { // simulate an admin user requesting a log
-									return Promise.resolve(log); // return the log (admins can access all logs)
-								}
-								else { // simulate a normal user requesting a log
-									if (requestingUserId === targetUserId) { // simulate a normal user requesting their own log
-										return Promise.resolve(log); // return the log
-									}
-									else { // simulate a normal user requesting another user's log
-										throw new ForbiddenException('User not authorized to access log'); // throw an error
-									}
-								}
-								/*else { // simulate a user without any roles
-									throw new ForbiddenException('User not authorized to access log'); // throw an error
-								}*/				
-						});
-					});
-
-					afterEach(() => {
-						serviceSpy?.mockRestore();
-						jest.clearAllMocks();
-					});
-					
-					it('provides a detailed conditioning log', async () => {
-						// arrange
-						// act
-						const result = await controller.fetchLog(
-							userMockRequest,
-							userIdDTO,
-							logIdDTO
-						);
-
-						// assert
-						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						expect(serviceSpy).toHaveBeenCalledWith(
-							userContxt.userId, // user context
-							userId, // user id
-							logId, // log id
-							userContxt.roles.includes('admin'), // isAdmin
-							false // include deleted
-						);
-						
-						expect(result).toBeDefined();
-					});					
-
-					it('throws if user id is missing', async () => {
-						// arrange
-						userMockRequest.user = undefined; // simulate missing user id in request
-
-						// act/assert
-						expect(async () => await controller.fetchLog(userMockRequest, undefined as any, logIdDTO, )).rejects.toThrow();
-					});
-
-					// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
-
-					it('throws if log id is missing', async () => {
-						// arrange
-						// act/assert
-						expect(async () => await controller.fetchLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
-					});
-
-					// NOTE: Controller defers validation of extant log id to the data service, so this test is not needed
-
-					it('throws if data service rejects', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'fetchLog').mockImplementation(() => { return Promise.reject(new Error('Log not found')); });
-
-						// act/assert
-						expect(async () => await controller.fetchLog(userMockRequest, userIdDTO, logIdDTO)).rejects.toThrow();
-
-						// Clean up
-						serviceSpy?.mockRestore();
-					});
-
-					it('throws if data service throws', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'fetchLog').mockImplementation(() => { throw new Error('Test Error'); });
-
-						// act/assert
-						expect(async () => await controller.fetchLog(userMockRequest, userIdDTO, logIdDTO)).rejects.toThrow();
-
-						// Clean up
-						serviceSpy?.mockRestore();
-					});
-				});
-
-				describe('updateLog', () => {
-					let serviceSpy: any;
-					let updatedLogDto: ConditioningLogDTO;
-					let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
-					let updatedLogId: EntityId;
-					let updatedLogIdDTO: LogIdDTO;
-					beforeEach(() => {
-						updatedLogId = uuid();
-						updatedLogIdDTO = new LogIdDTO(updatedLogId);
-						updatedLog = ConditioningLog.create({
-							activity: ActivityType.SWIM,
-							isOverview: true,
-							duration: { value: 3600, unit: 's' },
-							className: 'ConditioningLog'
-						}).value as ConditioningLog<any, ConditioningLogDTO>;
-						updatedLogDto = updatedLog.toDTO();
-
-						serviceSpy = jest.spyOn(service, 'updateLog')
-							.mockImplementation((
-								requestingUserId: EntityId,
-									targetUserId: EntityId,
-									logId: EntityId,
-									log: Partial<ConditioningLog<any, ConditioningLogDTO>>,
-									isAdmin: boolean = false
-								) => {
-								void requestingUserId, targetUserId, logId, log, isAdmin; // suppress unused variable warning
-								return Promise.resolve(); // return nothing
+		describe('fetchLog', () => {
+			let log: ConditioningLog<any, ConditioningLogDTO>;
+			let logId: EntityId;
+			let logIdDTO: LogIdDTO;
+			let serviceSpy: any;
+			beforeEach(() => {
+				log = { activity: 'SWIM' } as unknown as ConditioningLog<any, ConditioningLogDTO>;
+				logId = uuid();
+				logIdDTO = new LogIdDTO(logId);
+				serviceSpy = jest.spyOn(service, 'fetchLog')
+					.mockImplementation((
+						requestingUserId: EntityId,
+						targetUserId: EntityId,
+						logId: EntityId,
+						isAdmin: boolean = false,
+						includeDeleted: boolean = false
+					) => {
+						void requestingUserId, targetUserId, logId, isAdmin, includeDeleted; // suppress unused variable warning
+						if (isAdmin) { // simulate an admin user requesting a log
+							return Promise.resolve(log); // return the log (admins can access all logs)
+						}
+						else { // simulate a normal user requesting a log
+							if (requestingUserId === targetUserId) { // simulate a normal user requesting their own log
+								return Promise.resolve(log); // return the log
 							}
-						);
-					});
-
-					afterEach(() => {
-						serviceSpy?.mockRestore();
-						jest.clearAllMocks();
-					});
-
-					it('updates an existing conditioning log', async () => {
-						// arrange
-						// act
-						const result = await controller.updateLog(
-							userMockRequest,
-							userIdDTO,
-							updatedLogIdDTO,
-							updatedLogDto
-						);
-
-						// assert
-						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						
-						const params = serviceSpy.mock.calls[0];
-						const [requestingId, targetId, logId, logData, isAdmin] = params;
-						
-						expect(requestingId).toEqual(userContxt.userId);
-						expect(targetId).toEqual(userId);
-						expect(logId).toEqual(updatedLogId);
-						// Check only a sample of log properties
-						expect(logData.activity).toEqual(updatedLog.activity);
-						expect(logData.activityOrder).toEqual(updatedLog.activityOrder);
-						expect(logData.constructor.name).toEqual(updatedLog.constructor.name);
-						expect(logData.isOverview).toEqual(updatedLog.isOverview);
-						expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
-						
-						expect(result).toBeUndefined(); // void response returned as undefined				
-					});
-
-					it('throws if user id is missing', async () => {
-						// arrange
-						userMockRequest.user = undefined; // simulate missing user id in request
-
-						// act/assert
-						expect(async () => await controller.updateLog(userMockRequest, undefined as any, updatedLogIdDTO, updatedLogDto)).rejects.toThrow();
-					});
-
-					// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
-
-					it('throws if log data is missing', async () => {
-						// arrange
-						
-						// act/assert
-						expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, undefined as any)).rejects.toThrow();
-					});
-
-					it('throws if log data is invalid', async () => {
-						// arrange
-						// act/assert
-						expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, { activity: 'invalid' } as any)).rejects.toThrow();
-					});
-
-					it('throws if data service rejects', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'updateLog').mockImplementation(() => { return Promise.reject(new Error('Log not updated')); });
-
-						// act/assert
-						expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, updatedLogDto)).rejects.toThrow();
-
-						// Clean up
-						serviceSpy?.mockRestore();
-					});
-
-					it('throws if data service throws', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'updateLog').mockImplementation(() => { throw new Error('Test Error'); });
-
-						// act/assert
-						expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, updatedLogDto)).rejects.toThrow();
-
-						// Clean up
-						serviceSpy?.mockRestore();
-					});
-				});
-
-				describe('deleteLog', () => {
-					let serviceSpy: any;
-					let deletedLogId: EntityId;
-					let deletedLogIdDTO: LogIdDTO;
-					beforeEach(() => {
-						deletedLogId = uuid();
-						deletedLogIdDTO = new LogIdDTO(deletedLogId);
-						serviceSpy = jest.spyOn(service, 'deleteLog')
-							.mockImplementation((
-								requestingUserId: EntityId,
-								targetUserId: EntityId,
-								logId: EntityId,
-								softDelete?: boolean,
-								isAdmin?: boolean
-							) => {
-								void requestingUserId, targetUserId, logId, softDelete, isAdmin; // suppress unused variable warning
-								return Promise.resolve(); // return nothing
+							else { // simulate a normal user requesting another user's log
+								throw new ForbiddenException('User not authorized to access log'); // throw an error
 							}
-						);
-					});
-
-					afterEach(() => {
-						serviceSpy && serviceSpy.mockRestore();
-						jest.clearAllMocks();
-					});
-
-					it('deletes an existing conditioning log', async () => {
-						// arrange						
-						// act
-						const result = await controller.deleteLog(
-							userMockRequest,
-							userIdDTO,
-							deletedLogIdDTO
-						);
-
-						// assert
-						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						
-						const params = serviceSpy.mock.calls[0];
-						const [requestingId, targetId, logId, softDelete, isAdmin] = params;
-						
-						expect(requestingId).toEqual(userContxt.userId);
-						expect(targetId).toEqual(userId);
-						expect(logId).toEqual(deletedLogId);
-						expect(softDelete).toBeUndefined();
-						expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
-
-						expect(result).toBeUndefined(); // void response returned as undefined
-					});
-
-					it('throws if user id is missing', async () => {
-						// arrange
-						userMockRequest.user = undefined; // simulate missing user id in request
-
-						// act/assert
-						expect(async () => await controller.deleteLog(userMockRequest, undefined as any, deletedLogIdDTO)).rejects.toThrow();
-					});
-
-					// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
-
-					it('throws if log id is missing', async () => {
-						// arrange
-						// act/assert
-						expect(async () => await controller.deleteLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
-					});
-
-					// NOTE: Controller defers validation of extant log id to the data service, so this test is not needed
-
-					it('throws if data service rejects', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'deleteLog').mockImplementation(() => { return Promise.reject(new Error('Log not deleted')); });
-						
-						// act/assert
-						expect(async () => await controller.deleteLog(userMockRequest, userIdDTO, deletedLogIdDTO)).rejects.toThrow();
-					});
-
-					it('throws if data service throws', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'deleteLog').mockImplementation(() => { throw new Error('Test Error'); });
-						
-						// act/assert
-						expect(async () => await controller.deleteLog(userMockRequest, userIdDTO, deletedLogIdDTO)).rejects.toThrow();
-					});
-				});
-
-				describe('undeleteLog', () => {
-					let serviceSpy: any;
-					let undeletedLogId: EntityId;
-					let undeletedLogIdDTO: LogIdDTO;
-					beforeEach(() => {
-						undeletedLogId = uuid();
-						undeletedLogIdDTO = new LogIdDTO(undeletedLogId);
-						serviceSpy = jest.spyOn(service, 'undeleteLog')
-							.mockImplementation((
-								requestingUserId: EntityId,
-								targetUserId: EntityId,
-								logId: EntityId,
-								isAdmin?: boolean
-							) => {
-								void requestingUserId, targetUserId, logId, isAdmin; // suppress unused variable warning
-								return Promise.resolve(); // return nothing
-							}
-						);
-					});
-
-					afterEach(() => {
-						serviceSpy?.mockRestore();
-						jest.clearAllMocks();
-					});
-
-					it('undeletes a soft deleted conditioning log', async () => {
-						// arrange
-						
-						// act
-						const result = await controller.undeleteLog(
-							userMockRequest,
-							userIdDTO,
-							undeletedLogIdDTO
-						);
-							
-						// assert
-						expect(serviceSpy).toHaveBeenCalledTimes(1);
-
-						const params = serviceSpy.mock.calls[0];
-						const [requestingId, targetId, logId, isAdmin] = params;
-
-						expect(requestingId).toEqual(userContxt.userId);
-						expect(targetId).toEqual(userContxt.userId);
-						expect(logId).toEqual(undeletedLogId);
-						expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
-						
-						expect(result).toBeUndefined(); // void response returned as undefined
-					});
-
-					it('throws if user id is missing', async () => {
-						// arrange
-						userMockRequest.user = undefined; // simulate missing user id in request
-						
-						// act/assert
-						expect(async () => await controller.undeleteLog(userMockRequest, undefined as any, undeletedLogIdDTO)).rejects.toThrow();
-					});
-
-					// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
-
-					it('throws if log id is missing', async () => {
-						// arrange
-						// act/assert
-						expect(async () => await controller.undeleteLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
-					});
-
-					// NOTE: Controller defers validation of extant log id to the data service, so this test is not needed
-
-					it('throws if data service rejects', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'undeleteLog').mockImplementation(() => { return Promise.reject(new Error('Log not undeleted')); });
-						
-						// act/assert
-						await expect(controller.undeleteLog(userMockRequest, userIdDTO, undeletedLogIdDTO)).rejects.toThrow();
-
-						// Clean up
-						serviceSpy?.mockRestore();
-					});
-
-					it('throws if data service throws', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'undeleteLog').mockImplementation(() => { throw new Error('Test Error'); });
-						
-						// act/assert
-						await expect(controller.undeleteLog(userMockRequest, userIdDTO, undeletedLogIdDTO)).rejects.toThrow();
-
-						// Clean up
-						serviceSpy?.mockRestore();
-					});
+						}
+						/*else { // simulate a user without any roles
+							throw new ForbiddenException('User not authorized to access log'); // throw an error
+						}*/				
 				});
 			});
+
+			afterEach(() => {
+				serviceSpy?.mockRestore();
+				jest.clearAllMocks();
+			});
+			
+			it('provides a detailed conditioning log', async () => {
+				// arrange
+				// act
+				const result = await controller.fetchLog(
+					userMockRequest,
+					userIdDTO,
+					logIdDTO
+				);
+
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				expect(serviceSpy).toHaveBeenCalledWith(
+					userContxt.userId, // user context
+					userId, // user id
+					logId, // log id
+					userContxt.roles.includes('admin'), // isAdmin
+					false // include deleted
+				);
+				
+				expect(result).toBeDefined();
+			});					
+
+			it('throws if user id is missing', async () => {
+				// arrange
+				userMockRequest.user = undefined; // simulate missing user id in request
+
+				// act/assert
+				expect(async () => await controller.fetchLog(userMockRequest, undefined as any, logIdDTO, )).rejects.toThrow();
+			});
+
+			// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
+
+			it('throws if log id is missing', async () => {
+				// arrange
+				// act/assert
+				expect(async () => await controller.fetchLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
+			});
+
+			// NOTE: Controller defers validation of extant log id to the data service, so this test is not needed
+
+			it('throws if data service rejects', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'fetchLog').mockImplementation(() => { return Promise.reject(new Error('Log not found')); });
+
+				// act/assert
+				expect(async () => await controller.fetchLog(userMockRequest, userIdDTO, logIdDTO)).rejects.toThrow();
+
+				// Clean up
+				serviceSpy?.mockRestore();
+			});
+
+			it('throws if data service throws', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'fetchLog').mockImplementation(() => { throw new Error('Test Error'); });
+
+				// act/assert
+				expect(async () => await controller.fetchLog(userMockRequest, userIdDTO, logIdDTO)).rejects.toThrow();
+
+				// Clean up
+				serviceSpy?.mockRestore();
+			});
+		});
+
+		describe('updateLog', () => {
+			let serviceSpy: any;
+			let updatedLogDto: ConditioningLogDTO;
+			let updatedLog: ConditioningLog<any, ConditioningLogDTO>;
+			let updatedLogId: EntityId;
+			let updatedLogIdDTO: LogIdDTO;
+			beforeEach(() => {
+				updatedLogId = uuid();
+				updatedLogIdDTO = new LogIdDTO(updatedLogId);
+				updatedLog = ConditioningLog.create({
+					activity: ActivityType.SWIM,
+					isOverview: true,
+					duration: { value: 3600, unit: 's' },
+					className: 'ConditioningLog'
+				}).value as ConditioningLog<any, ConditioningLogDTO>;
+				updatedLogDto = updatedLog.toDTO();
+
+				serviceSpy = jest.spyOn(service, 'updateLog')
+					.mockImplementation((
+						requestingUserId: EntityId,
+							targetUserId: EntityId,
+							logId: EntityId,
+							log: Partial<ConditioningLog<any, ConditioningLogDTO>>,
+							isAdmin: boolean = false
+						) => {
+						void requestingUserId, targetUserId, logId, log, isAdmin; // suppress unused variable warning
+						return Promise.resolve(); // return nothing
+					}
+				);
+			});
+
+			afterEach(() => {
+				serviceSpy?.mockRestore();
+				jest.clearAllMocks();
+			});
+
+			it('updates an existing conditioning log', async () => {
+				// arrange
+				// act
+				const result = await controller.updateLog(
+					userMockRequest,
+					userIdDTO,
+					updatedLogIdDTO,
+					updatedLogDto
+				);
+
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				
+				const params = serviceSpy.mock.calls[0];
+				const [requestingId, targetId, logId, logData, isAdmin] = params;
+				
+				expect(requestingId).toEqual(userContxt.userId);
+				expect(targetId).toEqual(userId);
+				expect(logId).toEqual(updatedLogId);
+				// Check only a sample of log properties
+				expect(logData.activity).toEqual(updatedLog.activity);
+				expect(logData.activityOrder).toEqual(updatedLog.activityOrder);
+				expect(logData.constructor.name).toEqual(updatedLog.constructor.name);
+				expect(logData.isOverview).toEqual(updatedLog.isOverview);
+				expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
+				
+				expect(result).toBeUndefined(); // void response returned as undefined				
+			});
+
+			it('throws if user id is missing', async () => {
+				// arrange
+				userMockRequest.user = undefined; // simulate missing user id in request
+
+				// act/assert
+				expect(async () => await controller.updateLog(userMockRequest, undefined as any, updatedLogIdDTO, updatedLogDto)).rejects.toThrow();
+			});
+
+			// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
+
+			it('throws if log data is missing', async () => {
+				// arrange
+				
+				// act/assert
+				expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, undefined as any)).rejects.toThrow();
+			});
+
+			it('throws if log data is invalid', async () => {
+				// arrange
+				// act/assert
+				expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, { activity: 'invalid' } as any)).rejects.toThrow();
+			});
+
+			it('throws if data service rejects', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'updateLog').mockImplementation(() => { return Promise.reject(new Error('Log not updated')); });
+
+				// act/assert
+				expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, updatedLogDto)).rejects.toThrow();
+
+				// Clean up
+				serviceSpy?.mockRestore();
+			});
+
+			it('throws if data service throws', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'updateLog').mockImplementation(() => { throw new Error('Test Error'); });
+
+				// act/assert
+				expect(async () => await controller.updateLog(userMockRequest, userIdDTO, updatedLogIdDTO, updatedLogDto)).rejects.toThrow();
+
+				// Clean up
+				serviceSpy?.mockRestore();
+			});
+		});
+
+		describe('deleteLog', () => {
+			let serviceSpy: any;
+			let deletedLogId: EntityId;
+			let deletedLogIdDTO: LogIdDTO;
+			beforeEach(() => {
+				deletedLogId = uuid();
+				deletedLogIdDTO = new LogIdDTO(deletedLogId);
+				serviceSpy = jest.spyOn(service, 'deleteLog')
+					.mockImplementation((
+						requestingUserId: EntityId,
+						targetUserId: EntityId,
+						logId: EntityId,
+						softDelete?: boolean,
+						isAdmin?: boolean
+					) => {
+						void requestingUserId, targetUserId, logId, softDelete, isAdmin; // suppress unused variable warning
+						return Promise.resolve(); // return nothing
+					}
+				);
+			});
+
+			afterEach(() => {
+				serviceSpy && serviceSpy.mockRestore();
+				jest.clearAllMocks();
+			});
+
+			it('deletes an existing conditioning log', async () => {
+				// arrange						
+				// act
+				const result = await controller.deleteLog(
+					userMockRequest,
+					userIdDTO,
+					deletedLogIdDTO
+				);
+
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				
+				const params = serviceSpy.mock.calls[0];
+				const [requestingId, targetId, logId, softDelete, isAdmin] = params;
+				
+				expect(requestingId).toEqual(userContxt.userId);
+				expect(targetId).toEqual(userId);
+				expect(logId).toEqual(deletedLogId);
+				expect(softDelete).toBeUndefined();
+				expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
+
+				expect(result).toBeUndefined(); // void response returned as undefined
+			});
+
+			it('throws if user id is missing', async () => {
+				// arrange
+				userMockRequest.user = undefined; // simulate missing user id in request
+
+				// act/assert
+				expect(async () => await controller.deleteLog(userMockRequest, undefined as any, deletedLogIdDTO)).rejects.toThrow();
+			});
+
+			// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
+
+			it('throws if log id is missing', async () => {
+				// arrange
+				// act/assert
+				expect(async () => await controller.deleteLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
+			});
+
+			// NOTE: Controller defers validation of extant log id to the data service, so this test is not needed
+
+			it('throws if data service rejects', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'deleteLog').mockImplementation(() => { return Promise.reject(new Error('Log not deleted')); });
+				
+				// act/assert
+				expect(async () => await controller.deleteLog(userMockRequest, userIdDTO, deletedLogIdDTO)).rejects.toThrow();
+			});
+
+			it('throws if data service throws', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'deleteLog').mockImplementation(() => { throw new Error('Test Error'); });
+				
+				// act/assert
+				expect(async () => await controller.deleteLog(userMockRequest, userIdDTO, deletedLogIdDTO)).rejects.toThrow();
+			});
+		});
+
+		describe('undeleteLog', () => {
+			let serviceSpy: any;
+			let undeletedLogId: EntityId;
+			let undeletedLogIdDTO: LogIdDTO;
+			beforeEach(() => {
+				undeletedLogId = uuid();
+				undeletedLogIdDTO = new LogIdDTO(undeletedLogId);
+				serviceSpy = jest.spyOn(service, 'undeleteLog')
+					.mockImplementation((
+						requestingUserId: EntityId,
+						targetUserId: EntityId,
+						logId: EntityId,
+						isAdmin?: boolean
+					) => {
+						void requestingUserId, targetUserId, logId, isAdmin; // suppress unused variable warning
+						return Promise.resolve(); // return nothing
+					}
+				);
+			});
+
+			afterEach(() => {
+				serviceSpy?.mockRestore();
+				jest.clearAllMocks();
+			});
+
+			it('undeletes a soft deleted conditioning log', async () => {
+				// arrange
+				
+				// act
+				const result = await controller.undeleteLog(
+					userMockRequest,
+					userIdDTO,
+					undeletedLogIdDTO
+				);
+					
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+
+				const params = serviceSpy.mock.calls[0];
+				const [requestingId, targetId, logId, isAdmin] = params;
+
+				expect(requestingId).toEqual(userContxt.userId);
+				expect(targetId).toEqual(userContxt.userId);
+				expect(logId).toEqual(undeletedLogId);
+				expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
+				
+				expect(result).toBeUndefined(); // void response returned as undefined
+			});
+
+			it('throws if user id is missing', async () => {
+				// arrange
+				userMockRequest.user = undefined; // simulate missing user id in request
+				
+				// act/assert
+				expect(async () => await controller.undeleteLog(userMockRequest, undefined as any, undeletedLogIdDTO)).rejects.toThrow();
+			});
+
+			// NOTE: Controller defers validation of extant user id to the data service, so this test is not needed
+
+			it('throws if log id is missing', async () => {
+				// arrange
+				// act/assert
+				expect(async () => await controller.undeleteLog(userMockRequest, userIdDTO, undefined as any)).rejects.toThrow();
+			});
+
+			// NOTE: Controller defers validation of extant log id to the data service, so this test is not needed
+
+			it('throws if data service rejects', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'undeleteLog').mockImplementation(() => { return Promise.reject(new Error('Log not undeleted')); });
+				
+				// act/assert
+				await expect(controller.undeleteLog(userMockRequest, userIdDTO, undeletedLogIdDTO)).rejects.toThrow();
+
+				// Clean up
+				serviceSpy?.mockRestore();
+			});
+
+			it('throws if data service throws', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'undeleteLog').mockImplementation(() => { throw new Error('Test Error'); });
+				
+				// act/assert
+				await expect(controller.undeleteLog(userMockRequest, userIdDTO, undeletedLogIdDTO)).rejects.toThrow();
+
+				// Clean up
+				serviceSpy?.mockRestore();
+			});
+		});
 		
-			describe('multiple logs', () => {
-				describe('fetchLogs', () => {
-					let adminContext: UserContext;
-					let serviceSpy: any;
-					let expectedQuery: QueryType;
-					let queryDTO: QueryDTO;
-					let queryDTOProps: QueryDTOProps;
-					let userIdDTO: UserIdDTO;
-					beforeEach(() => {
-						adminContext = new UserContext(adminProps);
+		describe('fetchLogs', () => {
+			let adminContext: UserContext;
+			let serviceSpy: any;
+			let expectedQuery: QueryType;
+			let queryDTO: QueryDTO;
+			let queryDTOProps: QueryDTOProps;
+			let userIdDTO: UserIdDTO;
+			beforeEach(() => {
+				adminContext = new UserContext(adminProps);
 
-						queryDTOProps = {
-							start: '2021-01-01',
-							end: '2021-12-31',
-							activity: ActivityType.MTB,
-							sortBy: 'duration',
-							order: 'ASC',
-							page: 1,
-							pageSize: 10,
-						};
-						queryDTO = new QueryDTO(queryDTOProps);
-						expectedQuery = queryMapper.toDomain(queryDTO);
-						
-						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(
-							(requestingUserId: EntityId, targetUserId?: EntityId | undefined, query?: QueryType, isAdmin?: boolean, includeDeleted?: boolean) => {
-								void requestingUserId, targetUserId, query, isAdmin, includeDeleted; // suppress unused variable warning
-								if (isAdmin) { // simulate an admin user requesting logs
-									return Promise.resolve([]); // return empty array for admin
-								}
-								else { // simulate a normal user requesting logs
-									if (requestingUserId === targetUserId) { // simulate a normal user requesting their own logs
-										return Promise.resolve([]); // return empty array for user
-									}
-									else { // simulate a normal user requesting another user's logs
-										throw new ForbiddenException('User not authorized to access logs'); // throw an error
-									}
-								}
-								/*else { // simulate a user without any roles
-									throw new ForbiddenException('User not authorized to access logs'); // throw an error
-								}*/
+				queryDTOProps = {
+					start: '2021-01-01',
+					end: '2021-12-31',
+					activity: ActivityType.MTB,
+					sortBy: 'duration',
+					order: 'ASC',
+					page: 1,
+					pageSize: 10,
+				};
+				queryDTO = new QueryDTO(queryDTOProps);
+				expectedQuery = queryMapper.toDomain(queryDTO);
+				
+				serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(
+					(requestingUserId: EntityId, targetUserId?: EntityId | undefined, query?: QueryType, isAdmin?: boolean, includeDeleted?: boolean) => {
+						void requestingUserId, targetUserId, query, isAdmin, includeDeleted; // suppress unused variable warning
+						if (isAdmin) { // simulate an admin user requesting logs
+							return Promise.resolve([]); // return empty array for admin
+						}
+						else { // simulate a normal user requesting logs
+							if (requestingUserId === targetUserId) { // simulate a normal user requesting their own logs
+								return Promise.resolve([]); // return empty array for user
 							}
-						);
-						
-						userIdDTO = new UserIdDTO(userContxt.userId);
-					});
+							else { // simulate a normal user requesting another user's logs
+								throw new ForbiddenException('User not authorized to access logs'); // throw an error
+							}
+						}
+						/*else { // simulate a user without any roles
+							throw new ForbiddenException('User not authorized to access logs'); // throw an error
+						}*/
+					}
+				);
+				
+				userIdDTO = new UserIdDTO(userContxt.userId);
+			});
 
-					afterEach(() => {
-						serviceSpy && serviceSpy.mockRestore();
-						jest.clearAllMocks();
-					});
+			afterEach(() => {
+				serviceSpy && serviceSpy.mockRestore();
+				jest.clearAllMocks();
+			});
 
-					it('gives normal users access to a collection of all their conditioning logs', async () => {
-						// arrange
-						// act
-						const result = await controller.fetchLogs(
-							userMockRequest,
-							userIdDTO,
-							//includeDeletedDTO,
-							//queryDTO
-						);
-						
-						// assert
-						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						expect(serviceSpy).toHaveBeenCalledWith(userContxt.userId, userIdDTO.value, undefined, false, false);
+			it('gives normal users access to a collection of all their conditioning logs', async () => {
+				// arrange
+				// act
+				const result = await controller.fetchLogs(
+					userMockRequest,
+					userIdDTO,
+					//includeDeletedDTO,
+					//queryDTO
+				);
+				
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				expect(serviceSpy).toHaveBeenCalledWith(userContxt.userId, userIdDTO.value, undefined, false, false);
 
-						expect(result).toBeDefined();
-						expect(result).toBeInstanceOf(Array);
-						expect(result.length).toBe(0); // since we mocked the service to return an empty array
-					});
+				expect(result).toBeDefined();
+				expect(result).toBeInstanceOf(Array);
+				expect(result.length).toBe(0); // since we mocked the service to return an empty array
+			});
 
-					it('optionally gives normal users access to their logs matching a query', async () => {
-						// arrange
-						// act
-						const result = await controller.fetchLogs(
-							userMockRequest,
-							userIdDTO,
-							undefined, // includeDeletedDTO,
-							queryDTO
-						);
-						
-						// assert
-						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						expect(serviceSpy).toHaveBeenCalledWith(
-							userContxt.userId,
-							userIdDTO.value,
-							expectedQuery,
-							false,
-							false
-						);
+			it('optionally gives normal users access to their logs matching a query', async () => {
+				// arrange
+				// act
+				const result = await controller.fetchLogs(
+					userMockRequest,
+					userIdDTO,
+					undefined, // includeDeletedDTO,
+					queryDTO
+				);
+				
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				expect(serviceSpy).toHaveBeenCalledWith(
+					userContxt.userId,
+					userIdDTO.value,
+					expectedQuery,
+					false,
+					false
+				);
 
-						expect(result).toBeDefined();
-						expect(result).toBeInstanceOf(Array);
-						expect(result.length).toBe(0); // since we mocked the service to return an empty array
-					});
+				expect(result).toBeDefined();
+				expect(result).toBeInstanceOf(Array);
+				expect(result.length).toBe(0); // since we mocked the service to return an empty array
+			});
 
-					it('gives admin users access to all logs for all users', async () => {
-						// arrange
-						// act
-						const result = await controller.fetchLogs(
-							adminMockRequest,
-							adminUserIdDTO,
-							// includeDeletedDTO,
-							// queryDTO
-						);
+			it('gives admin users access to all logs for all users', async () => {
+				// arrange
+				// act
+				const result = await controller.fetchLogs(
+					adminMockRequest,
+					adminUserIdDTO,
+					// includeDeletedDTO,
+					// queryDTO
+				);
 
-						// assert
-						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						expect(serviceSpy).toHaveBeenCalledWith(adminContext.userId, adminUserIdDTO.value, undefined, true, false);
-					});
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				expect(serviceSpy).toHaveBeenCalledWith(adminContext.userId, adminUserIdDTO.value, undefined, true, false);
+			});
 
-					it('optionally gives admin users access to all logs matching a query', async () => {
-						// arrange						
-						// act
-						const result = await controller.fetchLogs(
-							adminMockRequest,
-							adminUserIdDTO,
-							undefined, // includeDeletedDTO,
-							queryDTO
-						);
+			it('optionally gives admin users access to all logs matching a query', async () => {
+				// arrange						
+				// act
+				const result = await controller.fetchLogs(
+					adminMockRequest,
+					adminUserIdDTO,
+					undefined, // includeDeletedDTO,
+					queryDTO
+				);
 
-						// assert
-						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						expect(serviceSpy).toHaveBeenCalledWith(
-							adminContext.userId,
-							adminUserIdDTO.value,
-							expectedQuery,
-							true, // isAdmin
-							false // includeDeleted
-						);
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				expect(serviceSpy).toHaveBeenCalledWith(
+					adminContext.userId,
+					adminUserIdDTO.value,
+					expectedQuery,
+					true, // isAdmin
+					false // includeDeleted
+				);
 
-						expect(result).toBeDefined();
-						expect(result).toBeInstanceOf(Array);
-						expect(result.length).toBe(0); // since we mocked the service to return an empty array
-					});
+				expect(result).toBeDefined();
+				expect(result).toBeInstanceOf(Array);
+				expect(result.length).toBe(0); // since we mocked the service to return an empty array
+			});
 
-					it('does not pass empty query to the data service', async () => {
-						// arrange
-						// act
-						const result = await controller.fetchLogs(
-							userMockRequest,
-							userIdDTO,
-							undefined, // includeDeletedDTO,
-							new QueryDTO({}) // simulate an empty query submitted in the request
-						);
+			it('does not pass empty query to the data service', async () => {
+				// arrange
+				// act
+				const result = await controller.fetchLogs(
+					userMockRequest,
+					userIdDTO,
+					undefined, // includeDeletedDTO,
+					new QueryDTO({}) // simulate an empty query submitted in the request
+				);
 
-						// assert
-						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						expect(serviceSpy).toHaveBeenCalledWith(
-							userContxt.userId,
-							userIdDTO.value,
-							undefined,
-							false,
-							false
-						);
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				expect(serviceSpy).toHaveBeenCalledWith(
+					userContxt.userId,
+					userIdDTO.value,
+					undefined,
+					false,
+					false
+				);
 
-						expect(result).toBeDefined();
-						expect(result).toBeInstanceOf(Array);
-						expect(result.length).toBe(0); // since we mocked the service to return an empty array
-					});
+				expect(result).toBeDefined();
+				expect(result).toBeInstanceOf(Array);
+				expect(result.length).toBe(0); // since we mocked the service to return an empty array
+			});
 
-					it('throws error if data service rejects', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(() => { return Promise.reject(new Error('Logs not found')); });
-						
-						// act/assert
-						await expect(controller.fetchLogs(userMockRequest, userIdDTO, undefined, queryDTO)).rejects.toThrow();
+			it('throws error if data service rejects', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(() => { return Promise.reject(new Error('Logs not found')); });
+				
+				// act/assert
+				await expect(controller.fetchLogs(userMockRequest, userIdDTO, undefined, queryDTO)).rejects.toThrow();
 
-						// cleanup
-						serviceSpy?.mockRestore();
-					});
+				// cleanup
+				serviceSpy?.mockRestore();
+			});
 
-					it('throws error if data service throws', async () => {
-						// arrange
-						serviceSpy.mockRestore();
-						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(() => { throw new Error('Test Error'); });
-						
-						// act/assert
-						await expect(controller.fetchLogs(userMockRequest, userIdDTO, undefined, queryDTO)).rejects.toThrow();
+			it('throws error if data service throws', async () => {
+				// arrange
+				serviceSpy.mockRestore();
+				serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(() => { throw new Error('Test Error'); });
+				
+				// act/assert
+				await expect(controller.fetchLogs(userMockRequest, userIdDTO, undefined, queryDTO)).rejects.toThrow();
 
-						// cleanup
-						serviceSpy?.mockRestore();
-					});
-				});
+				// cleanup
+				serviceSpy?.mockRestore();
 			});
 		});
 
