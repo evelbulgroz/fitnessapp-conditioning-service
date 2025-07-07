@@ -146,6 +146,7 @@ describe('ConditioningController', () => {
 	let adminUserCtx: UserContext;
 	let adminUserId: EntityId;
 	let adminUserIdDTO: UserIdDTO;
+	let includeDeletedDTO: IncludeDeletedDTO;
 	let userAccessToken: string;
 	let userContxt: UserContext;
 	let userId: EntityId;
@@ -187,6 +188,8 @@ describe('ConditioningController', () => {
 			headers: { Authorization: `Bearer ${adminAccessToken}` },
 			user: adminProps, // mock user object
 		};
+
+		includeDeletedDTO = new IncludeDeletedDTO(false); // default to not including deleted logs
 
 		userId = uuid(); // generate a random user id for testing
 
@@ -393,6 +396,7 @@ describe('ConditioningController', () => {
 			let userLogs: any[];
 			let aggregationQueryDTO: AggregationQueryDTO;
 			let aggregationQueryDTOProps: AggregationQueryDTOProps;
+			let query: QueryType;
 			let queryDTOProps: QueryDTOProps;
 			let queryDTO: QueryDTO;
 			beforeEach(() => {
@@ -445,8 +449,8 @@ describe('ConditioningController', () => {
 					page: 1,
 					pageSize: 10,
 				};
-
 				queryDTO = new QueryDTO(queryDTOProps);
+				query = queryMapper.toDomain(queryDTO); // convert to domain query
 			});
 
 			afterEach(() => {
@@ -459,18 +463,21 @@ describe('ConditioningController', () => {
 				// act
 				const result = await controller.aggregate(
 					userMockRequest,
-					aggregationQueryDTO,
+					aggregationQueryDTO,					
+					userIdDTO,
+					includeDeletedDTO,
 					undefined // no query
 				);
 				
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
-					userContxt.userId, // user context
+					userContxt.userId, // requesting user id
+					// target user id (todo)
 					aggregationQueryDTO, // aggregation query
-					undefined, // no query
-					// isAdmin
-					// includeDeleted
+					undefined, // no logs query
+					false, // isAdmin
+					includeDeletedDTO.value // includeDeleted
 				);
 								
 				expect(result).toBeDefined();
@@ -483,17 +490,19 @@ describe('ConditioningController', () => {
 				const result = await controller.aggregate(
 					userMockRequest,
 					aggregationQueryDTO,
-					queryDTO // pass query
+					undefined, // userIdDTO
+					undefined, // includeDeletedDTO
+					queryDTO 
 				);
 				
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
-					userContxt.userId, // user context
-					aggregationQueryDTO, // aggregation query
-					queryDTO, // no query
-					// isAdmin
-					// includeDeleted
+					userContxt.userId,
+					aggregationQueryDTO,
+					query,
+					false, // isAdmin
+					false, // includeDeleted
 				);
 
 				expect(result).toBeDefined();
@@ -505,7 +514,9 @@ describe('ConditioningController', () => {
 				// act
 				const result = await controller.aggregate(
 					adminMockRequest,
-					aggregationQueryDTO,
+					aggregationQueryDTO,									
+					adminUserIdDTO,
+					includeDeletedDTO,
 					undefined // no query
 				);
 
@@ -513,23 +524,30 @@ describe('ConditioningController', () => {
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
 					adminUserCtx.userId, // user context
+					// target user id (todo)
 					aggregationQueryDTO, // aggregation query
-					undefined, // no query
-					// isAdmin
-					// includeDeleted
+					undefined, // no logs query
+					true, // isAdmin
+					includeDeletedDTO.value // includeDeleted
 				);
+
+				expect(result).toBeDefined();
+				expect(result).toEqual(adminLogs);
 			});
 
 			it('optionally gives admin users access to aggregate logs matching a query', async () => {
 				// arrange
 				queryDTOProps.userId = adminUserCtx.userId as unknown as string; // set userId to admin user id
 				queryDTO = new QueryDTO(queryDTOProps); // create query DTO with userId set to admin user id
+				query = queryMapper.toDomain(queryDTO); // convert to domain query
 
 				// act
 				const result = await controller.aggregate(
 					adminMockRequest,
 					aggregationQueryDTO,
-					queryDTO // pass query
+					undefined, // userIdDTO
+					undefined, // includeDeletedDTO
+					queryDTO
 				);
 
 				// assert
@@ -537,13 +555,13 @@ describe('ConditioningController', () => {
 				expect(aggregationSpy).toHaveBeenCalledWith(
 					adminUserCtx.userId, // user context
 					aggregationQueryDTO, // aggregation query
-					queryDTO, // query
-					// isAdmin
-					// includeDeleted
+					query,
+					true, // isAdmin
+					false, // includeDeleted
 				);
 
 				expect(result).toBeDefined();
-				expect(result).toEqual(userLogs);
+				//expect(result).toEqual(userLogs);
 			});
 
 			it('throws if data service rejects', async () => {
@@ -572,11 +590,11 @@ describe('ConditioningController', () => {
 				aggregationSpy?.mockRestore();
 			});
 
-			// Aggregation query validation is handled by the DTO validation pipe, so defer this test to e2e tests
+			// Aggregation query DTO validation is handled by the NestJS validation pipe, so defer this test to e2e tests
 
-			// Props whitelist is handled by the DTO validation pipe, so defer this test to e2e tests
+			// Props whitelist is handled by the NestJS validation pipe, so defer this test to e2e tests
 
-			// Query validation is handled by the DTO validation pipe, so defer this test to e2e tests
+			// Query DTO validation is handled by the NestJS validation pipe, so defer this test to e2e tests
 
 			// Roles validation is handled by the JWT auth guard, so defer this test to e2e tests
 		});

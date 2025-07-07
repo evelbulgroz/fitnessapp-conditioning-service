@@ -400,7 +400,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		description: 'Include soft deleted logs (optional, defaults to false)',
 		required: false,
 		type: 'boolean'
-	})	
+	})
 	@ApiQuery({
 		name: 'queryDTO',
 		required: false,
@@ -420,6 +420,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
+			const isAdmin = userContext.roles.includes('admin'); // check if the user is an admin
 			
 			let query: QueryType | undefined;			
 			if (queryDTO && !queryDTO.isEmpty()) { // queryDTO always instantiated by NestJS, ignore if empty
@@ -430,7 +431,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				userContext.userId,
 				userIdDTO?.value,
 				query as any, // todo: refactor service method to accept QueryType instead of QueryDTO
-				userContext.roles.includes('admin'),
+				isAdmin,
 				includeDeletedDTO?.value ?? false,
 			);
 		}
@@ -511,6 +512,22 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		type: AggregationQueryDTO
 	})
 	@ApiQuery({
+		name: 'userId',
+		description: 'ID of user whose logs are being accessed (string or number, optional for admins)',
+		required: false,
+		schema: {
+			type: 'string',
+			format: 'UUID format, or decimal number parseable by JS Number() function, max 36 characters',
+			example: '"e9f0491f-1cd6-433d-8a58-fe71d198c049", 12345'
+		}
+	})
+	@ApiQuery({
+		name: 'includeDeleted',
+		description: 'Include soft deleted logs (optional, defaults to false)',
+		required: false,
+		type: 'boolean'
+	})	
+	@ApiQuery({
 		name: 'queryDTO',
 		description: 'Optional query parameters for filtering logs to aggregate',
 		required: false,
@@ -521,17 +538,28 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	public async aggregate(
 		@Req() req: any,
 		@Body() aggregationQueryDTO: AggregationQueryDTO,
+		@Query('userId') userIdDTO?: UserIdDTO,
+		@Query('includeDeleted') includeDeletedDTO?: IncludeDeletedDTO,		
 		@Query() queryDTO?: QueryDTO
 	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		try {
+			void userIdDTO; // suppress unused variable warning until we refactor service method to accept this as optional
+
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
-			// query is always instantiated by the http framework, even of no parameters are provided in the request:
-			// therefore remove empty queries here, so that the service method can just check for undefined
-			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
+			const isAdmin = userContext.roles.includes('admin'); // check if the user is an admin
+			
+			let query: QueryType | undefined;
+			if (queryDTO && !queryDTO?.isEmpty()) { // queryDTO always instantiated by NestJS, ignore if empty
+				query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+			}
 			return this.dataService.fetchAggretagedLogs(
 				userContext.userId,
-				aggregationQueryDTO as any, queryDTO as any
-			); // todo: refactor service method to accept dtos
+				//userIdDTO?.value, // targetUserId -> refacrtor service method to accept this as optional, following pattern of fetchLogs()
+				aggregationQueryDTO as any,
+				query as any, // todo: refactor service method to accept QueryType instead of QueryDTO
+				isAdmin, // isAdmin,
+				includeDeletedDTO?.value ?? false, // includeDeleted
+			);
 		}
 		catch (error) {
 			const errorMessage = `Request for aggregation failed: ${error.message}`;
