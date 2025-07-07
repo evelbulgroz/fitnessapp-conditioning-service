@@ -13,7 +13,7 @@ import { Query } from '@evelbulgroz/query-fns';
 
 import { AggregationQueryDTO, AggregationQueryDTOProps } from '../dtos/aggregation-query.dto';
 import BcryptCryptoService from '../../authentication/services/crypto/bcrypt-crypto.service';
-import ConditioningController from './conditioning.controller';
+import {ConditioningController, QueryType } from './conditioning.controller';
 import {
 	ConditioningDataService,
 	ConditioningLog,
@@ -31,7 +31,6 @@ import JwtService from '../../authentication/services/jwt/domain/jwt-service.mod
 import JsonWebtokenService from '../../authentication/services/jwt/json-webtoken.service';
 import LogIdDTO from '../../shared/dtos/requests/log-id.dto';
 import { QueryDTO, QueryDTOProps } from '../../shared/dtos/responses/query.dto';
-import { QueryType } from './conditioning.controller';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
 import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
 import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
@@ -1087,6 +1086,7 @@ describe('ConditioningController', () => {
 				describe('fetchLogs', () => {
 					let adminContext: UserContext;
 					let serviceSpy: any;
+					let expectedQuery: QueryType;
 					let queryDTO: QueryDTO;
 					let queryDTOProps: QueryDTOProps;
 					let userIdDTO: UserIdDTO;
@@ -1102,7 +1102,8 @@ describe('ConditioningController', () => {
 							page: 1,
 							pageSize: 10,
 						};
-						queryDTO = new QueryDTO(queryDTOProps);						
+						queryDTO = new QueryDTO(queryDTOProps);
+						expectedQuery = queryMapper.toDomain(queryDTO);
 						
 						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(
 							(requestingUserId: EntityId, targetUserId?: EntityId | undefined, queryDTO?: QueryDTO, isAdmin?: boolean, includeDeleted?: boolean) => {
@@ -1153,11 +1154,6 @@ describe('ConditioningController', () => {
 
 					it('optionally gives normal users access to their logs matching a query', async () => {
 						// arrange
-						queryDTOProps.userId = userIdDTO.value as unknown as string; // set userId to admin user id
-						queryDTO = new QueryDTO(queryDTOProps); // create query DTO with userId set to admin user id
-						const query = queryMapper.toDomain(queryDTO);
-						
-
 						// act
 						const result = await controller.fetchLogs(
 							userMockRequest,
@@ -1171,7 +1167,7 @@ describe('ConditioningController', () => {
 						expect(serviceSpy).toHaveBeenCalledWith(
 							userContxt.userId,
 							userIdDTO.value,
-							query,
+							expectedQuery,
 							false,
 							false
 						);
@@ -1197,11 +1193,7 @@ describe('ConditioningController', () => {
 					});
 
 					it('optionally gives admin users access to all logs matching a query', async () => {
-						// arrange
-						queryDTOProps.userId = adminUserIdDTO.value as unknown as string; // set userId to admin user id
-						queryDTO = new QueryDTO(queryDTOProps); // create query DTO with userId set to admin user id
-						const query = queryMapper.toDomain(queryDTO);
-						
+						// arrange						
 						// act
 						const result = await controller.fetchLogs(
 							adminMockRequest,
@@ -1215,7 +1207,7 @@ describe('ConditioningController', () => {
 						expect(serviceSpy).toHaveBeenCalledWith(
 							adminContext.userId,
 							adminUserIdDTO.value,
-							query,
+							expectedQuery,
 							true, // isAdmin
 							false // includeDeleted
 						);
@@ -1225,25 +1217,31 @@ describe('ConditioningController', () => {
 						expect(result.length).toBe(0); // since we mocked the service to return an empty array
 					});
 
-					it('does not pass empty query parameters to the data service', async () => {
+					it('does not pass empty query to the data service', async () => {
 						// arrange
 						// act
 						const result = await controller.fetchLogs(
 							userMockRequest,
 							userIdDTO,
 							undefined, // includeDeletedDTO,
-							new QueryDTO({})
+							new QueryDTO({}) // simulate an empty query submitted in the request
 						);
 
 						// assert
 						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						expect(serviceSpy).toHaveBeenCalledWith(userContxt.userId, userIdDTO.value, undefined, false, false);
+						expect(serviceSpy).toHaveBeenCalledWith(
+							userContxt.userId,
+							userIdDTO.value,
+							undefined,
+							false,
+							false
+						);
 
 						expect(result).toBeDefined();
 						expect(result).toBeInstanceOf(Array);
 						expect(result.length).toBe(0); // since we mocked the service to return an empty array
 					});
-					
+
 					it('throws error if data service rejects', async () => {
 						// arrange
 						serviceSpy.mockRestore();

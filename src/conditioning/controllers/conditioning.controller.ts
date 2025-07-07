@@ -381,7 +381,9 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	@Get('logs')
 	@ApiOperation({
 		summary: 'Get conditioning logs for all users (role = admin), or for a specific user (role = user)',
-		description: 'Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). Example request: http://localhost:56383/api/v3/conditioning/logs?userId=ddc97caa-faea-44aa-a351-79af7c394e29&includeDeleted=false&start=2021-01-01&end=2021-12-31&activity=MTB&sortBy=duration&order=ASC&page=1&pageSize=10. See /log POST endpoint for data example(s).'
+		description: `Returns an array of conditioning logs for all users (role = admin), or for a specific user (role = user). If all optional params are provided, separate params will override any duplicate query parameters.
+		Example request: http://localhost:56383/api/v3/conditioning/logs?userId=ddc97caa-faea-44aa-a351-79af7c394e29&includeDeleted=false&start=2021-01-01&end=2021-12-31&activity=MTB&sortBy=duration&order=ASC&page=1&pageSize=10.
+		See /log POST endpoint for data example(s).`
 	})
 	@ApiQuery({
 		name: 'userId',
@@ -389,22 +391,22 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 		required: false,
 		schema: {
 			type: 'string',
-			format: 'uuid',
-			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
+			format: 'UUID format, or decimal number parseable by JS Number() function, max 36 characters',
+			example: '"e9f0491f-1cd6-433d-8a58-fe71d198c049", 12345'
 		}
 	})
 	@ApiQuery({
 		name: 'includeDeleted',
-		description: 'Include soft deleted logs (true or false, optional unless using query, defaults to false)',
+		description: 'Include soft deleted logs (optional, defaults to false)',
 		required: false,
-		type: 'boolean'	
+		type: 'boolean'
 	})	
 	@ApiQuery({
 		name: 'queryDTO',
 		required: false,
 		type: 'object',
 		schema: { $ref: getSchemaPath(QueryDTO) },
-		description: 'Optional query parameters for filtering logs. Should not include duplicate userId or includeDeleted, or request will fail'
+		description: 'Optional query parameters for filtering logs.'
 	})
 	@ApiExtraModels(QueryDTO) // Trigger inclusion of QueryDTO in Swagger, getSchemaPath(QueryDTO) is not enough
 	@ApiResponse({ status: 200, description: 'Array of ConditioningLogs, or empty array if none found' })
@@ -418,16 +420,10 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	): Promise<ConditioningLog<any, ConditioningLogDTO>[]> {
 		try {
 			const userContext = new UserContext(req.user as JwtAuthResult as UserContextProps);
-			// all params are optional -> defer validation to the service method
 			
-			let query: QueryType | undefined;
-			if (queryDTO) {// queryDTO always instantiated by NestJS, using all query params -> remove if empty except for userId and includeDeleted
-				if (!queryDTO?.isEmpty()) {
-					if (userIdDTO !== undefined) {
-						queryDTO.userId = userIdDTO.value; // give precedence to separate userId if provided
-					}
-					query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
-				}
+			let query: QueryType | undefined;			
+			if (queryDTO && !queryDTO.isEmpty()) { // queryDTO always instantiated by NestJS, ignore if empty
+				query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
 			}
 
 			return await this.dataService.fetchLogs(
