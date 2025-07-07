@@ -20,7 +20,8 @@ describe('AggregatorService', () => {
 				AggregatorService,
 				TimeSeriesAggregator
 			],
-		}).compile();
+		})
+		.compile();
 
 		aggregator = module.get<AggregatorService>(AggregatorService);	
 	});
