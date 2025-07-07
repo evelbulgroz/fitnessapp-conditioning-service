@@ -421,18 +421,19 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			// all params are optional -> defer validation to the service method
 			
 			let query: QueryType | undefined;
-			if (queryDTO) {// query always instantiated by framework, using all query params -> remove if empty except for userId and includeDeleted
-				queryDTO.userId = undefined;
-				(queryDTO as any).includeDeleted = undefined; // not currently part of queryDTO, remove just in case
-				queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-				query = (queryDTO !== undefined) ? this.queryMapper.toDomain(queryDTO!): undefined; // mapper excludes dto props that are undefined
-				console.debug('Query parameters for logs:', query?.toJSON());
+			if (queryDTO) {// queryDTO always instantiated by NestJS, using all query params -> remove if empty except for userId and includeDeleted
+				if (userIdDTO !== undefined) {
+					queryDTO.userId = userIdDTO.value; // give precedence to separate userId if provided
+				}
+				if (!queryDTO?.isEmpty()) {
+					query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
+				}
 			}
 
 			return await this.dataService.fetchLogs(
 				userContext.userId,
 				userIdDTO?.value,
-				queryDTO,
+				query as any, // todo: refactor service method to accept QueryType instead of QueryDTO
 				userContext.roles.includes('admin'),
 				includeDeletedDTO?.value ?? false,
 			);

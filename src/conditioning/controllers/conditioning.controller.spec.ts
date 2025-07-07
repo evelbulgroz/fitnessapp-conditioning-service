@@ -1087,7 +1087,6 @@ describe('ConditioningController', () => {
 				describe('fetchLogs', () => {
 					let adminContext: UserContext;
 					let serviceSpy: any;
-					let query: QueryType;
 					let queryDTO: QueryDTO;
 					let queryDTOProps: QueryDTOProps;
 					let userIdDTO: UserIdDTO;
@@ -1098,14 +1097,12 @@ describe('ConditioningController', () => {
 							start: '2021-01-01',
 							end: '2021-12-31',
 							activity: ActivityType.MTB,
-							//userId: userContext.userId as unknown as string,
 							sortBy: 'duration',
 							order: 'ASC',
 							page: 1,
 							pageSize: 10,
 						};
-						queryDTO = new QueryDTO(queryDTOProps);
-						query = new Query(queryDTO);
+						queryDTO = new QueryDTO(queryDTOProps);						
 						
 						serviceSpy = jest.spyOn(service, 'fetchLogs').mockImplementation(
 							(requestingUserId: EntityId, targetUserId?: EntityId | undefined, queryDTO?: QueryDTO, isAdmin?: boolean, includeDeleted?: boolean) => {
@@ -1155,7 +1152,12 @@ describe('ConditioningController', () => {
 					});
 
 					it('optionally gives normal users access to their logs matching a query', async () => {
-						// arrange						
+						// arrange
+						queryDTOProps.userId = userIdDTO.value as unknown as string; // set userId to admin user id
+						queryDTO = new QueryDTO(queryDTOProps); // create query DTO with userId set to admin user id
+						const query = queryMapper.toDomain(queryDTO);
+						
+
 						// act
 						const result = await controller.fetchLogs(
 							userMockRequest,
@@ -1166,7 +1168,13 @@ describe('ConditioningController', () => {
 						
 						// assert
 						expect(serviceSpy).toHaveBeenCalledTimes(1);
-						expect(serviceSpy).toHaveBeenCalledWith(userContxt.userId, userIdDTO.value, queryDTO, false, false);
+						expect(serviceSpy).toHaveBeenCalledWith(
+							userContxt.userId,
+							userIdDTO.value,
+							query,
+							false,
+							false
+						);
 
 						expect(result).toBeDefined();
 						expect(result).toBeInstanceOf(Array);
@@ -1190,6 +1198,10 @@ describe('ConditioningController', () => {
 
 					it('optionally gives admin users access to all logs matching a query', async () => {
 						// arrange
+						queryDTOProps.userId = adminUserIdDTO.value as unknown as string; // set userId to admin user id
+						queryDTO = new QueryDTO(queryDTOProps); // create query DTO with userId set to admin user id
+						const query = queryMapper.toDomain(queryDTO);
+						
 						// act
 						const result = await controller.fetchLogs(
 							adminMockRequest,
@@ -1203,7 +1215,7 @@ describe('ConditioningController', () => {
 						expect(serviceSpy).toHaveBeenCalledWith(
 							adminContext.userId,
 							adminUserIdDTO.value,
-							queryDTO, // todo: pass validated (i.e. parsed) query, not DTO
+							query,
 							true, // isAdmin
 							false // includeDeleted
 						);
