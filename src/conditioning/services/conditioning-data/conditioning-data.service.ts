@@ -254,7 +254,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
 	 * @param targetUserId Entity id of the user for whom to aggregate logs, used for logging and authorization check
 	 * @param aggregationQueryDTO Validated aggregation query DTO speficifying aggregation parameters
-	 * @param queryDTO Optional query to select logs to aggregate (else all accessible logs are aggregated)
+	 * @param query Optional query to select logs to aggregate (else all accessible logs are aggregated)
 	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
 	 * @param includeDeleted Optional flag to include soft deleted logs in the response (default is false)
 	 * @returns Aggregated time series of conditioning logs
