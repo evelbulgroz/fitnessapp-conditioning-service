@@ -422,10 +422,10 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			
 			let query: QueryType | undefined;
 			if (queryDTO) {// queryDTO always instantiated by NestJS, using all query params -> remove if empty except for userId and includeDeleted
-				if (userIdDTO !== undefined) {
-					queryDTO.userId = userIdDTO.value; // give precedence to separate userId if provided
-				}
 				if (!queryDTO?.isEmpty()) {
+					if (userIdDTO !== undefined) {
+						queryDTO.userId = userIdDTO.value; // give precedence to separate userId if provided
+					}
 					query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
 				}
 			}
@@ -532,7 +532,10 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			// query is always instantiated by the http framework, even of no parameters are provided in the request:
 			// therefore remove empty queries here, so that the service method can just check for undefined
 			queryDTO = queryDTO?.isEmpty() ? undefined : queryDTO;
-			return this.dataService.fetchAggretagedLogs(userContext.userId, aggregationQueryDTO as any, queryDTO as any); // todo: refactor service method to accept dtos
+			return this.dataService.fetchAggretagedLogs(
+				userContext.userId,
+				aggregationQueryDTO as any, queryDTO as any
+			); // todo: refactor service method to accept dtos
 		}
 		catch (error) {
 			const errorMessage = `Request for aggregation failed: ${error.message}`;
