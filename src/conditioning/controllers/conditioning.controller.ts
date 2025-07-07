@@ -553,9 +553,9 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
 			}
 			return this.dataService.fetchAggretagedLogs(
-				userContext.userId,
-				//userIdDTO?.value, // targetUserId -> refacrtor service method to accept this as optional, following pattern of fetchLogs()
 				aggregationQueryDTO as any,
+				userContext.userId,
+				userIdDTO?.value, // targetUserId -> refacrtor service method to accept this as optional, following pattern of fetchLogs()
 				query as any, // todo: refactor service method to accept QueryType instead of QueryDTO
 				isAdmin, // isAdmin,
 				includeDeletedDTO?.value ?? false, // includeDeleted

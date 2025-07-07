@@ -416,7 +416,14 @@ describe('ConditioningController', () => {
 				
 				jest.clearAllMocks();
 				aggregationSpy = jest.spyOn(service, 'fetchAggretagedLogs')
-					.mockImplementation((requestingUserId: EntityId, aggregationQueryDTO: AggregationQueryDTO, queryDTO?: QueryDTO, isAdmin?: boolean, includeDeleted?: boolean) => {
+					.mockImplementation((
+						aggregationQueryDTO: AggregationQueryDTO,
+						requestingUserId: EntityId,
+						targetUserId?: EntityId, // target user id (optional)
+						query?: QueryType, isAdmin?: boolean,
+						includeDeleted?: boolean
+					) => {
+						void aggregationQueryDTO, requestingUserId, targetUserId, query, isAdmin, includeDeleted; // suppress unused variable warning
 						if (isAdmin) { // simulate an admin user requesting logs
 							return Promise.resolve(adminLogs as any)
 						}
@@ -472,12 +479,12 @@ describe('ConditioningController', () => {
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
-					userContxt.userId, // requesting user id
-					// target user id (todo)
 					aggregationQueryDTO, // aggregation query
+					userContxt.userId, // requesting user id
+					userId, // target user id
 					undefined, // no logs query
 					false, // isAdmin
-					includeDeletedDTO.value // includeDeleted
+					false // includeDeleted
 				);
 								
 				expect(result).toBeDefined();
@@ -490,16 +497,17 @@ describe('ConditioningController', () => {
 				const result = await controller.aggregate(
 					userMockRequest,
 					aggregationQueryDTO,
-					undefined, // userIdDTO
-					undefined, // includeDeletedDTO
-					queryDTO 
+					userIdDTO,
+					includeDeletedDTO,
+					queryDTO
 				);
 				
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
-					userContxt.userId,
 					aggregationQueryDTO,
+					userContxt.userId, // requesting user id
+					userId, // target user id
 					query,
 					false, // isAdmin
 					false, // includeDeleted
@@ -517,18 +525,18 @@ describe('ConditioningController', () => {
 					aggregationQueryDTO,									
 					adminUserIdDTO,
 					includeDeletedDTO,
-					undefined // no query
+					// no query
 				);
 
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
-					adminUserCtx.userId, // user context
-					// target user id (todo)
 					aggregationQueryDTO, // aggregation query
-					undefined, // no logs query
+					adminUserId, // requesting user id
+					adminUserId, // target user id
+					undefined, // no query
 					true, // isAdmin
-					includeDeletedDTO.value // includeDeleted
+					false // includeDeleted
 				);
 
 				expect(result).toBeDefined();
@@ -545,23 +553,24 @@ describe('ConditioningController', () => {
 				const result = await controller.aggregate(
 					adminMockRequest,
 					aggregationQueryDTO,
-					undefined, // userIdDTO
-					undefined, // includeDeletedDTO
+					adminUserIdDTO, // userIdDTO
+					includeDeletedDTO,
 					queryDTO
 				);
 
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
-					adminUserCtx.userId, // user context
 					aggregationQueryDTO, // aggregation query
+					adminUserCtx.userId, // requesting user id
+					adminUserId, // target user id
 					query,
 					true, // isAdmin
 					false, // includeDeleted
 				);
 
 				expect(result).toBeDefined();
-				//expect(result).toEqual(userLogs);
+				expect(result).toEqual(adminLogs);
 			});
 
 			it('throws if data service rejects', async () => {

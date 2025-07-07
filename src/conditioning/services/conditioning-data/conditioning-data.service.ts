@@ -252,6 +252,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * New API: Get aggregated time series of conditioning logs
 	 * 
 	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
+	 * @param targetUserId Entity id of the user for whom to aggregate logs, used for logging and authorization check
 	 * @param aggregationQueryDTO Validated aggregation query DTO speficifying aggregation parameters
 	 * @param queryDTO Optional query to select logs to aggregate (else all accessible logs are aggregated)
 	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
@@ -262,33 +263,22 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
 	 */
 	public async fetchAggretagedLogs(
-		requestingUserId: EntityId,
 		aggregationQueryDTO: AggregationQueryDTO,
-		queryDTO?: QueryDTO,
+		requestingUserId: EntityId,
+		targetUserId?: EntityId,
+		query?: QueryType,
 		isAdmin: boolean = false,
 		includeDeleted: boolean = false
 	): Promise<AggregatedTimeSeries<ConditioningLog<any, ConditioningLogDTO>, any>> {
 		await this.isReady(); // initialize service if necessary
 
-		// constrain access to logs user is authorized to access
-		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];
-		if (!isAdmin) { // if the user isn't an admin, they can only access their own logs
-			if (queryDTO?.userId && queryDTO.userId !== requestingUserId) { // if query specifies a different user id, throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${queryDTO.userId}.`);
-			}
-			accessibleLogs = this.cache.value.find((entry) => entry.userId === requestingUserId)?.logs ?? [];
-		}
-		else { // if the user is an admin, they can access all logs
-			// NOTE: This may be a very large dataset to flatmap -> reconsider approach if performance issues arise
-			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs);
-		}
+		// check if user is authorized to access log(s)
+		void this.checkUserAuthorization(requestingUserId, targetUserId, isAdmin); // throw UnauthorizedAccessError if user is not authorized
+		
+		// constrain searchable logs to those of single user unless user is admin
+		const accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[] = this.getAccessibleLogs(requestingUserId, targetUserId, query, isAdmin);
 
 		// filter logs by query, if provided, else use all accessible logs
-		let query: QueryType | undefined;
-		if (queryDTO) { // map query DTO, if provided, to library query for processing logs
-			queryDTO.userId = undefined; // logs don't have a user id field, so remove it from query
-			query = this.queryMapper.toDomain(queryDTO); // mapper excludes dto props that are undefined
-		}
 		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
 
 		// filter out soft deleted logs, if not included
@@ -312,7 +302,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 			}
 		);
 		return Promise.resolve(aggregatedSeries);		
-	}
+	}	
 
 	/**
 	 * New API: Get single, detailed conditioning log by log entity id
@@ -426,28 +416,10 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		await this.isReady(); // initialize service if necessary
 		
 		// check if user is authorized to access log(s)
-		if (!isAdmin) { // admin has access to all logs, authorization check not needed
-			if (targetUserId !== requestingUserId) { // user id does not match -> throw UnauthorizedAccessError
-				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${targetUserId}.`);
-			}
-		}
+		void this.checkUserAuthorization(requestingUserId, targetUserId, isAdmin); // throw UnauthorizedAccessError if user is not authorized
 		
-		// constrain searchable logs to single user unless user is admin
-		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];		
-		if (!isAdmin) { // if the user isn't an admin, prevent access to other users' logs
-			if (query !== undefined) { // if query is provided, check if it contains userId criteria
-				const userIdCriteria = this.getSearchCriteriaByKey('userId', query);
-				userIdCriteria?.forEach((criterion: SearchFilterCriterion<any,any>) => { // if criterion specifies a different user id, throw UnauthorizedAccessError
-					if (criterion.value && criterion.value !== requestingUserId) {
-						throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${criterion.value}.`);
-					}
-				});
-			}			
-			accessibleLogs = this.cache.value.find((entry) => entry.userId === targetUserId)?.logs ?? [];
-		}
-		else { // if the user is an admin, they can access all logs
-			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs);
-		}
+		// constrain searchable logs to those of single user unless user is admin
+		const accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[] = this.getAccessibleLogs(requestingUserId, targetUserId, query, isAdmin);
 
 		// filter logs by query, if provided, else use all accessible logs
 		let matchingLogs = query ? query.execute(accessibleLogs) : accessibleLogs;
@@ -837,6 +809,56 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	
 	//------------------------------------ PROTECTED METHODS ------------------------------------//
 
+	/*
+	 * Helper method to authorize user access to logs
+	 * 
+	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
+	 * @param targetUserId Entity id of the user for whom to authorize access, used for logging and authorization check
+	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
+	 * 
+	 * @returns void
+	 * 
+	 * @throws UnauthorizedAccessError if user is not authorized to access logs
+	 */
+	protected checkUserAuthorization(requestingUserId: EntityId, targetUserId?: EntityId, isAdmin: boolean = false): void {
+		if (!isAdmin) { // admin has access to all logs, authorization check not needed
+			if (targetUserId !== requestingUserId) { // user id does not match -> throw UnauthorizedAccessError
+				throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${targetUserId}.`);
+			}
+		}
+	}
+
+	/*
+	 * Helper method to get accessible logs for a user, based on their role and optional query
+	 * 
+	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
+	 * @param targetUserId Entity id of the user for whom to retrieve logs, used for logging and authorization check
+	 * @param query Optional query to filter logs (else all accessible logs are returned)
+	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
+	 * 
+	 * @returns Array of accessible logs for the user, constrained by their role and query
+	 * 
+	 * @throws UnauthorizedAccessError if user attempts unauthorized access to logs
+	 */
+	protected getAccessibleLogs(requestingUserId: EntityId, targetUserId?: EntityId, query?: QueryType, isAdmin: boolean = false) {
+		let accessibleLogs: ConditioningLog<any, ConditioningLogDTO>[];
+		if (!isAdmin) { // if the user isn't an admin, prevent access to other users' logs
+			if (query !== undefined) { // if query is provided, check if it contains userId criteria
+				const userIdCriteria = this.getSearchCriteriaByKey('userId', query);
+				userIdCriteria?.forEach((criterion: SearchFilterCriterion<any, any>) => {
+					if (criterion.value && criterion.value !== requestingUserId) {
+						throw new UnauthorizedAccessError(`${this.constructor.name}: User ${requestingUserId} tried to access logs for user ${criterion.value}.`);
+					}
+				});
+			}
+			accessibleLogs = this.cache.value.find((entry) => entry.userId === targetUserId)?.logs ?? [];
+		}
+		else { // if the user is an admin, they can access all logs
+			accessibleLogs = this.cache.value.flatMap((entry) => entry.logs);
+		}
+		return accessibleLogs;
+	}
+	
 	/* Get search criteria by key from query
 	 * @param key Key to search for in the query's search criteria
 	 * @param query Query to search in

@@ -1413,9 +1413,12 @@ describe('ConditioningDataService', () => {
 				
 				// act
 				const aggregatedSeries = await service.fetchAggretagedLogs(
-					requestingUserId,
 					aggregationQueryDTO,
-					// using default values for query, isAdmin and includeDeleted
+					requestingUserId,
+					targetUserId,
+					// no query
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
 				);
 				
 				// assert
@@ -1431,10 +1434,12 @@ describe('ConditioningDataService', () => {
 
 				// act
 				const aggregatedSeries = await service.fetchAggretagedLogs(
-					requestingUserId, // admin user
 					aggregationQueryDTO, // aggregation query
+					requestingUserId, // admin user,
+					undefined, // no userId, so aggregates for all users
 					undefined, // no query
 					isAdmin // isAdmin is true for admin user
+					// includeDeleted defaults to false
 				);
 
 				// TODO: Get this without relying on fetchLogs, so we can test the aggregation logic in isolation
@@ -1459,9 +1464,10 @@ describe('ConditioningDataService', () => {
 
 				// act
 				const aggregatedSeries = await service.fetchAggretagedLogs(
-					requestingUserId, // defaults to normal user
 					aggregationQueryDTO,
-					queryDTO, // query to filter logs
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
+					query, // query to filter logs
 					// isAdmin defaults to false
 					// includeDeleted defaults to false
 				);
@@ -1484,8 +1490,9 @@ describe('ConditioningDataService', () => {
 				
 				// act
 				void await service.fetchAggretagedLogs(
-					requestingUserId, // defaults to normal user
 					aggregationQueryDTO, // aggregation query
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
 					// no query
 					// isAdmin defaults to false
 					// includeDeleted defaults to false
@@ -1507,8 +1514,9 @@ describe('ConditioningDataService', () => {
 				
 				// act
 				void await service.fetchAggretagedLogs(
-					requestingUserId, // defaults to normal user
 					aggregationQueryDTO, // aggregation query
+					requestingUserId, // defaults to normal user
+					targetUserId, // same user
 					undefined, // no query
 					isAdmin, // isAdmin defaults to false
 					true // includeDeleted is true
@@ -1520,15 +1528,34 @@ describe('ConditioningDataService', () => {
 
 			it('throws UnauthorizedAccessError if non-admin user tries to access logs of another user', async () => {
 				// arrange
-				const queryDTO = new QueryDTO({	userId: 'no-such-user'});
-				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
+				const otherUser = users.find(user => user.userId !== requestingUserId)!;
 				requestingUserId = otherUser.userId; // other user tries to access logs of another user
 				
 				// act/assert
 				expect(async () => await service.fetchAggretagedLogs(
-					requestingUserId,
 					aggregationQueryDTO,
-					queryDTO
+					requestingUserId,
+					targetUserId, // any other user
+					// no query,
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
+				)).rejects.toThrow(UnauthorizedAccessError);
+			});
+
+			it('throws UnauthorizedAccessError if non-admin user query specifies user id of another user', async () => {
+				// arrange
+				const otherUser = users.find(user => user.userId !== normalUserCtx.userId)!;
+				const queryDTO = new QueryDTO({	userId: otherUser.userId });
+				const query = queryMapper.toDomain(queryDTO);
+				
+				// act/assert
+				expect(async () => await service.fetchAggretagedLogs(
+					aggregationQueryDTO,
+					requestingUserId,
+					targetUserId, // same user
+					query,
+					// isAdmin defaults to false
+					// includeDeleted defaults to false
 				)).rejects.toThrow(UnauthorizedAccessError);
 			});
 		});
