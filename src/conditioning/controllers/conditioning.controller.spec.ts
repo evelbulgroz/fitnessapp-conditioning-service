@@ -35,6 +35,7 @@ import { UserContext, UserContextProps } from '../../shared/domain/user-context.
 import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
 import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
 import UserRepository from '../../user/repositories/user.repo';
+import { AggregationQuery } from '@evelbulgroz/time-series';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -394,6 +395,7 @@ describe('ConditioningController', () => {
 			let aggregationSpy: any;
 			let adminLogs: any[];
 			let userLogs: any[];
+			let aggregationQuery: AggregationQuery;
 			let aggregationQueryDTO: AggregationQueryDTO;
 			let aggregationQueryDTOProps: AggregationQueryDTOProps;
 			let query: QueryType;
@@ -417,13 +419,13 @@ describe('ConditioningController', () => {
 				jest.clearAllMocks();
 				aggregationSpy = jest.spyOn(service, 'fetchAggretagedLogs')
 					.mockImplementation((
-						aggregationQueryDTO: AggregationQueryDTO,
+						aggregationQuery: AggregationQuery,
 						requestingUserId: EntityId,
 						targetUserId?: EntityId, // target user id (optional)
 						query?: QueryType, isAdmin?: boolean,
 						includeDeleted?: boolean
 					) => {
-						void aggregationQueryDTO, requestingUserId, targetUserId, query, isAdmin, includeDeleted; // suppress unused variable warning
+						void aggregationQuery, requestingUserId, targetUserId, query, isAdmin, includeDeleted; // suppress unused variable warning
 						if (isAdmin) { // simulate an admin user requesting logs
 							return Promise.resolve(adminLogs as any)
 						}
@@ -443,8 +445,8 @@ describe('ConditioningController', () => {
 					"sampleRate": "DAY",
 					"aggregatedValueUnit": "ms"
 				};
-
 				aggregationQueryDTO = new AggregationQueryDTO(aggregationQueryDTOProps);
+				aggregationQuery = new AggregationQuery(aggregationQueryDTO); // convert to domain aggregation query
 
 				queryDTOProps = { // query parameters for request
 					start: '2021-01-01',
@@ -478,13 +480,16 @@ describe('ConditioningController', () => {
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
-					aggregationQueryDTO, // aggregation query
+					aggregationQuery, // note: duck types, so does not detect AggregationQueryDTO as failure
 					userContxt.userId, // requesting user id
 					userId, // target user id
 					undefined, // no logs query
 					false, // isAdmin
 					false // includeDeleted
 				);
+
+				const [passedAggregationQuery] = aggregationSpy.mock.calls[0];
+				expect(passedAggregationQuery).toBeInstanceOf(AggregationQuery); // ensure the aggregation query is passed as a domain object
 								
 				expect(result).toBeDefined();
 				expect(result).toEqual(userLogs);
@@ -504,7 +509,7 @@ describe('ConditioningController', () => {
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
-					aggregationQueryDTO,
+					aggregationQuery,
 					userContxt.userId, // requesting user id
 					userId, // target user id
 					query,
@@ -530,7 +535,7 @@ describe('ConditioningController', () => {
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
-					aggregationQueryDTO, // aggregation query
+					aggregationQuery,
 					adminUserId, // requesting user id
 					adminUserId, // target user id
 					undefined, // no query
@@ -556,7 +561,7 @@ describe('ConditioningController', () => {
 				// assert
 				expect(aggregationSpy).toHaveBeenCalledTimes(1);
 				expect(aggregationSpy).toHaveBeenCalledWith(
-					aggregationQueryDTO, // aggregation query
+					aggregationQuery,
 					adminUserCtx.userId, // requesting user id
 					adminUserId, // target user id
 					query,

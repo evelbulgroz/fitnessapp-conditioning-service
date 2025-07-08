@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Inject, NotFoundException, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
 import { ApiBody, ApiExtraModels, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, getSchemaPath } from '@nestjs/swagger';
 
-import { AggregatedTimeSeries } from '@evelbulgroz/time-series';
+import { AggregatedTimeSeries, AggregationQuery } from '@evelbulgroz/time-series';
 import { EntityId } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLoggableMixin } from '../../libraries/stream-loggable';
 import { Query as QueryModel } from '@evelbulgroz/query-fns';
@@ -558,6 +558,8 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const isAdmin = userContext.roles.includes('admin'); // check if the user is an admin
+
+			let aggregationQuery = new AggregationQuery(aggregationQueryDTO); // map DTO to AggregationQuery, which is used by the data service
 			
 			let query: QueryType | undefined;			
 			if (queryDTO) { // queryDTO always instantiated by NestJS
@@ -573,10 +575,10 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			}
 			
 			return this.dataService.fetchAggretagedLogs(
-				aggregationQueryDTO as any,
-				userContext.userId,
+				aggregationQuery,
+				userContext.userId, // requestingUserId
 				userIdDTO?.value, // targetUserId -> refacrtor service method to accept this as optional, following pattern of fetchLogs()
-				query as any, // todo: refactor service method to accept QueryType instead of QueryDTO
+				query,
 				isAdmin, // isAdmin,
 				includeDeletedDTO?.value ?? false, // includeDeleted
 			);
