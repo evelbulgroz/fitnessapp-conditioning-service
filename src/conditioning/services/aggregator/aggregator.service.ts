@@ -8,9 +8,6 @@ import {
 	TimeSeries
 } from '@evelbulgroz/time-series';
 
-import { AggregationQueryDTO } from '../../dtos/aggregation-query.dto';
-import { AggregationQueryMapper } from '../../mappers/aggregation-query.mapper';
-
 /**
  * Aggregates time series data by sample rate and aggregation type
  * 
@@ -24,13 +21,11 @@ export class AggregatorService {
 	//---------------------------------------- PROPERTIES ---------------------------------------------
 
 	protected aggregator: TimeSeriesAggregator;
-	protected mapper: AggregationQueryMapper<AggregationQuery, AggregationQueryDTO>;
-
+	
 	//---------------------------------------- CONSTRUCTOR --------------------------------------------
 
 	public constructor() {
 		this.aggregator = new TimeSeriesAggregator();
-		this.mapper = new AggregationQueryMapper();
 	}
 
 	//--------------------------------- PUBLIC INSTANCE METHODS ---------------------------------------

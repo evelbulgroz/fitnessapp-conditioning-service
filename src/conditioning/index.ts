@@ -28,7 +28,6 @@ export { ConditioningLogDeletedHandler } from "./handlers/conditioning-log-delet
 export { ConditioningLogUndeletedHandler } from "./handlers/conditioning-log-undeleted.handler";
 
 // Mappers
-export { AggregationQueryMapper } from "./mappers/aggregation-query.mapper";
 export { QueryMapper } from "./mappers/query.mapper";
 
 // Repositories

@@ -25,8 +25,7 @@ import {
 	ConditioningLogDeletedHandler,
 	ConditioningLogUndeletedHandler,
 	ConditioningLogUpdatedEvent,
-	QueryMapper,
-	AggregationQueryMapper
+	QueryMapper
 } from '../../index';
 import createTestingModule from '../../../test/test-utils';
 import EntityIdDTO from '../../../shared/dtos/requests/entity-id.dto';

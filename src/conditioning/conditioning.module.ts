@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 
 import { DomainStateManager } from '../libraries/managed-stateful-component';
 
-import AggregationQueryMapper from './mappers/aggregation-query.mapper';
 import AggregatorService from './services/aggregator/aggregator.service';
 import ConditioningController from './controllers/conditioning.controller';
 import ConditioningDomainStateManager from './conditioning-domain-state-manager';
@@ -44,7 +43,6 @@ import QueryMapper from './mappers/query.mapper';
 	],
 	providers: [
 		AggregatorService,
-		AggregationQueryMapper,
 		ConditioningDataService,
 		{ // ConditioningDomainStateManager
 			// Must be provided here in order for root manager to be able to detect it
