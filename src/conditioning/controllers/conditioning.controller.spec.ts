@@ -7,6 +7,7 @@ import { of, Subject } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
+import { AggregationQuery } from '@evelbulgroz/time-series';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { MergedStreamLogger, StreamLogger } from '../../libraries/stream-loggable';
 import { Query } from '@evelbulgroz/query-fns';
@@ -31,11 +32,11 @@ import JwtService from '../../authentication/services/jwt/domain/jwt-service.mod
 import JsonWebtokenService from '../../authentication/services/jwt/json-webtoken.service';
 import LogIdDTO from '../../shared/dtos/requests/log-id.dto';
 import { QueryDTO, QueryDTOProps } from '../../shared/dtos/responses/query.dto';
+import SoftDeleteDTO from '../../shared/dtos/requests/soft-delete.dto';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
 import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
 import UserJwtPayload from '../../authentication/services/jwt/domain/user-jwt-payload.model';
 import UserRepository from '../../user/repositories/user.repo';
-import { AggregationQuery } from '@evelbulgroz/time-series';
 
 //process.env.NODE_ENV = 'not test'; // ConsoleLogger will not log to console if NODE_ENV is set to 'test'
 
@@ -931,9 +932,11 @@ describe('ConditioningController', () => {
 			let serviceSpy: any;
 			let deletedLogId: EntityId;
 			let deletedLogIdDTO: LogIdDTO;
+			let softDeleteDTO: SoftDeleteDTO;
 			beforeEach(() => {
 				deletedLogId = uuid();
 				deletedLogIdDTO = new LogIdDTO(deletedLogId);
+				softDeleteDTO = new SoftDeleteDTO(true); // default to soft deleting
 				serviceSpy = jest.spyOn(service, 'deleteLog')
 					.mockImplementation((
 						requestingUserId: EntityId,
@@ -959,21 +962,67 @@ describe('ConditioningController', () => {
 				const result = await controller.deleteLog(
 					userMockRequest,
 					userIdDTO,
-					deletedLogIdDTO
+					deletedLogIdDTO,
+					softDeleteDTO // soft delete by default
 				);
 
 				// assert
 				expect(serviceSpy).toHaveBeenCalledTimes(1);
 				
-				const params = serviceSpy.mock.calls[0];
-				const [requestingId, targetId, logId, softDelete, isAdmin] = params;
+				const [requestingId, targetId, logId, softDelete, isAdmin] = serviceSpy.mock.calls[0];
 				
 				expect(requestingId).toEqual(userContxt.userId);
 				expect(targetId).toEqual(userId);
 				expect(logId).toEqual(deletedLogId);
-				expect(softDelete).toBeUndefined();
+				expect(softDelete).toBe(true);
 				expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
 
+				expect(result).toBeUndefined(); // void response returned as undefined
+			});
+
+			it('by default soft deletes a conditioning log', async () => {
+				// arrange
+				// act
+				const result = await controller.deleteLog(
+					userMockRequest,
+					userIdDTO,
+					deletedLogIdDTO,
+					// no soft delete DTO provided, so defaults to true
+				);
+
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				
+				const [requestingId, targetId, logId, softDelete, isAdmin] = serviceSpy.mock.calls[0];
+				expect(requestingId).toEqual(userContxt.userId);
+				expect(targetId).toEqual(userId);
+				expect(logId).toEqual(deletedLogId);
+				expect(softDelete).toBeUndefined(); // defers to service default, which is true
+				expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
+				
+				expect(result).toBeUndefined(); // void response returned as undefined
+			});
+
+			it('optionally can hard delete a conditioning log', async () => {
+				// arrange
+				// act
+				const result = await controller.deleteLog(
+					userMockRequest,
+					userIdDTO,
+					deletedLogIdDTO,
+					new SoftDeleteDTO(false) // hard delete
+				);
+
+				// assert
+				expect(serviceSpy).toHaveBeenCalledTimes(1);
+				
+				const [requestingId, targetId, logId, softDelete, isAdmin] = serviceSpy.mock.calls[0];
+				expect(requestingId).toEqual(userContxt.userId);
+				expect(targetId).toEqual(userId);
+				expect(logId).toEqual(deletedLogId);
+				expect(softDelete).toBe(false); // hard delete, overriding service default
+				expect(isAdmin).toEqual(userContxt.roles.includes('admin'));
+				
 				expect(result).toBeUndefined(); // void response returned as undefined
 			});
 

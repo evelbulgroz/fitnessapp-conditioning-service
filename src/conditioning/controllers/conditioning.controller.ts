@@ -20,12 +20,13 @@ import LogIdDTO from '../../shared/dtos/requests/log-id.dto';
 import { PropertySanitizationDataDTO } from '@evelbulgroz/sanitizer-decorator';
 import Public from '../../infrastructure/decorators/public.decorator';
 import QueryDTO from '../../shared/dtos/responses/query.dto';
+import QueryMapper from '../mappers/query.mapper';
 import { Roles } from '../../infrastructure/decorators/roles.decorator';
 import { RolesGuard } from '../../infrastructure/guards/roles.guard';
+import SoftDeleteDTO from '../../shared/dtos/requests/soft-delete.dto';
 import { UserContext, UserContextProps } from '../../shared/domain/user-context.model';
 import UserIdDTO from '../../shared/dtos/requests/user-id.dto';
 import ValidationPipe from '../../infrastructure/pipes/validation.pipe';
-import QueryMapper from '../mappers/query.mapper';
 
 export type QueryType = QueryModel<ConditioningLog<any, ConditioningLogDTO>, ConditioningLogDTO>;
 
@@ -52,8 +53,8 @@ export type QueryType = QueryModel<ConditioningLog<any, ConditioningLogDTO>, Con
 @UseInterceptors(new DefaultStatusCodeInterceptor(200)) // Set default status code to 200
 @UsePipes(
 	new ValidationPipe(
-		{ whitelist: true, forbidNonWhitelisted: false, transform: true }
-	)) // whitelisting ignored with primitive types
+		{ whitelist: true, forbidNonWhitelisted: false, transform: true } // whitelisting ignored with primitive types
+	))
 export class ConditioningController extends StreamLoggableMixin(class {}) {
 	//----------------------------------- PROPERTIES ------------------------------------//
 	
@@ -302,13 +303,20 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			example: 'e9f0491f-1cd6-433d-8a58-fe71d198c049'
 		}
 	})
+	@ApiParam({
+		name: 'softDelete',
+		description: 'Whether to soft delete the log (true or false, optional, defaults to true)',
+		required: false,
+		type: 'boolean'
+	})
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@ApiResponse({ status: 204, description: 'Log deleted successfully, no content returned' })
 	@ApiResponse({ status: 404, description: 'Log not found' })
 	public async deleteLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: UserIdDTO,		
-		@Param('logId') logIdDTO: LogIdDTO
+		@Param('logId') logIdDTO: LogIdDTO,
+		@Param('softDelete') softDeleteDTO?: SoftDeleteDTO // softDelete is optional, defaults to true
 	): Promise<void> {
 		try {
 			if (!userIdDTO || !logIdDTO) {
@@ -318,7 +326,13 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 			}
 			const userContext = new UserContext(req.user as JwtAuthResult as  UserContextProps); // maps 1:1 with JwtAuthResult
 			const isAdmin = userContext.roles.includes('admin'); // check if the user is an admin
-			void await this.dataService.deleteLog(userContext.userId, userIdDTO.value, logIdDTO.value, undefined, isAdmin); // delete the log
+			void await this.dataService.deleteLog( // delete the log
+				userContext.userId, // requestingUserId
+				userIdDTO.value, // targetUserId
+				logIdDTO.value, // logId to delete
+				softDeleteDTO?.value, // softDelete is optional, defaults to true in service
+				isAdmin
+			);
 		} catch (error) {
 			const errorMessage = `Failed to delete log with id: ${logIdDTO.value}: ${error.message}`;
 			this.logger.error(errorMessage);
@@ -443,7 +457,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				userIdDTO?.value,
 				query as any, // todo: refactor service method to accept QueryType instead of QueryDTO
 				isAdmin,
-				includeDeletedDTO?.value ?? false,
+				includeDeletedDTO?.value,
 			);
 		}
 		catch (error) {
@@ -580,7 +594,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 				userIdDTO?.value, // targetUserId -> refacrtor service method to accept this as optional, following pattern of fetchLogs()
 				query,
 				isAdmin, // isAdmin,
-				includeDeletedDTO?.value ?? false, // includeDeleted
+				includeDeletedDTO?.value, // includeDeleted
 			);
 		}
 		catch (error) {
