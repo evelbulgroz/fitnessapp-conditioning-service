@@ -41,7 +41,7 @@ export class AggregatorService {
 	 * @typeparam T Type of object holding the data to aggregate, e.g. TrainingLog, SensorLog, etc. (must be indexable by string)
  	 * @typeparam U Type of the aggregated value, e.g. number for a simple sum (can be complex, but none currently implemented)
  	 * @param timeSeries The time series to aggregate
-	 * @param aggregationQueryDTO Validated aggregation query DTO
+	 * @param aggregationQuery Validated aggregation query DTO
 	 * @param valueExtractor Optional function to extract a numerical value from complex aggregated type, e.g. (item: TrainingLog) => item.duration.value
 	 * 
 	 * @returns An aggregated time series
@@ -51,11 +51,10 @@ export class AggregatorService {
 	 */
 	public aggregate<T extends object, U extends number>(
 		timeSeries: TimeSeries<T>,
-		aggregationQueryDTO: AggregationQueryDTO,
+		aggregationQuery: AggregationQuery,
 		valueExtractor?: (dataPoint: DataPoint<T>) => U,
 	): AggregatedTimeSeries<T, U> {		
-		const agregationQuery = this.mapper.toDomain(aggregationQueryDTO);
-		return this.aggregator.aggregate(timeSeries, agregationQuery, valueExtractor);
+		return this.aggregator.aggregate(timeSeries, aggregationQuery, valueExtractor);
 	}
 }
 

@@ -1,7 +1,7 @@
 import { TestingModule, Test } from "@nestjs/testing";
 
 import { v4 as uuidv4 } from 'uuid';
-import { AggregationType, SampleRate, TimeSeriesAggregator } from '@evelbulgroz/time-series';
+import { AggregationQuery, AggregationType, SampleRate, TimeSeriesAggregator } from '@evelbulgroz/time-series';
 
 import { AggregationQueryMapper } from '../../mappers/aggregation-query.mapper';
 import { AggregatorService } from "./aggregator.service";
@@ -12,7 +12,7 @@ import { AggregationQueryDTO } from "../../dtos/aggregation-query.dto";
 
 describe('AggregatorService', () => {
 	let aggregator: AggregatorService;
-	
+	let mapper: AggregationQueryMapper<AggregationQuery, AggregationQueryDTO>;
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
@@ -23,7 +23,8 @@ describe('AggregatorService', () => {
 		})
 		.compile();
 
-		aggregator = module.get<AggregatorService>(AggregatorService);	
+		aggregator = module.get<AggregatorService>(AggregatorService);
+		mapper = module.get<AggregationQueryMapper<AggregationQuery, AggregationQueryDTO>>(AggregationQueryMapper);
 	});
 
 	it('can be created', () => {
@@ -60,9 +61,11 @@ describe('AggregatorService', () => {
 			sampleRate: SampleRate.YEAR
 		});
 
+		const aggregationQuery = mapper.toDomain(dto);
+
 		
 		// act
-		const aggregatedLogs = aggregator.aggregate(testSeries, dto);
+		const aggregatedLogs = aggregator.aggregate(testSeries, aggregationQuery);
 		
 		// assert
 		expect(aggregatedLogs.data.length).toBe(3);
