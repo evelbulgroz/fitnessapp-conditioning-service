@@ -17,7 +17,9 @@ export interface AggregationQueryDTOProps {
     aggregatedValueUnit?: string;
 }
 
-/** Represents sanitized aggregation query parameters received by an endpoint in a JSON object.
+/**
+ * Represents sanitized aggregation query parameters received by an endpoint in a JSON object.
+ * 
  * @remark Equivalent to the same class from the time-series library but adds sanitization
  * @remark Instances are guaranteed to be valid: constructor and accessors throw error if passed invalid data
  * @todo Remove APIProperty decorators if/when @evelbulgroz/sanitizer-decorator adds support for Swagger
@@ -62,6 +64,11 @@ export class AggregationQueryDTO extends DataTransferObject {
 		description: 'Name of the type of data to be aggregated',
 		example: 'ConditioningLog',
 		required: true,
+		// expose validation constraints to Swagger:
+		minLength: 1,
+		maxLength: 100,
+		pattern: '^[a-zA-Z][a-zA-Z0-9_]+$', // todo: consolidate multiple regexes into one
+		enum: ['ConditioningLog'] // Specific allowed values, add more as needed
 	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'aggregatedType must be a string' })
 	@IsNotEmpty({ message: 'aggregatedType must not be empty' })
@@ -72,12 +79,17 @@ export class AggregationQueryDTO extends DataTransferObject {
 	set aggregatedType(type: string) { this._aggregatedType = type; }
 	get aggregatedType(): string { return this._aggregatedType; }
 	
-	/** The name (key) of the property that is aggregated, e.g. 'duration', 'distance', 'weight', etc. */
+	/** Name (key) of the property that is aggregated, e.g. 'duration', 'distance', 'weight', etc. */
 	@ApiProperty({
 		type: String,
 		description: 'The name (key) of the property that is aggregated',
 		example: 'duration',
 		required: true,
+		// expose validation constraints to Swagger:
+		minLength: 1,
+		maxLength: 100,
+		pattern: '^[a-zA-Z][a-zA-Z0-9_]+$', // todo: consolidate multiple regexes into one
+		//enum: ['duration', 'distance', 'weight'] // Specific allowed values, add more as needed
 	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'aggregatedProperty must be a string' })
 	@IsNotEmpty({ message: 'aggregatedProperty must not be empty' })
@@ -107,6 +119,11 @@ export class AggregationQueryDTO extends DataTransferObject {
 		description: 'Optional unit of aggregated value',
 		example: 'ms',
 		required: false,
+		// expose validation constraints to Swagger:
+		minLength: 1,
+		maxLength: 100,
+		pattern: '^[a-zA-Z][a-zA-Z0-9_]+$', // todo: consolidate multiple regexes into one
+		enum: ['ms', 'kg', 'km'] // Specific allowed values, add more as needed
 	})
 	@IsString({ allowNull: true, allowUndefined: true, message: 'aggregatedValueUnit must be a string' })
 	@MaxLength(100, { message: 'aggregatedValueUnit must have less than 100 characters' })
@@ -116,12 +133,17 @@ export class AggregationQueryDTO extends DataTransferObject {
 	set aggregatedValueUnit(unit: string | undefined) { this._aggregatedValueUnit = unit; }
 	get aggregatedValueUnit(): string | undefined { return this._aggregatedValueUnit; }
 	
-	/**The type of aggregation to perform, e.g. 'sum', 'average', 'max', 'min', etc. (default is SUM) */
+	/** Type of aggregation to perform, e.g. 'sum', 'average', 'max', 'min', etc. (default is SUM) */
 	@ApiProperty({
 		type: String,
 		description: 'The type of aggregation to perform',
-		example: 'sum',
+		example: 'SUM',
 		required: false,
+		// expose validation constraints to Swagger:
+		minLength: 1,
+		maxLength: 100,
+		pattern: '^[a-zA-Z][a-zA-Z0-9_]+$', // todo: consolidate multiple regexes into one
+		enum: ['SUM', 'AVERAGE', 'MAX', 'MIN'] // Specific allowed values, add more as needed
 	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'aggregationType must be a string' })
 	@IsNotEmpty({ message: 'aggregationType must not be empty' })
@@ -132,12 +154,17 @@ export class AggregationQueryDTO extends DataTransferObject {
 	set aggregationType(type: AggregationType) { this._aggregationType = type; }
 	get aggregationType(): AggregationType { return this._aggregationType; }
    
-	/** The period over which the aggregation is performed, e.g. 'day', 'week', 'month', 'year', etc. (default is DAY) */
+	/** Period over which the aggregation is performed, e.g. 'day', 'week', 'month', 'year', etc. (default is DAY) */
 	@ApiProperty({
 		type: String,
 		description: 'The period over which the aggregation is performed',
-		example: 'day',
+		example: 'DAY',
 		required: false,
+		// expose validation constraints to Swagger:
+		minLength: 1,
+		maxLength: 100,
+		pattern: '^[a-zA-Z][a-zA-Z0-9_]+$', // todo: consolidate multiple regexes into one
+		enum: ['DAY', 'WEEK', 'MONTH', 'YEAR'] // Specific allowed values, add more as needed
 	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'sampleRate must be a string' })
 	@IsNotEmpty({ message: 'sampleRate must not be empty' })
