@@ -123,7 +123,7 @@ export class AggregationQueryDTO extends DataTransferObject {
 		minLength: 1,
 		maxLength: 100,
 		pattern: '^[a-zA-Z][a-zA-Z0-9_]+$', // todo: consolidate multiple regexes into one
-		enum: ['ms', 'kg', 'km'] // Specific allowed values, add more as needed
+		enum: ['ms', 'kg',] // Specific allowed values, add more as needed
 	})
 	@IsString({ allowNull: true, allowUndefined: true, message: 'aggregatedValueUnit must be a string' })
 	@MaxLength(100, { message: 'aggregatedValueUnit must have less than 100 characters' })
@@ -143,7 +143,7 @@ export class AggregationQueryDTO extends DataTransferObject {
 		minLength: 1,
 		maxLength: 100,
 		pattern: '^[a-zA-Z][a-zA-Z0-9_]+$', // todo: consolidate multiple regexes into one
-		enum: ['SUM', 'AVERAGE', 'MAX', 'MIN'] // Specific allowed values, add more as needed
+		enum: Object.values(AggregationType) // Specific allowed values, add more as needed
 	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'aggregationType must be a string' })
 	@IsNotEmpty({ message: 'aggregationType must not be empty' })
@@ -164,7 +164,7 @@ export class AggregationQueryDTO extends DataTransferObject {
 		minLength: 1,
 		maxLength: 100,
 		pattern: '^[a-zA-Z][a-zA-Z0-9_]+$', // todo: consolidate multiple regexes into one
-		enum: ['DAY', 'WEEK', 'MONTH', 'YEAR'] // Specific allowed values, add more as needed
+		enum: Object.values(SampleRate) // Specific allowed values, add more as needed
 	})
 	@IsString({ allowNull: false, allowUndefined: false, message: 'sampleRate must be a string' })
 	@IsNotEmpty({ message: 'sampleRate must not be empty' })
