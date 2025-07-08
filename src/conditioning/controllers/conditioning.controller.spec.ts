@@ -1217,7 +1217,13 @@ describe('ConditioningController', () => {
 				
 				// assert
 				expect(serviceSpy).toHaveBeenCalledTimes(1);
-				expect(serviceSpy).toHaveBeenCalledWith(userContxt.userId, userIdDTO.value, undefined, false, false);
+				expect(serviceSpy).toHaveBeenCalledWith(
+					userContxt.userId,
+					userIdDTO.value,
+					undefined,
+					false,
+					undefined // defer to service default, which is false
+				);
 
 				expect(result).toBeDefined();
 				expect(result).toBeInstanceOf(Array);
@@ -1241,7 +1247,7 @@ describe('ConditioningController', () => {
 					userIdDTO.value,
 					expectedQuery,
 					false,
-					false
+					undefined // defer to service default, which is false
 				);
 
 				expect(result).toBeDefined();
@@ -1252,7 +1258,7 @@ describe('ConditioningController', () => {
 			it('gives admin users access to all logs for all users', async () => {
 				// arrange
 				// act
-				const result = await controller.fetchLogs(
+				void await controller.fetchLogs(
 					adminMockRequest,
 					adminUserIdDTO,
 					// includeDeletedDTO,
@@ -1261,7 +1267,13 @@ describe('ConditioningController', () => {
 
 				// assert
 				expect(serviceSpy).toHaveBeenCalledTimes(1);
-				expect(serviceSpy).toHaveBeenCalledWith(adminContext.userId, adminUserIdDTO.value, undefined, true, false);
+				expect(serviceSpy).toHaveBeenCalledWith(
+					adminContext.userId,
+					adminUserIdDTO.value,
+					undefined,
+					true,
+					undefined // defer to service default, which is false
+				);
 			});
 
 			it('optionally gives admin users access to all logs matching a query', async () => {
@@ -1281,7 +1293,7 @@ describe('ConditioningController', () => {
 					adminUserIdDTO.value,
 					expectedQuery,
 					true, // isAdmin
-					false // includeDeleted
+					undefined // defer to service default, which is false
 				);
 
 				expect(result).toBeDefined();
@@ -1306,7 +1318,7 @@ describe('ConditioningController', () => {
 					userIdDTO.value,
 					undefined,
 					false,
-					false
+					undefined // defer to service default, which is false
 				);
 
 				expect(result).toBeDefined();
