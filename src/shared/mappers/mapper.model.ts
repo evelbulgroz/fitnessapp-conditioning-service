@@ -5,6 +5,7 @@ export type Constructor<T> = new (...args: any[]) => T;
  * @typeparam U The type of the DTO object
  * @remark This class is meant to be subclassed and dependency injected into services
  * @remark Holds no internal state, so all methods are stateless and can be treated as if static
+ * @todo Move this to ddd-base package, as it is a generic mapper interface
  */
 export abstract class Mapper<T, U> {
 	// No need for explicit constructor, no state to initialize
