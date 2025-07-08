@@ -3,7 +3,6 @@ import { TestingModule, Test } from "@nestjs/testing";
 import { v4 as uuidv4 } from 'uuid';
 import { AggregationQuery, AggregationType, SampleRate, TimeSeriesAggregator } from '@evelbulgroz/time-series';
 
-import { AggregationQueryMapper } from '../../mappers/aggregation-query.mapper';
 import { AggregatorService } from "./aggregator.service";
 import { AggregationQueryDTO } from "../../dtos/aggregation-query.dto";
 
@@ -12,11 +11,9 @@ import { AggregationQueryDTO } from "../../dtos/aggregation-query.dto";
 
 describe('AggregatorService', () => {
 	let aggregator: AggregatorService;
-	let mapper: AggregationQueryMapper<AggregationQuery, AggregationQueryDTO>;
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
-				AggregationQueryMapper,
 				AggregatorService,
 				TimeSeriesAggregator
 			],
@@ -24,7 +21,6 @@ describe('AggregatorService', () => {
 		.compile();
 
 		aggregator = module.get<AggregatorService>(AggregatorService);
-		mapper = module.get<AggregationQueryMapper<AggregationQuery, AggregationQueryDTO>>(AggregationQueryMapper);
 	});
 
 	it('can be created', () => {
@@ -61,7 +57,7 @@ describe('AggregatorService', () => {
 			sampleRate: SampleRate.YEAR
 		});
 
-		const aggregationQuery = mapper.toDomain(dto);
+		const aggregationQuery = new AggregationQuery(dto);
 
 		
 		// act
