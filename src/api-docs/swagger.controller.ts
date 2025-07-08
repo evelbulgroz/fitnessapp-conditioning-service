@@ -15,7 +15,7 @@ import Roles from '../infrastructure/decorators/roles.decorator';
  * @remark Not documented using Swagger, merely used to serve the Swagger UI and JSON documentation.
  * @remark Instead, added note to Readme.md about the API documentation and how to access it.
  */
-@Controller('docs')
+@Controller('api-docs')
 @UseGuards(
 	// todo: re-enable these guards when authentication and authorization are needed
 	//JwtAuthGuard, // require authentication of Jwt token
