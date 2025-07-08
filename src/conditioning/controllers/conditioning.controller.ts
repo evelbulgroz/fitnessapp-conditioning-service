@@ -126,7 +126,7 @@ export class ConditioningController extends StreamLoggableMixin(class {}) {
 	public async createLog(
 		@Req() req: any,
 		@Param('userId') userIdDTO: UserIdDTO,
-		@Body() logDTO: Record<string, any> // NestJS strips undecorated properties from the body, so we need to use a more basic type here
+		@Body() logDTO: Record<string, any> // ConditioningLogDTO inherits from DDD base DTOs that are not validated; since NestJS strips undecorated properties from the body, we need to use a more basic type here
 	): Promise<EntityId> {
 		try {
 			if (!userIdDTO || !logDTO) {				
