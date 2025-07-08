@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 import { BehaviorSubject, firstValueFrom, Observable, Subscription, take } from 'rxjs';
 
-import { AggregatedTimeSeries, DataPoint } from '@evelbulgroz/time-series'
+import { AggregatedTimeSeries, AggregationQuery, DataPoint } from '@evelbulgroz/time-series'
 import { ActivityType } from '@evelbulgroz/fitnessapp-base';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { LogLevel, StreamLoggable, StreamLoggableMixin } from '../../../libraries/stream-loggable';
@@ -253,7 +253,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * 
 	 * @param requestingUserId Entity id of the user making the request, used for logging and authorization check
 	 * @param targetUserId Entity id of the user for whom to aggregate logs, used for logging and authorization check
-	 * @param aggregationQueryDTO Validated aggregation query DTO speficifying aggregation parameters
+	 * @param aggregationQuery Validated aggregation query speficifying aggregation parameters
 	 * @param query Optional query to select logs to aggregate (else all accessible logs are aggregated)
 	 * @param isAdmin Whether the requesting user is an admin, used for authorization check (default is false)
 	 * @param includeDeleted Optional flag to include soft deleted logs in the response (default is false)
@@ -263,7 +263,7 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 	 * @remark If provided, QueryDTO should not include deletedOn field, to not interfere with soft deletion handling
 	 */
 	public async fetchAggretagedLogs(
-		aggregationQueryDTO: AggregationQueryDTO,
+		aggregationQuery: AggregationQuery,
 		requestingUserId: EntityId,
 		targetUserId?: EntityId,
 		query?: QueryType,
@@ -290,11 +290,11 @@ export class ConditioningDataService extends StreamLoggableMixin(ManagedStateful
 		// aggregate time series
 		const aggregatedSeries = this.aggregator.aggregate(
 			timeSeries,
-			aggregationQueryDTO,
+			aggregationQuery,
 			(dataPoint: DataPoint<any>) => { // value extractor for Quantity values
-				const propValue = dataPoint.value[aggregationQueryDTO.aggregatedProperty as keyof ConditioningLog<any, ConditioningLogDTO>];
+				const propValue = dataPoint.value[aggregationQuery.aggregatedProperty as keyof ConditioningLog<any, ConditioningLogDTO>];
 				if (propValue instanceof Quantity) {
-					return propValue.to(aggregationQueryDTO.aggregatedValueUnit ?? '').scalar;
+					return propValue.to(aggregationQuery.aggregatedValueUnit ?? '').scalar;
 				}
 				else {
 					return propValue

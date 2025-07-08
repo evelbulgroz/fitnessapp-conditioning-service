@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 
 import { ActivityType, DeviceType, SensorType } from '@evelbulgroz/fitnessapp-base';
-import { AggregationType, SampleRate } from '@evelbulgroz/time-series';
+import { AggregationQuery, AggregationType, SampleRate } from '@evelbulgroz/time-series';
 import { ComponentState, ComponentStateInfo } from '../../../libraries/managed-stateful-component';
 import { EntityId, Result } from '@evelbulgroz/ddd-base';
 import { Query } from '@evelbulgroz/query-fns';
@@ -25,7 +25,8 @@ import {
 	ConditioningLogDeletedHandler,
 	ConditioningLogUndeletedHandler,
 	ConditioningLogUpdatedEvent,
-	QueryMapper
+	QueryMapper,
+	AggregationQueryMapper
 } from '../../index';
 import createTestingModule from '../../../test/test-utils';
 import EntityIdDTO from '../../../shared/dtos/requests/entity-id.dto';
@@ -800,30 +801,6 @@ describe('ConditioningDataService', () => {
 	});
 
 	describe('Data API', () => {
-		let aggregationQueryDTO: AggregationQueryDTO;
-		let aggregatorSpy: any;
-		beforeEach(async () => {
-			aggregationQueryDTO = new AggregationQueryDTO({
-				aggregatedType: 'ConditioningLog',
-				aggregatedProperty: 'duration',
-				aggregationType: AggregationType.SUM,
-				sampleRate: SampleRate.DAY,
-				aggregatedValueUnit: 'ms',				
-			});
-
-			aggregatorSpy = jest.spyOn(aggregatorService, 'aggregate')
-				.mockImplementation((timeseries, query, extractor) => {
-					void timeseries, query, extractor; // suppress unused variable warning
-					return {} as any
-				});
-
-			await service.isReady();
-		});
-		
-		afterEach(() => {
-			aggregatorSpy && aggregatorSpy?.mockRestore();
-		});
-
 		describe('conditioningData', () => {
 			it('can provide a collection of ConditioningDataSeries for all users', async () => {
 				// act
@@ -1398,14 +1375,39 @@ describe('ConditioningDataService', () => {
 			// not testing that AggregatorService works, just that it is called with the right parameters
 			// leave deeper testing of the result to AggregatorService tests to avoid duplication
 			
+			let aggregationQuery: AggregationQuery;
+			let aggregationQueryDTO: AggregationQueryDTO;
+			let aggregatorSpy: any;
 			let isAdmin: boolean;
 			let requestingUserId: EntityId;
 			let targetUserId: EntityId;
-			beforeEach(() => {
+			beforeEach(async () => {
+				aggregationQueryDTO = new AggregationQueryDTO({
+					aggregatedType: 'ConditioningLog',
+					aggregatedProperty: 'duration',
+					aggregationType: AggregationType.SUM,
+					sampleRate: SampleRate.DAY,
+					aggregatedValueUnit: 'ms',				
+				});
+
+				aggregationQuery = new AggregationQuery(aggregationQueryDTO);
+
+				aggregatorSpy = jest.spyOn(aggregatorService, 'aggregate')
+					.mockImplementation((timeseries, query, extractor) => {
+						void timeseries, query, extractor; // suppress unused variable warning
+						return {} as any
+					});
+
 				isAdmin = normalUserCtx.roles.includes('admin');
 				requestingUserId = normalUserCtx.userId;
 				targetUserId = normalUserCtx.userId;
+				
+				await service.isReady();				
 			});
+
+			afterEach(() => {
+				aggregatorSpy?.mockRestore();
+			});			
 			
 			it('can aggregate a time series of all ConditioningLogs owned by a user', async () => {
 				// arrange
@@ -1413,7 +1415,7 @@ describe('ConditioningDataService', () => {
 				
 				// act
 				const aggregatedSeries = await service.fetchAggretagedLogs(
-					aggregationQueryDTO,
+					aggregationQuery,
 					requestingUserId,
 					targetUserId,
 					// no query
@@ -1423,7 +1425,7 @@ describe('ConditioningDataService', () => {
 				
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalled();
-				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
+				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
 				expect(aggregatedSeries).toBeDefined();			
 			});
 			
@@ -1434,7 +1436,7 @@ describe('ConditioningDataService', () => {
 
 				// act
 				const aggregatedSeries = await service.fetchAggretagedLogs(
-					aggregationQueryDTO, // aggregation query
+					aggregationQuery, // aggregation query
 					requestingUserId, // admin user,
 					undefined, // no userId, so aggregates for all users
 					undefined, // no query
@@ -1450,7 +1452,7 @@ describe('ConditioningDataService', () => {
 				const timeSeries = aggregatorSpy.mock.calls[0][0];
 				
 				expect(aggregatorSpy).toHaveBeenCalled();
-				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
+				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
 				expect(aggregatedSeries).toBeDefined();
 			});
 			
@@ -1464,7 +1466,7 @@ describe('ConditioningDataService', () => {
 
 				// act
 				const aggregatedSeries = await service.fetchAggretagedLogs(
-					aggregationQueryDTO,
+					aggregationQuery,
 					requestingUserId, // defaults to normal user
 					targetUserId, // same user
 					query, // query to filter logs
@@ -1474,7 +1476,7 @@ describe('ConditioningDataService', () => {
 
 				// assert
 				expect(aggregatorSpy).toHaveBeenCalled();
-				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
+				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
 				expect(aggregatedSeries).toBeDefined();
 			});
 
@@ -1490,7 +1492,7 @@ describe('ConditioningDataService', () => {
 				
 				// act
 				void await service.fetchAggretagedLogs(
-					aggregationQueryDTO, // aggregation query
+					aggregationQuery, // aggregation query
 					requestingUserId, // defaults to normal user
 					targetUserId, // same user
 					// no query
@@ -1499,7 +1501,7 @@ describe('ConditioningDataService', () => {
 				);
 				
 				// assert
-				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
+				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
 			});
 
 			it('optionally can include soft deleted logs', async () => {
@@ -1514,7 +1516,7 @@ describe('ConditioningDataService', () => {
 				
 				// act
 				void await service.fetchAggretagedLogs(
-					aggregationQueryDTO, // aggregation query
+					aggregationQuery, // aggregation query
 					requestingUserId, // defaults to normal user
 					targetUserId, // same user
 					undefined, // no query
@@ -1523,7 +1525,7 @@ describe('ConditioningDataService', () => {
 				);
 				
 				// assert
-				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQueryDTO, expect.any(Function));
+				expect(aggregatorSpy).toHaveBeenCalledWith(expectedTimeSeries, aggregationQuery, expect.any(Function));
 			});
 
 			it('throws UnauthorizedAccessError if non-admin user tries to access logs of another user', async () => {
@@ -1533,7 +1535,7 @@ describe('ConditioningDataService', () => {
 				
 				// act/assert
 				expect(async () => await service.fetchAggretagedLogs(
-					aggregationQueryDTO,
+					aggregationQuery,
 					requestingUserId,
 					targetUserId, // any other user
 					// no query,
@@ -1550,7 +1552,7 @@ describe('ConditioningDataService', () => {
 				
 				// act/assert
 				expect(async () => await service.fetchAggretagedLogs(
-					aggregationQueryDTO,
+					aggregationQuery,
 					requestingUserId,
 					targetUserId, // same user
 					query,
